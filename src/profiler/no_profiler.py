@@ -1,7 +1,7 @@
 from src.profiler.io_profiler import IOProfiler
 
 
-class TFProfiler(IOProfiler):
+class NoProfiler(IOProfiler):
     def __init__(self, logdir):
         super().__init__(logdir)
 

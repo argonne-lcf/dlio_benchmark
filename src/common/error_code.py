@@ -29,3 +29,4 @@ class ErrorCode(object):
 class ErrorCodes:
     EC0000 = {0, "SUCCESSFUL"}
     EC1000 = {1000, "ERROR: Incorrect Computation Type"}
+    EC1001 = {1001, "ERROR: Incorrect Format Type"}
