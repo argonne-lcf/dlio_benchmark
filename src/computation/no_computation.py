@@ -1,7 +1,7 @@
 from src.computation.computation_handler import ComputationHandler
 
 
-class SyncComputation(ComputationHandler):
+class NoComputation(ComputationHandler):
     def __init__(self):
         super().__init__()
 
