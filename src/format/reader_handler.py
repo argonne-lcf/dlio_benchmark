@@ -31,6 +31,7 @@ class FormatReader(ABC):
         read_shuffle = True
         if self.read_shuffle == Shuffle.OFF:
             read_shuffle = False
+        seed = None
         if read_shuffle:
             seed = self.seed
             if self.seed_change_epoch:
@@ -47,7 +48,8 @@ class FormatReader(ABC):
         self._local_file_list = files[part_start:part_end]
         if seed is not None:
             random.seed(seed)
-        random.shuffle( self._local_file_list)
+        if read_shuffle:
+            random.shuffle( self._local_file_list)
 
     @abstractmethod
     def next(self):

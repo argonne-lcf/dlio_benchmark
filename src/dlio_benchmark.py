@@ -6,6 +6,8 @@ from src.utils.argument_parser import ArgumentParser
 
 import horovod.tensorflow as hvd
 import os
+import shutil
+
 
 class DLIOBenchmark(object):
     def __init__(self):
@@ -72,6 +74,10 @@ class DLIOBenchmark(object):
         if self.arg_parser.args.profiling:
             self.darshan.stop()
             self.tensorboard.stop()
+        if not self.arg_parser.args.keep_files:
+            if os.path.exists(self.arg_parser.args.data_folder):
+                shutil.rmtree(self.arg_parser.args.data_folder)
+
 
 if __name__ == '__main__':
     hvd.init()

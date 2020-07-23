@@ -56,7 +56,7 @@ class ArgumentParser(object):
                                  help="Number of epochs to be emulated within benchmark.")
         self.parser.add_argument("-se", "--seed-change-epoch", default=False, type=str2bool,
                                  help="change seed between epochs. y/n")
-        self.parser.add_argument("-gd", "--generate-data", default=False, type=str2bool,
+        self.parser.add_argument("-gd", "--generate-data", default=True, type=str2bool,
                                  help="Enable generation of data. y/n")
         self.parser.add_argument("-df", "--data-folder", default="./data", type=str,
                                  help="Set the path of folder where data is present in top-level.")
@@ -78,11 +78,11 @@ class ArgumentParser(object):
                                  help="How many steps to enable checkpoint.")
         self.parser.add_argument("-ts", "--transfer-size", default=0, type=int,
                                  help="Transfer Size for tensorflow buffer size.")
-        self.parser.add_argument("-rt", "--read-threads", default=0, type=int,
+        self.parser.add_argument("-tr", "--read-threads", default=0, type=int,
                                  help="Number of threads to be used for reads.")
-        self.parser.add_argument("-cp", "--computation-threads", default=0, type=int,
+        self.parser.add_argument("-tc", "--computation-threads", default=0, type=int,
                                  help="Number of threads to be used for pre-processing.")
-        self.parser.add_argument("-p", "--prefetch", default=False, type=str2bool,
+        self.parser.add_argument("-rp", "--prefetch", default=False, type=str2bool,
                                  help="Enable prefetch within benchmark.")
         self.parser.add_argument("-ps", "--prefetch-size", default=0, type=int,
                                  help="Enable prefetch buffer within benchmark.")
@@ -90,6 +90,8 @@ class ArgumentParser(object):
         self._validate()
         self.args.my_rank = hvd.local_rank()
         self.args.comm_size = hvd.size()
+        #self.args.my_rank = 0
+        #self.args.comm_size = 1
 
     def _validate(self):
         '''
