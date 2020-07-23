@@ -14,7 +14,7 @@ class CSVReader(FormatReader):
         super().read(epoch_number)
         packed_array = []
         for file in self._local_file_list:
-            with open(file) as csv_file:
+            with open(file, encoding="utf-8") as csv_file:
                 csv_reader = csv.reader(csv_file)
                 rows = []
                 for row in csv_reader:
