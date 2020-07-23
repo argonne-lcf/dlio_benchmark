@@ -7,6 +7,7 @@ from src.utils.argument_parser import ArgumentParser
 import horovod.tensorflow as hvd
 import os
 import shutil
+from mpi4py import MPI
 
 
 class DLIOBenchmark(object):
@@ -30,6 +31,7 @@ class DLIOBenchmark(object):
             self.darshan.start()
             self.tensorboard.start()
             print("profiling started")
+        MPI.COMM_WORLD.barrier()
 
     def _checkpoint(self, step_number):
         if not os.path.exists(self.arg_parser.args.output_folder):
@@ -73,6 +75,7 @@ class DLIOBenchmark(object):
             self.reader_handler.finalize()
 
     def finalize(self):
+        MPI.COMM_WORLD.barrier()
         if self.arg_parser.args.profiling:
             self.darshan.stop()
             self.tensorboard.stop()
