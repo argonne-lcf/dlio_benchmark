@@ -2,17 +2,51 @@ from enum import Enum
 
 
 class ComputationType(Enum):
-    NONE = 0
-    SYNC = 1
-    ASYNC = 2
+    NONE = 'none'
+    SYNC = 'sync'
+    ASYNC = 'async'
+
 
 class FormatType(Enum):
-    TFRECORD = 0
-    HDF5 = 1
-    CSV = 2
-    NPZ = 3
+    TFRECORD = 'tfrecord'
+    HDF5 = 'hdf5'
+    CSV = 'csv'
+    NPZ = 'npz'
+
+    def __str__(self):
+        return self.value
+
 
 class Profiler(Enum):
-    NONE = 0
-    DARSHAN = 1
-    TENSORBOARD = 2
+    NONE = 'none'
+    DARSHAN = 'darshan'
+    TENSORBOARD = 'tensorboard'
+
+    def __str__(self):
+        return self.value
+
+
+class Shuffle(Enum):
+    OFF = 'off'
+    SEED = 'seed'
+    RANDOM = 'random'
+
+    def __str__(self):
+        return self.value
+
+
+class ReadType(Enum):
+    IN_MEMORY = 'memory'
+    ON_DEMAND = 'on_demand'
+
+    def __str__(self):
+        return self.value
+
+
+class FileAccess(Enum):
+    MULTI = 'multi'
+    SHARED = 'shared'
+    COLLECTIVE = 'collective'
+
+    def __str__(self):
+        return self.value

@@ -1,11 +1,10 @@
 from src.common.enumerations import Shuffle
 from src.format.reader_handler import FormatReader
-import h5py
+import numpy as np
 import math
 from numpy import random
 
-
-class HDF5Reader(FormatReader):
+class NPZReader(FormatReader):
     def __init__(self):
         super().__init__()
 
@@ -13,19 +12,14 @@ class HDF5Reader(FormatReader):
         super().read(epoch_number)
         packed_array = []
         for file in self._local_file_list:
-            file_h5 = h5py.File(file, 'r')
-            dimention = int(math.sqrt(self.record_size))
-            sample = (dimention, dimention)
-            dataset_h = file_h5['records']
-            current_sample = 0
-            packed_array.append({
-                'dataset': dataset_h,
-                'file': file_h5,
-                'sample': sample,
-                'current_sample': 0,
-                'total_samples': dataset_h.shape[2]
-            })
-        self._dataset = packed_array
+            with np.load(file) as data:
+                rows = data['x']
+                packed_array.append({
+                    'dataset': rows,
+                    'current_sample': 0,
+                    'total_samples': rows.shape[2]
+                })
+        self._dataset =  packed_array
 
     def next(self):
         super().next()
@@ -41,5 +35,4 @@ class HDF5Reader(FormatReader):
                 yield element['dataset'][:][:][num_set * self.batch_size:(num_set + 1) * self.batch_size - 1]
 
     def finalize(self):
-        for obj in self._dataset:
-            obj['file'].close()
+        pass

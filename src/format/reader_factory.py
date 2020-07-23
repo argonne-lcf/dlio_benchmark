@@ -1,24 +1,24 @@
 from src.common.enumerations import FormatType
 from src.common.error_code import ErrorCodes
-from src.format.csv_format import CSVFormat
-from src.format.hdf5_format import HDF5Format
-from src.format.npz_format import NPZFormat
-from src.format.tf_format import TFFormat
+from src.format.csv_reader import CSVReader
+from src.format.hdf5_format import HDF5Reader
+from src.format.npz_reader import NPZReader
+from src.format.tf_reader import TFReader
 
 
-class FormatFactory(object):
+class ReaderFactory(object):
     def __init__(self):
         pass
 
     @staticmethod
     def get_format(type):
         if type == FormatType.TFRECORD:
-            return TFFormat()
+            return TFReader()
         elif type == FormatType.HDF5:
-            return HDF5Format()
+            return HDF5Reader()
         elif type == FormatType.CSV:
-            return CSVFormat()
+            return CSVReader()
         elif type == FormatType.NPZ:
-            return NPZFormat()
+            return NPZReader()
         else:
             raise Exception(str(ErrorCodes.EC1001))

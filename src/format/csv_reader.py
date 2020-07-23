@@ -1,11 +1,12 @@
 from src.common.enumerations import Shuffle
 from src.format.reader_handler import FormatReader
-import h5py
+import csv
 import math
+
 from numpy import random
 
 
-class HDF5Reader(FormatReader):
+class CSVReader(FormatReader):
     def __init__(self):
         super().__init__()
 
@@ -13,18 +14,19 @@ class HDF5Reader(FormatReader):
         super().read(epoch_number)
         packed_array = []
         for file in self._local_file_list:
-            file_h5 = h5py.File(file, 'r')
-            dimention = int(math.sqrt(self.record_size))
-            sample = (dimention, dimention)
-            dataset_h = file_h5['records']
-            current_sample = 0
-            packed_array.append({
-                'dataset': dataset_h,
-                'file': file_h5,
-                'sample': sample,
-                'current_sample': 0,
-                'total_samples': dataset_h.shape[2]
-            })
+            with open(file) as csv_file:
+                csv_reader = csv.reader(csv_file)
+                rows = []
+                for row in csv_reader:
+                    rows.append({
+                        'record': row[0],
+                        'label': row[1]
+                    })
+                packed_array.append({
+                    'dataset': rows,
+                    'current_sample': 0,
+                    'total_samples': len(rows)
+                })
         self._dataset = packed_array
 
     def next(self):
@@ -38,8 +40,7 @@ class HDF5Reader(FormatReader):
                     random.seed(self.seed)
                 random.shuffle(num_sets)
             for num_set in num_sets:
-                yield element['dataset'][:][:][num_set * self.batch_size:(num_set + 1) * self.batch_size - 1]
+                yield element['dataset'][num_set * self.batch_size:(num_set + 1) * self.batch_size - 1]
 
     def finalize(self):
-        for obj in self._dataset:
-            obj['file'].close()
+        pass
