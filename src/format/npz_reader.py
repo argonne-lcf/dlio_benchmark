@@ -12,7 +12,7 @@ class NPZReader(FormatReader):
         super().read(epoch_number)
         packed_array = []
         for file in self._local_file_list:
-            with np.load(file) as data:
+            with np.load(file, allow_pickle=True) as data:
                 rows = data['x']
                 packed_array.append({
                     'dataset': rows,
