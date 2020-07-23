@@ -1,4 +1,4 @@
-from src.common.enumerations import Shuffle
+from src.common.enumerations import Shuffle, FileAccess
 from src.format.reader_handler import FormatReader
 import numpy as np
 import math
@@ -26,7 +26,14 @@ class NPZReader(FormatReader):
         for element in self._dataset:
             current_index = element['current_sample']
             total_samples = element['total_samples']
-            num_sets = list(range(0, int(math.ceil(total_samples / self.batch_size))))
+            if FileAccess.MULTI == self.file_access:
+                num_sets = list(range(0, int(math.ceil(total_samples / self.batch_size))))
+            else:
+                total_samples_per_rank = int(total_samples / self.comm_size)
+                part_start, part_end = (int(total_samples_per_rank * self.my_rank / self.batch_size),
+                                        int(total_samples_per_rank * (self.my_rank + 1) / self.batch_size))
+                num_sets = list(range(part_start, part_end))
+
             if self.memory_shuffle != Shuffle.OFF:
                 if self.memory_shuffle == Shuffle.SEED:
                     random.seed(self.seed)

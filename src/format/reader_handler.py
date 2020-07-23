@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from src.common.enumerations import Shuffle
+from src.common.enumerations import Shuffle, FileAccess
 from src.utils.argument_parser import ArgumentParser
 
 import os
@@ -23,19 +23,14 @@ class FormatReader(ABC):
         self.prefetch_size = self._arg_parser.args.prefetch_size
         self.batch_size = self._arg_parser.args.batch_size
         self.transfer_size = self._arg_parser.args.transfer_size
+        self.file_access = self._arg_parser.args.file_access
+        self.my_rank = self._arg_parser.args.my_rank
+        self.comm_size = self._arg_parser.args.comm_size
         self._dataset = None
         self._local_file_list = None
 
     @abstractmethod
     def read(self, epoch_number):
-        read_shuffle = True
-        if self.read_shuffle == Shuffle.OFF:
-            read_shuffle = False
-        seed = None
-        if read_shuffle:
-            seed = self.seed
-            if self.seed_change_epoch:
-                seed = self.seed + epoch_number
         filenames = os.listdir(self.data_dir)
         files = list()
         # Iterate over all the entries
@@ -43,13 +38,23 @@ class FormatReader(ABC):
             # Create full path
             fullPath = os.path.join(self.data_dir, entry)
             files.append(fullPath)
-        partition_size = int(math.ceil(len(files) / self._arg_parser.args.comm_size))
-        part_start, part_end = (partition_size * self._arg_parser.args.my_rank, partition_size * (self._arg_parser.args.my_rank + 1))
-        self._local_file_list = files[part_start:part_end]
-        if seed is not None:
-            random.seed(seed)
-        if read_shuffle:
-            random.shuffle( self._local_file_list)
+        if FileAccess.MULTI == self.file_access:
+            read_shuffle = True
+            if self.read_shuffle == Shuffle.OFF:
+                read_shuffle = False
+            if read_shuffle:
+                seed = self.seed
+                if self.seed_change_epoch:
+                    seed = self.seed + epoch_number
+            partition_size = int(math.ceil(len(files) / self.comm_size))
+            part_start, part_end = (partition_size * self.my_rank, partition_size * ( self.my_rank + 1))
+            self._local_file_list = files[part_start:part_end]
+            if seed is not None:
+                random.seed(seed)
+            if read_shuffle:
+                random.shuffle(self._local_file_list)
+        else:
+            self._local_file_list = files
 
     @abstractmethod
     def next(self):
