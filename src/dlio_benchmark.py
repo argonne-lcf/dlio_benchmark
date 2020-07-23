@@ -23,11 +23,13 @@ class DLIOBenchmark(object):
         self.reader_handler = ReaderFactory.get_format(self.arg_parser.args.format)
 
     def initialize(self):
-        if self.arg_parser.args.generate_data:
+        if self.arg_parser.args.my_rank == 0 and self.arg_parser.args.generate_data:
             self.data_generator.generate()
+            print("Generation done")
         if self.arg_parser.args.profiling:
             self.darshan.start()
             self.tensorboard.start()
+            print("profiling started")
 
     def _checkpoint(self, step_number):
         if not os.path.exists(self.arg_parser.args.output_folder):
@@ -65,18 +67,20 @@ class DLIOBenchmark(object):
     def run(self):
         for epoch_number in range(0, self.arg_parser.args.epochs):
             self.reader_handler.read(epoch_number)
-            print("Datasets loaded in {} epochs".format(epoch_number + 1))
+            print("Datasets loaded in {} epochs for rank {}".format(epoch_number + 1,self.arg_parser.args.my_rank))
             steps = self._train()
-            print("Finished {} steps in {} epochs".format(steps, epoch_number + 1))
+            print("Finished {} steps in {} epochs for rank {}".format(steps, epoch_number + 1,self.arg_parser.args.my_rank))
             self.reader_handler.finalize()
 
     def finalize(self):
         if self.arg_parser.args.profiling:
             self.darshan.stop()
             self.tensorboard.stop()
-        if not self.arg_parser.args.keep_files:
+            print("profiling stoped")
+        if not self.arg_parser.args.keep_files and self.arg_parser.args.my_rank==0:
             if os.path.exists(self.arg_parser.args.data_folder):
                 shutil.rmtree(self.arg_parser.args.data_folder)
+                print("Deleted data files")
 
 
 if __name__ == '__main__':

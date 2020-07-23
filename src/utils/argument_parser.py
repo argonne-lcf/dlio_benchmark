@@ -78,9 +78,9 @@ class ArgumentParser(object):
                                  help="How many steps to enable checkpoint.")
         self.parser.add_argument("-ts", "--transfer-size", default=0, type=int,
                                  help="Transfer Size for tensorflow buffer size.")
-        self.parser.add_argument("-tr", "--read-threads", default=0, type=int,
+        self.parser.add_argument("-tr", "--read-threads", default=None, type=int,
                                  help="Number of threads to be used for reads.")
-        self.parser.add_argument("-tc", "--computation-threads", default=0, type=int,
+        self.parser.add_argument("-tc", "--computation-threads", default=None, type=int,
                                  help="Number of threads to be used for pre-processing.")
         self.parser.add_argument("-rp", "--prefetch", default=False, type=str2bool,
                                  help="Enable prefetch within benchmark.")
