@@ -92,3 +92,4 @@ if __name__ == '__main__':
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()
+    exit(0)
