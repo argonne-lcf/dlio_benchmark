@@ -7,6 +7,7 @@ from src.utils.argument_parser import ArgumentParser
 import horovod.tensorflow as hvd
 import os
 import shutil
+hvd.init()
 from mpi4py import MPI
 
 
@@ -87,7 +88,6 @@ class DLIOBenchmark(object):
 
 
 if __name__ == '__main__':
-    hvd.init()
     benchmark = DLIOBenchmark()
     benchmark.initialize()
     benchmark.run()
