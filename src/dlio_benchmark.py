@@ -88,6 +88,7 @@ class DLIOBenchmark(object):
 
 
 if __name__ == '__main__':
+    os.environ["DARSHAN_DISABLE"] = "1" 
     benchmark = DLIOBenchmark()
     benchmark.initialize()
     benchmark.run()
