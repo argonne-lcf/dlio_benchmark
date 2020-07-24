@@ -52,7 +52,7 @@ class TFReader(FormatReader):
         super().next()
         a = iter(self._dataset)
         count = 1
-        total = math.ceil(self.num_samples*self.num_files/self.batch_size)
+        total = math.ceil(self.num_samples*self.num_files/self.batch_size/self.comm_size)
         for i in a:
             progress(count, total, "Reading TFRecord Data")
             count += 1

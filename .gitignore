@@ -137,3 +137,5 @@ dmypy.json
 /.idea/vcs.xml
 /.idea/workspace.xml
 /.idea/other.xml
+/data/
+/logdir/

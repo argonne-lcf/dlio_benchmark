@@ -1,0 +1,5 @@
+horovod~=0.19.5
+tensorflow~=2.2.0
+numpy~=1.19.1
+h5py~=2.10.0
+mpi4py~=3.0.3

@@ -25,6 +25,9 @@ class DLIOBenchmark(object):
         self.reader_handler = ReaderFactory.get_format(self.arg_parser.args.format)
 
     def initialize(self):
+        if self.arg_parser.args.debug and self.arg_parser.args.my_rank == 0:
+            input("Press enter to start\n")
+        MPI.COMM_WORLD.barrier()
         if self.arg_parser.args.my_rank == 0 and self.arg_parser.args.generate_data:
             self.data_generator.generate()
             print("Generation done")
@@ -90,7 +93,7 @@ class DLIOBenchmark(object):
 
 
 if __name__ == '__main__':
-    os.environ["DARSHAN_DISABLE"] = "1" 
+    os.environ["DARSHAN_DISABLE"] = "1"
     benchmark = DLIOBenchmark()
     benchmark.initialize()
     benchmark.run()
