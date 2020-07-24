@@ -95,4 +95,5 @@ if __name__ == '__main__':
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()
+    MPI.COMM_WORLD.barrier()
     exit(0)
