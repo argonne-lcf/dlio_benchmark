@@ -27,7 +27,7 @@ class NPZReader(FormatReader):
     def next(self):
         super().next()
         total = 0
-        count = 0
+        count = 1
         for element in self._dataset:
             current_index = element['current_sample']
             total_samples = element['total_samples']

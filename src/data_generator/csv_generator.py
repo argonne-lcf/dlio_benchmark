@@ -17,7 +17,7 @@ class CSVGenerator(DataGenerator):
         record = random.random((self._dimension * self._dimension))
         record_label = 0
         for i in range(0, int(self.num_files)):
-            progress(i, self.num_files, "Generating CSV Data")
+            progress(i+1, self.num_files, "Generating CSV Data")
             out_path_spec = "{}_{}_of_{}.csv".format(self._file_prefix, i, self.num_files)
             with open(out_path_spec, 'w') as csvfile:
                 writer = csv.writer(csvfile)

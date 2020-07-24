@@ -17,7 +17,7 @@ class CSVReader(FormatReader):
         packed_array = []
         count = 0
         for file in self._local_file_list:
-            progress(count, len(self._local_file_list), "Opening CSV Data")
+            progress(count+1, len(self._local_file_list), "Opening CSV Data")
             count += 1
             with open(file, encoding="utf-8") as csv_file:
                 csv_reader = csv.reader(csv_file)
