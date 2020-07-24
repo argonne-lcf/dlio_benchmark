@@ -2,6 +2,8 @@ from src.data_generator.data_generator import DataGenerator
 from numpy import random
 import tensorflow as tf
 
+from src.utils.utility import progress
+
 
 class TFRecordGenerator(DataGenerator):
     def __init__(self):
@@ -12,6 +14,7 @@ class TFRecordGenerator(DataGenerator):
         record = random.random((self._dimension, self._dimension))
         record_label = 0
         for i in range(0, int(self.num_files)):
+            progress(i, self.num_files, "Generating TFRecord Data")
             out_path_spec = "{}_{}_of_{}.tfrecords".format(self._file_prefix, i, self.num_files)
             # Open a TFRecordWriter for the output-file.
             with tf.io.TFRecordWriter(out_path_spec) as writer:

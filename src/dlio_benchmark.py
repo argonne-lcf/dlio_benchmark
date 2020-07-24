@@ -1,6 +1,6 @@
 from src.common.enumerations import Profiler
 from src.data_generator.generator_factory import GeneratorFactory
-from src.format.reader_factory import ReaderFactory
+from src.reader.reader_factory import ReaderFactory
 from src.profiler.profiler_factory import ProfilerFactory
 from src.utils.argument_parser import ArgumentParser
 

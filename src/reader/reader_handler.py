@@ -26,6 +26,8 @@ class FormatReader(ABC):
         self.file_access = self._arg_parser.args.file_access
         self.my_rank = self._arg_parser.args.my_rank
         self.comm_size = self._arg_parser.args.comm_size
+        self.num_files = self._arg_parser.args.num_files
+        self.num_samples = self._arg_parser.args.num_samples
         self._dataset = None
         self._local_file_list = None
 

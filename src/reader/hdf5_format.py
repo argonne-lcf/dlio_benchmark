@@ -1,8 +1,10 @@
 from src.common.enumerations import Shuffle, FileAccess
-from src.format.reader_handler import FormatReader
+from src.reader.reader_handler import FormatReader
 import h5py
 import math
 from numpy import random
+
+from src.utils.utility import progress
 
 
 class HDF5Reader(FormatReader):
@@ -12,7 +14,10 @@ class HDF5Reader(FormatReader):
     def read(self, epoch_number):
         super().read(epoch_number)
         packed_array = []
+        count = 0
         for file in self._local_file_list:
+            progress(count, len(self._local_file_list), "Opening HDF5 Data")
+            count += 1
             file_h5 = h5py.File(file, 'r')
             dimention = int(math.sqrt(self.record_size))
             sample = (dimention, dimention)
@@ -29,6 +34,8 @@ class HDF5Reader(FormatReader):
 
     def next(self):
         super().next()
+        total = 0
+        count = 0
         for element in self._dataset:
             current_index = element['current_sample']
             total_samples = element['total_samples']
@@ -39,11 +46,14 @@ class HDF5Reader(FormatReader):
                 total_samples_per_rank = int(total_samples / self.comm_size)
                 part_start, part_end = (int(total_samples_per_rank*self.my_rank/self.batch_size), int(total_samples_per_rank*(self.my_rank+1)/self.batch_size))
                 num_sets = list(range(part_start, part_end))
+            total += len(num_sets)
             if self.memory_shuffle != Shuffle.OFF:
                 if self.memory_shuffle == Shuffle.SEED:
                     random.seed(self.seed)
                 random.shuffle(num_sets)
             for num_set in num_sets:
+                progress(count, total, "Reading HDF5 Data")
+                count += 1
                 yield element['dataset'][:][:][num_set * self.batch_size:(num_set + 1) * self.batch_size - 1]
 
     def finalize(self):

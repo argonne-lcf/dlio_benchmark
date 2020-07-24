@@ -1,8 +1,10 @@
 import math
 
 from src.common.enumerations import Shuffle
-from src.format.reader_handler import FormatReader
+from src.reader.reader_handler import FormatReader
 import tensorflow as tf
+
+from src.utils.utility import progress
 
 
 class TFReader(FormatReader):
@@ -49,7 +51,11 @@ class TFReader(FormatReader):
     def next(self):
         super().next()
         a = iter(self._dataset)
+        count = 0
+        total = math.ceil(self.num_samples*self.num_files/self.batch_size)
         for i in a:
+            progress(count, total, "Reading TFRecord Data")
+            count += 1
             yield i
             yield next(a)
 

@@ -1,9 +1,9 @@
 from src.common.enumerations import FormatType
 from src.common.error_code import ErrorCodes
-from src.format.csv_reader import CSVReader
-from src.format.hdf5_format import HDF5Reader
-from src.format.npz_reader import NPZReader
-from src.format.tf_reader import TFReader
+from src.reader.csv_reader import CSVReader
+from src.reader.hdf5_format import HDF5Reader
+from src.reader.npz_reader import NPZReader
+from src.reader.tf_reader import TFReader
 
 
 class ReaderFactory(object):
