@@ -38,7 +38,7 @@ class HDF5Reader(FormatReader):
         for element in self._dataset:
             file_h5 = h5py.File(element['file'], 'r')
             dataset = file_h5['records']
-            total_samples = dataset.shape[2]
+            total_samples = dataset.shape[0]
             if FileAccess.MULTI == self.file_access:
                 num_sets = list(range(0, int(math.ceil(total_samples/self.batch_size))))
             else:
@@ -53,7 +53,7 @@ class HDF5Reader(FormatReader):
             for num_set in num_sets:
                 progress(count, total, "Reading HDF5 Data")
                 count += 1
-                yield dataset[:][:][num_set * self.batch_size:(num_set + 1) * self.batch_size - 1]
+                yield dataset[num_set * self.batch_size:(num_set + 1) * self.batch_size - 1][:][:]
             file_h5.close()
 
     def finalize(self):

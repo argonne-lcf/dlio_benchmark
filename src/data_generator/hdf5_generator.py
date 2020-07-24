@@ -11,12 +11,12 @@ class HDF5Generator(DataGenerator):
 
     def generate(self):
         super().generate()
-        records = random.random((self._dimension, self._dimension, self.num_samples))
+        records = random.random((self.num_samples, self._dimension, self._dimension))
         record_labels = [0] * self.num_samples
         for i in range(0, int(self.num_files)):
             progress(i+1, self.num_files, "Generating HDF5 Data")
             out_path_spec = "{}_{}_of_{}.h5".format(self._file_prefix, i, self.num_files)
             hf = h5py.File(out_path_spec, 'w')
-            hf.create_dataset('records', data=records)
+            hf.create_dataset('records', data=records, chunks=(1, self._dimension, self._dimension))
             hf.create_dataset('labels', data=record_labels)
             hf.close()
