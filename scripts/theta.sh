@@ -20,11 +20,11 @@ echo "aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_
 # shellcheck disable=SC2068
 echo ${OPTS[@]}
 aprun -n 1 -N 1 -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$NUM_THREADS -d $PROCESS_DISTANCE \
-python src/dlio_benchmark.py ${OPTS[@]} \
+python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]} \
 -go 1
 
 aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$NUM_THREADS -d $PROCESS_DISTANCE \
 -e DXT_ENABLE_IO_TRACE=1 -e LD_PRELOAD=$DARSHAN_PRELOAD \
-python src/dlio_benchmark.py ${OPTS[@]}
+python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]}
 
 
