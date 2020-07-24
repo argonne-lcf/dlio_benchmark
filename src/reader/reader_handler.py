@@ -40,6 +40,7 @@ class FormatReader(ABC):
             # Create full path
             fullPath = os.path.join(self.data_dir, entry)
             files.append(fullPath)
+        seed = None
         if FileAccess.MULTI == self.file_access:
             read_shuffle = True
             if self.read_shuffle == Shuffle.OFF:
