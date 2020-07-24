@@ -15,9 +15,9 @@ class CSVReader(FormatReader):
     def read(self, epoch_number):
         super().read(epoch_number)
         packed_array = []
-        count = 0
+        count = 1
         for file in self._local_file_list:
-            progress(count+1, len(self._local_file_list), "Opening CSV Data")
+            progress(count, len(self._local_file_list), "Opening CSV Data")
             count += 1
             with open(file, encoding="utf-8") as csv_file:
                 csv_reader = csv.reader(csv_file)
@@ -37,7 +37,7 @@ class CSVReader(FormatReader):
     def next(self):
         super().next()
         total = 0
-        count = 0
+        count = 1
         for element in self._dataset:
             current_index = element['current_sample']
             total_samples = element['total_samples']
