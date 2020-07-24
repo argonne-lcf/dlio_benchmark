@@ -64,6 +64,8 @@ class ArgumentParser(object):
                                  help="Set the path of folder where output can be generated.")
         self.parser.add_argument("-fp", "--file-prefix", default="img", type=str,
                                  help="Prefix for generated files.")
+        self.parser.add_argument("-go", "--generate-only", default=False, type=str2bool,
+                                 help="Only generate files.")
         self.parser.add_argument("-k", "--keep-files", default=False, type=str2bool,
                                  help="Keep files after benchmark. y/n")
         self.parser.add_argument("-p", "--profiling",  default=True, type=str2bool,

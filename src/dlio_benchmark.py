@@ -68,23 +68,25 @@ class DLIOBenchmark(object):
         return step - 1
 
     def run(self):
-        for epoch_number in range(0, self.arg_parser.args.epochs):
-            self.reader_handler.read(epoch_number)
-            print("Datasets loaded in {} epochs for rank {}".format(epoch_number + 1,self.arg_parser.args.my_rank))
-            steps = self._train()
-            print("Finished {} steps in {} epochs for rank {}".format(steps, epoch_number + 1,self.arg_parser.args.my_rank))
-            self.reader_handler.finalize()
+        if self.arg_parser.args.generate_only:
+            for epoch_number in range(0, self.arg_parser.args.epochs):
+                self.reader_handler.read(epoch_number)
+                print("Datasets loaded in {} epochs for rank {}".format(epoch_number + 1,self.arg_parser.args.my_rank))
+                steps = self._train()
+                print("Finished {} steps in {} epochs for rank {}".format(steps, epoch_number + 1,self.arg_parser.args.my_rank))
+                self.reader_handler.finalize()
 
     def finalize(self):
         MPI.COMM_WORLD.barrier()
-        if self.arg_parser.args.profiling:
-            self.darshan.stop()
-            self.tensorboard.stop()
-            print("profiling stoped")
-        if not self.arg_parser.args.keep_files and self.arg_parser.args.my_rank==0:
-            if os.path.exists(self.arg_parser.args.data_folder):
-                shutil.rmtree(self.arg_parser.args.data_folder)
-                print("Deleted data files")
+        if self.arg_parser.args.generate_only:
+            if self.arg_parser.args.profiling:
+                self.darshan.stop()
+                self.tensorboard.stop()
+                print("profiling stoped")
+            if not self.arg_parser.args.keep_files and self.arg_parser.args.my_rank==0:
+                if os.path.exists(self.arg_parser.args.data_folder):
+                    shutil.rmtree(self.arg_parser.args.data_folder)
+                    print("Deleted data files")
 
 
 if __name__ == '__main__':
