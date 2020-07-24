@@ -21,7 +21,8 @@ class DarshanProfiler(IOProfiler):
 
     def start(self):
         os.environ["LD_PRELOAD"] = "=/soft/perftools/darshan/darshan-3.1.8/lib/libdarshan.so"
-        os.environ["DXT_ENABLE_IO_TRACE"] = 1
+        os.environ["DXT_ENABLE_IO_TRACE"] = "1"
+        os.environ["DARSHAN_DISABLE"] = "0"
 
     def stop(self):
         del os.environ['LD_PRELOAD']
