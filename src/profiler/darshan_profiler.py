@@ -1,5 +1,5 @@
 from src.profiler.io_profiler import IOProfiler
-
+import os
 
 class DarshanProfiler(IOProfiler):
     __instance = None
@@ -20,7 +20,9 @@ class DarshanProfiler(IOProfiler):
             DarshanProfiler.__instance = self
 
     def start(self):
-        pass
+        os.environ["LD_PRELOAD"] = "=/soft/perftools/darshan/darshan-3.1.8/lib/libdarshan.so"
+        os.environ["DXT_ENABLE_IO_TRACE"] = 1
 
     def stop(self):
-        pass
+        del os.environ['LD_PRELOAD']
+        del os.environ['DXT_ENABLE_IO_TRACE']

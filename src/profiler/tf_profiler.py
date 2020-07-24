@@ -1,5 +1,5 @@
 from src.profiler.io_profiler import IOProfiler
-
+import tensorflow as tf
 
 class TFProfiler(IOProfiler):
     __instance = None
@@ -20,7 +20,7 @@ class TFProfiler(IOProfiler):
             TFProfiler.__instance = self
 
     def start(self):
-        pass
+        tf.profiler.experimental.start(self.logdir)
 
     def stop(self):
-        pass
+        tf.profiler.experimental.stop()
