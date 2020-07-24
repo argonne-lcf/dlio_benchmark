@@ -1,5 +1,5 @@
 #!/usr/bin/sh
-
+#COBALT -n 8 -A datascience -t 1:00:00 -q debug-cache-quad
 ##COBALT -n 128 -A datascience -t 3:00:00 -q default --jobname=dlio --attrs mcdram=cache:numa=quad
 CURRENT_DIR=`pwd`
 DLIO_ROOT=`dirname $CURRENT_DIR`
@@ -14,17 +14,19 @@ THREADS_PER_CORE=2
 NUM_THREADS=$((NUM_CORES*THREADS_PER_CORE))
 PROCESS_DISTANCE=$((NUM_THREADS/RANKS_PER_NODE))
 
-OPTS=(-f csv -fa shared -nf 1 -k 1)
+OPTS=(-f csv -fa shared -nf 1)
 
 echo "aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$NUM_THREADS -d $PROCESS_DISTANCE"
 # shellcheck disable=SC2068
 echo ${OPTS[@]}
 aprun -n 1 -N 1 -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$NUM_THREADS -d $PROCESS_DISTANCE \
 python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]} \
--go 1
+-go 1 \
+-k 1
 
 aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$NUM_THREADS -d $PROCESS_DISTANCE \
 -e DXT_ENABLE_IO_TRACE=1 -e LD_PRELOAD=$DARSHAN_PRELOAD \
-python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]}
+python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]} \
+-k 0
 
 
