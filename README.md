@@ -2,6 +2,10 @@
 This is repository for a I/O benchmark which represents Scientific Deep Learning Workloads.
 
 #TODO
+- For multi file case open as needed instead of begining. and check if it open then just read. once samples are read close it.
+- csv should be binary.
+- for shared file case close file after all epochs.
+- add MPIIO flag and chunking HDF5
 - Add argument validations
     - Shared should use one file
     - multiple should have atleast files = nranks
