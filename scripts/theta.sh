@@ -24,6 +24,7 @@ echo "aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_
 echo "Options are: ${OPTS[@]}"
 aprun -n 1 -N 1 -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$NUM_THREADS -d $PROCESS_DISTANCE \
 python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]} \
+-gd 1 \
 -p 0 \
 -go 1 \
 -k 1
