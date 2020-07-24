@@ -21,7 +21,7 @@ OPTS=(-f csv -fa shared -nf 1 -df ${DATA_DIR})
 
 echo "aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$NUM_THREADS -d $PROCESS_DISTANCE"
 # shellcheck disable=SC2068
-echo ${OPTS[@]}
+echo "Options are: ${OPTS[@]}"
 aprun -n 1 -N 1 -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$NUM_THREADS -d $PROCESS_DISTANCE \
 python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]} \
 -p 0 \

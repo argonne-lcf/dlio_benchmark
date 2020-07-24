@@ -68,7 +68,7 @@ class DLIOBenchmark(object):
         return step - 1
 
     def run(self):
-        if self.arg_parser.args.generate_only:
+        if not self.arg_parser.args.generate_only:
             for epoch_number in range(0, self.arg_parser.args.epochs):
                 self.reader_handler.read(epoch_number)
                 print("Datasets loaded in {} epochs for rank {}".format(epoch_number + 1,self.arg_parser.args.my_rank))
@@ -78,7 +78,7 @@ class DLIOBenchmark(object):
 
     def finalize(self):
         MPI.COMM_WORLD.barrier()
-        if self.arg_parser.args.generate_only:
+        if not self.arg_parser.args.generate_only:
             if self.arg_parser.args.profiling:
                 self.darshan.stop()
                 self.tensorboard.stop()
