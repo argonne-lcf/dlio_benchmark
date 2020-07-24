@@ -32,7 +32,7 @@ class ArgumentParser(object):
         else:
             ArgumentParser.__instance = self
         self.parser = argparse.ArgumentParser(description='DLIO Benchmark')
-        self.parser.add_argument("-f", "--reader", default=FormatType.TFRECORD, type=FormatType, choices=list(FormatType),
+        self.parser.add_argument("-f", "--format", default=FormatType.TFRECORD, type=FormatType, choices=list(FormatType),
                                  help="data reader to use.")
         self.parser.add_argument("-r", "--read-shuffle", default=Shuffle.OFF, type=Shuffle, choices=list(Shuffle),
                                  help="Enable shuffle during read.")
