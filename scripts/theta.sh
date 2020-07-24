@@ -33,6 +33,7 @@ echo "Data Generation Done."
 aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$NUM_THREADS -d $PROCESS_DISTANCE \
 -e DXT_ENABLE_IO_TRACE=1 -e LD_PRELOAD=$DARSHAN_PRELOAD \
 python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]} \
+-gd 0 \
 -p 1 \
 -go 0 \
 -k 0
