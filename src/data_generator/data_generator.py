@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from src.utils.argument_parser import ArgumentParser
 import math
 import os
+from shutil import copyfile
 
 
 class DataGenerator(ABC):

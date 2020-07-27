@@ -17,26 +17,24 @@ PROCESS_DISTANCE=$((NUM_THREADS/RANKS_PER_NODE))
 DATA_DIR=/projects/datascience/dhari/dlio_datasets
 rm -rf ${DATA_DIR}/*
 
-OPTS=(-f csv -fa shared -nf 1 -df ${DATA_DIR})
+OPTS=(-f tfrecord -fa multi -nf 1024  -df ${DATA_DIR})
 
-echo "aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$NUM_THREADS -d $PROCESS_DISTANCE"
+echo "aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$PROCESS_DISTANCE -d $PROCESS_DISTANCE"
 # shellcheck disable=SC2068
 echo "Options are: ${OPTS[@]}"
-aprun -n 1 -N 1 -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$NUM_THREADS -d $PROCESS_DISTANCE \
-python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]} \
--gd 1 \
--p 0 \
--go 1 \
--k 1
+#aprun -n 1 -N 1 -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$PROCESS_DISTANCE -d $PROCESS_DISTANCE \
+#python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]} \
+#-gd 1 \
+#-p 0 \
+#-go 1 \
+#-k 1
+#
+#echo "Data Generation Done."
 
-echo "Data Generation Done."
-
-aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$NUM_THREADS -d $PROCESS_DISTANCE \
+aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$PROCESS_DISTANCE -d $PROCESS_DISTANCE \
 -e DXT_ENABLE_IO_TRACE=1 -e LD_PRELOAD=$DARSHAN_PRELOAD \
 python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]} \
--gd 0 \
 -p 1 \
--go 0 \
 -k 0
 
 

@@ -5,6 +5,7 @@ import os
 from numpy import random
 import csv
 
+from shutil import copyfile
 from src.utils.utility import progress
 
 
@@ -16,10 +17,15 @@ class CSVGenerator(DataGenerator):
         super().generate()
         record = random.random((self._dimension * self._dimension))
         record_label = 0
+        prev_out_spec = ""
         for i in range(0, int(self.num_files)):
             progress(i+1, self.num_files, "Generating CSV Data")
             out_path_spec = "{}_{}_of_{}.csv".format(self._file_prefix, i, self.num_files)
-            with open(out_path_spec, 'w') as csvfile:
-                writer = csv.writer(csvfile)
-                for j in range(0, self.num_samples):
-                    writer.writerow([record, record_label])
+            if i == 0:
+                prev_out_spec = out_path_spec
+                with open(out_path_spec, 'w') as csvfile:
+                    writer = csv.writer(csvfile)
+                    for j in range(0, self.num_samples):
+                        writer.writerow([record, record_label])
+            else:
+                copyfile(prev_out_spec, out_path_spec)

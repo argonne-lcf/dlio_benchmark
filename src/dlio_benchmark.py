@@ -40,10 +40,10 @@ class DLIOBenchmark(object):
     def _checkpoint(self, step_number):
         if not os.path.exists(self.arg_parser.args.output_folder):
             os.makedirs(self.arg_parser.args.output_folder)
-        model_file = os.path.join(self.arg_parser.args.output_folder, "model_{}.bin".format(step_number))
-        bak_file1 = os.path.join(self.arg_parser.args.output_folder, "file1_{}.bin".format(step_number))
-        bak_file2 = os.path.join(self.arg_parser.args.output_folder, "file2_{}.bin".format(step_number))
-        meta_file = os.path.join(self.arg_parser.args.output_folder, "meta_{}.bin".format(step_number))
+        model_file = os.path.join(self.arg_parser.args.output_folder, "model_{}_{}.bin".format(step_number, self.arg_parser.args.my_rank))
+        bak_file1 = os.path.join(self.arg_parser.args.output_folder, "file1_{}_{}.bin".format(step_number, self.arg_parser.args.my_rank))
+        bak_file2 = os.path.join(self.arg_parser.args.output_folder, "file2_{}_{}.bin".format(step_number, self.arg_parser.args.my_rank))
+        meta_file = os.path.join(self.arg_parser.args.output_folder, "meta_{}_{}.bin".format(step_number, self.arg_parser.args.my_rank))
         f = open(model_file, "w")
         string_val = "x" * (1024 * 1024 * 4)
         f.write(string_val)
