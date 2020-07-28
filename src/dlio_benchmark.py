@@ -3,13 +3,19 @@ from src.data_generator.generator_factory import GeneratorFactory
 from src.reader.reader_factory import ReaderFactory
 from src.profiler.profiler_factory import ProfilerFactory
 from src.utils.argument_parser import ArgumentParser
-
+import tensorflow as tf
 import horovod.tensorflow as hvd
 import math
 import os
 import shutil
+
 hvd.init()
 from mpi4py import MPI
+
+
+def barrier():
+    const = tf.constant(1)
+    reduced = hvd.allreduce(const)
 
 
 class DLIOBenchmark(object):
@@ -33,7 +39,7 @@ class DLIOBenchmark(object):
     def initialize(self):
         if self.arg_parser.args.debug and self.arg_parser.args.my_rank == 0:
             input("Press enter to start\n")
-        MPI.COMM_WORLD.barrier()
+        barrier()
         if self.arg_parser.args.generate_data:
             self.data_generator.generate()
             print("Generation done")
@@ -41,15 +47,19 @@ class DLIOBenchmark(object):
             self.darshan.start()
             self.tensorboard.start()
             print("profiling started")
-        MPI.COMM_WORLD.barrier()
+        barrier()
 
     def _checkpoint(self, step_number):
         if not os.path.exists(self.arg_parser.args.output_folder):
             os.makedirs(self.arg_parser.args.output_folder)
-        model_file = os.path.join(self.arg_parser.args.output_folder, "model_{}_{}.bin".format(step_number, self.arg_parser.args.my_rank))
-        bak_file1 = os.path.join(self.arg_parser.args.output_folder, "file1_{}_{}.bin".format(step_number, self.arg_parser.args.my_rank))
-        bak_file2 = os.path.join(self.arg_parser.args.output_folder, "file2_{}_{}.bin".format(step_number, self.arg_parser.args.my_rank))
-        meta_file = os.path.join(self.arg_parser.args.output_folder, "meta_{}_{}.bin".format(step_number, self.arg_parser.args.my_rank))
+        model_file = os.path.join(self.arg_parser.args.output_folder,
+                                  "model_{}_{}.bin".format(step_number, self.arg_parser.args.my_rank))
+        bak_file1 = os.path.join(self.arg_parser.args.output_folder,
+                                 "file1_{}_{}.bin".format(step_number, self.arg_parser.args.my_rank))
+        bak_file2 = os.path.join(self.arg_parser.args.output_folder,
+                                 "file2_{}_{}.bin".format(step_number, self.arg_parser.args.my_rank))
+        meta_file = os.path.join(self.arg_parser.args.output_folder,
+                                 "meta_{}_{}.bin".format(step_number, self.arg_parser.args.my_rank))
         f = open(model_file, "w")
         string_val = "x" * (1024 * 1024 * 4)
         f.write(string_val)
@@ -71,7 +81,7 @@ class DLIOBenchmark(object):
     def _train(self):
         step = 1
 
-        total = math.ceil(self.num_samples*self.num_files/self.batch_size/self.comm_size)
+        total = math.ceil(self.num_samples * self.num_files / self.batch_size / self.comm_size)
         for element in self.reader_handler.next():
             if self.arg_parser.args.checkpoint and step % self.arg_parser.args.steps_checkpoint == 0:
                 self._checkpoint(step)
@@ -84,14 +94,15 @@ class DLIOBenchmark(object):
         if not self.arg_parser.args.generate_only:
             for epoch_number in range(0, self.arg_parser.args.epochs):
                 self.reader_handler.read(epoch_number)
-                print("Datasets loaded in {} epochs for rank {}".format(epoch_number + 1,self.arg_parser.args.my_rank))
+                print("Datasets loaded in {} epochs for rank {}".format(epoch_number + 1, self.arg_parser.args.my_rank))
                 steps = self._train()
-                print("Finished {} steps in {} epochs for rank {}".format(steps, epoch_number + 1,self.arg_parser.args.my_rank))
+                print("Finished {} steps in {} epochs for rank {}".format(steps, epoch_number + 1,
+                                                                          self.arg_parser.args.my_rank))
                 self.reader_handler.finalize()
 
     def finalize(self):
         print("Finalizing for rank {}".format(self.arg_parser.args.my_rank))
-        #MPI.COMM_WORLD.barrier()
+        barrier()
         if not self.arg_parser.args.generate_only:
             if self.arg_parser.args.profiling:
                 self.darshan.stop()
@@ -99,7 +110,7 @@ class DLIOBenchmark(object):
                 print("profiling stopped")
             if not self.arg_parser.args.keep_files:
                 MPI.COMM_WORLD.barrier()
-                if self.arg_parser.args.my_rank==0:
+                if self.arg_parser.args.my_rank == 0:
                     if os.path.exists(self.arg_parser.args.data_folder):
                         shutil.rmtree(self.arg_parser.args.data_folder)
                         print("Deleted data files")
@@ -112,5 +123,5 @@ if __name__ == '__main__':
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()
-    #MPI.COMM_WORLD.barrier()
+    # MPI.COMM_WORLD.barrier()
     exit(0)
