@@ -88,9 +88,10 @@ class DLIOBenchmark(object):
                 steps = self._train()
                 print("Finished {} steps in {} epochs for rank {}".format(steps, epoch_number + 1,self.arg_parser.args.my_rank))
                 self.reader_handler.finalize()
-            MPI.COMM_WORLD.barrier()
+                MPI.COMM_WORLD.barrier()
 
     def finalize(self):
+        print("Finalizing for rank {}".format(self.arg_parser.args.my_rank))
         MPI.COMM_WORLD.barrier()
         if not self.arg_parser.args.generate_only:
             if self.arg_parser.args.profiling:
