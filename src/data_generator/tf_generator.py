@@ -15,12 +15,13 @@ class TFRecordGenerator(DataGenerator):
         record = random.random((self._dimension, self._dimension))
         record_label = 0
         prev_out_spec =""
+        count = 0
         for i in range(0, int(self.num_files)):
             if i % self.comm_size == self.my_rank:
                 progress(i+1, self.num_files, "Generating TFRecord Data")
                 out_path_spec = "{}_{}_of_{}.tfrecords".format(self._file_prefix, i, self.num_files)
                 # Open a TFRecordWriter for the output-file.
-                if i == 0:
+                if count == 0:
                     prev_out_spec = out_path_spec
                     with tf.io.TFRecordWriter(out_path_spec) as writer:
                         for i in range(0, self.num_samples):
@@ -37,5 +38,6 @@ class TFRecordGenerator(DataGenerator):
                             serialized = example.SerializeToString()
                             # Write the serialized data to the TFRecords file.
                             writer.write(serialized)
+                    count += 1
                 else:
                     copyfile(prev_out_spec, out_path_spec)
