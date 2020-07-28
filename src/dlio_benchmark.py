@@ -96,7 +96,7 @@ class DLIOBenchmark(object):
             if self.arg_parser.args.profiling:
                 self.darshan.stop()
                 self.tensorboard.stop()
-                print("profiling stoped")
+                print("profiling stopped")
             if not self.arg_parser.args.keep_files and self.arg_parser.args.my_rank==0:
                 if os.path.exists(self.arg_parser.args.data_folder):
                     shutil.rmtree(self.arg_parser.args.data_folder)
