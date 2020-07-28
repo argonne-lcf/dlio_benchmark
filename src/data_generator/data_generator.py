@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from src.utils.argument_parser import ArgumentParser
 import math
 import os
+from mpi4py import MPI
 from shutil import copyfile
 
 
@@ -22,7 +23,9 @@ class DataGenerator(ABC):
 
     @abstractmethod
     def generate(self):
-        if not os.path.exists(self.data_dir):
+
+        if self.my_rank == 0 and not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
+        MPI.COMM_WORLD.barrier()
         self._dimension = int(math.sqrt(self.record_size))
         self._file_prefix = os.path.join(self.data_dir, self.file_prefix)
