@@ -5,6 +5,7 @@ from src.profiler.profiler_factory import ProfilerFactory
 from src.utils.argument_parser import ArgumentParser
 
 import horovod.tensorflow as hvd
+import math
 import os
 import shutil
 hvd.init()
@@ -17,6 +18,10 @@ class DLIOBenchmark(object):
         self.darshan = None
         self.tensorboard = None
         self.data_generator = None
+        self.my_rank = self.arg_parser.args.my_rank
+        self.comm_size = self.arg_parser.args.comm_size
+        self.num_files = self.arg_parser.args.num_files
+        self.num_samples = self.arg_parser.args.num_samples
         if self.arg_parser.args.profiling:
             self.darshan = ProfilerFactory().get_profiler(Profiler.DARSHAN)
             self.tensorboard = ProfilerFactory().get_profiler(Profiler.TENSORBOARD)
@@ -64,10 +69,14 @@ class DLIOBenchmark(object):
 
     def _train(self):
         step = 1
+
+        total = math.ceil(self.num_samples*self.num_files/self.batch_size/self.comm_size)
         for element in self.reader_handler.next():
             if self.arg_parser.args.checkpoint and step % self.arg_parser.args.steps_checkpoint == 0:
                 self._checkpoint(step)
             step += 1
+            if step > total:
+                break
         return step - 1
 
     def run(self):
