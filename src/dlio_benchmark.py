@@ -28,7 +28,7 @@ class DLIOBenchmark(object):
         if self.arg_parser.args.debug and self.arg_parser.args.my_rank == 0:
             input("Press enter to start\n")
         MPI.COMM_WORLD.barrier()
-        if self.arg_parser.args.my_rank == 0 and self.arg_parser.args.generate_data:
+        if self.arg_parser.args.generate_data:
             self.data_generator.generate()
             print("Generation done")
         if self.arg_parser.args.profiling:

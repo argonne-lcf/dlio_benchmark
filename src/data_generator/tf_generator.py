@@ -16,25 +16,26 @@ class TFRecordGenerator(DataGenerator):
         record_label = 0
         prev_out_spec =""
         for i in range(0, int(self.num_files)):
-            progress(i+1, self.num_files, "Generating TFRecord Data")
-            out_path_spec = "{}_{}_of_{}.tfrecords".format(self._file_prefix, i, self.num_files)
-            # Open a TFRecordWriter for the output-file.
-            if i == 0:
-                prev_out_spec = out_path_spec
-                with tf.io.TFRecordWriter(out_path_spec) as writer:
-                    for i in range(0, self.num_samples):
-                        img_bytes = record.tostring()
-                        data = {
-                            'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img_bytes])),
-                            'label': tf.train.Feature(int64_list=tf.train.Int64List(value=[record_label]))
-                        }
-                        # Wrap the data as TensorFlow Features.
-                        feature = tf.train.Features(feature=data)
-                        # Wrap again as a TensorFlow Example.
-                        example = tf.train.Example(features=feature)
-                        # Serialize the data.
-                        serialized = example.SerializeToString()
-                        # Write the serialized data to the TFRecords file.
-                        writer.write(serialized)
-            else:
-                copyfile(prev_out_spec, out_path_spec)
+            if i % self.comm_size == self.my_rank:
+                progress(i+1, self.num_files, "Generating TFRecord Data")
+                out_path_spec = "{}_{}_of_{}.tfrecords".format(self._file_prefix, i, self.num_files)
+                # Open a TFRecordWriter for the output-file.
+                if i == 0:
+                    prev_out_spec = out_path_spec
+                    with tf.io.TFRecordWriter(out_path_spec) as writer:
+                        for i in range(0, self.num_samples):
+                            img_bytes = record.tostring()
+                            data = {
+                                'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img_bytes])),
+                                'label': tf.train.Feature(int64_list=tf.train.Int64List(value=[record_label]))
+                            }
+                            # Wrap the data as TensorFlow Features.
+                            feature = tf.train.Features(feature=data)
+                            # Wrap again as a TensorFlow Example.
+                            example = tf.train.Example(features=feature)
+                            # Serialize the data.
+                            serialized = example.SerializeToString()
+                            # Write the serialized data to the TFRecords file.
+                            writer.write(serialized)
+                else:
+                    copyfile(prev_out_spec, out_path_spec)
