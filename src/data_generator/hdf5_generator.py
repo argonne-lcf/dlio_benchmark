@@ -11,6 +11,7 @@ class HDF5Generator(DataGenerator):
     def __init__(self):
         super().__init__()
         self.chunk_size = self._arg_parser.args.chunk_size
+        self.enable_chunking = self._arg_parser.args.enable_chunking
 
     def generate(self):
         super().generate()
@@ -25,9 +26,13 @@ class HDF5Generator(DataGenerator):
                 if count == 0:
                     prev_out_spec = out_path_spec
                     hf = h5py.File(out_path_spec, 'w')
-                    chunk_dimension = int(math.sqrt(self.chunk_size))
-                    hf.create_dataset('records', data=records, chunks=(1, chunk_dimension, chunk_dimension))
-                    hf.create_dataset('labels', data=record_labels)
+                    if self.enable_chunking:
+                        chunk_dimension = int(math.sqrt(self.chunk_size))
+                        hf.create_dataset('records', data=records, chunks=(1, chunk_dimension, chunk_dimension))
+                        hf.create_dataset('labels', data=record_labels)
+                    else:
+                        hf.create_dataset('records', data=records)
+                        hf.create_dataset('labels', data=record_labels)
                     hf.close()
                     count += 1
                 else:
