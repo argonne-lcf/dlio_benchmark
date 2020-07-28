@@ -109,7 +109,7 @@ class DLIOBenchmark(object):
                 self.tensorboard.stop()
                 print("profiling stopped")
             if not self.arg_parser.args.keep_files:
-                MPI.COMM_WORLD.barrier()
+                barrier()
                 if self.arg_parser.args.my_rank == 0:
                     if os.path.exists(self.arg_parser.args.data_folder):
                         shutil.rmtree(self.arg_parser.args.data_folder)
@@ -123,5 +123,5 @@ if __name__ == '__main__':
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()
-    # MPI.COMM_WORLD.barrier()
+    barrier()
     exit(0)
