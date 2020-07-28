@@ -14,6 +14,8 @@ THREADS_PER_CORE=2
 NUM_THREADS=$((NUM_CORES*THREADS_PER_CORE))
 PROCESS_DISTANCE=$((NUM_THREADS/RANKS_PER_NODE))
 
+DARSHAN_PRELOAD=/soft/perftools/darshan/darshan-3.1.8/lib/libdarshan.so
+
 DATA_DIR=/projects/datascience/dhari/dlio_datasets
 rm -rf ${DATA_DIR}/*
 
