@@ -20,7 +20,7 @@ class NPZGenerator(DataGenerator):
         for i in range(0, int(self.num_files)):
             if i % self.comm_size == self.my_rank:
                 progress(i+1, self.num_files, "Generating NPZ Data")
-                out_path_spec = "{}_{}_of_{}.csv".format(self._file_prefix, i, self.num_files)
+                out_path_spec = "{}_{}_of_{}.npz".format(self._file_prefix, i, self.num_files)
                 if count == 0:
                     prev_out_spec = out_path_spec
                     np.savez(out_path_spec, x=records, y=record_labels)
