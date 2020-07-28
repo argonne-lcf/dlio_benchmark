@@ -78,7 +78,6 @@ class DLIOBenchmark(object):
             step += 1
             if step > total:
                 return step - 1
-            MPI.COMM_WORLD.barrier()
         return step - 1
 
     def run(self):
