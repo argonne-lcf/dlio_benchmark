@@ -97,11 +97,13 @@ class DLIOBenchmark(object):
                 self.darshan.stop()
                 self.tensorboard.stop()
                 print("profiling stopped")
-            if not self.arg_parser.args.keep_files and self.arg_parser.args.my_rank==0:
-                if os.path.exists(self.arg_parser.args.data_folder):
-                    shutil.rmtree(self.arg_parser.args.data_folder)
-                    print("Deleted data files")
-        #MPI.COMM_WORLD.barrier()
+            if not self.arg_parser.args.keep_files:
+                MPI.COMM_WORLD.barrier()
+                if self.arg_parser.args.my_rank==0:
+                    if os.path.exists(self.arg_parser.args.data_folder):
+                        shutil.rmtree(self.arg_parser.args.data_folder)
+                        print("Deleted data files")
+        #
 
 
 if __name__ == '__main__':
