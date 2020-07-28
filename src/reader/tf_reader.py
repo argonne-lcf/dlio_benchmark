@@ -58,6 +58,8 @@ class TFReader(FormatReader):
             count += 1
             yield i
             yield next(a)
+            if count > total:
+                break
 
     def finalize(self):
         pass

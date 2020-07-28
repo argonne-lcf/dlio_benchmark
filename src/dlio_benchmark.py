@@ -72,8 +72,7 @@ class DLIOBenchmark(object):
         step = 1
 
         total = math.ceil(self.num_samples*self.num_files/self.batch_size/self.comm_size)
-        for i in range(0, total):
-            element = self.reader_handler.next()
+        for element in self.reader_handler.next():
             if self.arg_parser.args.checkpoint and step % self.arg_parser.args.steps_checkpoint == 0:
                 self._checkpoint(step)
             step += 1
