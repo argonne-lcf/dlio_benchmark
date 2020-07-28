@@ -91,7 +91,7 @@ class DLIOBenchmark(object):
 
     def finalize(self):
         print("Finalizing for rank {}".format(self.arg_parser.args.my_rank))
-        MPI.COMM_WORLD.barrier()
+        #MPI.COMM_WORLD.barrier()
         if not self.arg_parser.args.generate_only:
             if self.arg_parser.args.profiling:
                 self.darshan.stop()
@@ -101,7 +101,7 @@ class DLIOBenchmark(object):
                 if os.path.exists(self.arg_parser.args.data_folder):
                     shutil.rmtree(self.arg_parser.args.data_folder)
                     print("Deleted data files")
-        MPI.COMM_WORLD.barrier()
+        #MPI.COMM_WORLD.barrier()
 
 
 if __name__ == '__main__':
@@ -110,5 +110,5 @@ if __name__ == '__main__':
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()
-    MPI.COMM_WORLD.barrier()
+    #MPI.COMM_WORLD.barrier()
     exit(0)
