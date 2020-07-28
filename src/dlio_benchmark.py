@@ -8,9 +8,7 @@ import horovod.tensorflow as hvd
 import math
 import os
 import shutil
-
 hvd.init()
-from mpi4py import MPI
 
 
 def barrier():

@@ -96,7 +96,7 @@ class ArgumentParser(object):
                                  help="Enable debug in code.")
         self.args = self.parser.parse_args()
         self._validate()
-        self.args.my_rank = hvd.local_rank()
+        self.args.my_rank = hvd.rank()
         self.args.comm_size = hvd.size()
         #self.args.my_rank = 0
         #self.args.comm_size = 1
