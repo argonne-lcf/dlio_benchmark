@@ -22,6 +22,7 @@ class DLIOBenchmark(object):
         self.comm_size = self.arg_parser.args.comm_size
         self.num_files = self.arg_parser.args.num_files
         self.num_samples = self.arg_parser.args.num_samples
+        self.batch_size = self.arg_parser.args.batch_size
         if self.arg_parser.args.profiling:
             self.darshan = ProfilerFactory().get_profiler(Profiler.DARSHAN)
             self.tensorboard = ProfilerFactory().get_profiler(Profiler.TENSORBOARD)
