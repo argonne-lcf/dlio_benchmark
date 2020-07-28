@@ -101,6 +101,7 @@ class DLIOBenchmark(object):
                 if os.path.exists(self.arg_parser.args.data_folder):
                     shutil.rmtree(self.arg_parser.args.data_folder)
                     print("Deleted data files")
+        MPI.COMM_WORLD.barrier()
 
 
 if __name__ == '__main__':
