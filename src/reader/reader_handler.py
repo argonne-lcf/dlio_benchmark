@@ -51,8 +51,8 @@ class FormatReader(ABC):
                     seed = self.seed + epoch_number
             partition_size = int(math.ceil(len(files) / self.comm_size))
             part_start, part_end = (partition_size * self.my_rank, partition_size * ( self.my_rank + 1))
-            print("rank {}, file_list {}".format(self.my_rank, self._local_file_list))
             self._local_file_list = files[part_start:part_end]
+            print("rank {}, file_list {}".format(self.my_rank, self._local_file_list))
             if seed is not None:
                 random.seed(seed)
             if read_shuffle:
