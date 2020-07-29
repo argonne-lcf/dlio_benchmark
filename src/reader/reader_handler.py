@@ -42,6 +42,7 @@ class FormatReader(ABC):
             files.append(fullPath)
         seed = None
         if FileAccess.MULTI == self.file_access:
+            files = files[:self.num_files]
             read_shuffle = True
             if self.read_shuffle == Shuffle.OFF:
                 read_shuffle = False
