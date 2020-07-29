@@ -52,7 +52,7 @@ class FormatReader(ABC):
             partition_size = int(math.ceil(len(files) / self.comm_size))
             part_start, part_end = (partition_size * self.my_rank, partition_size * ( self.my_rank + 1))
             self._local_file_list = files[part_start:part_end]
-            print("rank {}, file_list {}".format(self.my_rank, self._local_file_list))
+            print("rank {}, file_list {}, size {}".format(self.my_rank, self._local_file_list,partition_size))
             if seed is not None:
                 random.seed(seed)
             if read_shuffle:
