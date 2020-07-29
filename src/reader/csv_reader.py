@@ -24,8 +24,7 @@ class CSVReader(FormatReader):
                 rows = []
                 for row in csv_reader:
                     rows.append({
-                        'record': row[0],
-                        'label': row[1]
+                        'record': row
                     })
                 packed_array.append({
                     'dataset': rows,
