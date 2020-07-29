@@ -33,7 +33,7 @@ python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]}
 #Cosmic Tagger
 APP_DATA_DIR=${DATA_DIR}/cosmic
 
-OPTS=(-f hdf5 -fa shared -nf 1 -sf 43000 -df ${APP_DATA_DIR} -rl 40960 -ec 1 -cs 2048 -gd 0 -k 1)
+OPTS=(-f hdf5 -fa shared -nf 1 -sf 43000 -rl 40960 -ec 1 -cs 2048 -df ${APP_DATA_DIR}  -gd 0 -k 1)
 
 aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$PROCESS_DISTANCE -d $PROCESS_DISTANCE \
 -e DXT_ENABLE_IO_TRACE=1 -e LD_PRELOAD=$DARSHAN_PRELOAD \
@@ -42,7 +42,7 @@ python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]}
 #FFN
 APP_DATA_DIR=${DATA_DIR}/ffn
 
-OPTS=(-f hdf5 -fa shared -nf 1 -sf 4096 -df ${APP_DATA_DIR} -rl 4096 -gd 0 -k 1)
+OPTS=(-f hdf5 -fa shared -nf 1 -sf 4096 -rl 4096 -bs 1 -ec 0 -df ${APP_DATA_DIR}  -gd 0 -k 1)
 
 aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$PROCESS_DISTANCE -d $PROCESS_DISTANCE \
 -e DXT_ENABLE_IO_TRACE=1 -e LD_PRELOAD=$DARSHAN_PRELOAD \
@@ -51,7 +51,7 @@ python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]}
 #cosmoflow
 APP_DATA_DIR=${DATA_DIR}/cosmoflow
 
-OPTS=(-f tfrecord -fa multi -nf 1024 -sf 512 -df ${APP_DATA_DIR} -rl 131072 -gd 0 -k 1)
+OPTS=(-f tfrecord -fa multi -nf 1024 -sf 512 -rl 131072 -bs 1 -df ${APP_DATA_DIR} -gd 0 -k 1)
 
 aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$PROCESS_DISTANCE -d $PROCESS_DISTANCE \
 -e DXT_ENABLE_IO_TRACE=1 -e LD_PRELOAD=$DARSHAN_PRELOAD \
@@ -60,7 +60,7 @@ python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]}
 #candel
 APP_DATA_DIR=${DATA_DIR}/candel
 
-OPTS=(-f csv -fa shared -nf 1 -sf 1120 -df ${APP_DATA_DIR} -rl 262144 -gd 0 -k 1)
+OPTS=(-f csv -fa shared -nf 1 -sf 1120 -rl 262144  -bs 1 -df ${APP_DATA_DIR} -gd 0 -k 1)
 
 aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$PROCESS_DISTANCE -d $PROCESS_DISTANCE \
 -e DXT_ENABLE_IO_TRACE=1 -e LD_PRELOAD=$DARSHAN_PRELOAD \
@@ -69,7 +69,7 @@ python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]}
 #frnn
 APP_DATA_DIR=${DATA_DIR}/frnn
 
-OPTS=(-f npz -fa multi -nf 28000 -sf 1024 -df ${APP_DATA_DIR} -rl 2048 -gd 0 -k 1)
+OPTS=(-f npz -fa multi -nf 28000 -sf 1024 -rl 2048 -bs 1 -df ${APP_DATA_DIR} -gd 0 -k 1)
 
 aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$PROCESS_DISTANCE -d $PROCESS_DISTANCE \
 -e DXT_ENABLE_IO_TRACE=1 -e LD_PRELOAD=$DARSHAN_PRELOAD \

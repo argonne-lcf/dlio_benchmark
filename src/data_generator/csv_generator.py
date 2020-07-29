@@ -27,6 +27,7 @@ class CSVGenerator(DataGenerator):
                     prev_out_spec = out_path_spec
                     with open(out_path_spec, 'w') as csvfile:
                         writer = csv.writer(csvfile)
+                        print("{} samples of size {}".format(self.num_samples, self._dimension * self._dimension))
                         for j in range(0, self.num_samples):
                             writer.writerow([record, record_label])
                     count += 1
