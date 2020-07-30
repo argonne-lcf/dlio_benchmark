@@ -25,7 +25,7 @@ class HDF5Generator(DataGenerator):
                 out_path_spec = "{}_{}_of_{}.h5".format(self._file_prefix, i+1, self.num_files)
                 if count == 0:
                     prev_out_spec = out_path_spec
-                    hf = h5py.File(out_path_spec, 'w')
+                    hf = h5py.File(out_path_spec, 'w',rdcc_nbytes=0)
                     if self.enable_chunking:
                         chunk_dimension = int(math.ceil(math.sqrt(self.chunk_size)))
                         hf.create_dataset('records', data=records, chunks=(1, chunk_dimension, chunk_dimension))

@@ -36,7 +36,7 @@ class HDF5Reader(FormatReader):
         total = 0
         count = 1
         for element in self._dataset:
-            file_h5 = h5py.File(element['file'], 'r')
+            file_h5 = h5py.File(element['file'], 'r', rdcc_nbytes=0)
             dataset = file_h5['records']
             total_samples = dataset.shape[0]
             if FileAccess.MULTI == self.file_access:
