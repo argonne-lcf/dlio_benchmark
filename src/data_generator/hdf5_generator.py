@@ -33,6 +33,7 @@ class HDF5Generator(DataGenerator):
                     else:
                         hf.create_dataset('records', data=records)
                         hf.create_dataset('labels', data=record_labels)
+                    hf.flush()
                     hf.close()
                     count += 1
                 else:
