@@ -28,6 +28,8 @@ class HDF5Generator(DataGenerator):
                     hf = h5py.File(out_path_spec, 'w')
                     if self.enable_chunking:
                         chunk_dimension = int(math.ceil(math.sqrt(self.chunk_size)))
+                        if chunk_dimension > self._dimension:
+                            chunk_dimension = self._dimension
                         hf.create_dataset('records', data=records, chunks=(chunk_dimension, chunk_dimension, 1))
                         hf.create_dataset('labels', data=record_labels)
                     else:
