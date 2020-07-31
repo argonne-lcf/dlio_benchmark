@@ -15,7 +15,7 @@ class HDF5Generator(DataGenerator):
 
     def generate(self):
         super().generate()
-        records = random.random((self._dimension, self._dimension, self.num_samples))
+        records = random.random((self.num_samples, self._dimension, self._dimension))
         record_labels = [0] * self.num_samples
         prev_out_spec = ""
         count = 0
@@ -30,7 +30,7 @@ class HDF5Generator(DataGenerator):
                         chunk_dimension = int(math.ceil(math.sqrt(self.chunk_size)))
                         if chunk_dimension > self._dimension:
                             chunk_dimension = self._dimension
-                        hf.create_dataset('records', data=records, chunks=(chunk_dimension, chunk_dimension, 1))
+                        hf.create_dataset('records', data=records, chunks=(1, chunk_dimension, chunk_dimension))
                         hf.create_dataset('labels', data=record_labels)
                     else:
                         hf.create_dataset('records', data=records)
