@@ -53,7 +53,7 @@ class HDF5Reader(FormatReader):
             for num_set in num_sets:
                 progress(count, total, "Reading HDF5 Data")
                 count += 1
-                yield dataset[num_set * self.batch_size:(num_set + 1) * self.batch_size - 1]
+                yield dataset[num_set * self.batch_size:(num_set + 1) * self.batch_size]
             file_h5.close()
     def finalize(self):
         pass
