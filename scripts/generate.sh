@@ -23,5 +23,6 @@ do
 APP_DATA_DIR=${DATA_DIR}/ffn_${u}MB
 size_val=$((u*1024))
 OPTS=(-f hdf5 -fa shared -nf 1 -sf 43008 -rl 32768 -bs 1 -ec 1 -cs $size_val -df ${APP_DATA_DIR} -gd 1 -go 1 -k 1)
+echo "mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]}"
 mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]}
 done
