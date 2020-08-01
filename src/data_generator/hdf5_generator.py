@@ -41,7 +41,7 @@ class HDF5Generator(DataGenerator):
                         compression = str(self.compression)
                         if self.compression == Compression.GZIP:
                             compression_level = self.compression_level
-                    hf.create_dataset('records', data=records, chunks=chunks, compression_opts=compression_level)
+                    hf.create_dataset('records', data=records, chunks=chunks, compression=compression, compression_opts=compression_level)
                     hf.create_dataset('labels', data=record_labels)
                     hf.close()
                     count += 1
