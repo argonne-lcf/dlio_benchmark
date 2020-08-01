@@ -50,3 +50,11 @@ class FileAccess(Enum):
 
     def __str__(self):
         return self.value
+
+class Compression(Enum):
+    NONE = 'none'
+    GZIP = 'gzip'
+    LZF = 'lzf'
+
+    def __str__(self):
+        return self.value

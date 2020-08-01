@@ -1,6 +1,6 @@
 import argparse
 
-from src.common.enumerations import FormatType, Shuffle, ReadType, FileAccess
+from src.common.enumerations import FormatType, Shuffle, ReadType, FileAccess, Compression
 import horovod.tensorflow as hvd
 
 def str2bool(v):
@@ -92,6 +92,10 @@ class ArgumentParser(object):
                                  help="Enable chunking for HDF5 files.")
         self.parser.add_argument("-cs", "--chunk-size", default=0, type=int,
                                  help="Set chunk size in bytes for HDF5.")
+        self.parser.add_argument("-co", "--compression", default=Compression.NONE, type=Compression, choices=list(Compression),
+                                 help="Compression to use.")
+        self.parser.add_argument("-cl", "--compression-level", default=4, type=int,
+                                 help="Level of compression for GZip.")
         self.parser.add_argument("-d", "--debug", default=False, type=str2bool,
                                  help="Enable debug in code.")
         self.args = self.parser.parse_args()

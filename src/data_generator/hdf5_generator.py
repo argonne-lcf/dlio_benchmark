@@ -2,6 +2,7 @@ import h5py
 from numpy import random
 import math
 
+from src.common.enumerations import Compression
 from src.data_generator.data_generator import DataGenerator
 from src.utils.utility import progress
 from shutil import copyfile
@@ -12,6 +13,8 @@ class HDF5Generator(DataGenerator):
         super().__init__()
         self.chunk_size = self._arg_parser.args.chunk_size
         self.enable_chunking = self._arg_parser.args.enable_chunking
+        self.compression = self._arg_parser.args.compression
+        self.compression_level = self._arg_parser.args.compression_level
 
     def generate(self):
         super().generate()
@@ -26,15 +29,20 @@ class HDF5Generator(DataGenerator):
                 if count == 0:
                     prev_out_spec = out_path_spec
                     hf = h5py.File(out_path_spec, 'w')
+                    chunks = None
                     if self.enable_chunking:
                         chunk_dimension = int(math.ceil(math.sqrt(self.chunk_size)))
                         if chunk_dimension > self._dimension:
                             chunk_dimension = self._dimension
-                        hf.create_dataset('records', data=records, chunks=(1, chunk_dimension, chunk_dimension))
-                        hf.create_dataset('labels', data=record_labels)
-                    else:
-                        hf.create_dataset('records', data=records)
-                        hf.create_dataset('labels', data=record_labels)
+                        chunks = (1, chunk_dimension, chunk_dimension)
+                    compression = None
+                    compression_level = None
+                    if self.compression != Compression.NONE:
+                        compression = str(self.compression)
+                        if self.compression == Compression.GZIP:
+                            compression_level = self.compression_level
+                    hf.create_dataset('records', data=records, chunks=chunks, compression_opts=compression_level)
+                    hf.create_dataset('labels', data=record_labels)
                     hf.close()
                     count += 1
                 else:
