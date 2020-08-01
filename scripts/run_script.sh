@@ -13,4 +13,5 @@ do
   sleep 2
   echo "Waiting"
 done
+ls /home/dhari/darshan-logs/benchmark/ffn/optimization/
 done
