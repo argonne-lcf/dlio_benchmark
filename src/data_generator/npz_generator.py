@@ -1,3 +1,4 @@
+from src.common.enumerations import Compression
 from src.data_generator.data_generator import DataGenerator
 
 import numpy as np
@@ -23,7 +24,10 @@ class NPZGenerator(DataGenerator):
                 out_path_spec = "{}_{}_of_{}.npz".format(self._file_prefix, i, self.num_files)
                 if count == 0:
                     prev_out_spec = out_path_spec
-                    np.savez(out_path_spec, x=records, y=record_labels)
+                    if self.compression != Compression.ZIP:
+                        np.savez(out_path_spec, x=records, y=record_labels)
+                    else:
+                        np.savez_compressed(out_path_spec, x=records, y=record_labels)
                     count += 1
                 else:
                     copyfile(prev_out_spec, out_path_spec)
