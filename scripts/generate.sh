@@ -10,14 +10,14 @@ DATA_DIR=/projects/datascience/dhari/dlio_datasets
 
 #CANDEL
 cm=(none gzip bz2 zip xz)
-COMM_OPTS=(-f csv -fa shared -nf 1 -sf 1120 -rl 32768 -bs 1 -cl 0 -df ${APP_DATA_DIR} -gd 1 -go 1 -k 1)
+COMM_OPTS=(-f csv -fa shared -nf 1 -sf 1120 -rl 32768 -bs 1 -cl 0 -gd 1 -go 1 -k 1)
 
 
 for u in "${cm[@]}"
 do
 APP_DATA_DIR=${DATA_DIR}/candel_$u
-echo "mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py ${COMM_OPTS[@]} -co $u"
-mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py ${COMM_OPTS[@]} -co $u
+echo "mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py ${COMM_OPTS[@]} -co $u -df ${APP_DATA_DIR}"
+mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py ${COMM_OPTS[@]} -co $u -df ${APP_DATA_DIR}
 ls APP_DATA_DIR=${DATA_DIR}/candel*
 done
 
