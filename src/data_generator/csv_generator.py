@@ -34,6 +34,14 @@ class CSVGenerator(DataGenerator):
                         compression = {
                             "method": str(self.compression)
                         }
+                        if self.compression != Compression.GZIP:
+                            out_path_spec = out_path_spec + ".gz"
+                        elif self.compression != Compression.BZIP2:
+                            out_path_spec = out_path_spec + ".bz2"
+                        elif self.compression != Compression.ZIP:
+                            out_path_spec = out_path_spec + ".zip"
+                        elif self.compression != Compression.XZ:
+                            out_path_spec = out_path_spec + ".xz"
                     df.to_csv(out_path_spec, compression=compression)
                     count += 1
                 else:
