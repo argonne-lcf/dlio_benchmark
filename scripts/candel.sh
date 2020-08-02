@@ -2,6 +2,8 @@
 #COBALT -n 8 -A datascience -t 1:00:00 -q debug-cache-quad
 ##COBALT -n 128 -A datascience -t 3:00:00 -q default --jobname=dlio --attrs mcdram=cache:numa=quad
 
+FILE_INDEX=$1
+
 source /soft/datascience/tensorflow/tf2.2-craympi.sh
 #source /soft/datascience/tensorflow/tf2.2-login.sh
 export MPICH_MAX_THREAD_SAFETY=multiple
@@ -24,11 +26,18 @@ DATA_DIR=/projects/datascience/dhari/dlio_datasets
 echo "aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$PROCESS_DISTANCE -d $PROCESS_DISTANCE"
 
 #Cosmic Tagger
-APP_DATA_DIR=${DATA_DIR}/candel
+APP_DATA_DIR=${DATA_DIR}/candel_${FILE_INDEX}
 
-OPTS=(-f csv -fa shared -nf 1 -sf 1120 -rl 262144 -bs 1 -df ${APP_DATA_DIR} -gd 0 -k 1)
+OPTS=(-f csv -fa shared -nf 1 -sf 1120 -rl 32768 -bs 1 -df ${APP_DATA_DIR} -gd 0 -k 1)
 
 #mpirun -n $NRANKS \
 aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$PROCESS_DISTANCE -d $PROCESS_DISTANCE \
 -e DXT_ENABLE_IO_TRACE=1 -e LD_PRELOAD=$DARSHAN_PRELOAD \
 python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]}
+
+if ls /lus/theta-fs0/logs/darshan/theta/2020/8/2/*${COBALT_JOBID}* 1> /dev/null 2>&1; then
+    cp /lus/theta-fs0/logs/darshan/theta/2020/8/2/*${COBALT_JOBID}* /home/dhari/darshan-logs/benchmark/candel/optimization/${FILE_INDEX}.darshan
+else
+    cp /lus/theta-fs0/logs/darshan/theta/2020/8/3/*${COBALT_JOBID}* /home/dhari/darshan-logs/benchmark/candel/optimization/${FILE_INDEX}.darshan
+fi
+
