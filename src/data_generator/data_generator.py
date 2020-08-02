@@ -18,6 +18,8 @@ class DataGenerator(ABC):
         self.num_samples = self._arg_parser.args.num_samples
         self.my_rank = self._arg_parser.args.my_rank
         self.comm_size = self._arg_parser.args.comm_size
+        self.compression = self._arg_parser.args.compression
+        self.compression_level = self._arg_parser.args.compression_level
         self._file_prefix = None
         self._dimension = None
 

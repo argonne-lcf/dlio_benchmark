@@ -6,7 +6,7 @@ import math
 from numpy import random
 
 from src.utils.utility import progress
-
+import pandas as pd
 
 class CSVReader(FormatReader):
     def __init__(self):
@@ -19,18 +19,12 @@ class CSVReader(FormatReader):
         for file in self._local_file_list:
             progress(count, len(self._local_file_list), "Opening CSV Data")
             count += 1
-            with open(file, encoding="utf-8") as csv_file:
-                csv_reader = csv.reader(csv_file)
-                rows = []
-                for row in csv_reader:
-                    rows.append({
-                        'record': row
-                    })
-                packed_array.append({
-                    'dataset': rows,
-                    'current_sample': 0,
-                    'total_samples': len(rows)
-                })
+            rows = pd.read_csv(file, compression="infer").to_numpy()
+            packed_array.append({
+                'dataset': rows,
+                'current_sample': 0,
+                'total_samples': len(rows)
+            })
         self._dataset = packed_array
 
     def next(self):

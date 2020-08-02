@@ -13,8 +13,6 @@ class HDF5Generator(DataGenerator):
         super().__init__()
         self.chunk_size = self._arg_parser.args.chunk_size
         self.enable_chunking = self._arg_parser.args.enable_chunking
-        self.compression = self._arg_parser.args.compression
-        self.compression_level = self._arg_parser.args.compression_level
 
     def generate(self):
         super().generate()

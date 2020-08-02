@@ -55,6 +55,9 @@ class Compression(Enum):
     NONE = 'none'
     GZIP = 'gzip'
     LZF = 'lzf'
+    BZIP2 = 'bz2'
+    ZIP = 'zip'
+    XZ = 'xz'
 
     def __str__(self):
         return self.value

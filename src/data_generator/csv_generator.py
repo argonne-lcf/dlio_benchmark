@@ -1,3 +1,4 @@
+from src.common.enumerations import Compression
 from src.data_generator.data_generator import DataGenerator
 import math
 import os
@@ -7,6 +8,7 @@ import csv
 
 from shutil import copyfile
 from src.utils.utility import progress
+import pandas as pd
 
 
 class CSVGenerator(DataGenerator):
@@ -26,10 +28,13 @@ class CSVGenerator(DataGenerator):
                 out_path_spec = "{}_{}_of_{}.csv".format(self._file_prefix, i, self.num_files)
                 if count == 0:
                     prev_out_spec = out_path_spec
-                    with open(out_path_spec, 'w+') as csvfile:
-                        writer = csv.writer(csvfile)
-                        print("{} samples of size {}".format(self.num_samples, self._dimension * self._dimension))
-                        writer.writerows(records)
+                    df = pd.DataFrame(data=records)
+                    compression = None
+                    if self.compression != Compression.NONE:
+                        compression = {
+                            "method": str(self.compression)
+                        }
+                    df.to_csv(out_path_spec, compression=compression)
                     count += 1
                 else:
                     copyfile(prev_out_spec, out_path_spec)
