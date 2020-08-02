@@ -18,7 +18,7 @@ do
 APP_DATA_DIR=${DATA_DIR}/candel_$u
 echo "mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py ${COMM_OPTS[@]} -co $u -df ${APP_DATA_DIR}"
 mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py ${COMM_OPTS[@]} -co $u -df ${APP_DATA_DIR}
-ls APP_DATA_DIR=${DATA_DIR}/candel*
+ls ${DATA_DIR}/candel*
 done
 
 
