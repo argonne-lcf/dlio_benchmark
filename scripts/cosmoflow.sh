@@ -1,5 +1,5 @@
 #!/usr/bin/sh
-#COBALT -n 128 -A datascience -t 3:00:00 -q default --jobname=dlio --attrs mcdram=cache:numa=quad
+#COBALT -n 2048 -A datascience -t 3:00:00 -q default --jobname=dlio_cosmoflow --attrs mcdram=cache:numa=quad
 ##COBALT -n 8 -A datascience -t 1:00:00 -q debug-cache-quad
 
 source /soft/datascience/tensorflow/tf2.2-craympi.sh

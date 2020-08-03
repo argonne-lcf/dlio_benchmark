@@ -1,5 +1,5 @@
 #!/usr/bin/sh
-#COBALT -n 128 -A datascience -t 3:00:00 -q default --jobname=dlio --attrs mcdram=cache:numa=quad
+#COBALT -n 2048 -A datascience -t 3:00:00 -q default --jobname=dlio_ffn --attrs mcdram=cache:numa=quad
 ##COBALT -n 8 -A datascience -t 1:00:00 -q debug-cache-quad
 
 
@@ -11,7 +11,7 @@ DLIO_ROOT=`dirname $CURRENT_DIR`
 export PYTHONPATH=$DLIO_ROOT:$PYTHONPATH
 #COBALT_JOBSIZE=1
 NNODES=$COBALT_JOBSIZE
-RANKS_PER_NODE=1
+RANKS_PER_NODE=4
 NRANKS=$((COBALT_JOBSIZE*RANKS_PER_NODE))
 NUM_CORES=64
 THREADS_PER_CORE=2
