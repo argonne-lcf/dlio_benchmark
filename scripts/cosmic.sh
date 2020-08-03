@@ -1,8 +1,6 @@
 #!/usr/bin/sh
-#COBALT -n 8 -A datascience -t 1:00:00 -q debug-cache-quad
-##COBALT -n 128 -A datascience -t 3:00:00 -q default --jobname=dlio --attrs mcdram=cache:numa=quad
-
-FILE_INDEX=$1
+#COBALT -n 128 -A datascience -t 3:00:00 -q default --jobname=dlio --attrs mcdram=cache:numa=quad
+##COBALT -n 8 -A datascience -t 1:00:00 -q debug-cache-quad
 
 source /soft/datascience/tensorflow/tf2.2-craympi.sh
 #source /soft/datascience/tensorflow/tf2.2-login.sh
@@ -25,7 +23,7 @@ DATA_DIR=/projects/datascience/dhari/dlio_datasets
 
 
 #Cosmic Tagger
-APP_DATA_DIR=${DATA_DIR}/cosmic_${FILE_INDEX}
+APP_DATA_DIR=${DATA_DIR}/cosmic
 
 OPTS=(-f hdf5 -fa shared -nf 1 -sf 6000 -rl 40960 -bs 1 -df ${APP_DATA_DIR} -gd 0 -k 1)
 
@@ -35,6 +33,3 @@ echo "aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_
 aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$PROCESS_DISTANCE -d $PROCESS_DISTANCE \
 -e DXT_ENABLE_IO_TRACE=1 -e LD_PRELOAD=$DARSHAN_PRELOAD \
 python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]}
-
-cp /lus/theta-fs0/logs/darshan/theta/2020/8/1/*${COBALT_JOBID}* /home/dhari/darshan-logs/benchmark/cosmic/optimization/${FILE_INDEX}.darshan
-
