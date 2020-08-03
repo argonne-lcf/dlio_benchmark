@@ -29,5 +29,5 @@ class DataGenerator(ABC):
         if self.my_rank == 0 and not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
         MPI.COMM_WORLD.barrier()
-        self._dimension = int(math.sqrt(self.record_size))
+        self._dimension = int(math.sqrt(self.record_size/8))
         self._file_prefix = os.path.join(self.data_dir, self.file_prefix)
