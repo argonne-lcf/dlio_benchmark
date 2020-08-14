@@ -20,12 +20,20 @@ from src.utils.utility import progress
 
 
 class TFReader(FormatReader):
+    """
+    Reader for TFRecord files.
+    """
     def __init__(self):
         super().__init__()
         self.read_threads = self._arg_parser.args.read_threads
         self.computation_threads = self._arg_parser.args.computation_threads
 
     def _tf_parse_function(self, serialized):
+        """
+        performs deserialization of the tfrecord.
+        :param serialized: is the serialized version using protobuf
+        :return: deserialized image and label.
+        """
         features = \
             {
                 'image': tf.io.FixedLenFeature([], tf.string),
@@ -45,6 +53,10 @@ class TFReader(FormatReader):
         return d
 
     def read(self, epoch_number):
+        """
+        Sets up the tf data pipeline to read tf record files.
+        :param epoch_number:
+        """
         super().read(epoch_number)
         dataset = tf.data.TFRecordDataset(filenames=self._local_file_list,
                                           buffer_size=self.transfer_size,
@@ -61,6 +73,10 @@ class TFReader(FormatReader):
         self._dataset = dataset.batch(self.batch_size)
 
     def next(self):
+        """
+        Provides the iterator over tfrecord data pipeline.
+        :return: data to be processed by the training step.
+        """
         super().next()
         a = iter(self._dataset)
         count = 1

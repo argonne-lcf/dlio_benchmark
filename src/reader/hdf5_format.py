@@ -64,8 +64,10 @@ class HDF5Reader(FormatReader):
             dataset = file_h5['records']
             total_samples = dataset.shape[0]
             if FileAccess.MULTI == self.file_access:
+                # for multiple file access the whole file would read by each process.
                 num_sets = list(range(0, int(math.ceil(total_samples/self.batch_size))))
             else:
+                # for shared file access a part of file would be read by each process.
                 total_samples_per_rank = int(total_samples / self.comm_size)
                 part_start, part_end = (int(total_samples_per_rank*self.my_rank/self.batch_size), int(total_samples_per_rank*(self.my_rank+1)/self.batch_size))
                 num_sets = list(range(part_start, part_end))

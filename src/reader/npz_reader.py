@@ -18,12 +18,18 @@ from numpy import random
 
 from src.utils.utility import progress
 
-
 class NPZReader(FormatReader):
+    """
+    Reader for NPZ files
+    """
     def __init__(self):
         super().__init__()
 
     def read(self, epoch_number):
+        """
+        for each epoch it opens the npz files and reads the data into memory
+        :param epoch_number:
+        """
         super().read(epoch_number)
         packed_array = []
         for file in self._local_file_list:
@@ -37,6 +43,10 @@ class NPZReader(FormatReader):
         self._dataset =  packed_array
 
     def next(self):
+        """
+        The iterator of the dataset just performs memory sub-setting for each portion of the data.
+        :return: piece of data for training.
+        """
         super().next()
         total = 0
         count = 1
