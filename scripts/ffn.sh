@@ -1,5 +1,5 @@
 #!/usr/bin/sh
-#COBALT -n 2048 -A datascience -t 3:00:00 -q default --jobname=dlio_ffn --attrs mcdram=cache:numa=quad
+#COBALT -n 128 -A datascience -t 3:00:00 -q default --jobname=dlio_ffn --attrs mcdram=cache:numa=quad
 ##COBALT -n 8 -A datascience -t 1:00:00 -q debug-cache-quad
 
 
@@ -28,8 +28,11 @@ APP_DATA_DIR=${DATA_DIR}/ffn
 
 OPTS=(-f hdf5 -fa shared -nf 1 -sf 43008 -rl 32768 -bs 1 -df ${APP_DATA_DIR} -gd 0 -k 1)
 
-echo "aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$PROCESS_DISTANCE -d $PROCESS_DISTANCE python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]}"
+for n in 1 2 4 8 16 32 64; do
+echo "aprun -n $((n*RANKS_PER_NODE)) -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$PROCESS_DISTANCE -d $PROCESS_DISTANCE python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]}"
 #mpirun -n $NRANKS \
-aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$PROCESS_DISTANCE -d $PROCESS_DISTANCE \
+aprun -n $((n*RANKS_PER_NODE))  -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$PROCESS_DISTANCE -d $PROCESS_DISTANCE \
 -e DXT_ENABLE_IO_TRACE=1 -e LD_PRELOAD=$DARSHAN_PRELOAD \
-python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]}
+python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]} & 
+done; 
+wait

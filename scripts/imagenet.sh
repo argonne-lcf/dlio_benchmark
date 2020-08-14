@@ -1,5 +1,5 @@
 #!/usr/bin/sh
-#COBALT -n 2048 -A datascience -t 3:00:00 -q default --jobname=dlio 
+#COBALT -n 512 -A datascience -t 3:00:00 -q default --jobname=dlio 
 #COBALT --attrs mcdram=cache:numa=quad
 
 ##COBALT -n 8 -A datascience -t 1:00:00 -q debug-cache-quad
@@ -23,7 +23,7 @@ DATA_DIR=/projects/datascience/dhari/dlio_datasets
 #IMAGENET
 APP_DATA_DIR=${DATA_DIR}/imagenet
 
-OPTS=(-f tfrecord -fa multi -nf 1024 -sf 1024 -rl 262144 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR}  -gd 0 -k 1)
+OPTS=(-f tfrecord -fa multi -nf 1024 -sf 1024 -rl 262144 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR}  -gd 0 -k 1 -p 0)
 
 echo "aprun -n $NRANKS -N $RANKS_PER_NODE -j $THREADS_PER_CORE -cc depth -e OMP_NUM_THREADS=$PROCESS_DISTANCE -d $PROCESS_DISTANCE python ${DLIO_ROOT}/src/dlio_benchmark.py ${OPTS[@]}"
 

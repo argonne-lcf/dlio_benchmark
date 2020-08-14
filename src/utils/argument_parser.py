@@ -68,7 +68,7 @@ class ArgumentParser(object):
                                  help="Only generate files.")
         self.parser.add_argument("-k", "--keep-files", default=False, type=str2bool,
                                  help="Keep files after benchmark. y/n")
-        self.parser.add_argument("-p", "--profiling",  default=True, type=str2bool,
+        self.parser.add_argument("-p", "--profiling",  default=False, type=str2bool,
                                  help="Enable I/O profiling within benchmark. y/n")
         self.parser.add_argument("-l", "--logdir", default="./logdir", type=str,
                                  help="Log Directory for profiling logs.")
