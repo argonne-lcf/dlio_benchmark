@@ -12,14 +12,20 @@
 """
 
 import os
+
+from src.utils.argument_parser import ArgumentParser
+
+
 def progress(count, total, status=''):
+    _arg_parser = ArgumentParser.get_instance()
     bar_len = 60
     filled_len = int(round(bar_len * count / float(total)))
     percents = round(100.0 * count / float(total), 1)
     bar = '=' * filled_len + '-' * (bar_len - filled_len)
-    if count == 1:
-        print("")
-    print("\r[{}] {}% {} of {} {} ".format(bar, percents, count, total, status), end='')
-    if count == total:
-        print("")
-    os.sys.stdout.flush()
+    if _arg_parser.args.debug:
+        if count == 1:
+            print("")
+        print("\r[{}] {}% {} of {} {} ".format(bar, percents, count, total, status), end='')
+        if count == total:
+            print("")
+        os.sys.stdout.flush()
