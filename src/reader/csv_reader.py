@@ -21,11 +21,18 @@ from numpy import random
 from src.utils.utility import progress
 import pandas as pd
 
+"""
+CSV Reader reader and iterator logic.
+"""
 class CSVReader(FormatReader):
     def __init__(self):
         super().__init__()
 
     def read(self, epoch_number):
+        """
+        Opens the CSV dataset and reads the rows in memory.
+        :param epoch_number: current epoch number
+        """
         super().read(epoch_number)
         packed_array = []
         count = 1
@@ -41,6 +48,9 @@ class CSVReader(FormatReader):
         self._dataset = packed_array
 
     def next(self):
+        """
+        Iterator for the CSV dataset. In this case, we used the in-memory dataset by sub-setting.
+        """
         super().next()
         total = 0
         count = 1

@@ -19,12 +19,18 @@ from numpy import random
 
 from src.utils.utility import progress
 
-
+"""
+Reader for HDF5 files for training file.
+"""
 class HDF5Reader(FormatReader):
     def __init__(self):
         super().__init__()
 
     def read(self, epoch_number):
+        """
+        Reading the hdf5 dataset. Here we take just take the filename and they are open during iteration
+        :param epoch_number: epoch number for training loop
+        """
         super().read(epoch_number)
         packed_array = []
         count = 1
@@ -45,6 +51,11 @@ class HDF5Reader(FormatReader):
         self._dataset = packed_array
 
     def next(self):
+        """
+        This method is called during iteration where a dataset is opened and different regions of the dataset are
+        yielded to the training loop
+        :return: portion of dataset to be used in step.
+        """
         super().next()
         total = 0
         count = 1
