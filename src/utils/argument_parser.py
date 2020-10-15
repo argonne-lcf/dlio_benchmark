@@ -97,6 +97,8 @@ class ArgumentParser(object):
                                  help="Number of threads to be used for reads.")
         self.parser.add_argument("-tc", "--computation-threads", default=None, type=int,
                                  help="Number of threads to be used for pre-processing.")
+        self.parser.add_argument("-ct", "--computation-time", default=0.0001, type=float,
+                                 help="Amount of time for computation.")
         self.parser.add_argument("-rp", "--prefetch", default=False, type=str2bool,
                                  help="Enable prefetch within benchmark.")
         self.parser.add_argument("-ps", "--prefetch-size", default=0, type=int,
@@ -109,7 +111,7 @@ class ArgumentParser(object):
                                  help="Compression to use.")
         self.parser.add_argument("-cl", "--compression-level", default=4, type=int,
                                  help="Level of compression for GZip.")
-        self.parser.add_argument("-d", "--debug", default=False, type=str2bool,
+        self.parser.add_argument("-d", "--debug", default=True, type=str2bool,
                                  help="Enable debug in code.")
         self.args = self.parser.parse_args()
         self._validate()

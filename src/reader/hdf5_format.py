@@ -16,6 +16,7 @@ from src.reader.reader_handler import FormatReader
 import h5py
 import math
 from numpy import random
+import tensorflow as tf
 
 from src.utils.utility import progress
 
@@ -77,9 +78,11 @@ class HDF5Reader(FormatReader):
                     random.seed(self.seed)
                 random.shuffle(num_sets)
             for num_set in num_sets:
-                progress(count, total, "Reading HDF5 Data")
-                count += 1
-                yield dataset[num_set * self.batch_size:(num_set + 1) * self.batch_size]
+                with tf.profiler.experimental.Trace('HDF5 Input', step_num=num_set / self.batch_size, _r=1):
+                    progress(count, total, "Reading HDF5 Data")
+                    count += 1
+                    images = dataset[num_set * self.batch_size:(num_set + 1) * self.batch_size]
+                yield images
             file_h5.close()
     def finalize(self):
         pass

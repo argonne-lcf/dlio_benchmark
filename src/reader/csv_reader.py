@@ -20,6 +20,7 @@ from numpy import random
 
 from src.utils.utility import progress
 import pandas as pd
+import tensorflow as tf
 
 """
 CSV Reader reader and iterator logic.
@@ -70,9 +71,11 @@ class CSVReader(FormatReader):
                     random.seed(self.seed)
                 random.shuffle(num_sets)
             for num_set in num_sets:
-                progress(count, total, "Reading CSV Data")
-                count += 1
-                yield element['dataset'][num_set * self.batch_size:(num_set + 1) * self.batch_size - 1]
+                with tf.profiler.experimental.Trace('CSV Input', step_num=num_set / self.batch_size, _r=1):
+                    progress(count, total, "Reading CSV Data")
+                    count += 1
+                    images = element['dataset'][num_set * self.batch_size:(num_set + 1) * self.batch_size - 1]
+                yield images
 
     def finalize(self):
         pass

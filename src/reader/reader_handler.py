@@ -28,6 +28,7 @@ class FormatReader(ABC):
         self.comm_size = self._arg_parser.args.comm_size
         self.num_files = self._arg_parser.args.num_files
         self.num_samples = self._arg_parser.args.num_samples
+        self._dimension = int(math.sqrt(self.record_size / 8))
         self._dataset = None
         self._local_file_list = None
 

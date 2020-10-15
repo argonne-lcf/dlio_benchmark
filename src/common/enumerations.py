@@ -29,6 +29,7 @@ class FormatType(Enum):
     HDF5 = 'hdf5'
     CSV = 'csv'
     NPZ = 'npz'
+    HDF5_OPT = 'hdf5_opt'
 
     def __str__(self):
         return self.value
