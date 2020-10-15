@@ -62,7 +62,10 @@ class HDF5Dataset(tf.data.Dataset):
             num_elements = batch_size
         else:
             num_elements = math.ceil(transfer_size / dimention / dimention)
-            num_elements = num_elements - (num_elements%batch_size)
+            if num_elements <= batch_size:
+                num_elements = batch_size
+            else:
+                num_elements = num_elements - (num_elements%batch_size)
 
         num_yields = int(num_elements / batch_size)
         start_idx, stop_idx = 0, num_elements
