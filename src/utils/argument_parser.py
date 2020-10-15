@@ -111,7 +111,7 @@ class ArgumentParser(object):
                                  help="Compression to use.")
         self.parser.add_argument("-cl", "--compression-level", default=4, type=int,
                                  help="Level of compression for GZip.")
-        self.parser.add_argument("-d", "--debug", default=True, type=str2bool,
+        self.parser.add_argument("-d", "--debug", default=False, type=str2bool,
                                  help="Enable debug in code.")
         self.args = self.parser.parse_args()
         self._validate()

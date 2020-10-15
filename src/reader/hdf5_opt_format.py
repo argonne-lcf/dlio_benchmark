@@ -53,7 +53,6 @@ class HDF5Dataset(tf.data.Dataset):
         """
         make a generator function that we can query for batches
         """
-        print("From generator ",file_name, batch_size, start_idx, num_events)
         reader = HDF5Generator(file_name, batch_size)
         nevents = reader.openf()
         if num_events == -1:
@@ -82,7 +81,6 @@ class HDF5Dataset(tf.data.Dataset):
 
 
     def __new__(cls, file_name="", batch_size=1, start_idx=0, num_events=-1,dimention = 1, transfer_size =-1):
-        print(file_name,batch_size,start_idx,num_events)
         return tf.data.Dataset.from_generator(
             cls._generator,
             output_types=tf.dtypes.float32,
@@ -115,7 +113,11 @@ class HDF5OptReader(FormatReader):
         features_shape = [self.batch_size, self._dimension, self._dimension]
         Dataset = tf.data.Dataset
         dataset = Dataset.from_tensor_slices(self._local_file_list)
-        dataset = dataset.interleave(lambda x: HDF5Dataset(x,self.batch_size, part_start, part_end,self._dimension,self.transfer_size),
+        if self.transfer_size:
+            transfer_size = self.transfer_size
+        else:
+            transfer_size = -1
+        dataset = dataset.interleave(lambda x: HDF5Dataset(x,self.batch_size, part_start, part_end,self._dimension,transfer_size),
                                      cycle_length=self.read_threads,
                                      block_length=1,
                                      num_parallel_calls=self.read_threads)
