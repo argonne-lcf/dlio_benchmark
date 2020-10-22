@@ -97,7 +97,7 @@ class ArgumentParser(object):
                                  help="Number of threads to be used for reads.")
         self.parser.add_argument("-tc", "--computation-threads", default=None, type=int,
                                  help="Number of threads to be used for pre-processing.")
-        self.parser.add_argument("-ct", "--computation-time", default=0.0001, type=float,
+        self.parser.add_argument("-ct", "--computation-time", default=0, type=float,
                                  help="Amount of time for computation.")
         self.parser.add_argument("-rp", "--prefetch", default=False, type=str2bool,
                                  help="Enable prefetch within benchmark.")

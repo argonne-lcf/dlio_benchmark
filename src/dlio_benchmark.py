@@ -128,7 +128,8 @@ class DLIOBenchmark(object):
         step = 1
         total = math.ceil(self.num_samples * self.num_files / self.batch_size / self.comm_size)
         for element in self.reader_handler.next():
-            tf.function(model)(epoch_number, step, self.computation_time)
+            if self.computation_time > 0:
+                tf.function(model)(epoch_number, step, self.computation_time)
             if self.arg_parser.args.checkpoint and step % self.arg_parser.args.steps_checkpoint == 0:
                 self._checkpoint(step)
             step += 1

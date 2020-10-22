@@ -27,10 +27,10 @@ for i in 1 2 4 8 16 32 64 128 256 512 1024 2048 4096 8192; do
   transfer_size=$((i * 4096))
   if [ "${i}" = "1" ]; then
     data_type=hdf5
-    OPTS=(-f ${data_type} -fa shared -nf 1 -sf 3072000 -rl 40960 -bs 1 -df ${APP_DATA_DIR} -gd 0 -k 1 -p 1 -l /projects/datascience/dhari/tf_logs/cosmic_ts_${transfer_size})
+    OPTS=(-f ${data_type} -fa shared -ct 0 -nf 1 -sf 3072000 -rl 40960 -bs 1 -df ${APP_DATA_DIR} -gd 0 -k 1 -p 1 -l /projects/datascience/dhari/tf_logs/cosmic_ts_${transfer_size})
   else
     data_type=hdf5_opt
-    OPTS=(-f ${data_type} -fa shared -nf 1 -sf 3072000 -rl 40960 -bs 1 -df ${APP_DATA_DIR} -ts ${transfer_size} -rp 1 -ps 3072000 -gd 0 -k 1 -p 1 -l /projects/datascience/dhari/tf_logs/cosmic_ts_${transfer_size})
+    OPTS=(-f ${data_type} -fa shared -ct 0 -nf 1 -sf 3072000 -rl 40960 -bs 1 -df ${APP_DATA_DIR} -ts ${transfer_size} -rp 1 -ps 3072000 -gd 0 -k 1 -p 1 -l /projects/datascience/dhari/tf_logs/cosmic_ts_${transfer_size})
   fi
   n=128
 
