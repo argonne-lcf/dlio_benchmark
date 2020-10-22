@@ -123,7 +123,10 @@ class HDF5OptReader(FormatReader):
         options.experimental_threading.private_threadpool_size = 16
         options.experimental_threading.max_intra_op_parallelism = 16
         Dataset = tf.data.Dataset
-        local_file_list = self._local_file_list * self.read_threads
+        if self.read_threads:
+            local_file_list = self._local_file_list * self.read_threads
+        else:
+            local_file_list = self._local_file_list
         dataset = Dataset.from_tensor_slices(local_file_list).with_options(options)
         if self.transfer_size:
             transfer_size = self.transfer_size
