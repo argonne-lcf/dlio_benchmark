@@ -17,6 +17,8 @@ import h5py
 import math
 from numpy import random
 import tensorflow as tf
+import numpy as np
+from time import sleep
 
 from src.utils.utility import progress
 
@@ -43,10 +45,15 @@ class HDF5Generator(object):
             print('hdf5 file is not open yet.')
 
     def get_examples(self, start_idx, stop_idx):
-        with tf.profiler.experimental.Trace('HDF5 Input', step_num=start_idx/self.batch_size, _r=1):
+        with tf.profiler.experimental.Trace('Read', step_num=start_idx/self.batch_size, _r=1):
             images = self._f['records'][start_idx: stop_idx]
         return images
 
+@tf.function(experimental_relax_shapes=True)
+def resize(step,image):
+    with tf.profiler.experimental.Trace('Resize', step_num=step, _r=1):
+        sleep(.001)
+        return image
 
 class HDF5Dataset(tf.data.Dataset):
     def _generator(file_name, batch_size, start_idx, num_events=-1,dimention = 1,transfer_size =-1):
@@ -76,15 +83,16 @@ class HDF5Dataset(tf.data.Dataset):
                 stop_idx = num_events - 1
             images = reader.get_examples(start_idx, stop_idx)
             for i in range(num_yields):
-                yield images[i*batch_size:batch_size]
+                yield images[i*batch_size:(i+1)*batch_size]
             start_idx, stop_idx = start_idx + num_elements, stop_idx + num_elements
 
 
-    def __new__(cls, file_name="", batch_size=1, start_idx=0, num_events=-1,dimention = 1, transfer_size =-1):
+
+    def __new__(cls, file_name="", batch_size=1, start_idx=0, num_events=-1,dimension = 1, transfer_size =-1):
         return tf.data.Dataset.from_generator(
             cls._generator,
             output_types=tf.dtypes.float32,
-            args=(file_name, batch_size, start_idx, num_events,dimention,transfer_size,)
+            args=(file_name, batch_size, start_idx, num_events,dimension,transfer_size,)
         )
 
 class HDF5OptReader(FormatReader):
@@ -111,13 +119,17 @@ class HDF5OptReader(FormatReader):
                                     int(total_samples_per_rank * (self.my_rank + 1) / self.batch_size))
 
         features_shape = [self.batch_size, self._dimension, self._dimension]
+        options = tf.data.Options()
+        options.experimental_threading.private_threadpool_size = 16
+        options.experimental_threading.max_intra_op_parallelism = 16
         Dataset = tf.data.Dataset
-        dataset = Dataset.from_tensor_slices(self._local_file_list)
+        local_file_list = self._local_file_list * self.read_threads
+        dataset = Dataset.from_tensor_slices(local_file_list).with_options(options)
         if self.transfer_size:
             transfer_size = self.transfer_size
         else:
             transfer_size = -1
-        dataset = dataset.interleave(lambda x: HDF5Dataset(x,self.batch_size, part_start, part_end,self._dimension,transfer_size),
+        dataset = dataset.interleave(lambda x: HDF5Dataset(x,self.batch_size, part_start, part_end,self._dimension,transfer_size,),
                                      cycle_length=self.read_threads,
                                      block_length=1,
                                      num_parallel_calls=self.read_threads)
