@@ -19,116 +19,24 @@ from numpy import random
 import tensorflow as tf
 import numpy as np
 
-from tensorflow.python.data.ops import dataset_ops
-from tensorflow.python.ops import gen_experimental_dataset_ops
-
-class _SleepDataset(dataset_ops.UnaryUnchangedStructureDataset):
-  """A `Dataset` that sleeps before producing each upstream element."""
-
-  def __init__(self, input_dataset, sleep_microseconds):
-    self._input_dataset = input_dataset
-    self._sleep_microseconds = sleep_microseconds
-    variant_tensor = gen_experimental_dataset_ops.sleep_dataset(
-        self._input_dataset._variant_tensor,  # pylint: disable=protected-access
-        self._sleep_microseconds,
-        **self._flat_structure)
-    super(_SleepDataset, self).__init__(input_dataset, variant_tensor)
-
-
-def sleep(sleep_microseconds):
-  """Sleeps for `sleep_microseconds` before producing each input element.
-  Args:
-    sleep_microseconds: The number of microseconds to sleep before producing an
-      input element.
-  Returns:
-    A `Dataset` transformation function, which can be passed to
-    `tf.data.Dataset.apply`.
-  """
-
-  def _apply_fn(dataset):
-    return _SleepDataset(dataset, sleep_microseconds)
-
-  return _apply_fn
-
+from src.reader.stimulate.dataset import HDF5Dataset,HDF5Generator
 from src.utils.utility import progress
 
 """
 Reader for HDF5 files for training file.
 """
-class HDF5Generator(object):
 
-    def __init__(self, hdf5_file,batch_size):
-        self._file = hdf5_file
-        self._f = None
-        self.batch_size = batch_size
-        self.step = 1
+class HDF5StimulateGenerator(HDF5Generator):
+    def __init__(self, hdf5_file, batch_size):
+        super().__init__(hdf5_file, batch_size)
 
-    def openf(self):
-        self._f = h5py.File(self._file, 'r')
-        self._nevents = self._f['records'].shape[0]
-        return self._nevents
-
-    def closef(self):
-        try:
-            self._f.close()
-        except AttributeError:
-            print('hdf5 file is not open yet.')
+    def get_nevents(self):
+        return self._f['records'].shape[0];
 
     def get_examples(self, start_idx, stop_idx):
-        with tf.profiler.experimental.Trace('Read', step_num=start_idx/self.batch_size, _r=1):
+        with tf.profiler.experimental.Trace('Read', step_num=start_idx / self.batch_size, _r=1):
             images = self._f['records'][start_idx: stop_idx]
         return images
-
-
-
-
-
-class HDF5Dataset(tf.data.Dataset):
-    def _generator(file_name, batch_size, start_idx_, num_events=-1,dimention = 1,transfer_size =-1):
-        """
-        make a generator function that we can query for batches
-        """
-        reader = HDF5Generator(file_name, batch_size)
-        nevents = reader.openf()
-        if num_events == -1:
-            num_events = nevents
-        if transfer_size == -1:
-            num_elements = batch_size
-        else:
-            num_elements = math.ceil(transfer_size / dimention / dimention)
-            if num_elements <= batch_size:
-                num_elements = batch_size
-            else:
-                num_elements = num_elements - (num_elements%batch_size)
-
-        num_yields = math.floor(num_elements / batch_size)
-        start_idx, stop_idx,last_event = start_idx_, start_idx_+num_elements,start_idx_+num_events
-        step = start_idx_/batch_size
-        while True:
-            if start_idx >= last_event:
-                reader.closef()
-                return
-            if stop_idx > last_event:
-                stop_idx = last_event
-            images = reader.get_examples(start_idx, stop_idx)
-            for i in range(num_yields):
-                step += 1
-                yield_images = images[i * batch_size:(i + 1) * batch_size]
-                yield step,yield_images
-            start_idx, stop_idx = start_idx + num_elements, stop_idx + num_elements
-
-
-
-    def __new__(cls, file_name="", batch_size=1, start_idx=0, num_events=-1,dimension = 1, transfer_size =-1):
-        features_shape = [batch_size, dimension, dimension]
-        step_shape = []
-        dataset = tf.data.Dataset.from_generator(
-            cls._generator,
-            output_types=(tf.dtypes.int32, tf.dtypes.float32),
-            output_shapes=(tf.TensorShape(step_shape), tf.TensorShape(features_shape)),
-            args=(file_name, batch_size, start_idx, num_events,dimension,transfer_size,)
-        )
-        return dataset
 
 class HDF5OptReader(FormatReader):
     def __init__(self):
@@ -178,7 +86,13 @@ class HDF5OptReader(FormatReader):
             transfer_size = self.transfer_size
         else:
             transfer_size = -1
-        dataset = dataset.interleave(lambda x: HDF5Dataset(x[0],self.batch_size, int(x[1]), int(x[2]),self._dimension,transfer_size,),
+        features_shape = [self.batch_size, self._dimension, self._dimension]
+        step_shape = []
+        dataset = dataset.interleave(lambda x: HDF5Dataset("src.reader.hdf5_opt_format.HDF5StimulateGenerator",
+                                                           x[0],
+                                                           (tf.dtypes.int32, tf.dtypes.float32),
+                                                           (tf.TensorShape(step_shape), tf.TensorShape(features_shape)),
+                                                           self.batch_size, int(x[1]), int(x[2]),self._dimension,transfer_size,),
                                      cycle_length=self.read_threads,
                                      block_length=1,
                                      num_parallel_calls=self.read_threads)
