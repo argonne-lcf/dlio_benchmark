@@ -38,7 +38,7 @@ class HDF5StimulateGenerator(HDF5Generator):
             images = self._f['records'][start_idx: stop_idx]
         return images
 
-class HDF5OptReader(FormatReader):
+class HDF5StimulateReader(FormatReader):
     def __init__(self):
         super().__init__()
         self.read_threads = self._arg_parser.args.read_threads
@@ -88,7 +88,7 @@ class HDF5OptReader(FormatReader):
             transfer_size = -1
         features_shape = [self.batch_size, self._dimension, self._dimension]
         step_shape = []
-        dataset = dataset.interleave(lambda x: HDF5Dataset("src.reader.hdf5_opt_format.HDF5StimulateGenerator",
+        dataset = dataset.interleave(lambda x: HDF5Dataset("src.reader.hdf5_stimulate.HDF5StimulateGenerator",
                                                            x[0],
                                                            (tf.dtypes.int32, tf.dtypes.float32),
                                                            (tf.TensorShape(step_shape), tf.TensorShape(features_shape)),
