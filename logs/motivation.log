@@ -1,0 +1,2554 @@
+aprun -n 4 -N 4 -j 2 -cc depth -e OMP_NUM_THREADS=32 -d 32 python /gpfs/mira-home/dhari/code/dlio_benchmark/src/dlio_benchmark.py -f hdf5 -fa shared -nf 1 -sf 1500 -rl 40960 -ct 0.001 -bs 1 -df /projects/datascience/dhari/stimulus_dataset/cosmic_1 -gd 0 -k 1 -p 1 -l /projects/datascience/dhari/tf_logs/cosmic_1
+aprun -n 8 -N 4 -j 2 -cc depth -e OMP_NUM_THREADS=32 -d 32 python /gpfs/mira-home/dhari/code/dlio_benchmark/src/dlio_benchmark.py -f hdf5 -fa shared -nf 1 -sf 3000 -rl 40960 -ct 0.001 -bs 1 -df /projects/datascience/dhari/stimulus_dataset/cosmic_2 -gd 0 -k 1 -p 1 -l /projects/datascience/dhari/tf_logs/cosmic_2
+aprun -n 16 -N 4 -j 2 -cc depth -e OMP_NUM_THREADS=32 -d 32 python /gpfs/mira-home/dhari/code/dlio_benchmark/src/dlio_benchmark.py -f hdf5 -fa shared -nf 1 -sf 6000 -rl 40960 -ct 0.001 -bs 1 -df /projects/datascience/dhari/stimulus_dataset/cosmic_4 -gd 0 -k 1 -p 1 -l /projects/datascience/dhari/tf_logs/cosmic_4
+aprun -n 32 -N 4 -j 2 -cc depth -e OMP_NUM_THREADS=32 -d 32 python /gpfs/mira-home/dhari/code/dlio_benchmark/src/dlio_benchmark.py -f hdf5 -fa shared -nf 1 -sf 12000 -rl 40960 -ct 0.001 -bs 1 -df /projects/datascience/dhari/stimulus_dataset/cosmic_8 -gd 0 -k 1 -p 1 -l /projects/datascience/dhari/tf_logs/cosmic_8
+aprun -n 64 -N 4 -j 2 -cc depth -e OMP_NUM_THREADS=32 -d 32 python /gpfs/mira-home/dhari/code/dlio_benchmark/src/dlio_benchmark.py -f hdf5 -fa shared -nf 1 -sf 24000 -rl 40960 -ct 0.001 -bs 1 -df /projects/datascience/dhari/stimulus_dataset/cosmic_16 -gd 0 -k 1 -p 1 -l /projects/datascience/dhari/tf_logs/cosmic_16
+aprun -n 128 -N 4 -j 2 -cc depth -e OMP_NUM_THREADS=32 -d 32 python /gpfs/mira-home/dhari/code/dlio_benchmark/src/dlio_benchmark.py -f hdf5 -fa shared -nf 1 -sf 48000 -rl 40960 -ct 0.001 -bs 1 -df /projects/datascience/dhari/stimulus_dataset/cosmic_32 -gd 0 -k 1 -p 1 -l /projects/datascience/dhari/tf_logs/cosmic_32
+aprun -n 256 -N 4 -j 2 -cc depth -e OMP_NUM_THREADS=32 -d 32 python /gpfs/mira-home/dhari/code/dlio_benchmark/src/dlio_benchmark.py -f hdf5 -fa shared -nf 1 -sf 96000 -rl 40960 -ct 0.001 -bs 1 -df /projects/datascience/dhari/stimulus_dataset/cosmic_64 -gd 0 -k 1 -p 1 -l /projects/datascience/dhari/tf_logs/cosmic_64
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+Datasets loaded in 1 epochs for rank 0 in 0.06913614273071289 seconds
+Datasets loaded in 1 epochs for rank 1 in 0.0701291561126709 seconds
+Datasets loaded in 1 epochs for rank 3 in 0.07016277313232422 seconds
+Datasets loaded in 1 epochs for rank 2 in 0.07019948959350586 seconds
+Datasets loaded in 1 epochs for rank 6 in 0.06919026374816895 seconds
+Datasets loaded in 1 epochs for rank 4 in 0.06915116310119629 seconds
+Datasets loaded in 1 epochs for rank 5 in 0.0691685676574707 seconds
+Datasets loaded in 1 epochs for rank 7 in 0.0694890022277832 seconds
+Datasets loaded in 1 epochs for rank 0 in 0.06972360610961914 seconds
+Datasets loaded in 1 epochs for rank 1 in 0.06968498229980469 seconds
+Datasets loaded in 1 epochs for rank 2 in 0.06986212730407715 seconds
+Datasets loaded in 1 epochs for rank 3 in 0.06990242004394531 seconds
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+Datasets loaded in 1 epochs for rank 3 in 0.09467673301696777 seconds
+Datasets loaded in 1 epochs for rank 1 in 0.09491395950317383 seconds
+Datasets loaded in 1 epochs for rank 2 in 0.09492301940917969 seconds
+Datasets loaded in 1 epochs for rank 0 in 0.09494638442993164 seconds
+Datasets loaded in 1 epochs for rank 6 in 0.09397530555725098 seconds
+Datasets loaded in 1 epochs for rank 5 in 0.09412240982055664 seconds
+Datasets loaded in 1 epochs for rank 7 in 0.09413719177246094 seconds
+profiling started
+profiling started
+profiling started
+profiling started
+Datasets loaded in 1 epochs for rank 10 in 0.09436368942260742 seconds
+Datasets loaded in 1 epochs for rank 8 in 0.09436511993408203 seconds
+Datasets loaded in 1 epochs for rank 9 in 0.09441542625427246 seconds
+profiling started
+profiling started
+profiling started
+profiling started
+Datasets loaded in 1 epochs for rank 13 in 0.09440970420837402 seconds
+Datasets loaded in 1 epochs for rank 14 in 0.09452033042907715 seconds
+profiling started
+profiling started
+profiling started
+profiling started
+Datasets loaded in 1 epochs for rank 22 in 0.09443306922912598 seconds
+Datasets loaded in 1 epochs for rank 21 in 0.09432268142700195 seconds
+Datasets loaded in 1 epochs for rank 23 in 0.09444284439086914 seconds
+Datasets loaded in 1 epochs for rank 20 in 0.0945730209350586 seconds
+profiling started
+profiling started
+profiling started
+Datasets loaded in 1 epochs for rank 25 in 0.09403657913208008 seconds
+Datasets loaded in 1 epochs for rank 26 in 0.09408998489379883 seconds
+Datasets loaded in 1 epochs for rank 27 in 0.09410357475280762 seconds
+profiling started
+profiling started
+Datasets loaded in 1 epochs for rank 30 in 0.0935053825378418 seconds
+Datasets loaded in 1 epochs for rank 28 in 0.09362077713012695 seconds
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+Datasets loaded in 1 epochs for rank 29 in 0.09369897842407227 seconds
+Datasets loaded in 1 epochs for rank 31 in 0.09377813339233398 seconds
+profiling started
+profiling started
+profiling started
+profiling started
+Datasets loaded in 1 epochs for rank 24 in 0.09435772895812988 seconds
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+Datasets loaded in 1 epochs for rank 16 in 0.09546327590942383 seconds
+Datasets loaded in 1 epochs for rank 18 in 0.09556865692138672 seconds
+Datasets loaded in 1 epochs for rank 17 in 0.09555363655090332 seconds
+Datasets loaded in 1 epochs for rank 19 in 0.09559249877929688 seconds
+profiling started
+profiling started
+profiling started
+profiling started
+Datasets loaded in 1 epochs for rank 15 in 0.09458613395690918 seconds
+profiling started
+profiling started
+profiling started
+profiling started
+Datasets loaded in 1 epochs for rank 11 in 0.0946042537689209 seconds
+profiling started
+Datasets loaded in 1 epochs for rank 4 in 0.09474754333496094 seconds
+profiling started
+profiling started
+profiling started
+profiling started
+Datasets loaded in 1 epochs for rank 12 in 0.09498047828674316 seconds
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+Datasets loaded in 1 epochs for rank 0 in 0.0822153091430664 seconds
+Datasets loaded in 1 epochs for rank 1 in 0.0823354721069336 seconds
+Datasets loaded in 1 epochs for rank 3 in 0.08238625526428223 seconds
+Datasets loaded in 1 epochs for rank 2 in 0.08240151405334473 seconds
+Datasets loaded in 1 epochs for rank 8 in 0.08253908157348633 seconds
+Datasets loaded in 1 epochs for rank 11 in 0.08255910873413086 seconds
+Datasets loaded in 1 epochs for rank 9 in 0.0825810432434082 seconds
+Datasets loaded in 1 epochs for rank 10 in 0.08250117301940918 seconds
+Datasets loaded in 1 epochs for rank 13 in 0.08290743827819824 seconds
+Datasets loaded in 1 epochs for rank 14 in 0.08299803733825684 seconds
+Datasets loaded in 1 epochs for rank 15 in 0.08307218551635742 seconds
+Datasets loaded in 1 epochs for rank 12 in 0.08315658569335938 seconds
+Datasets loaded in 1 epochs for rank 7 in 0.08603882789611816 seconds
+Datasets loaded in 1 epochs for rank 5 in 0.08611226081848145 seconds
+Datasets loaded in 1 epochs for rank 4 in 0.08609151840209961 seconds
+Datasets loaded in 1 epochs for rank 6 in 0.0861978530883789 seconds
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+profiling started
+Datasets loaded in 1 epochs for rank 2 in 0.08927559852600098 seconds
+Datasets loaded in 1 epochs for rank 3 in 0.08939194679260254 seconds
+Datasets loaded in 1 epochs for rank 1 in 0.08929896354675293 seconds
+Datasets loaded in 1 epochs for rank 18 in 0.08852767944335938 seconds
+Datasets loaded in 1 epochs for rank 16 in 0.08871889114379883 seconds
+Datasets loaded in 1 epochs for rank 17 in 0.0892786979675293 seconds
+Datasets loaded in 1 epochs for rank 0 in 0.09054780006408691 seconds
+Datasets loaded in 1 epochs for rank 19 in 0.08963418006896973 seconds
+Datasets loaded in 1 epochs for rank 26 in 0.09085369110107422 seconds
+Datasets loaded in 1 epochs for rank 24 in 0.09091615676879883 seconds
+Datasets loaded in 1 epochs for rank 25 in 0.09083199501037598 seconds
+Datasets loaded in 1 epochs for rank 27 in 0.09124970436096191 seconds
+Datasets loaded in 1 epochs for rank 53 in 0.09122753143310547 seconds
+Datasets loaded in 1 epochs for rank 55 in 0.09120464324951172 seconds
+Datasets loaded in 1 epochs for rank 61 in 0.0917365550994873 seconds
+Datasets loaded in 1 epochs for rank 62 in 0.09162020683288574 seconds
+Datasets loaded in 1 epochs for rank 63 in 0.09170651435852051 seconds
+Datasets loaded in 1 epochs for rank 60 in 0.09174370765686035 seconds
+Datasets loaded in 1 epochs for rank 23 in 0.09694623947143555 seconds
+Datasets loaded in 1 epochs for rank 22 in 0.09717535972595215 seconds
+Datasets loaded in 1 epochs for rank 21 in 0.09708762168884277 seconds
+Datasets loaded in 1 epochs for rank 52 in 0.0914762020111084 seconds
+Datasets loaded in 1 epochs for rank 54 in 0.09702563285827637 seconds
+Datasets loaded in 1 epochs for rank 45 in 0.09206104278564453 seconds
+Datasets loaded in 1 epochs for rank 47 in 0.09214162826538086 seconds
+Datasets loaded in 1 epochs for rank 46 in 0.09225082397460938 seconds
+Datasets loaded in 1 epochs for rank 14 in 0.09159111976623535 seconds
+Datasets loaded in 1 epochs for rank 106 in 0.09781980514526367 seconds
+Datasets loaded in 1 epochs for rank 10 in 0.09248828887939453 seconds
+Datasets loaded in 1 epochs for rank 11 in 0.09263062477111816 seconds
+Datasets loaded in 1 epochs for rank 8 in 0.09265470504760742 seconds
+Datasets loaded in 1 epochs for rank 12 in 0.09174203872680664 seconds
+Datasets loaded in 1 epochs for rank 15 in 0.09183049201965332 seconds
+Datasets loaded in 1 epochs for rank 13 in 0.09179043769836426 seconds
+Datasets loaded in 1 epochs for rank 40 in 0.09253978729248047 seconds
+Datasets loaded in 1 epochs for rank 42 in 0.09259867668151855 seconds
+Datasets loaded in 1 epochs for rank 41 in 0.09250736236572266 seconds
+Datasets loaded in 1 epochs for rank 43 in 0.09259152412414551 seconds
+Datasets loaded in 1 epochs for rank 99 in 0.09764695167541504 seconds
+Datasets loaded in 1 epochs for rank 98 in 0.09780049324035645 seconds
+Datasets loaded in 1 epochs for rank 96 in 0.09770464897155762 seconds
+Datasets loaded in 1 epochs for rank 44 in 0.09249496459960938 seconds
+Datasets loaded in 1 epochs for rank 54 in 0.09178447723388672 seconds
+Datasets loaded in 1 epochs for rank 86 in 0.09765410423278809 seconds
+Datasets loaded in 1 epochs for rank 85 in 0.09783101081848145 seconds
+Datasets loaded in 1 epochs for rank 87 in 0.09777498245239258 seconds
+Datasets loaded in 1 epochs for rank 84 in 0.09778976440429688 seconds
+Datasets loaded in 1 epochs for rank 36 in 0.0929555892944336 seconds
+Datasets loaded in 1 epochs for rank 39 in 0.09294772148132324 seconds
+Datasets loaded in 1 epochs for rank 38 in 0.0929708480834961 seconds
+Datasets loaded in 1 epochs for rank 37 in 0.09307670593261719 seconds
+Datasets loaded in 1 epochs for rank 57 in 0.09366273880004883 seconds
+Datasets loaded in 1 epochs for rank 59 in 0.09369444847106934 seconds
+Datasets loaded in 1 epochs for rank 58 in 0.09358358383178711 seconds
+Datasets loaded in 1 epochs for rank 56 in 0.09385251998901367 seconds
+Datasets loaded in 1 epochs for rank 75 in 0.09760475158691406 seconds
+Datasets loaded in 1 epochs for rank 73 in 0.09750676155090332 seconds
+Datasets loaded in 1 epochs for rank 74 in 0.09775662422180176 seconds
+Datasets loaded in 1 epochs for rank 72 in 0.0976715087890625 seconds
+Datasets loaded in 1 epochs for rank 33 in 0.09454131126403809 seconds
+Datasets loaded in 1 epochs for rank 31 in 0.09342694282531738 seconds
+Datasets loaded in 1 epochs for rank 28 in 0.09362053871154785 seconds
+Datasets loaded in 1 epochs for rank 30 in 0.09353160858154297 seconds
+Datasets loaded in 1 epochs for rank 29 in 0.09358525276184082 seconds
+Datasets loaded in 1 epochs for rank 20 in 0.09451532363891602 seconds
+Datasets loaded in 1 epochs for rank 22 in 0.09447097778320312 seconds
+Datasets loaded in 1 epochs for rank 23 in 0.09439945220947266 seconds
+Datasets loaded in 1 epochs for rank 21 in 0.0945732593536377 seconds
+Datasets loaded in 1 epochs for rank 67 in 0.09735631942749023 seconds
+Datasets loaded in 1 epochs for rank 65 in 0.09742140769958496 seconds
+Datasets loaded in 1 epochs for rank 64 in 0.09737539291381836 seconds
+Datasets loaded in 1 epochs for rank 9 in 0.09290313720703125 seconds
+Datasets loaded in 1 epochs for rank 55 in 0.09737277030944824 seconds
+Datasets loaded in 1 epochs for rank 52 in 0.09726214408874512 seconds
+Datasets loaded in 1 epochs for rank 53 in 0.09741520881652832 seconds
+Datasets loaded in 1 epochs for rank 5 in 0.09365200996398926 seconds
+Datasets loaded in 1 epochs for rank 6 in 0.09361100196838379 seconds
+Datasets loaded in 1 epochs for rank 7 in 0.09355306625366211 seconds
+Datasets loaded in 1 epochs for rank 4 in 0.09360694885253906 seconds
+Datasets loaded in 1 epochs for rank 47 in 0.09742975234985352 seconds
+Datasets loaded in 1 epochs for rank 46 in 0.0973672866821289 seconds
+Datasets loaded in 1 epochs for rank 44 in 0.09743762016296387 seconds
+Datasets loaded in 1 epochs for rank 34 in 0.09471583366394043 seconds
+Datasets loaded in 1 epochs for rank 32 in 0.09473752975463867 seconds
+Datasets loaded in 1 epochs for rank 35 in 0.09475517272949219 seconds
+Datasets loaded in 1 epochs for rank 28 in 0.09755587577819824 seconds
+Datasets loaded in 1 epochs for rank 29 in 0.09764337539672852 seconds
+Datasets loaded in 1 epochs for rank 31 in 0.09775876998901367 seconds
+Datasets loaded in 1 epochs for rank 50 in 0.09790301322937012 seconds
+Datasets loaded in 1 epochs for rank 48 in 0.09781146049499512 seconds
+Datasets loaded in 1 epochs for rank 51 in 0.09787702560424805 seconds
+Datasets loaded in 1 epochs for rank 49 in 0.09776020050048828 seconds
+Datasets loaded in 1 epochs for rank 20 in 0.09723949432373047 seconds
+Datasets loaded in 1 epochs for rank 7 in 0.09939455986022949 seconds
+Datasets loaded in 1 epochs for rank 5 in 0.0994105339050293 seconds
+Datasets loaded in 1 epochs for rank 6 in 0.09950423240661621 seconds
+Datasets loaded in 1 epochs for rank 30 in 0.09797477722167969 seconds
+Datasets loaded in 1 epochs for rank 36 in 0.0995168685913086 seconds
+Datasets loaded in 1 epochs for rank 39 in 0.09946680068969727 seconds
+Datasets loaded in 1 epochs for rank 37 in 0.09955430030822754 seconds
+Datasets loaded in 1 epochs for rank 45 in 0.09778881072998047 seconds
+Datasets loaded in 1 epochs for rank 50 in 0.09794783592224121 seconds
+Datasets loaded in 1 epochs for rank 51 in 0.0980525016784668 seconds
+Datasets loaded in 1 epochs for rank 49 in 0.0979917049407959 seconds
+Datasets loaded in 1 epochs for rank 58 in 0.09926772117614746 seconds
+Datasets loaded in 1 epochs for rank 59 in 0.09933662414550781 seconds
+Datasets loaded in 1 epochs for rank 56 in 0.0992591381072998 seconds
+Datasets loaded in 1 epochs for rank 63 in 0.09780192375183105 seconds
+Datasets loaded in 1 epochs for rank 61 in 0.09785676002502441 seconds
+Datasets loaded in 1 epochs for rank 60 in 0.09786176681518555 seconds
+Datasets loaded in 1 epochs for rank 62 in 0.09789729118347168 seconds
+Datasets loaded in 1 epochs for rank 66 in 0.09785008430480957 seconds
+Datasets loaded in 1 epochs for rank 69 in 0.09984993934631348 seconds
+Datasets loaded in 1 epochs for rank 68 in 0.09978222846984863 seconds
+Datasets loaded in 1 epochs for rank 83 in 0.09917974472045898 seconds
+Datasets loaded in 1 epochs for rank 81 in 0.09915661811828613 seconds
+Datasets loaded in 1 epochs for rank 80 in 0.09917902946472168 seconds
+Datasets loaded in 1 epochs for rank 90 in 0.09867048263549805 seconds
+Datasets loaded in 1 epochs for rank 91 in 0.09857726097106934 seconds
+Datasets loaded in 1 epochs for rank 89 in 0.09867477416992188 seconds
+Datasets loaded in 1 epochs for rank 93 in 0.1000058650970459 seconds
+Datasets loaded in 1 epochs for rank 92 in 0.10005426406860352 seconds
+Datasets loaded in 1 epochs for rank 94 in 0.10004806518554688 seconds
+Datasets loaded in 1 epochs for rank 97 in 0.09792780876159668 seconds
+Datasets loaded in 1 epochs for rank 102 in 0.0993356704711914 seconds
+Datasets loaded in 1 epochs for rank 100 in 0.09917235374450684 seconds
+Datasets loaded in 1 epochs for rank 101 in 0.09936761856079102 seconds
+Datasets loaded in 1 epochs for rank 103 in 0.09938335418701172 seconds
+Datasets loaded in 1 epochs for rank 107 in 0.09812283515930176 seconds
+Datasets loaded in 1 epochs for rank 105 in 0.09813833236694336 seconds
+Datasets loaded in 1 epochs for rank 114 in 0.10023331642150879 seconds
+Datasets loaded in 1 epochs for rank 119 in 0.09908604621887207 seconds
+Datasets loaded in 1 epochs for rank 117 in 0.09915590286254883 seconds
+Datasets loaded in 1 epochs for rank 124 in 0.09926033020019531 seconds
+Datasets loaded in 1 epochs for rank 127 in 0.09927010536193848 seconds
+Datasets loaded in 1 epochs for rank 125 in 0.09936666488647461 seconds
+Datasets loaded in 1 epochs for rank 126 in 0.09936904907226562 seconds
+Datasets loaded in 1 epochs for rank 118 in 0.09930872917175293 seconds
+Datasets loaded in 1 epochs for rank 116 in 0.09940147399902344 seconds
+Datasets loaded in 1 epochs for rank 113 in 0.10013699531555176 seconds
+Datasets loaded in 1 epochs for rank 115 in 0.1002805233001709 seconds
+Datasets loaded in 1 epochs for rank 111 in 0.10074663162231445 seconds
+Datasets loaded in 1 epochs for rank 108 in 0.10056138038635254 seconds
+Datasets loaded in 1 epochs for rank 109 in 0.10069155693054199 seconds
+Datasets loaded in 1 epochs for rank 110 in 0.10068678855895996 seconds
+Datasets loaded in 1 epochs for rank 104 in 0.09833121299743652 seconds
+Datasets loaded in 1 epochs for rank 95 in 0.10042619705200195 seconds
+Datasets loaded in 1 epochs for rank 88 in 0.09909296035766602 seconds
+Datasets loaded in 1 epochs for rank 82 in 0.09944748878479004 seconds
+Datasets loaded in 1 epochs for rank 70 in 0.10008788108825684 seconds
+Datasets loaded in 1 epochs for rank 71 in 0.1002962589263916 seconds
+Datasets loaded in 1 epochs for rank 57 in 0.0994257926940918 seconds
+Datasets loaded in 1 epochs for rank 48 in 0.09814023971557617 seconds
+Datasets loaded in 1 epochs for rank 38 in 0.09966564178466797 seconds
+Datasets loaded in 1 epochs for rank 9 in 0.10030293464660645 seconds
+Datasets loaded in 1 epochs for rank 11 in 0.1002657413482666 seconds
+Datasets loaded in 1 epochs for rank 10 in 0.10047030448913574 seconds
+Datasets loaded in 1 epochs for rank 4 in 0.09981250762939453 seconds
+Datasets loaded in 1 epochs for rank 3 in 0.1009817123413086 seconds
+Datasets loaded in 1 epochs for rank 1 in 0.10094022750854492 seconds
+Datasets loaded in 1 epochs for rank 2 in 0.1010429859161377 seconds
+Datasets loaded in 1 epochs for rank 0 in 0.10118865966796875 seconds
+Datasets loaded in 1 epochs for rank 8 in 0.10088682174682617 seconds
+Datasets loaded in 1 epochs for rank 14 in 0.10240030288696289 seconds
+Datasets loaded in 1 epochs for rank 15 in 0.10245895385742188 seconds
+Datasets loaded in 1 epochs for rank 13 in 0.10249471664428711 seconds
+Datasets loaded in 1 epochs for rank 12 in 0.10235381126403809 seconds
+Datasets loaded in 1 epochs for rank 16 in 0.10189628601074219 seconds
+Datasets loaded in 1 epochs for rank 19 in 0.10192537307739258 seconds
+Datasets loaded in 1 epochs for rank 17 in 0.10190606117248535 seconds
+Datasets loaded in 1 epochs for rank 18 in 0.1019136905670166 seconds
+Datasets loaded in 1 epochs for rank 25 in 0.10257863998413086 seconds
+Datasets loaded in 1 epochs for rank 24 in 0.10255551338195801 seconds
+Datasets loaded in 1 epochs for rank 27 in 0.10254907608032227 seconds
+Datasets loaded in 1 epochs for rank 26 in 0.1026160717010498 seconds
+Datasets loaded in 1 epochs for rank 32 in 0.10228681564331055 seconds
+Datasets loaded in 1 epochs for rank 35 in 0.10222315788269043 seconds
+Datasets loaded in 1 epochs for rank 34 in 0.10230135917663574 seconds
+Datasets loaded in 1 epochs for rank 33 in 0.1022183895111084 seconds
+Datasets loaded in 1 epochs for rank 43 in 0.10236811637878418 seconds
+Datasets loaded in 1 epochs for rank 41 in 0.10231375694274902 seconds
+Datasets loaded in 1 epochs for rank 40 in 0.10234999656677246 seconds
+Datasets loaded in 1 epochs for rank 42 in 0.10241508483886719 seconds
+Datasets loaded in 1 epochs for rank 78 in 0.10109663009643555 seconds
+Datasets loaded in 1 epochs for rank 77 in 0.10107207298278809 seconds
+Datasets loaded in 1 epochs for rank 79 in 0.10124611854553223 seconds
+Datasets loaded in 1 epochs for rank 76 in 0.10122179985046387 seconds
+Datasets loaded in 1 epochs for rank 112 in 0.10058951377868652 seconds
+Datasets loaded in 1 epochs for rank 122 in 0.10149097442626953 seconds
+Datasets loaded in 1 epochs for rank 120 in 0.10162997245788574 seconds
+Datasets loaded in 1 epochs for rank 123 in 0.10146284103393555 seconds
+Datasets loaded in 1 epochs for rank 121 in 0.1016850471496582 seconds
+Datasets loaded in 1 epochs for rank 104 in 0.11213850975036621 seconds
+Datasets loaded in 1 epochs for rank 105 in 0.11225461959838867 seconds
+Datasets loaded in 1 epochs for rank 157 in 0.11390137672424316 seconds
+Datasets loaded in 1 epochs for rank 106 in 0.11225461959838867 seconds
+Datasets loaded in 1 epochs for rank 87 in 0.11483979225158691 seconds
+Datasets loaded in 1 epochs for rank 84 in 0.11488747596740723 seconds
+Datasets loaded in 1 epochs for rank 82 in 0.11385297775268555 seconds
+Datasets loaded in 1 epochs for rank 83 in 0.11380147933959961 seconds
+Datasets loaded in 1 epochs for rank 80 in 0.11388492584228516 seconds
+Datasets loaded in 1 epochs for rank 29 in 0.11480498313903809 seconds
+Datasets loaded in 1 epochs for rank 31 in 0.1147618293762207 seconds
+Datasets loaded in 1 epochs for rank 12 in 0.11516761779785156 seconds
+Datasets loaded in 1 epochs for rank 13 in 0.11503052711486816 seconds
+Datasets loaded in 1 epochs for rank 15 in 0.1150355339050293 seconds
+Datasets loaded in 1 epochs for rank 33 in 0.11469173431396484 seconds
+Datasets loaded in 1 epochs for rank 32 in 0.11465907096862793 seconds
+Datasets loaded in 1 epochs for rank 35 in 0.11475872993469238 seconds
+Datasets loaded in 1 epochs for rank 81 in 0.11432123184204102 seconds
+Datasets loaded in 1 epochs for rank 85 in 0.11495423316955566 seconds
+Datasets loaded in 1 epochs for rank 107 in 0.11269116401672363 seconds
+Datasets loaded in 1 epochs for rank 113 in 0.11487722396850586 seconds
+Datasets loaded in 1 epochs for rank 115 in 0.11496973037719727 seconds
+Datasets loaded in 1 epochs for rank 112 in 0.11500191688537598 seconds
+Datasets loaded in 1 epochs for rank 222 in 0.11524701118469238 seconds
+Datasets loaded in 1 epochs for rank 221 in 0.11538338661193848 seconds
+Datasets loaded in 1 epochs for rank 220 in 0.11539483070373535 seconds
+Datasets loaded in 1 epochs for rank 230 in 0.11521029472351074 seconds
+Datasets loaded in 1 epochs for rank 228 in 0.11526656150817871 seconds
+Datasets loaded in 1 epochs for rank 231 in 0.11522388458251953 seconds
+Datasets loaded in 1 epochs for rank 240 in 0.1147928237915039 seconds
+Datasets loaded in 1 epochs for rank 243 in 0.11486625671386719 seconds
+Datasets loaded in 1 epochs for rank 241 in 0.11484956741333008 seconds
+Datasets loaded in 1 epochs for rank 253 in 0.11475300788879395 seconds
+Datasets loaded in 1 epochs for rank 254 in 0.11479401588439941 seconds
+Datasets loaded in 1 epochs for rank 252 in 0.11497831344604492 seconds
+Datasets loaded in 1 epochs for rank 255 in 0.11516404151916504 seconds
+Datasets loaded in 1 epochs for rank 246 in 0.11622786521911621 seconds
+Datasets loaded in 1 epochs for rank 245 in 0.11613583564758301 seconds
+Datasets loaded in 1 epochs for rank 247 in 0.11618185043334961 seconds
+Datasets loaded in 1 epochs for rank 244 in 0.11639952659606934 seconds
+Datasets loaded in 1 epochs for rank 242 in 0.11525106430053711 seconds
+Datasets loaded in 1 epochs for rank 229 in 0.11565184593200684 seconds
+Datasets loaded in 1 epochs for rank 223 in 0.11588597297668457 seconds
+Datasets loaded in 1 epochs for rank 203 in 0.11512184143066406 seconds
+Datasets loaded in 1 epochs for rank 202 in 0.11501550674438477 seconds
+Datasets loaded in 1 epochs for rank 189 in 0.11640572547912598 seconds
+Datasets loaded in 1 epochs for rank 190 in 0.11663985252380371 seconds
+Datasets loaded in 1 epochs for rank 184 in 0.11615657806396484 seconds
+Datasets loaded in 1 epochs for rank 185 in 0.11625432968139648 seconds
+Datasets loaded in 1 epochs for rank 187 in 0.11626529693603516 seconds
+Datasets loaded in 1 epochs for rank 186 in 0.11624264717102051 seconds
+Datasets loaded in 1 epochs for rank 171 in 0.1160581111907959 seconds
+Datasets loaded in 1 epochs for rank 170 in 0.1160135269165039 seconds
+Datasets loaded in 1 epochs for rank 168 in 0.11621451377868652 seconds
+Datasets loaded in 1 epochs for rank 169 in 0.11626219749450684 seconds
+Datasets loaded in 1 epochs for rank 159 in 0.11389827728271484 seconds
+Datasets loaded in 1 epochs for rank 156 in 0.11391806602478027 seconds
+Datasets loaded in 1 epochs for rank 128 in 0.11517643928527832 seconds
+Datasets loaded in 1 epochs for rank 129 in 0.11506485939025879 seconds
+Datasets loaded in 1 epochs for rank 130 in 0.11534237861633301 seconds
+Datasets loaded in 1 epochs for rank 114 in 0.1154325008392334 seconds
+Datasets loaded in 1 epochs for rank 101 in 0.11610126495361328 seconds
+Datasets loaded in 1 epochs for rank 103 in 0.11594057083129883 seconds
+Datasets loaded in 1 epochs for rank 102 in 0.11598324775695801 seconds
+Datasets loaded in 1 epochs for rank 100 in 0.11614751815795898 seconds
+Datasets loaded in 1 epochs for rank 95 in 0.1162872314453125 seconds
+Datasets loaded in 1 epochs for rank 94 in 0.11639761924743652 seconds
+Datasets loaded in 1 epochs for rank 93 in 0.11632680892944336 seconds
+Datasets loaded in 1 epochs for rank 92 in 0.11638808250427246 seconds
+Datasets loaded in 1 epochs for rank 86 in 0.11530804634094238 seconds
+Datasets loaded in 1 epochs for rank 79 in 0.11520791053771973 seconds
+Datasets loaded in 1 epochs for rank 43 in 0.1153559684753418 seconds
+Datasets loaded in 1 epochs for rank 42 in 0.11528611183166504 seconds
+Datasets loaded in 1 epochs for rank 40 in 0.11538124084472656 seconds
+Datasets loaded in 1 epochs for rank 28 in 0.11497282981872559 seconds
+Datasets loaded in 1 epochs for rank 30 in 0.11536335945129395 seconds
+Datasets loaded in 1 epochs for rank 14 in 0.1153707504272461 seconds
+Datasets loaded in 1 epochs for rank 10 in 0.11547398567199707 seconds
+Datasets loaded in 1 epochs for rank 9 in 0.1155390739440918 seconds
+Datasets loaded in 1 epochs for rank 8 in 0.11558961868286133 seconds
+Datasets loaded in 1 epochs for rank 11 in 0.11556506156921387 seconds
+Datasets loaded in 1 epochs for rank 16 in 0.11600780487060547 seconds
+Datasets loaded in 1 epochs for rank 18 in 0.11591386795043945 seconds
+Datasets loaded in 1 epochs for rank 19 in 0.11594414710998535 seconds
+Datasets loaded in 1 epochs for rank 23 in 0.11728596687316895 seconds
+Datasets loaded in 1 epochs for rank 21 in 0.11742854118347168 seconds
+Datasets loaded in 1 epochs for rank 20 in 0.11746668815612793 seconds
+Datasets loaded in 1 epochs for rank 34 in 0.11503791809082031 seconds
+Datasets loaded in 1 epochs for rank 41 in 0.11550569534301758 seconds
+Datasets loaded in 1 epochs for rank 51 in 0.11699461936950684 seconds
+Datasets loaded in 1 epochs for rank 49 in 0.11719393730163574 seconds
+Datasets loaded in 1 epochs for rank 48 in 0.11718297004699707 seconds
+Datasets loaded in 1 epochs for rank 77 in 0.11542654037475586 seconds
+Datasets loaded in 1 epochs for rank 78 in 0.11534690856933594 seconds
+Datasets loaded in 1 epochs for rank 98 in 0.11632776260375977 seconds
+Datasets loaded in 1 epochs for rank 99 in 0.11616182327270508 seconds
+Datasets loaded in 1 epochs for rank 96 in 0.11628222465515137 seconds
+Datasets loaded in 1 epochs for rank 97 in 0.11629533767700195 seconds
+Datasets loaded in 1 epochs for rank 108 in 0.11843347549438477 seconds
+Datasets loaded in 1 epochs for rank 111 in 0.11829280853271484 seconds
+Datasets loaded in 1 epochs for rank 110 in 0.11832904815673828 seconds
+Datasets loaded in 1 epochs for rank 109 in 0.11846780776977539 seconds
+Datasets loaded in 1 epochs for rank 116 in 0.11793851852416992 seconds
+Datasets loaded in 1 epochs for rank 119 in 0.11794257164001465 seconds
+Datasets loaded in 1 epochs for rank 117 in 0.11791253089904785 seconds
+Datasets loaded in 1 epochs for rank 118 in 0.11807727813720703 seconds
+Datasets loaded in 1 epochs for rank 131 in 0.11558341979980469 seconds
+Datasets loaded in 1 epochs for rank 138 in 0.11570072174072266 seconds
+Datasets loaded in 1 epochs for rank 137 in 0.11570048332214355 seconds
+Datasets loaded in 1 epochs for rank 139 in 0.11573624610900879 seconds
+Datasets loaded in 1 epochs for rank 136 in 0.11571907997131348 seconds
+Datasets loaded in 1 epochs for rank 143 in 0.1178736686706543 seconds
+Datasets loaded in 1 epochs for rank 141 in 0.11767029762268066 seconds
+Datasets loaded in 1 epochs for rank 140 in 0.117828369140625 seconds
+Datasets loaded in 1 epochs for rank 142 in 0.11780691146850586 seconds
+Datasets loaded in 1 epochs for rank 158 in 0.11438465118408203 seconds
+Datasets loaded in 1 epochs for rank 166 in 0.11914682388305664 seconds
+Datasets loaded in 1 epochs for rank 164 in 0.1191549301147461 seconds
+Datasets loaded in 1 epochs for rank 167 in 0.11901354789733887 seconds
+Datasets loaded in 1 epochs for rank 165 in 0.11911177635192871 seconds
+Datasets loaded in 1 epochs for rank 191 in 0.11668944358825684 seconds
+Datasets loaded in 1 epochs for rank 188 in 0.11679935455322266 seconds
+Datasets loaded in 1 epochs for rank 201 in 0.11522173881530762 seconds
+Datasets loaded in 1 epochs for rank 205 in 0.11895442008972168 seconds
+Datasets loaded in 1 epochs for rank 206 in 0.11887001991271973 seconds
+Datasets loaded in 1 epochs for rank 207 in 0.1189277172088623 seconds
+Datasets loaded in 1 epochs for rank 204 in 0.11885952949523926 seconds
+Datasets loaded in 1 epochs for rank 214 in 0.11741232872009277 seconds
+Datasets loaded in 1 epochs for rank 213 in 0.11763834953308105 seconds
+Datasets loaded in 1 epochs for rank 224 in 0.1159663200378418 seconds
+Datasets loaded in 1 epochs for rank 227 in 0.11614322662353516 seconds
+Datasets loaded in 1 epochs for rank 233 in 0.11645078659057617 seconds
+Datasets loaded in 1 epochs for rank 235 in 0.11651206016540527 seconds
+Datasets loaded in 1 epochs for rank 234 in 0.1165614128112793 seconds
+Datasets loaded in 1 epochs for rank 232 in 0.11655020713806152 seconds
+Datasets loaded in 1 epochs for rank 239 in 0.11575984954833984 seconds
+Datasets loaded in 1 epochs for rank 238 in 0.11571550369262695 seconds
+Datasets loaded in 1 epochs for rank 237 in 0.11595940589904785 seconds
+Datasets loaded in 1 epochs for rank 236 in 0.11598443984985352 seconds
+Datasets loaded in 1 epochs for rank 249 in 0.11604809761047363 seconds
+Datasets loaded in 1 epochs for rank 251 in 0.1159520149230957 seconds
+Datasets loaded in 1 epochs for rank 248 in 0.11612534523010254 seconds
+Datasets loaded in 1 epochs for rank 250 in 0.11653852462768555 seconds
+Datasets loaded in 1 epochs for rank 226 in 0.11624789237976074 seconds
+Datasets loaded in 1 epochs for rank 225 in 0.11623787879943848 seconds
+Datasets loaded in 1 epochs for rank 212 in 0.11781692504882812 seconds
+Datasets loaded in 1 epochs for rank 215 in 0.11780619621276855 seconds
+Datasets loaded in 1 epochs for rank 200 in 0.11538267135620117 seconds
+Datasets loaded in 1 epochs for rank 162 in 0.1180429458618164 seconds
+Datasets loaded in 1 epochs for rank 160 in 0.11806225776672363 seconds
+Datasets loaded in 1 epochs for rank 163 in 0.11802911758422852 seconds
+Datasets loaded in 1 epochs for rank 127 in 0.1159672737121582 seconds
+Datasets loaded in 1 epochs for rank 126 in 0.1161048412322998 seconds
+Datasets loaded in 1 epochs for rank 124 in 0.11612629890441895 seconds
+Datasets loaded in 1 epochs for rank 88 in 0.1155853271484375 seconds
+Datasets loaded in 1 epochs for rank 90 in 0.1156148910522461 seconds
+Datasets loaded in 1 epochs for rank 91 in 0.1156618595123291 seconds
+Datasets loaded in 1 epochs for rank 76 in 0.11599254608154297 seconds
+Datasets loaded in 1 epochs for rank 50 in 0.11821508407592773 seconds
+Datasets loaded in 1 epochs for rank 25 in 0.11571359634399414 seconds
+Datasets loaded in 1 epochs for rank 24 in 0.11573505401611328 seconds
+Datasets loaded in 1 epochs for rank 17 in 0.1162419319152832 seconds
+Datasets loaded in 1 epochs for rank 4 in 0.11823272705078125 seconds
+Datasets loaded in 1 epochs for rank 7 in 0.11823654174804688 seconds
+Datasets loaded in 1 epochs for rank 6 in 0.11824226379394531 seconds
+Datasets loaded in 1 epochs for rank 5 in 0.11995387077331543 seconds
+Datasets loaded in 1 epochs for rank 22 in 0.11745715141296387 seconds
+Datasets loaded in 1 epochs for rank 89 in 0.11600852012634277 seconds
+Datasets loaded in 1 epochs for rank 125 in 0.11650586128234863 seconds
+Datasets loaded in 1 epochs for rank 161 in 0.11876225471496582 seconds
+Datasets loaded in 1 epochs for rank 27 in 0.11583518981933594 seconds
+Datasets loaded in 1 epochs for rank 26 in 0.11613845825195312 seconds
+Datasets loaded in 1 epochs for rank 55 in 0.13826322555541992 seconds
+Datasets loaded in 1 epochs for rank 54 in 0.13833332061767578 seconds
+Datasets loaded in 1 epochs for rank 52 in 0.13818931579589844 seconds
+Datasets loaded in 1 epochs for rank 53 in 0.13820600509643555 seconds
+Datasets loaded in 1 epochs for rank 69 in 0.14555811882019043 seconds
+Datasets loaded in 1 epochs for rank 71 in 0.1456005573272705 seconds
+Datasets loaded in 1 epochs for rank 68 in 0.14555048942565918 seconds
+Datasets loaded in 1 epochs for rank 151 in 0.14573955535888672 seconds
+Datasets loaded in 1 epochs for rank 150 in 0.1456754207611084 seconds
+Datasets loaded in 1 epochs for rank 148 in 0.14582204818725586 seconds
+Datasets loaded in 1 epochs for rank 149 in 0.14592790603637695 seconds
+Datasets loaded in 1 epochs for rank 70 in 0.14586091041564941 seconds
+Datasets loaded in 1 epochs for rank 38 in 0.14587163925170898 seconds
+Datasets loaded in 1 epochs for rank 3 in 0.14638996124267578 seconds
+Datasets loaded in 1 epochs for rank 1 in 0.1464395523071289 seconds
+Datasets loaded in 1 epochs for rank 2 in 0.1466541290283203 seconds
+Datasets loaded in 1 epochs for rank 36 in 0.1461019515991211 seconds
+Datasets loaded in 1 epochs for rank 37 in 0.14607572555541992 seconds
+Datasets loaded in 1 epochs for rank 39 in 0.14642739295959473 seconds
+Datasets loaded in 1 epochs for rank 46 in 0.14640474319458008 seconds
+Datasets loaded in 1 epochs for rank 47 in 0.14642333984375 seconds
+Datasets loaded in 1 epochs for rank 44 in 0.14645791053771973 seconds
+Datasets loaded in 1 epochs for rank 211 in 0.14635419845581055 seconds
+Datasets loaded in 1 epochs for rank 208 in 0.14631223678588867 seconds
+Datasets loaded in 1 epochs for rank 209 in 0.14643001556396484 seconds
+Datasets loaded in 1 epochs for rank 198 in 0.14682698249816895 seconds
+Datasets loaded in 1 epochs for rank 199 in 0.14686203002929688 seconds
+Datasets loaded in 1 epochs for rank 196 in 0.14689421653747559 seconds
+Datasets loaded in 1 epochs for rank 155 in 0.14656805992126465 seconds
+Datasets loaded in 1 epochs for rank 146 in 0.14644598960876465 seconds
+Datasets loaded in 1 epochs for rank 147 in 0.14663982391357422 seconds
+Datasets loaded in 1 epochs for rank 144 in 0.1466519832611084 seconds
+Datasets loaded in 1 epochs for rank 135 in 0.14690876007080078 seconds
+Datasets loaded in 1 epochs for rank 134 in 0.14687442779541016 seconds
+Datasets loaded in 1 epochs for rank 74 in 0.14635562896728516 seconds
+Datasets loaded in 1 epochs for rank 75 in 0.14638352394104004 seconds
+Datasets loaded in 1 epochs for rank 72 in 0.14653444290161133 seconds
+Datasets loaded in 1 epochs for rank 45 in 0.1466362476348877 seconds
+Datasets loaded in 1 epochs for rank 0 in 0.1474137306213379 seconds
+Datasets loaded in 1 epochs for rank 73 in 0.14666056632995605 seconds
+Datasets loaded in 1 epochs for rank 133 in 0.14707183837890625 seconds
+Datasets loaded in 1 epochs for rank 132 in 0.14693784713745117 seconds
+Datasets loaded in 1 epochs for rank 181 in 0.14689850807189941 seconds
+Datasets loaded in 1 epochs for rank 182 in 0.14713263511657715 seconds
+Datasets loaded in 1 epochs for rank 180 in 0.14702677726745605 seconds
+Datasets loaded in 1 epochs for rank 197 in 0.1469724178314209 seconds
+Datasets loaded in 1 epochs for rank 216 in 0.14660429954528809 seconds
+Datasets loaded in 1 epochs for rank 218 in 0.1463925838470459 seconds
+Datasets loaded in 1 epochs for rank 217 in 0.14646124839782715 seconds
+Datasets loaded in 1 epochs for rank 219 in 0.14640355110168457 seconds
+Datasets loaded in 1 epochs for rank 210 in 0.1463453769683838 seconds
+Datasets loaded in 1 epochs for rank 194 in 0.14722537994384766 seconds
+Datasets loaded in 1 epochs for rank 192 in 0.14717698097229004 seconds
+Datasets loaded in 1 epochs for rank 193 in 0.14727020263671875 seconds
+Datasets loaded in 1 epochs for rank 183 in 0.14713382720947266 seconds
+Datasets loaded in 1 epochs for rank 175 in 0.14743542671203613 seconds
+Datasets loaded in 1 epochs for rank 172 in 0.14757084846496582 seconds
+Datasets loaded in 1 epochs for rank 174 in 0.14742279052734375 seconds
+Datasets loaded in 1 epochs for rank 173 in 0.14757633209228516 seconds
+Datasets loaded in 1 epochs for rank 152 in 0.1466526985168457 seconds
+Datasets loaded in 1 epochs for rank 153 in 0.14688539505004883 seconds
+Datasets loaded in 1 epochs for rank 145 in 0.14720869064331055 seconds
+Datasets loaded in 1 epochs for rank 120 in 0.1452469825744629 seconds
+Datasets loaded in 1 epochs for rank 65 in 0.14743661880493164 seconds
+Datasets loaded in 1 epochs for rank 66 in 0.14742302894592285 seconds
+Datasets loaded in 1 epochs for rank 64 in 0.1473557949066162 seconds
+Datasets loaded in 1 epochs for rank 67 in 0.14736199378967285 seconds
+Datasets loaded in 1 epochs for rank 57 in 0.14740276336669922 seconds
+Datasets loaded in 1 epochs for rank 56 in 0.1475996971130371 seconds
+Datasets loaded in 1 epochs for rank 59 in 0.1473674774169922 seconds
+Datasets loaded in 1 epochs for rank 58 in 0.14745521545410156 seconds
+Datasets loaded in 1 epochs for rank 61 in 0.1485750675201416 seconds
+Datasets loaded in 1 epochs for rank 62 in 0.14844894409179688 seconds
+Datasets loaded in 1 epochs for rank 60 in 0.14866185188293457 seconds
+Datasets loaded in 1 epochs for rank 63 in 0.14854812622070312 seconds
+Datasets loaded in 1 epochs for rank 122 in 0.14548325538635254 seconds
+Datasets loaded in 1 epochs for rank 121 in 0.14545106887817383 seconds
+Datasets loaded in 1 epochs for rank 154 in 0.14703607559204102 seconds
+Datasets loaded in 1 epochs for rank 176 in 0.1482858657836914 seconds
+Datasets loaded in 1 epochs for rank 179 in 0.1483156681060791 seconds
+Datasets loaded in 1 epochs for rank 177 in 0.14833283424377441 seconds
+Datasets loaded in 1 epochs for rank 178 in 0.14832806587219238 seconds
+Datasets loaded in 1 epochs for rank 195 in 0.14730072021484375 seconds
+Datasets loaded in 1 epochs for rank 123 in 0.1458578109741211 seconds
+Finished 375 steps in 1 epochs for rank 22  in 10.244680643081665 seconds
+Finalizing for rank 22
+Finished 375 steps in 1 epochs for rank 15  in 10.23430061340332 seconds
+Finalizing for rank 15
+Finished 375 steps in 1 epochs for rank 14  in 10.2959623336792 seconds
+Finalizing for rank 14
+Finished 375 steps in 1 epochs for rank 23  in 10.354565143585205 seconds
+Finalizing for rank 23
+Finished 375 steps in 1 epochs for rank 22  in 10.354955911636353 seconds
+Finalizing for rank 22
+Finished 375 steps in 1 epochs for rank 79  in 10.371011972427368 seconds
+Finished 375 steps in 1 epochs for rank 78  in 10.371012687683105 seconds
+Finalizing for rank 79
+Finalizing for rank 78
+Finished 375 steps in 1 epochs for rank 20  in 10.450475692749023 seconds
+Finalizing for rank 20
+Finished 375 steps in 1 epochs for rank 85  in 10.40645170211792 seconds
+Finalizing for rank 85
+Finished 375 steps in 1 epochs for rank 62  in 10.41280460357666 seconds
+Finalizing for rank 62
+Finished 375 steps in 1 epochs for rank 30  in 10.477210760116577 seconds
+Finalizing for rank 30
+Finished 375 steps in 1 epochs for rank 23  in 10.42157506942749 seconds
+Finalizing for rank 23
+Finished 375 steps in 1 epochs for rank 95  in 10.42377233505249 seconds
+Finalizing for rank 95
+Finished 375 steps in 1 epochs for rank 88  in 10.426506996154785 seconds
+Finalizing for rank 88
+Finished 375 steps in 1 epochs for rank 30  in 10.436790227890015 seconds
+Finalizing for rank 30
+Finished 375 steps in 1 epochs for rank 29  in 10.450157880783081 seconds
+Finalizing for rank 29
+Finished 375 steps in 1 epochs for rank 55  in 10.463397741317749 seconds
+Finalizing for rank 55
+Finished 375 steps in 1 epochs for rank 21  in 10.52587628364563 seconds
+Finalizing for rank 21
+Finished 375 steps in 1 epochs for rank 31  in 10.527329444885254 seconds
+Finalizing for rank 31
+Finished 375 steps in 1 epochs for rank 63  in 10.475518226623535 seconds
+Finalizing for rank 63
+Finished 375 steps in 1 epochs for rank 64  in 10.479263544082642 seconds
+Finalizing for rank 64
+Finished 375 steps in 1 epochs for rank 13  in 10.4748854637146 seconds
+Finalizing for rank 13
+Finished 375 steps in 1 epochs for rank 23  in 10.483293771743774 seconds
+Finalizing for rank 23
+Finished 375 steps in 1 epochs for rank 89  in 10.493786811828613 seconds
+Finished 375 steps in 1 epochs for rank 15  in 10.558220386505127 seconds
+Finalizing for rank 15
+Finished 375 steps in 1 epochs for rank 28  in 10.4949471950531 seconds
+Finalizing for rank 28
+Finalizing for rank 89
+Finished 375 steps in 1 epochs for rank 94  in 10.492814064025879 seconds
+Finalizing for rank 94
+Finished 375 steps in 1 epochs for rank 31  in 10.498869895935059 seconds
+Finished 375 steps in 1 epochs for rank 47  in 10.50370979309082 seconds
+Finalizing for rank 47
+Finalizing for rank 31
+Finished 375 steps in 1 epochs for rank 56  in 10.508720874786377 seconds
+Finalizing for rank 56
+Finished 375 steps in 1 epochs for rank 87  in 10.50868034362793 seconds
+Finished 375 steps in 1 epochs for rank 12  in 10.556071758270264 seconds
+Finalizing for rank 87
+Finalizing for rank 12
+Finished 375 steps in 1 epochs for rank 14  in 10.576303720474243 seconds
+Finalizing for rank 14
+Finished 375 steps in 1 epochs for rank 70  in 10.515029907226562 seconds
+Finished 375 steps in 1 epochs for rank 13  in 10.56212592124939 seconds
+Finalizing for rank 70
+Finalizing for rank 13
+Finished 375 steps in 1 epochs for rank 22  in 10.520431518554688 seconds
+Finalizing for rank 22
+Finished 375 steps in 1 epochs for rank 80  in 10.520747184753418 seconds
+Finalizing for rank 80
+Finished 375 steps in 1 epochs for rank 77  in 10.520312309265137 seconds
+Finalizing for rank 77
+Finished 375 steps in 1 epochs for rank 54  in 10.531512975692749 seconds
+Finalizing for rank 54
+Finished 375 steps in 1 epochs for rank 29  in 10.590066909790039 seconds
+Finalizing for rank 29
+Finished 375 steps in 1 epochs for rank 109  in 10.526158571243286 seconds
+Finalizing for rank 109
+Finished 375 steps in 1 epochs for rank 48  in 10.531583786010742 seconds
+Finalizing for rank 48
+Finished 375 steps in 1 epochs for rank 54  in 10.537369012832642 seconds
+Finalizing for rank 54
+Finished 375 steps in 1 epochs for rank 28  in 10.607413530349731 seconds
+Finalizing for rank 28
+Finished 375 steps in 1 epochs for rank 61  in 10.550033569335938 seconds
+Finalizing for rank 61
+Finished 375 steps in 1 epochs for rank 12  in 10.617952585220337 seconds
+Finalizing for rank 12
+Finished 375 steps in 1 epochs for rank 21  in 10.56517744064331 seconds
+Finalizing for rank 21
+Finished 375 steps in 1 epochs for rank 62  in 10.5704505443573 seconds
+Finalizing for rank 62
+Finished 375 steps in 1 epochs for rank 19  in 10.629580020904541 seconds
+Finalizing for rank 19
+Finished 375 steps in 1 epochs for rank 126  in 10.576310634613037 seconds
+Finalizing for rank 126
+Finished 375 steps in 1 epochs for rank 86  in 10.580968618392944 seconds
+Finalizing for rank 86
+Finished 375 steps in 1 epochs for rank 13  in 10.642004489898682 seconds
+Finalizing for rank 13
+Finished 375 steps in 1 epochs for rank 60  in 10.586652517318726 seconds
+Finalizing for rank 60
+Finished 375 steps in 1 epochs for rank 96  in 10.587791681289673 seconds
+Finalizing for rank 96
+Finished 375 steps in 1 epochs for rank 118  in 10.607861042022705 seconds
+Finalizing for rank 118
+Finished 375 steps in 1 epochs for rank 63  in 10.61654782295227 seconds
+Finalizing for rank 63
+Finished 375 steps in 1 epochs for rank 162  in 10.544511079788208 seconds
+Finalizing for rank 162
+Finished 375 steps in 1 epochs for rank 38  in 10.632992029190063 seconds
+Finalizing for rank 38
+Finished 375 steps in 1 epochs for rank 27  in 10.692627429962158 seconds
+Finalizing for rank 27
+Finished 375 steps in 1 epochs for rank 7  in 10.69466257095337 seconds
+Finalizing for rank 7
+Finished 375 steps in 1 epochs for rank 11  in 10.64013671875 seconds
+Finalizing for rank 11
+Finished 375 steps in 1 epochs for rank 161  in 10.554523468017578 seconds
+Finalizing for rank 161
+Finished 375 steps in 1 epochs for rank 72  in 10.638084411621094 seconds
+Finalizing for rank 72
+Finished 375 steps in 1 epochs for rank 55  in 10.639190912246704 seconds
+Finalizing for rank 55
+Finished 375 steps in 1 epochs for rank 95  in 10.562210083007812 seconds
+Finalizing for rank 95
+Finished 375 steps in 1 epochs for rank 224  in 10.562790393829346 seconds
+Finalizing for rank 224
+Finished 375 steps in 1 epochs for rank 69  in 10.644998550415039 seconds
+Finalizing for rank 69
+Finished 375 steps in 1 epochs for rank 160  in 10.567359924316406 seconds
+Finished 375 steps in 1 epochs for rank 176  in 10.536590099334717 seconds
+Finalizing for rank 176
+Finalizing for rank 160
+Finished 375 steps in 1 epochs for rank 129  in 10.569288492202759 seconds
+Finalizing for rank 129
+Finished 375 steps in 1 epochs for rank 38  in 10.650275230407715 seconds
+Finalizing for rank 38
+Finished 375 steps in 1 epochs for rank 56  in 10.655744314193726 seconds
+Finalizing for rank 56
+Finished 375 steps in 1 epochs for rank 7  in 10.658808708190918 seconds
+Finalizing for rank 7
+Finished 375 steps in 1 epochs for rank 12  in 10.66771388053894 seconds
+Finalizing for rank 12
+Finished 375 steps in 1 epochs for rank 178  in 10.56402039527893 seconds
+Finished 375 steps in 1 epochs for rank 40  in 10.679866313934326 seconds
+Finalizing for rank 178
+Finalizing for rank 40
+Finished 375 steps in 1 epochs for rank 46  in 10.68105149269104 seconds
+Finalizing for rank 46
+Finished 375 steps in 1 epochs for rank 26  in 10.744173526763916 seconds
+Finalizing for rank 26
+Finished 375 steps in 1 epochs for rank 75  in 10.683794736862183 seconds
+Finalizing for rank 75
+Finished 375 steps in 1 epochs for rank 12  in 10.680902242660522 seconds
+Finalizing for rank 12
+Finished 375 steps in 1 epochs for rank 28  in 10.689320087432861 seconds
+Finalizing for rank 28
+Finished 375 steps in 1 epochs for rank 48  in 10.688774585723877 seconds
+Finalizing for rank 48
+Finished 375 steps in 1 epochs for rank 93  in 10.687999248504639 seconds
+Finalizing for rank 93
+Finished 375 steps in 1 epochs for rank 108  in 10.688555717468262 seconds
+Finalizing for rank 108
+Finished 375 steps in 1 epochs for rank 6  in 10.845340967178345 seconds
+Finalizing for rank 6
+Finished 375 steps in 1 epochs for rank 15  in 10.687168836593628 seconds
+Finalizing for rank 15
+Finished 375 steps in 1 epochs for rank 71  in 10.691412210464478 seconds
+Finalizing for rank 71
+Finished 375 steps in 1 epochs for rank 10  in 10.754777908325195 seconds
+Finalizing for rank 10
+Finished 375 steps in 1 epochs for rank 7  in 10.8553626537323 seconds
+Finalizing for rank 7
+Finished 375 steps in 1 epochs for rank 225  in 10.621541261672974 seconds
+Finalizing for rank 225
+Finished 375 steps in 1 epochs for rank 227  in 10.630084753036499 seconds
+Finalizing for rank 227
+Finished 375 steps in 1 epochs for rank 104  in 10.635818243026733 seconds
+Finalizing for rank 104
+Finished 375 steps in 1 epochs for rank 87  in 10.636837244033813 seconds
+Finalizing for rank 87
+Finished 375 steps in 1 epochs for rank 40  in 10.715698003768921 seconds
+Finalizing for rank 40
+Finished 375 steps in 1 epochs for rank 10  in 10.72542929649353 seconds
+Finalizing for rank 10
+Finished 375 steps in 1 epochs for rank 31  in 10.646395683288574 seconds
+Finalizing for rank 31
+Finished 375 steps in 1 epochs for rank 144  in 10.61824345588684 seconds
+Finalizing for rank 144
+Finished 375 steps in 1 epochs for rank 53  in 10.735652208328247 seconds
+Finalizing for rank 53
+Finished 375 steps in 1 epochs for rank 105  in 10.73749566078186 seconds
+Finalizing for rank 105
+Finished 375 steps in 1 epochs for rank 11  in 10.800477266311646 seconds
+Finalizing for rank 11
+Finished 375 steps in 1 epochs for rank 20  in 10.742418766021729 seconds
+Finalizing for rank 20
+Finished 375 steps in 1 epochs for rank 56  in 10.6306471824646 seconds
+Finalizing for rank 56
+Finished 375 steps in 1 epochs for rank 169  in 10.663316488265991 seconds
+Finalizing for rank 169
+Finished 375 steps in 1 epochs for rank 6  in 10.805187702178955 seconds
+Finalizing for rank 6
+Finished 375 steps in 1 epochs for rank 6  in 10.751226425170898 seconds
+Finalizing for rank 6
+Finished 375 steps in 1 epochs for rank 29  in 10.75413966178894 seconds
+Finalizing for rank 29
+Finished 375 steps in 1 epochs for rank 94  in 10.674000024795532 seconds
+Finalizing for rank 94
+Finished 375 steps in 1 epochs for rank 46  in 10.759211301803589 seconds
+Finalizing for rank 46
+Finished 375 steps in 1 epochs for rank 117  in 10.76117205619812 seconds
+Finalizing for rank 117
+Finished 375 steps in 1 epochs for rank 187  in 10.685095310211182 seconds
+Finalizing for rank 187
+Finished 375 steps in 1 epochs for rank 63  in 10.65796685218811 seconds
+Finalizing for rank 63
+Finished 375 steps in 1 epochs for rank 14  in 10.76701807975769 seconds
+Finalizing for rank 14
+Finished 375 steps in 1 epochs for rank 27  in 10.768268585205078 seconds
+Finalizing for rank 27
+Finished 375 steps in 1 epochs for rank 39  in 10.772616863250732 seconds
+Finalizing for rank 39
+Finished 375 steps in 1 epochs for rank 177  in 10.66319465637207 seconds
+Finalizing for rank 177
+Finished 375 steps in 1 epochs for rank 168  in 10.698943853378296 seconds
+Finalizing for rank 168
+Finished 375 steps in 1 epochs for rank 84  in 10.7774658203125 seconds
+Finished 375 steps in 1 epochs for rank 110  in 10.774031400680542 seconds
+Finalizing for rank 110
+Finalizing for rank 84
+Finished 375 steps in 1 epochs for rank 113  in 10.780470132827759 seconds
+Finalizing for rank 113
+Finished 375 steps in 1 epochs for rank 13  in 10.705307245254517 seconds
+Finalizing for rank 13
+Finished 375 steps in 1 epochs for rank 30  in 10.791097164154053 seconds
+Finalizing for rank 30
+Finished 375 steps in 1 epochs for rank 186  in 10.711819648742676 seconds
+Finalizing for rank 186
+Finished 375 steps in 1 epochs for rank 29  in 10.716469049453735 seconds
+Finalizing for rank 29
+Finished 375 steps in 1 epochs for rank 31  in 10.799007654190063 seconds
+Finished 375 steps in 1 epochs for rank 52  in 10.796762943267822 seconds
+Finalizing for rank 31
+Finalizing for rank 52
+Finished 375 steps in 1 epochs for rank 127  in 10.795790195465088 seconds
+Finalizing for rank 127
+Finished 375 steps in 1 epochs for rank 112  in 10.808586120605469 seconds
+Finalizing for rank 112
+Finished 375 steps in 1 epochs for rank 193  in 10.701193571090698 seconds
+Finalizing for rank 193
+Finished 375 steps in 1 epochs for rank 18  in 10.874853134155273 seconds
+Finalizing for rank 18
+Finished 375 steps in 1 epochs for rank 25  in 10.87734866142273 seconds
+Finalizing for rank 25
+Finished 375 steps in 1 epochs for rank 37  in 10.816264390945435 seconds
+Finalizing for rank 37
+Finished 375 steps in 1 epochs for rank 112  in 10.74028730392456 seconds
+Finalizing for rank 112
+Finished 375 steps in 1 epochs for rank 152  in 10.7091543674469 seconds
+Finalizing for rank 152
+Finished 375 steps in 1 epochs for rank 28  in 10.741662979125977 seconds
+Finalizing for rank 28
+Finished 375 steps in 1 epochs for rank 53  in 10.826428890228271 seconds
+Finalizing for rank 53
+Finished 375 steps in 1 epochs for rank 216  in 10.712140083312988 seconds
+Finalizing for rank 216
+Finished 375 steps in 1 epochs for rank 14  in 10.82774543762207 seconds
+Finalizing for rank 14
+Finished 375 steps in 1 epochs for rank 45  in 10.827885866165161 seconds
+Finalizing for rank 45
+Finished 375 steps in 1 epochs for rank 39  in 10.828339338302612 seconds
+Finalizing for rank 39
+Finished 375 steps in 1 epochs for rank 76  in 10.824471950531006 seconds
+Finalizing for rank 76
+Finished 375 steps in 1 epochs for rank 81  in 10.827128410339355 seconds
+Finalizing for rank 81
+Finished 375 steps in 1 epochs for rank 12  in 10.75169563293457 seconds
+Finalizing for rank 12
+Finished 375 steps in 1 epochs for rank 21  in 10.843625783920288 seconds
+Finalizing for rank 21
+Finished 375 steps in 1 epochs for rank 62  in 10.733555555343628 seconds
+Finalizing for rank 62
+Finished 375 steps in 1 epochs for rank 125  in 10.846028327941895 seconds
+Finalizing for rank 125
+Finished 375 steps in 1 epochs for rank 24  in 10.910283327102661 seconds
+Finalizing for rank 24
+Finished 375 steps in 1 epochs for rank 11  in 10.894750118255615 seconds
+Finalizing for rank 11
+Finished 375 steps in 1 epochs for rank 145  in 10.746884822845459 seconds
+Finalizing for rank 145
+Finished 375 steps in 1 epochs for rank 32  in 10.856935739517212 seconds
+Finalizing for rank 32
+Finished 375 steps in 1 epochs for rank 158  in 10.784956693649292 seconds
+Finalizing for rank 158
+Finished 375 steps in 1 epochs for rank 83  in 10.86279010772705 seconds
+Finalizing for rank 83
+Finished 375 steps in 1 epochs for rank 170  in 10.78560209274292 seconds
+Finalizing for rank 170
+Finished 375 steps in 1 epochs for rank 14  in 10.787652969360352 seconds
+Finalizing for rank 14
+Finished 375 steps in 1 epochs for rank 137  in 10.787915229797363 seconds
+Finalizing for rank 137
+Finished 375 steps in 1 epochs for rank 146  in 10.758296728134155 seconds
+Finalizing for rank 146
+Finished 375 steps in 1 epochs for rank 185  in 10.788535594940186 seconds
+Finalizing for rank 185
+Finished 375 steps in 1 epochs for rank 209  in 10.760059595108032 seconds
+Finalizing for rank 209
+Finished 375 steps in 1 epochs for rank 45  in 10.87371015548706 seconds
+Finalizing for rank 45
+Finished 375 steps in 1 epochs for rank 202  in 10.79854702949524 seconds
+Finalizing for rank 202
+Finished 375 steps in 1 epochs for rank 15  in 10.881979942321777 seconds
+Finalizing for rank 15
+Finished 375 steps in 1 epochs for rank 61  in 10.883729219436646 seconds
+Finalizing for rank 61
+Finished 375 steps in 1 epochs for rank 27  in 10.88611626625061 seconds
+Finalizing for rank 27
+Finished 375 steps in 1 epochs for rank 46  in 10.774455547332764 seconds
+Finalizing for rank 46
+Finished 375 steps in 1 epochs for rank 226  in 10.80512809753418 seconds
+Finalizing for rank 226
+Finished 375 steps in 1 epochs for rank 54  in 10.78357458114624 seconds
+Finalizing for rank 54
+Finished 375 steps in 1 epochs for rank 118  in 10.804133415222168 seconds
+Finalizing for rank 118
+Finished 375 steps in 1 epochs for rank 55  in 10.78621792793274 seconds
+Finalizing for rank 55
+Finished 375 steps in 1 epochs for rank 48  in 10.807373523712158 seconds
+Finalizing for rank 48
+Finished 375 steps in 1 epochs for rank 71  in 10.782146692276001 seconds
+Finalizing for rank 71
+Finished 375 steps in 1 epochs for rank 97  in 10.811296463012695 seconds
+Finalizing for rank 97
+Finished 375 steps in 1 epochs for rank 159  in 10.815736055374146 seconds
+Finalizing for rank 159
+Finished 375 steps in 1 epochs for rank 37  in 10.896642923355103 seconds
+Finalizing for rank 37
+Finished 375 steps in 1 epochs for rank 243  in 10.817979097366333 seconds
+Finalizing for rank 243
+Finished 375 steps in 1 epochs for rank 70  in 10.78867793083191 seconds
+Finalizing for rank 70
+Finished 375 steps in 1 epochs for rank 30  in 10.821944236755371 seconds
+Finalizing for rank 30
+Finished 375 steps in 1 epochs for rank 47  in 10.904597282409668 seconds
+Finalizing for rank 47
+Finished 375 steps in 1 epochs for rank 88  in 10.825858354568481 seconds
+Finalizing for rank 88
+Finished 375 steps in 1 epochs for rank 86  in 10.83043885231018 seconds
+Finalizing for rank 86
+Finished 375 steps in 1 epochs for rank 194  in 10.799262762069702 seconds
+Finalizing for rank 194
+Finished 375 steps in 1 epochs for rank 154  in 10.799973726272583 seconds
+Finalizing for rank 154
+Finished 375 steps in 1 epochs for rank 26  in 10.90697717666626 seconds
+Finalizing for rank 26
+Finished 375 steps in 1 epochs for rank 9  in 10.975305795669556 seconds
+Finished 375 steps in 1 epochs for rank 111  in 10.91193699836731 seconds
+Finalizing for rank 111
+Finalizing for rank 9
+Finished 375 steps in 1 epochs for rank 143  in 10.834287643432617 seconds
+Finalizing for rank 143
+Finished 375 steps in 1 epochs for rank 96  in 10.83674931526184 seconds
+Finalizing for rank 96
+Finished 375 steps in 1 epochs for rank 64  in 10.807262897491455 seconds
+Finalizing for rank 64
+Finished 375 steps in 1 epochs for rank 179  in 10.806766986846924 seconds
+Finalizing for rank 179
+Finished 375 steps in 1 epochs for rank 38  in 10.809499502182007 seconds
+Finalizing for rank 38
+Finished 375 steps in 1 epochs for rank 13  in 10.924532413482666 seconds
+Finalizing for rank 13
+Finished 375 steps in 1 epochs for rank 77  in 10.841728687286377 seconds
+Finalizing for rank 77
+Finished 375 steps in 1 epochs for rank 5  in 11.077234506607056 seconds
+Finalizing for rank 5
+Finished 375 steps in 1 epochs for rank 249  in 10.847543001174927 seconds
+Finalizing for rank 249
+Finished 375 steps in 1 epochs for rank 210  in 10.81713342666626 seconds
+Finalizing for rank 210
+Finished 375 steps in 1 epochs for rank 47  in 10.820911645889282 seconds
+Finalizing for rank 47
+Finished 375 steps in 1 epochs for rank 120  in 10.821584224700928 seconds
+Finalizing for rank 120
+Finished 375 steps in 1 epochs for rank 153  in 10.820963144302368 seconds
+Finalizing for rank 153
+Finished 375 steps in 1 epochs for rank 116  in 10.929830312728882 seconds
+Finalizing for rank 116
+Finished 375 steps in 1 epochs for rank 119  in 10.93254041671753 seconds
+Finalizing for rank 119
+Finished 375 steps in 1 epochs for rank 20  in 10.934813261032104 seconds
+Finished 375 steps in 1 epochs for rank 10  in 10.980541706085205 seconds
+Finalizing for rank 10
+Finalizing for rank 20
+Finished 375 steps in 1 epochs for rank 236  in 10.859323263168335 seconds
+Finalizing for rank 236
+Finished 375 steps in 1 epochs for rank 174  in 10.828041791915894 seconds
+Finished 375 steps in 1 epochs for rank 120  in 10.934057712554932 seconds
+Finalizing for rank 120
+Finalizing for rank 174
+Finished 375 steps in 1 epochs for rank 92  in 10.946790933609009 seconds
+Finalizing for rank 92
+Finished 375 steps in 1 epochs for rank 128  in 10.873231410980225 seconds
+Finalizing for rank 128
+Finished 375 steps in 1 epochs for rank 138  in 10.87344741821289 seconds
+Finalizing for rank 138
+Finished 375 steps in 1 epochs for rank 21  in 10.873944997787476 seconds
+Finalizing for rank 21
+Finished 375 steps in 1 epochs for rank 73  in 10.955426931381226 seconds
+Finalizing for rank 73
+Finished 375 steps in 1 epochs for rank 110  in 10.875149011611938 seconds
+Finalizing for rank 110
+Finished 375 steps in 1 epochs for rank 59  in 10.956960439682007 seconds
+Finalizing for rank 59
+Finished 375 steps in 1 epochs for rank 52  in 10.963695764541626 seconds
+Finalizing for rank 52
+Finished 375 steps in 1 epochs for rank 78  in 10.880905151367188 seconds
+Finalizing for rank 78
+Finished 375 steps in 1 epochs for rank 107  in 10.965426445007324 seconds
+Finalizing for rank 107
+Finished 375 steps in 1 epochs for rank 61  in 10.85407042503357 seconds
+Finalizing for rank 61
+Finished 375 steps in 1 epochs for rank 89  in 10.88926911354065 seconds
+Finalizing for rank 89
+Finished 375 steps in 1 epochs for rank 45  in 10.865302324295044 seconds
+Finalizing for rank 45
+Finished 375 steps in 1 epochs for rank 93  in 10.896005630493164 seconds
+Finalizing for rank 93
+Finished 375 steps in 1 epochs for rank 25  in 10.972196340560913 seconds
+Finalizing for rank 25
+Finished 375 steps in 1 epochs for rank 80  in 10.899642705917358 seconds
+Finalizing for rank 80
+Finished 375 steps in 1 epochs for rank 36  in 10.97677230834961 seconds
+Finalizing for rank 36
+Finished 375 steps in 1 epochs for rank 5  in 11.04073691368103 seconds
+Finalizing for rank 5
+Finished 375 steps in 1 epochs for rank 208  in 10.870904684066772 seconds
+Finalizing for rank 208
+Finished 375 steps in 1 epochs for rank 97  in 10.986485004425049 seconds
+Finished 375 steps in 1 epochs for rank 9  in 10.99018669128418 seconds
+Finalizing for rank 9
+Finished 375 steps in 1 epochs for rank 113  in 10.909518480300903 seconds
+Finalizing for rank 113
+Finalizing for rank 97
+Finished 375 steps in 1 epochs for rank 104  in 10.991594552993774 seconds
+Finalizing for rank 104
+Finished 375 steps in 1 epochs for rank 105  in 10.916482210159302 seconds
+Finalizing for rank 105
+Finished 375 steps in 1 epochs for rank 26  in 10.999237775802612 seconds
+Finalizing for rank 26
+Finished 375 steps in 1 epochs for rank 22  in 10.922932624816895 seconds
+Finished 375 steps in 1 epochs for rank 219  in 10.893274545669556 seconds
+Finalizing for rank 219
+Finalizing for rank 22
+Finished 375 steps in 1 epochs for rank 5  in 11.008384227752686 seconds
+Finalizing for rank 5
+Finished 375 steps in 1 epochs for rank 124  in 11.005738973617554 seconds
+Finalizing for rank 124
+Finished 375 steps in 1 epochs for rank 192  in 10.898903369903564 seconds
+Finalizing for rank 192
+Finished 375 steps in 1 epochs for rank 203  in 10.933014631271362 seconds
+Finalizing for rank 203
+Finished 375 steps in 1 epochs for rank 106  in 11.012078046798706 seconds
+Finalizing for rank 106
+Finished 375 steps in 1 epochs for rank 79  in 10.936550855636597 seconds
+Finished 375 steps in 1 epochs for rank 111  in 10.933534383773804 seconds
+Finalizing for rank 79
+Finalizing for rank 111
+Finished 375 steps in 1 epochs for rank 127  in 10.936471939086914 seconds
+Finalizing for rank 127
+Finished 375 steps in 1 epochs for rank 195  in 10.906062841415405 seconds
+Finalizing for rank 195
+Finished 375 steps in 1 epochs for rank 85  in 10.9394052028656 seconds
+Finalizing for rank 85
+Finished 375 steps in 1 epochs for rank 175  in 10.907325744628906 seconds
+Finalizing for rank 175
+Finished 375 steps in 1 epochs for rank 167  in 10.937603950500488 seconds
+Finalizing for rank 167
+Finished 375 steps in 1 epochs for rank 201  in 10.94211196899414 seconds
+Finalizing for rank 201
+Finished 375 steps in 1 epochs for rank 157  in 10.944047451019287 seconds
+Finalizing for rank 157
+Finished 375 steps in 1 epochs for rank 215  in 10.941048860549927 seconds
+Finalizing for rank 215
+Finished 375 steps in 1 epochs for rank 142  in 10.947458982467651 seconds
+Finalizing for rank 142
+Finished 375 steps in 1 epochs for rank 223  in 10.95492935180664 seconds
+Finalizing for rank 223
+Finished 375 steps in 1 epochs for rank 68  in 11.032417297363281 seconds
+Finalizing for rank 68
+Finished 375 steps in 1 epochs for rank 58  in 11.041940689086914 seconds
+Finalizing for rank 58
+Finished 375 steps in 1 epochs for rank 121  in 11.042690753936768 seconds
+Finalizing for rank 121
+Finished 375 steps in 1 epochs for rank 11  in 10.968384742736816 seconds
+Finalizing for rank 11
+Finished 375 steps in 1 epochs for rank 11  in 11.046716451644897 seconds
+Finalizing for rank 11
+Finished 375 steps in 1 epochs for rank 184  in 10.980210304260254 seconds
+Finalizing for rank 184
+Finished 375 steps in 1 epochs for rank 251  in 10.984823226928711 seconds
+Finalizing for rank 251
+Finished 375 steps in 1 epochs for rank 35  in 11.064542055130005 seconds
+Finalizing for rank 35
+Finished 375 steps in 1 epochs for rank 19  in 11.078650712966919 seconds
+Finished 375 steps in 1 epochs for rank 17  in 11.131502151489258 seconds
+Finalizing for rank 19
+Finalizing for rank 17
+Finished 375 steps in 1 epochs for rank 211  in 10.96306037902832 seconds
+Finalizing for rank 211
+Finished 375 steps in 1 epochs for rank 37  in 10.964733362197876 seconds
+Finished 375 steps in 1 epochs for rank 7  in 11.115041971206665 seconds
+Finalizing for rank 7
+Finalizing for rank 37
+Finished 375 steps in 1 epochs for rank 44  in 11.076623916625977 seconds
+Finalizing for rank 44
+Finished 375 steps in 1 epochs for rank 217  in 10.968110084533691 seconds
+Finalizing for rank 217
+Finished 375 steps in 1 epochs for rank 141  in 11.001808643341064 seconds
+Finished 375 steps in 1 epochs for rank 214  in 11.00187373161316 seconds
+Finalizing for rank 214
+Finalizing for rank 141
+Finished 375 steps in 1 epochs for rank 82  in 11.083397388458252 seconds
+Finalizing for rank 82
+Finished 375 steps in 1 epochs for rank 218  in 10.977015256881714 seconds
+Finalizing for rank 218
+Finished 375 steps in 1 epochs for rank 242  in 11.013980627059937 seconds
+Finalizing for rank 242
+Finished 375 steps in 1 epochs for rank 235  in 11.012993574142456 seconds
+Finalizing for rank 235
+Finished 375 steps in 1 epochs for rank 116  in 11.014816761016846 seconds
+Finalizing for rank 116
+Finished 375 steps in 1 epochs for rank 39  in 10.987194776535034 seconds
+Finalizing for rank 39
+Finished 375 steps in 1 epochs for rank 109  in 11.018621444702148 seconds
+Finalizing for rank 109
+Finished 375 steps in 1 epochs for rank 119  in 11.019592523574829 seconds
+Finalizing for rank 119
+Finished 375 steps in 1 epochs for rank 69  in 10.994094371795654 seconds
+Finalizing for rank 69
+Finished 375 steps in 1 epochs for rank 10  in 11.10095739364624 seconds
+Finalizing for rank 10
+Finished 375 steps in 1 epochs for rank 44  in 11.107448816299438 seconds
+Finalizing for rank 44
+Finished 375 steps in 1 epochs for rank 241  in 11.025431632995605 seconds
+Finalizing for rank 241
+Finished 375 steps in 1 epochs for rank 36  in 11.110158443450928 seconds
+Finalizing for rank 36
+Finished 375 steps in 1 epochs for rank 51  in 11.110380411148071 seconds
+Finished 375 steps in 1 epochs for rank 6  in 11.15219235420227 seconds
+Finalizing for rank 6
+Finished 375 steps in 1 epochs for rank 60  in 11.117048501968384 seconds
+Finalizing for rank 60
+Finalizing for rank 51
+Finished 375 steps in 1 epochs for rank 222  in 11.040385961532593 seconds
+Finished 375 steps in 1 epochs for rank 248  in 11.039312601089478 seconds
+Finalizing for rank 248
+Finalizing for rank 222
+Finished 375 steps in 1 epochs for rank 40  in 11.045706033706665 seconds
+Finalizing for rank 40
+Finished 375 steps in 1 epochs for rank 151  in 11.015877485275269 seconds
+Finalizing for rank 151
+Finished 375 steps in 1 epochs for rank 72  in 11.015154361724854 seconds
+Finalizing for rank 72
+Finished 375 steps in 1 epochs for rank 23  in 11.046923875808716 seconds
+Finalizing for rank 23
+Finished 375 steps in 1 epochs for rank 8  in 11.188701152801514 seconds
+Finalizing for rank 8
+Finished 375 steps in 1 epochs for rank 27  in 11.049476146697998 seconds
+Finalizing for rank 27
+Finished 375 steps in 1 epochs for rank 15  in 11.052523851394653 seconds
+Finalizing for rank 15
+Finished 375 steps in 1 epochs for rank 136  in 11.059220314025879 seconds
+Finalizing for rank 136
+Finished 375 steps in 1 epochs for rank 103  in 11.066306829452515 seconds
+Finalizing for rank 103
+Finished 375 steps in 1 epochs for rank 171  in 11.067744255065918 seconds
+Finalizing for rank 171
+Finished 375 steps in 1 epochs for rank 60  in 11.035820960998535 seconds
+Finalizing for rank 60
+Finished 375 steps in 1 epochs for rank 207  in 11.0706787109375 seconds
+Finalizing for rank 207
+Finished 375 steps in 1 epochs for rank 126  in 11.07965350151062 seconds
+Finalizing for rank 126
+Finished 375 steps in 1 epochs for rank 10  in 11.089329957962036 seconds
+Finalizing for rank 10
+Finished 375 steps in 1 epochs for rank 24  in 11.167948484420776 seconds
+Finalizing for rank 24
+Finished 375 steps in 1 epochs for rank 166  in 11.108777046203613 seconds
+Finalizing for rank 166
+Finished 375 steps in 1 epochs for rank 91  in 11.19401240348816 seconds
+Finalizing for rank 91
+Finished 375 steps in 1 epochs for rank 255  in 11.117584705352783 seconds
+Finalizing for rank 255
+Finished 375 steps in 1 epochs for rank 53  in 11.095021724700928 seconds
+Finalizing for rank 53
+Finished 375 steps in 1 epochs for rank 250  in 11.122093915939331 seconds
+Finalizing for rank 250
+Finished 375 steps in 1 epochs for rank 213  in 11.122507095336914 seconds
+Finished 375 steps in 1 epochs for rank 18  in 11.211311340332031 seconds
+Finalizing for rank 213
+Finalizing for rank 18
+Finished 375 steps in 1 epochs for rank 4  in 11.359141111373901 seconds
+Finished 375 steps in 1 epochs for rank 26  in 11.125535488128662 seconds
+Finalizing for rank 26
+Finalizing for rank 4
+Finished 375 steps in 1 epochs for rank 50  in 11.211817264556885 seconds
+Finalizing for rank 50
+Finished 375 steps in 1 epochs for rank 67  in 11.212559223175049 seconds
+Finalizing for rank 67
+Finished 375 steps in 1 epochs for rank 9  in 11.261694192886353 seconds
+Finalizing for rank 9
+Finished 375 steps in 1 epochs for rank 220  in 11.13854455947876 seconds
+Finalizing for rank 220
+Finished 375 steps in 1 epochs for rank 74  in 11.217372417449951 seconds
+Finalizing for rank 74
+Finished 375 steps in 1 epochs for rank 84  in 11.147343397140503 seconds
+Finalizing for rank 84
+Finished 375 steps in 1 epochs for rank 115  in 11.226689577102661 seconds
+Finalizing for rank 115
+Finished 375 steps in 1 epochs for rank 156  in 11.159605026245117 seconds
+Finalizing for rank 156
+Finished 375 steps in 1 epochs for rank 20  in 11.156813859939575 seconds
+Finalizing for rank 20
+Finished 375 steps in 1 epochs for rank 34  in 11.234026908874512 seconds
+Finished 375 steps in 1 epochs for rank 92  in 11.15915060043335 seconds
+Finalizing for rank 92
+Finished 375 steps in 1 epochs for rank 191  in 11.158990621566772 seconds
+Finalizing for rank 191
+Finished 375 steps in 1 epochs for rank 206  in 11.15785551071167 seconds
+Finalizing for rank 206
+Finalizing for rank 34
+Finished 375 steps in 1 epochs for rank 102  in 11.168838024139404 seconds
+Finalizing for rank 102
+Finished 375 steps in 1 epochs for rank 8  in 11.256596326828003 seconds
+Finalizing for rank 8
+Finished 375 steps in 1 epochs for rank 81  in 11.174979209899902 seconds
+Finalizing for rank 81
+Finished 375 steps in 1 epochs for rank 7  in 11.176190614700317 seconds
+Finalizing for rank 7
+Finished 375 steps in 1 epochs for rank 123  in 11.255326986312866 seconds
+Finalizing for rank 123
+Finished 375 steps in 1 epochs for rank 173  in 11.151207685470581 seconds
+Finalizing for rank 173
+Finished 375 steps in 1 epochs for rank 108  in 11.181998491287231 seconds
+Finalizing for rank 108
+Finished 375 steps in 1 epochs for rank 121  in 11.154687643051147 seconds
+Finalizing for rank 121
+Finished 375 steps in 1 epochs for rank 234  in 11.185132265090942 seconds
+Finalizing for rank 234
+Finished 375 steps in 1 epochs for rank 117  in 11.191339015960693 seconds
+Finalizing for rank 117
+Finished 375 steps in 1 epochs for rank 135  in 11.162768840789795 seconds
+Finalizing for rank 135
+Finished 375 steps in 1 epochs for rank 103  in 11.272233247756958 seconds
+Finalizing for rank 103
+Finished 375 steps in 1 epochs for rank 4  in 11.28618335723877 seconds
+Finalizing for rank 4
+Finished 375 steps in 1 epochs for rank 25  in 11.291370868682861 seconds
+Finalizing for rank 25
+Finished 375 steps in 1 epochs for rank 125  in 11.221575498580933 seconds
+Finalizing for rank 125
+Finished 375 steps in 1 epochs for rank 44  in 11.19328236579895 seconds
+Finalizing for rank 44
+Finished 375 steps in 1 epochs for rank 150  in 11.195239305496216 seconds
+Finalizing for rank 150
+Finished 375 steps in 1 epochs for rank 165  in 11.23382019996643 seconds
+Finalizing for rank 165
+Finished 375 steps in 1 epochs for rank 43  in 11.31898021697998 seconds
+Finalizing for rank 43
+Finished 375 steps in 1 epochs for rank 52  in 11.2283034324646 seconds
+Finalizing for rank 52
+Finished 375 steps in 1 epochs for rank 16  in 11.390707731246948 seconds
+Finalizing for rank 16
+Finished 375 steps in 1 epochs for rank 240  in 11.257683992385864 seconds
+Finalizing for rank 240
+Finished 375 steps in 1 epochs for rank 43  in 11.343289852142334 seconds
+Finalizing for rank 43
+Finished 375 steps in 1 epochs for rank 35  in 11.34387731552124 seconds
+Finalizing for rank 35
+Finished 375 steps in 1 epochs for rank 122  in 11.239966630935669 seconds
+Finalizing for rank 122
+Finished 375 steps in 1 epochs for rank 36  in 11.240295886993408 seconds
+Finalizing for rank 36
+Finished 375 steps in 1 epochs for rank 254  in 11.28114366531372 seconds
+Finalizing for rank 254
+Finished 375 steps in 1 epochs for rank 90  in 11.358514785766602 seconds
+Finalizing for rank 90
+Finished 375 steps in 1 epochs for rank 57  in 11.357814073562622 seconds
+Finalizing for rank 57
+Finished 375 steps in 1 epochs for rank 3  in 11.422074794769287 seconds
+Finalizing for rank 3
+Finished 375 steps in 1 epochs for rank 9  in 11.360190153121948 seconds
+Finalizing for rank 9
+Finished 375 steps in 1 epochs for rank 221  in 11.285562992095947 seconds
+Finalizing for rank 221
+Finished 375 steps in 1 epochs for rank 122  in 11.365307331085205 seconds
+Finalizing for rank 122
+Finished 375 steps in 1 epochs for rank 228  in 11.290918111801147 seconds
+Finalizing for rank 228
+Finished 375 steps in 1 epochs for rank 189  in 11.298767805099487 seconds
+Finalizing for rank 189
+Finished 375 steps in 1 epochs for rank 183  in 11.268506288528442 seconds
+Finalizing for rank 183
+Finished 375 steps in 1 epochs for rank 68  in 11.275238037109375 seconds
+Finalizing for rank 68
+Finished 375 steps in 1 epochs for rank 190  in 11.305298089981079 seconds
+Finalizing for rank 190
+Finished 375 steps in 1 epochs for rank 252  in 11.306829690933228 seconds
+Finalizing for rank 252
+Finished 375 steps in 1 epochs for rank 200  in 11.309425115585327 seconds
+Finalizing for rank 200
+Finished 375 steps in 1 epochs for rank 33  in 11.393686771392822 seconds
+Finalizing for rank 33
+Finished 375 steps in 1 epochs for rank 51  in 11.398838758468628 seconds
+Finalizing for rank 51
+Finished 375 steps in 1 epochs for rank 75  in 11.29242205619812 seconds
+Finalizing for rank 75
+Finished 375 steps in 1 epochs for rank 4  in 11.466908693313599 seconds
+Finalizing for rank 4
+Finished 375 steps in 1 epochs for rank 8  in 11.45368242263794 seconds
+Finalizing for rank 8
+Finished 375 steps in 1 epochs for rank 7  in 11.410797595977783 seconds
+Finalizing for rank 7
+Finished 375 steps in 1 epochs for rank 17  in 11.421411752700806 seconds
+Finalizing for rank 17
+Finished 375 steps in 1 epochs for rank 172  in 11.3057119846344 seconds
+Finalizing for rank 172
+Finished 375 steps in 1 epochs for rank 182  in 11.307042837142944 seconds
+Finalizing for rank 182
+Finished 375 steps in 1 epochs for rank 9  in 11.339368104934692 seconds
+Finalizing for rank 9
+Finished 375 steps in 1 epochs for rank 233  in 11.3401460647583 seconds
+Finalizing for rank 233
+Finished 375 steps in 1 epochs for rank 49  in 11.421716213226318 seconds
+Finalizing for rank 49
+Finished 375 steps in 1 epochs for rank 149  in 11.319326400756836 seconds
+Finalizing for rank 149
+Finished 375 steps in 1 epochs for rank 19  in 11.426108598709106 seconds
+Finalizing for rank 19
+Finished 375 steps in 1 epochs for rank 188  in 11.351247787475586 seconds
+Finalizing for rank 188
+Finished 375 steps in 1 epochs for rank 18  in 11.428947448730469 seconds
+Finalizing for rank 18
+Finished 375 steps in 1 epochs for rank 205  in 11.354369878768921 seconds
+Finalizing for rank 205
+Finished 375 steps in 1 epochs for rank 114  in 11.436460256576538 seconds
+Finalizing for rank 114
+Finished 375 steps in 1 epochs for rank 50  in 11.446403503417969 seconds
+Finalizing for rank 50
+Finished 375 steps in 1 epochs for rank 35  in 11.371711492538452 seconds
+Finalizing for rank 35
+Finished 375 steps in 1 epochs for rank 6  in 11.369898796081543 seconds
+Finalizing for rank 6
+Finished 375 steps in 1 epochs for rank 212  in 11.37213921546936 seconds
+Finalizing for rank 212
+Finished 375 steps in 1 epochs for rank 140  in 11.37825322151184 seconds
+Finalizing for rank 140
+Finished 375 steps in 1 epochs for rank 134  in 11.355589151382446 seconds
+Finalizing for rank 134
+Finished 375 steps in 1 epochs for rank 66  in 11.469288349151611 seconds
+Finalizing for rank 66
+Finished 375 steps in 1 epochs for rank 42  in 11.465013265609741 seconds
+Finalizing for rank 42
+Finished 375 steps in 1 epochs for rank 5  in 11.513023138046265 seconds
+Finalizing for rank 5
+Finished 375 steps in 1 epochs for rank 25  in 11.397051095962524 seconds
+Finalizing for rank 25
+Finished 375 steps in 1 epochs for rank 59  in 11.47883915901184 seconds
+Finished 375 steps in 1 epochs for rank 83  in 11.398412466049194 seconds
+Finalizing for rank 83
+Finalizing for rank 59
+Finished 375 steps in 1 epochs for rank 34  in 11.484066247940063 seconds
+Finalizing for rank 34
+Finished 375 steps in 1 epochs for rank 91  in 11.403679370880127 seconds
+Finalizing for rank 91
+Finished 375 steps in 1 epochs for rank 59  in 11.382265329360962 seconds
+Finalizing for rank 59
+Finished 375 steps in 1 epochs for rank 139  in 11.4162278175354 seconds
+Finalizing for rank 139
+Finished 375 steps in 1 epochs for rank 2  in 11.559463500976562 seconds
+Finalizing for rank 2
+Finished 375 steps in 1 epochs for rank 43  in 11.424559831619263 seconds
+Finalizing for rank 43
+Finished 375 steps in 1 epochs for rank 58  in 11.509955406188965 seconds
+Finalizing for rank 58
+Finished 375 steps in 1 epochs for rank 101  in 11.43803882598877 seconds
+Finalizing for rank 101
+Finished 375 steps in 1 epochs for rank 114  in 11.439976453781128 seconds
+Finalizing for rank 114
+Finished 375 steps in 1 epochs for rank 102  in 11.520263433456421 seconds
+Finished 375 steps in 1 epochs for rank 247  in 11.442996501922607 seconds
+Finalizing for rank 247
+Finalizing for rank 102
+Finished 375 steps in 1 epochs for rank 42  in 11.539901494979858 seconds
+Finalizing for rank 42
+Finished 375 steps in 1 epochs for rank 3  in 11.703009605407715 seconds
+Finalizing for rank 3
+Finished 375 steps in 1 epochs for rank 155  in 11.44069242477417 seconds
+Finalizing for rank 155
+Finished 375 steps in 1 epochs for rank 164  in 11.480824947357178 seconds
+Finalizing for rank 164
+Finished 375 steps in 1 epochs for rank 58  in 11.458364009857178 seconds
+Finished 375 steps in 1 epochs for rank 244  in 11.490174293518066 seconds
+Finalizing for rank 244
+Finalizing for rank 58
+Finished 375 steps in 1 epochs for rank 124  in 11.492207765579224 seconds
+Finalizing for rank 124
+Finished 375 steps in 1 epochs for rank 19  in 11.493249893188477 seconds
+Finalizing for rank 19
+Finished 375 steps in 1 epochs for rank 65  in 11.582129001617432 seconds
+Finalizing for rank 65
+Finished 375 steps in 1 epochs for rank 232  in 11.506375312805176 seconds
+Finalizing for rank 232
+Finished 375 steps in 1 epochs for rank 199  in 11.4777991771698 seconds
+Finalizing for rank 199
+Finished 375 steps in 1 epochs for rank 24  in 11.601178169250488 seconds
+Finalizing for rank 24
+Finished 375 steps in 1 epochs for rank 6  in 11.597260236740112 seconds
+Finalizing for rank 6
+Finished 375 steps in 1 epochs for rank 90  in 11.523362159729004 seconds
+Finalizing for rank 90
+Finished 375 steps in 1 epochs for rank 8  in 11.525170087814331 seconds
+Finalizing for rank 8
+Finished 375 steps in 1 epochs for rank 74  in 11.49545955657959 seconds
+Finalizing for rank 74
+Finished 375 steps in 1 epochs for rank 239  in 11.538832664489746 seconds
+Finalizing for rank 239
+Finished 375 steps in 1 epochs for rank 3  in 11.63331937789917 seconds
+Finalizing for rank 3
+Finished 375 steps in 1 epochs for rank 34  in 11.55929946899414 seconds
+Finalizing for rank 34
+Finished 375 steps in 1 epochs for rank 181  in 11.531280279159546 seconds
+Finished 375 steps in 1 epochs for rank 82  in 11.563997030258179 seconds
+Finalizing for rank 82
+Finalizing for rank 181
+Finished 375 steps in 1 epochs for rank 16  in 11.6628577709198 seconds
+Finalizing for rank 16
+Finished 375 steps in 1 epochs for rank 253  in 11.582614421844482 seconds
+Finalizing for rank 253
+Finished 375 steps in 1 epochs for rank 246  in 11.5830979347229 seconds
+Finalizing for rank 246
+Finished 375 steps in 1 epochs for rank 41  in 11.664161205291748 seconds
+Finalizing for rank 41
+Finished 375 steps in 1 epochs for rank 42  in 11.59450364112854 seconds
+Finalizing for rank 42
+Finished 375 steps in 1 epochs for rank 4  in 11.714219331741333 seconds
+Finalizing for rank 4
+Finished 375 steps in 1 epochs for rank 73  in 11.576196908950806 seconds
+Finalizing for rank 73
+Finished 375 steps in 1 epochs for rank 123  in 11.577986240386963 seconds
+Finalizing for rank 123
+Finished 375 steps in 1 epochs for rank 147  in 11.580443143844604 seconds
+Finalizing for rank 147
+Finished 375 steps in 1 epochs for rank 3  in 11.908361911773682 seconds
+Finalizing for rank 3
+Finished 375 steps in 1 epochs for rank 133  in 11.586116313934326 seconds
+Finalizing for rank 133
+Finished 375 steps in 1 epochs for rank 5  in 11.615711688995361 seconds
+Finalizing for rank 5
+Finished 375 steps in 1 epochs for rank 107  in 11.629335403442383 seconds
+Finalizing for rank 107
+Finished 375 steps in 1 epochs for rank 2  in 11.863192319869995 seconds
+Finalizing for rank 2
+Finished 375 steps in 1 epochs for rank 76  in 11.63452935218811 seconds
+Finalizing for rank 76
+Finished 375 steps in 1 epochs for rank 18  in 11.635409832000732 seconds
+Finalizing for rank 18
+Finished 375 steps in 1 epochs for rank 100  in 11.635478496551514 seconds
+Finalizing for rank 100
+Finished 375 steps in 1 epochs for rank 148  in 11.608475923538208 seconds
+Finalizing for rank 148
+Finished 375 steps in 1 epochs for rank 24  in 11.64045262336731 seconds
+Finalizing for rank 24
+Finished 375 steps in 1 epochs for rank 8  in 11.718384027481079 seconds
+Finalizing for rank 8
+Finished 375 steps in 1 epochs for rank 67  in 11.620993375778198 seconds
+Finalizing for rank 67
+Finished 375 steps in 1 epochs for rank 130  in 11.653518676757812 seconds
+Finalizing for rank 130
+Finished 375 steps in 1 epochs for rank 51  in 11.653460025787354 seconds
+Finalizing for rank 51
+Finished 375 steps in 1 epochs for rank 41  in 11.738227128982544 seconds
+Finalizing for rank 41
+Finished 375 steps in 1 epochs for rank 101  in 11.738713264465332 seconds
+Finalizing for rank 101
+Finished 375 steps in 1 epochs for rank 238  in 11.664023876190186 seconds
+Finalizing for rank 238
+Finished 375 steps in 1 epochs for rank 49  in 11.745441198348999 seconds
+Finalizing for rank 49
+Finished 375 steps in 1 epochs for rank 3  in 11.79288387298584 seconds
+Finalizing for rank 3
+Finished 375 steps in 1 epochs for rank 1  in 11.823679208755493 seconds
+Finalizing for rank 1
+Finished 375 steps in 1 epochs for rank 204  in 11.684143543243408 seconds
+Finalizing for rank 204
+Finished 375 steps in 1 epochs for rank 132  in 11.65654993057251 seconds
+Finished 375 steps in 1 epochs for rank 17  in 11.762438774108887 seconds
+Finalizing for rank 17
+Finalizing for rank 132
+Finished 375 steps in 1 epochs for rank 41  in 11.697946310043335 seconds
+Finalizing for rank 41
+Finished 375 steps in 1 epochs for rank 163  in 11.697788715362549 seconds
+Finalizing for rank 163
+Finished 375 steps in 1 epochs for rank 115  in 11.708143949508667 seconds
+Finalizing for rank 115
+Finished 375 steps in 1 epochs for rank 32  in 11.712323665618896 seconds
+Finalizing for rank 32
+Finished 375 steps in 1 epochs for rank 33  in 11.801234006881714 seconds
+Finalizing for rank 33
+Finished 375 steps in 1 epochs for rank 2  in 11.845975637435913 seconds
+Finalizing for rank 2
+Finished 375 steps in 1 epochs for rank 2  in 11.812591552734375 seconds
+Finalizing for rank 2
+Finished 375 steps in 1 epochs for rank 32  in 11.837228298187256 seconds
+Finalizing for rank 32
+Finished 375 steps in 1 epochs for rank 106  in 11.760154962539673 seconds
+Finalizing for rank 106
+Finished 375 steps in 1 epochs for rank 5  in 11.83694076538086 seconds
+Finalizing for rank 5
+Finished 375 steps in 1 epochs for rank 231  in 11.77272343635559 seconds
+Finalizing for rank 231
+Finished 375 steps in 1 epochs for rank 50  in 11.77259373664856 seconds
+Finalizing for rank 50
+Finished 375 steps in 1 epochs for rank 198  in 11.777811288833618 seconds
+Finalizing for rank 198
+Finished 375 steps in 1 epochs for rank 33  in 11.810293197631836 seconds
+Finalizing for rank 33
+Finished 375 steps in 1 epochs for rank 57  in 11.89353632926941 seconds
+Finalizing for rank 57
+Finished 375 steps in 1 epochs for rank 66  in 11.797415494918823 seconds
+Finalizing for rank 66
+Finished 375 steps in 1 epochs for rank 180  in 11.803398370742798 seconds
+Finalizing for rank 180
+Finished 375 steps in 1 epochs for rank 1  in 12.083412647247314 seconds
+Finalizing for rank 1
+Finished 375 steps in 1 epochs for rank 245  in 11.855804204940796 seconds
+Finalizing for rank 245
+Finished 375 steps in 1 epochs for rank 16  in 11.944130420684814 seconds
+Finalizing for rank 16
+Finished 375 steps in 1 epochs for rank 4  in 11.868422269821167 seconds
+Finalizing for rank 4
+Finished 375 steps in 1 epochs for rank 2  in 12.175522565841675 seconds
+Finalizing for rank 2
+Finished 375 steps in 1 epochs for rank 197  in 11.862780332565308 seconds
+Finalizing for rank 197
+Finished 375 steps in 1 epochs for rank 57  in 11.873520374298096 seconds
+Finalizing for rank 57
+Finished 375 steps in 1 epochs for rank 0  in 12.04756236076355 seconds
+Finalizing for rank 0
+Finished 375 steps in 1 epochs for rank 131  in 11.911944150924683 seconds
+Finalizing for rank 131
+Finished 375 steps in 1 epochs for rank 100  in 12.00702428817749 seconds
+Finalizing for rank 100
+Finished 375 steps in 1 epochs for rank 237  in 11.937107563018799 seconds
+Finalizing for rank 237
+Finished 375 steps in 1 epochs for rank 17  in 11.936874866485596 seconds
+Finalizing for rank 17
+Finished 375 steps in 1 epochs for rank 4  in 12.018522262573242 seconds
+Finalizing for rank 4
+Finished 375 steps in 1 epochs for rank 230  in 11.952627897262573 seconds
+Finalizing for rank 230
+Finished 375 steps in 1 epochs for rank 49  in 11.963927268981934 seconds
+Finalizing for rank 49
+Finished 375 steps in 1 epochs for rank 99  in 11.991918563842773 seconds
+Finalizing for rank 99
+Finished 375 steps in 1 epochs for rank 1  in 12.172188997268677 seconds
+Finalizing for rank 1
+Finished 375 steps in 1 epochs for rank 16  in 12.153501749038696 seconds
+Finalizing for rank 16
+profiling stopped
+profiling stopped
+profiling stopped
+Finished 375 steps in 1 epochs for rank 1  in 12.254167795181274 seconds
+Finalizing for rank 1
+Finished 375 steps in 1 epochs for rank 65  in 12.148662090301514 seconds
+Finalizing for rank 65
+Finished 375 steps in 1 epochs for rank 98  in 12.185294151306152 seconds
+Finalizing for rank 98
+Finished 375 steps in 1 epochs for rank 0  in 12.429116487503052 seconds
+Finalizing for rank 0
+Finished 375 steps in 1 epochs for rank 99  in 12.27550721168518 seconds
+Finalizing for rank 99
+Finished 375 steps in 1 epochs for rank 1  in 12.493655443191528 seconds
+Finalizing for rank 1
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+Finished 375 steps in 1 epochs for rank 229  in 12.214135885238647 seconds
+Finalizing for rank 229
+Finished 375 steps in 1 epochs for rank 3  in 12.234887599945068 seconds
+Finalizing for rank 3
+Finished 375 steps in 1 epochs for rank 0  in 12.449971199035645 seconds
+Finalizing for rank 0
+Finished 375 steps in 1 epochs for rank 3  in 12.42332911491394 seconds
+Finalizing for rank 3
+Finished 375 steps in 1 epochs for rank 2  in 12.343646764755249 seconds
+Finalizing for rank 2
+Finished 375 steps in 1 epochs for rank 98  in 12.484538078308105 seconds
+Finalizing for rank 98
+Finished 375 steps in 1 epochs for rank 0  in 12.503406763076782 seconds
+Finalizing for rank 0
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+Finished 375 steps in 1 epochs for rank 2  in 12.526855230331421 seconds
+Finalizing for rank 2
+Finished 375 steps in 1 epochs for rank 0  in 12.80476689338684 seconds
+Finalizing for rank 0
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+Finished 375 steps in 1 epochs for rank 196  in 12.63091254234314 seconds
+Finalizing for rank 196
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+Finished 375 steps in 1 epochs for rank 1  in 12.641788244247437 seconds
+Finalizing for rank 1
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+Finished 375 steps in 1 epochs for rank 1  in 12.805832862854004 seconds
+Finalizing for rank 1
+Finished 375 steps in 1 epochs for rank 0  in 13.008634567260742 seconds
+Finalizing for rank 0
+Finished 375 steps in 1 epochs for rank 0  in 13.197767972946167 seconds
+Finalizing for rank 0
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+profiling stopped
+Application 21746082 resources: utime ~1233s, stime ~445s, Rss ~263416, inblocks ~40522574, outblocks ~8512
+Application 21746083 resources: utime ~146s, stime ~63s, Rss ~263340, inblocks ~5027872, outblocks ~824
+Application 21746081 resources: utime ~303s, stime ~119s, Rss ~263376, inblocks ~10216958, outblocks ~1680
+Application 21746079 resources: utime ~614s, stime ~228s, Rss ~263396, inblocks ~20011862, outblocks ~3368
+Application 21746085 resources: utime ~2506s, stime ~884s, Rss ~263460, inblocks ~81472442, outblocks ~19552
+Application 21746084 resources: utime ~5100s, stime ~1775s, Rss ~263460, inblocks ~161783996, outblocks ~38584
+Application 21746080 resources: utime ~10218s, stime ~3541s, Rss ~263408, inblocks ~325640734, outblocks ~81688

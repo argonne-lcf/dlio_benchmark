@@ -83,7 +83,9 @@ class DLIOBenchmark(object):
         if self.arg_parser.args.profiling:
             self.darshan.start()
             self.tensorboard.start()
-            print("profiling started")
+            barrier()
+            if self.arg_parser.args.my_rank == 0:
+                print("profiling started")
         barrier()
 
     def _checkpoint(self, step_number):
@@ -146,10 +148,14 @@ class DLIOBenchmark(object):
             for epoch_number in range(0, self.arg_parser.args.epochs):
                 start_time = time()
                 self.reader_handler.read(epoch_number)
-                print("Datasets loaded in {} epochs for rank {} in {} seconds".format(epoch_number + 1, self.arg_parser.args.my_rank,(time() - start_time)))
+                barrier()
+                if self.arg_parser.args.my_rank == 0:
+                    print("Datasets loaded in {} epochs for rank {} in {} seconds".format(epoch_number + 1, self.arg_parser.args.my_rank,(time() - start_time)))
                 start_time = time()
                 steps = self._train(epoch_number)
-                print("Finished {} steps in {} epochs for rank {}  in {} seconds".format(steps, epoch_number + 1,
+                barrier()
+                if self.arg_parser.args.my_rank == 0:
+                    print("Finished {} steps in {} epochs for rank {}  in {} seconds".format(steps, epoch_number + 1,
                                                                           self.arg_parser.args.my_rank,(time() - start_time)))
                 self.reader_handler.finalize()
 
@@ -163,7 +169,9 @@ class DLIOBenchmark(object):
             if self.arg_parser.args.profiling:
                 self.darshan.stop()
                 self.tensorboard.stop()
-                print("profiling stopped")
+                barrier()
+                if self.arg_parser.args.my_rank == 0:
+                    print("profiling stopped")
             if not self.arg_parser.args.keep_files:
                 barrier()
                 if self.arg_parser.args.my_rank == 0:
