@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import tensorflow as tf
 import h5py
 import math
+import numpy as np
 
 class HDF5Generator(ABC):
 
@@ -58,21 +59,25 @@ class HDF5Dataset(tf.data.Dataset):
                 num_elements = batch_size
             else:
                 num_elements = num_elements - (num_elements%batch_size)
+        if start_idx_ + num_events > nevents:
+            num_events = nevents - start_idx_
 
         num_yields = math.floor(num_elements / batch_size)
-        start_idx, stop_idx,last_event = start_idx_, start_idx_+num_elements,start_idx_+num_events
+        start_idx, stop_idx,last_event = start_idx_, start_idx_+num_elements,start_idx_+num_events - 1
         step = start_idx_/batch_size
         while True:
-            if start_idx >= last_event:
+            if start_idx > last_event:
                 reader.closef()
                 return
             if stop_idx > last_event:
                 stop_idx = last_event
+            print(start_idx, stop_idx, num_events)
             images = reader.get_examples(start_idx, stop_idx)
-            for i in range(num_yields):
-                step += 1
-                yield_images = images[i * batch_size:(i + 1) * batch_size]
-                yield step,yield_images
+            if np.shape(images) == (batch_size,dimention,dimention):
+                for i in range(num_yields):
+                    step += 1
+                    yield_images = images[i * batch_size:(i + 1) * batch_size]
+                    yield step,yield_images
             start_idx, stop_idx = start_idx + num_elements, stop_idx + num_elements
 
 
