@@ -66,7 +66,7 @@ class HDF5Generator(DataGenerator):
                             samples_to_write = samples_per_iter
                         else:
                             samples_to_write = self.num_samples-samples_written
-                        dset[samples_written:samples_to_write] = records[:samples_to_write]
+                        dset[samples_written:samples_written+samples_to_write] = records[:samples_to_write]
                         samples_written += samples_to_write
                     hf.create_dataset('labels', data=record_labels)
                     hf.close()
