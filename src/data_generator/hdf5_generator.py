@@ -58,8 +58,7 @@ class HDF5Generator(DataGenerator):
                         compression = str(self.compression)
                         if self.compression == Compression.GZIP:
                             compression_level = self.compression_level
-                    dset = hf.create_dataset('records', (self.num_samples,),
-                                             maxshape=(None,), chunks=chunks, compression=compression,
+                    dset = hf.create_dataset('records', (self.num_samples,self._dimension, self._dimension), chunks=chunks, compression=compression,
                                              compression_opts=compression_level)
                     samples_written = 0
                     while samples_written < self.num_samples:
@@ -68,6 +67,7 @@ class HDF5Generator(DataGenerator):
                         else:
                             samples_to_write = self.num_samples-samples_written
                         dset[samples_written:samples_to_write] = records[:samples_to_write]
+                        samples_written += samples_to_write
                     hf.create_dataset('labels', data=record_labels)
                     hf.close()
                     count += 1
