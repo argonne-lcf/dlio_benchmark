@@ -34,7 +34,8 @@ class HDF5Generator(DataGenerator):
         Generate hdf5 data for training. It generates a 3d dataset and writes it to file.
         """
         super().generate()
-        records = random.random((self.num_samples, self._dimension, self._dimension))
+        samples_per_iter=1000
+        records = random.random((samples_per_iter, self._dimension, self._dimension))
         record_labels = [0] * self.num_samples
         prev_out_spec = ""
         count = 0
@@ -57,7 +58,16 @@ class HDF5Generator(DataGenerator):
                         compression = str(self.compression)
                         if self.compression == Compression.GZIP:
                             compression_level = self.compression_level
-                    hf.create_dataset('records', data=records, chunks=chunks, compression=compression, compression_opts=compression_level)
+                    dset = hf.create_dataset('records', (self.num_samples,),
+                                             maxshape=(None,), chunks=chunks, compression=compression,
+                                             compression_opts=compression_level)
+                    samples_written = 0
+                    while samples_written < self.num_samples:
+                        if samples_per_iter < self.num_samples-samples_written:
+                            samples_to_write = samples_per_iter
+                        else:
+                            samples_to_write = self.num_samples-samples_written
+                        dset[samples_written:samples_to_write] = records[:samples_to_write]
                     hf.create_dataset('labels', data=record_labels)
                     hf.close()
                     count += 1
