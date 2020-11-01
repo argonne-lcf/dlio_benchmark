@@ -65,6 +65,7 @@ class HDF5Dataset(tf.data.Dataset):
         num_yields = math.floor(num_elements / batch_size)
         start_idx, stop_idx,last_event = start_idx_, start_idx_+num_elements,start_idx_+num_events - 1
         step = start_idx_/batch_size
+        print(num_elements)
         while True:
             if start_idx > last_event:
                 reader.closef()
@@ -72,7 +73,7 @@ class HDF5Dataset(tf.data.Dataset):
             if stop_idx > last_event:
                 stop_idx = last_event
             images = reader.get_examples(start_idx, stop_idx)
-            if np.shape(images) == (batch_size,dimention,dimention):
+            if np.shape(images) == (num_elements,dimention,dimention):
                 for i in range(num_yields):
                     step += 1
                     yield_images = images[i * batch_size:(i + 1) * batch_size]
