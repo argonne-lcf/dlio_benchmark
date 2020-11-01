@@ -72,7 +72,6 @@ class HDF5Dataset(tf.data.Dataset):
             if stop_idx > last_event:
                 stop_idx = last_event
             images = reader.get_examples(start_idx, stop_idx)
-            print(np.shape(images))
             for i in range(num_yields):
                 step += 1
                 yield_images = images[i * batch_size:(i + 1) * batch_size]
