@@ -59,6 +59,95 @@ On Theta
 ```bash
 module load DLIO
 ```
+## Application Configurations (I/O)
+```bash
+# DLIO_ROOT directory of DLIO benchmark
+# APP_DATA_DIR directory where application data would be generated
+```
+
+### Neutrino and Cosmic Tagging with UNet
+
+```bash
+# Generate data
+mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
+		-f hdf5 -fa shared -nf 1 -sf 6000 -rl 40960 -bs 1 -ec 1 -cs 4096 -df ${APP_DATA_DIR} \
+		-gd 1 -go 1 -k 1
+
+# Run application
+mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
+		-f hdf5 -fa shared -nf 1 -sf 6000 -rl 40960 -bs 1 -ec 1 -cs 4096 -df ${APP_DATA_DIR} \
+		-gd 0 -k 1
+```
+
+### Distributed Flood Filling Networks (FFN)
+
+```bash
+# Generate data
+mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
+		-f hdf5 -fa shared -nf 1 -sf 43008 -rl 32768 -bs 1 -ec 1 -cs 4096 -df ${APP_DATA_DIR} \
+		-gd 1 -go 1 -k 1
+
+# Run application
+mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
+		-f hdf5 -fa shared -nf 1 -sf 43008 -rl 32768 -bs 1 -ec 1 -cs 4096 -df ${APP_DATA_DIR} \
+		-gd 0 -k 1
+```
+
+### TensorFlow CNN Benchmarks
+
+```bash
+# Generate data
+mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
+		-f tfrecord -fa multi -nf 1024 -sf 1024 -rl 262144 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR} \
+		-gd 1 -go 1 -k 1
+
+# Run application
+mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
+		-f tfrecord -fa multi -nf 1024 -sf 1024 -rl 262144 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR} \
+		-gd 0 -k 1
+```
+
+### CosmoFlow for learning universe at scale
+
+```bash
+# Generate data
+mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
+		-f tfrecord -fa multi -nf 1024 -sf 512 -rl 131072 -tc 64 -bs 1 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR} \
+		-gd 1 -go 1 -k 1
+
+# Run application
+mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
+		-f tfrecord -fa multi -nf 1024 -sf 512 -rl 131072 -tc 64 -bs 1 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR} \
+		-gd 0 -k 1
+```
+
+### Fusion Recurrent Neural Net (FRNN) for representation learning in plasma science
+
+```bash
+# Generate data
+mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
+		-f npz -fa multi -nf 28000 -sf 1024 -rl 2048 -bs 1 -df ${APP_DATA_DIR} \
+		-gd 1 -go 1 -k 1
+
+# Run application
+mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
+		-f npz -fa multi -nf 28000 -sf 1024 -rl 2048 -bs 1 -df ${APP_DATA_DIR} \
+		-gd 0 -k 1
+```
+
+### Cancer Distributed Learning Environment (CANDLE) for cancer research
+```bash
+# Generate data
+mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
+		-f csv -fa shared -nf 1 -sf 1120 -rl 32768 -bs 1 -df ${APP_DATA_DIR} \
+		-gd 1 -go 1 -k 1
+
+# Run application
+mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
+		-f csv -fa shared -nf 1 -sf 1120 -rl 32768 -bs 1 -df ${APP_DATA_DIR} \
+		-gd 0 -k 1
+```
+
 
 ## Contributions
 This is the first release of DLIO, if you find any bug, please report it in the GitHub issues section.
@@ -81,7 +170,3 @@ Improvements and requests for new features are more than welcome! Do not hesitat
 
 ## License
 MIT License
-
-
-
-    
