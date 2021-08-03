@@ -168,5 +168,18 @@ Improvements and requests for new features are more than welcome! Do not hesitat
             - io thread uses queue to read next element.
             - main thread (compute) puts element to queue and then goes to compute.
 
+## Citation
+```
+@article{devarajan2021dlio,
+  title={DLIO: A Data-Centric Benchmark for Scientific Deep Learning Applications},
+  author={H. Devarajan and H. Zheng and A. Kougkas and X.-H. Sun and V. Vishwanath},
+  booktitle={IEEE/ACM International Symposium in Cluster, Cloud, and Internet Computing (CCGrid'21)},
+  year={2021},
+  volume={},
+  number={81--91},
+  pages={},
+  publisher={IEEE/ACM}
+}
+```
 ## License
 MIT License
