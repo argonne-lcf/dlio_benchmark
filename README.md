@@ -59,6 +59,28 @@ On Theta
 ```bash
 module load DLIO
 ```
+
+## Usage 
+```bash
+	python dlio_benchmark.py [-h] [-f {tfrecord,hdf5,csv,npz,hdf5_opt}]
+                         [-r {off,seed,random}] [-ms SHUFFLE_SIZE]
+                         [-m {off,seed,random}] [-rt {memory,on_demand}]
+                         [-fa {multi,shared,collective}] [-rl RECORD_LENGTH]
+                         [-nf NUM_FILES] [-sf NUM_SAMPLES] [-bs BATCH_SIZE]
+                         [-e EPOCHS] [-se SEED_CHANGE_EPOCH]
+                         [-gd GENERATE_DATA] [-df DATA_FOLDER]
+                         [-of OUTPUT_FOLDER] [-fp FILE_PREFIX]
+                         [-go GENERATE_ONLY] [-k KEEP_FILES] [-p PROFILING]
+                         [-l LOGDIR] [-s SEED] [-c CHECKPOINT]
+                         [-sc STEPS_CHECKPOINT] [-ts TRANSFER_SIZE]
+                         [-tr READ_THREADS] [-tc COMPUTATION_THREADS]
+                         [-ct COMPUTATION_TIME] [-rp PREFETCH]
+                         [-ps PREFETCH_SIZE] [-ec ENABLE_CHUNKING]
+                         [-cs CHUNK_SIZE] [-co {none,gzip,lzf,bz2,zip,xz}]
+                         [-cl COMPRESSION_LEVEL] [-d DEBUG]
+
+```
+
 ## Application Configurations (I/O)
 ```bash
 # DLIO_ROOT directory of DLIO benchmark
@@ -183,3 +205,4 @@ Improvements and requests for new features are more than welcome! Do not hesitat
 ```
 ## License
 MIT License
+
