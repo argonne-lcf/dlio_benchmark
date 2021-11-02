@@ -10,10 +10,28 @@ This is repository for a I/O benchmark which represents Scientific Deep Learning
 - Compatible with modern profiling tools such as Tensorboard and Darshan to extract and analyze I/O behavior.
 
 ## Usage
-```bash
-# Get the options available using
-python ./dlio_benchmark.py -h
 
+```bash
+	python dlio_benchmark.py [-h] [-f {tfrecord,hdf5,csv,npz,hdf5_opt}]
+                         [-r {off,seed,random}] [-ms SHUFFLE_SIZE]
+                         [-m {off,seed,random}] [-rt {memory,on_demand}]
+                         [-fa {multi,shared,collective}] [-rl RECORD_LENGTH]
+                         [-nf NUM_FILES] [-sf NUM_SAMPLES] [-bs BATCH_SIZE]
+                         [-e EPOCHS] [-se SEED_CHANGE_EPOCH]
+                         [-gd GENERATE_DATA] [-df DATA_FOLDER]
+                         [-of OUTPUT_FOLDER] [-fp FILE_PREFIX]
+                         [-go GENERATE_ONLY] [-k KEEP_FILES] [-p PROFILING]
+                         [-l LOGDIR] [-s SEED] [-c CHECKPOINT]
+                         [-sc STEPS_CHECKPOINT] [-ts TRANSFER_SIZE]
+                         [-tr READ_THREADS] [-tc COMPUTATION_THREADS]
+                         [-ct COMPUTATION_TIME] [-rp PREFETCH]
+                         [-ps PREFETCH_SIZE] [-ec ENABLE_CHUNKING]
+                         [-cs CHUNK_SIZE] [-co {none,gzip,lzf,bz2,zip,xz}]
+                         [-cl COMPRESSION_LEVEL] [-d DEBUG]
+
+```
+Examples: 
+```
 # Example option list
 DATA_DIR=~/dlio_datasets/temp
 OPTS=(-f tfrecord -fa multi -nf 1024 -sf 1024 -df ${DATA_DIR} -rl 262144 -gd 1 -k 1)
@@ -58,27 +76,6 @@ python setup.py install
 On Theta
 ```bash
 module load DLIO
-```
-
-## Usage 
-```bash
-	python dlio_benchmark.py [-h] [-f {tfrecord,hdf5,csv,npz,hdf5_opt}]
-                         [-r {off,seed,random}] [-ms SHUFFLE_SIZE]
-                         [-m {off,seed,random}] [-rt {memory,on_demand}]
-                         [-fa {multi,shared,collective}] [-rl RECORD_LENGTH]
-                         [-nf NUM_FILES] [-sf NUM_SAMPLES] [-bs BATCH_SIZE]
-                         [-e EPOCHS] [-se SEED_CHANGE_EPOCH]
-                         [-gd GENERATE_DATA] [-df DATA_FOLDER]
-                         [-of OUTPUT_FOLDER] [-fp FILE_PREFIX]
-                         [-go GENERATE_ONLY] [-k KEEP_FILES] [-p PROFILING]
-                         [-l LOGDIR] [-s SEED] [-c CHECKPOINT]
-                         [-sc STEPS_CHECKPOINT] [-ts TRANSFER_SIZE]
-                         [-tr READ_THREADS] [-tc COMPUTATION_THREADS]
-                         [-ct COMPUTATION_TIME] [-rp PREFETCH]
-                         [-ps PREFETCH_SIZE] [-ec ENABLE_CHUNKING]
-                         [-cs CHUNK_SIZE] [-co {none,gzip,lzf,bz2,zip,xz}]
-                         [-cl COMPRESSION_LEVEL] [-d DEBUG]
-
 ```
 
 ## Application Configurations (I/O)
