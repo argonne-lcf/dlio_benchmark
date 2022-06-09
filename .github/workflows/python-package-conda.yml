@@ -16,7 +16,7 @@ jobs:
         python-version: 3.10.5
     - name: Install DLIO
       run: |
-        sudo apt-get install openmpi
+        sudo apt-get install libopenmpi-dev
         python -m pip install --upgrade pip
         pip install tensorflow horovod h5py
         python setup.py build
