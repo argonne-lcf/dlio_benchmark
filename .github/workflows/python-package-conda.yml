@@ -1,0 +1,35 @@
+name: Python Package using Conda
+
+on: [push]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 5
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: 3.10
+    - name: Add conda to system path
+      run: |
+        # $CONDA is an environment variable pointing to the root of the miniconda directory
+        echo $CONDA/bin >> $GITHUB_PATH
+    - name: Install dependencies
+      run: |
+        conda env update --file environment.yml --name base
+    - name: Install DLIO
+      run: |
+        sudo apt-get install openmpi
+        pip install tensorflow horovod h5py
+        python setup.py build
+        python setup.py install
+    - name: test
+      run: |
+        mkdir -p ResNet50
+        export APP_DATA_DIR=ResNet50
+        mpirun -n 4 python ./src/dlio_benchmark.py -f tfrecord -fa multi -nf 1024 -sf 1024 -rl 262144 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR} -gd 1 -go 1 -k 1
+        mmpirun -n 4 python ./src/dlio_benchmark.py -f tfrecord -fa multi -nf 1024 -sf 1024 -rl 262144 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR} -gd 0 -k 1
