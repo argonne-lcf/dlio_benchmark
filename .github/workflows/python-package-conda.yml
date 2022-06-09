@@ -16,7 +16,7 @@ jobs:
         python-version: 3.10.5
     - name: Install DLIO
       run: |
-        sudo apt-get install libopenmpi-dev
+        sudo apt-get install mpich
         python -m pip install --upgrade pip
         pip install tensorflow h5py mpi4py pandas
         HOROVOD_WITH_TENSORFLOW=1 pip install horovod 
