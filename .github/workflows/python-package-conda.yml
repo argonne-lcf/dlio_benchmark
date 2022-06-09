@@ -18,8 +18,8 @@ jobs:
       run: |
         sudo apt-get install libopenmpi-dev
         python -m pip install --upgrade pip
-        pip install tensorflow h5py
-        HOROVOD_WITH_TENSORFLOW=1 pip install horovod
+        pip install tensorflow h5py mpi4py
+        HOROVOD_WITH_TENSORFLOW=1 pip install horovod 
         python setup.py build
         python setup.py install
     - name: test
