@@ -1,3 +1,13 @@
+# Tutorial 
+
+Find below the original documentation for DLIO.
+
+You can find the list of command line parameters in `src/utils/argument_parser.py` along with a short description. Ask Oana and Loic for more info on these, we may ourselves have to ask the developers. The goal will be, once you have recorded your workload, to tweak values to parameters of dlio to try to reproduce the real behaviour. 
+
+See the `run_benchmark.sh` example script for how to use DLIO. The script will generate test data then run DLIO on it to simulate a DL workload.
+
+Note: You will have to be added to the `dlio` group on `discslab-server2` for it to work there.
+
 # DLIO Benchmark
 This is repository for a I/O benchmark which represents Scientific Deep Learning Workloads. DLIO benchmark is aimed at emulating the behavior of scientific deep learning applications, as described in the previous section. The benchmark is delivered as an executable that can be configured for various I/O patterns. It uses a modular design to incorporate more data formats, datasets, and configuration parameters. It emulates modern scientific deep learning applications using Benchmark Runner, Data Generator, Format Handler, and I/O Profiler modules. These modules utilize state-of-the-art design patterns to build a transparent and extensible framework. The DLIO benchmark has been designed with the following goals in mind.
 
