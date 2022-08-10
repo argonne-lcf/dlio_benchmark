@@ -7,7 +7,9 @@ WORKDIR /workspace/dlio
 RUN rm /etc/apt/sources.list.d/cuda.list
 RUN rm /etc/apt/sources.list.d/nvidia-ml.list
 
-RUN apt-get install -y git
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y git
 RUN apt-get install -y vim
 
 RUN pip install --upgrade pip
