@@ -1,4 +1,5 @@
-FROM tensorflow/tensorflow:2.6.1-gpu
+# FROM tensorflow/tensorflow:2.6.1-gpu
+FROM nvcr.io/nvidia/tensorflow:20.01-tf2-py3
 
 ADD . /workspace/dlio
 WORKDIR /workspace/dlio
