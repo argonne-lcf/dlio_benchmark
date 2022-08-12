@@ -33,10 +33,12 @@ python ./dlio_benchmark.py ${OPTS[@]}
 ## Installation
 
 ### Requirements
-- horovod~=0.19.5
-- tensorflow~=2.2.0
-- numpy~=1.19.1
+- horovod[tensorflow]>=0.19.5
+- tensorflow>=2.2.0
+- numpy>=1.19.1
 - h5py~=2.10.0
+- pandas>=1.1.3
+- mpi4py>=3.1.3
 
 ### Installations Instructions
 To install VaniDL, the easiest way is to run
