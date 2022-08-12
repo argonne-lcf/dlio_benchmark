@@ -117,7 +117,8 @@ optional arguments:
   -cs CHUNK_SIZE, --chunk-size CHUNK_SIZE  Set chunk size in bytes for HDF5.
   -co {none,gzip,lzf,bz2,zip,xz}, --compression {none,gzip,lzf,bz2,zip,xz} Compression to use.
   -cl COMPRESSION_LEVEL, --compression-level COMPRESSION_LEVEL  Level of compression for GZip.
-  -d DEBUG, --debug DEBUG Enable debug in code.```
+  -d DEBUG, --debug DEBUG Enable debug in code.
+```
 
 ## Application Configurations (I/O)
 ```bash
