@@ -137,6 +137,7 @@ class DLIOBenchmark(object):
             step += 1
             if step > total:
                 return step - 1
+            barrier()
         return step - 1
 
     def run(self):
