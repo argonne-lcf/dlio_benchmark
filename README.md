@@ -51,10 +51,12 @@ python ./dlio_benchmark.py ${OPTS[@]}
 ## Installation
 
 ### Requirements
-- horovod~=0.19.5
-- tensorflow~=2.2.0
-- numpy~=1.19.1
+- horovod[tensorflow]>=0.19.5
+- tensorflow>=2.2.0
+- numpy>=1.19.1
 - h5py~=2.10.0
+- pandas>=1.1.3
+- mpi4py>=3.1.3
 
 ### Installations Instructions
 To install VaniDL, the easiest way is to run
@@ -72,10 +74,72 @@ pip install dlio_benchmark
 Otherwise, you can also install from source by running (from source folder):
 ```bash
 python setup.py install
+# this install dlio_benchmark as an executable.
+dlio_benchmark -h
 ```
 On Theta
 ```bash
 module load DLIO
+```
+
+Locally
+
+```bash
+git clone https://github.com/hariharan-devarajan/dlio_benchmark
+cd dlio_benchmark/
+python3 -m venv ./venv
+source venv/bin/activate
+pip install -r requirements.txt 
+export PYTHONPATH=$PWD/src:$PYTHONPATH
+python ./src/dlio_benchmark.py -h
+```
+
+### Command line options for DLIO
+
+```
+$ $python ./src/dlio_benchmark.py -h
+usage: dlio_benchmark.py [-h] [-f {tfrecord,hdf5,csv,npz,hdf5_opt}] [-r {off,seed,random}] [-ms SHUFFLE_SIZE] [-m {off,seed,random}] [-rt {memory,on_demand}] [-fa {multi,shared,collective}] [-rl RECORD_LENGTH] [-nf NUM_FILES] [-sf NUM_SAMPLES] [-bs BATCH_SIZE] [-e EPOCHS]
+                         [-se SEED_CHANGE_EPOCH] [-gd GENERATE_DATA] [-df DATA_FOLDER] [-of OUTPUT_FOLDER] [-fp FILE_PREFIX] [-go GENERATE_ONLY] [-k KEEP_FILES] [-p PROFILING] [-l LOGDIR] [-s SEED] [-c CHECKPOINT] [-sc STEPS_CHECKPOINT] [-ts TRANSFER_SIZE]
+                         [-tr READ_THREADS] [-tc COMPUTATION_THREADS] [-ct COMPUTATION_TIME] [-rp PREFETCH] [-ps PREFETCH_SIZE] [-ec ENABLE_CHUNKING] [-cs CHUNK_SIZE] [-co {none,gzip,lzf,bz2,zip,xz}] [-cl COMPRESSION_LEVEL] [-d DEBUG]
+
+DLIO Benchmark
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -f {tfrecord,hdf5,csv,npz,hdf5_opt}, --format {tfrecord,hdf5,csv,npz,hdf5_opt} data reader to use.
+  -r {off,seed,random}, --read-shuffle {off,seed,random} Enable shuffle during read.
+  -ms SHUFFLE_SIZE, --shuffle-size SHUFFLE_SIZE Size of a shuffle in bytes.
+  -m {off,seed,random}, --memory-shuffle {off,seed,random} Enable memory during pre-processing.
+  -rt {memory,on_demand}, --read-type {memory,on_demand} The read behavior for the benchmark.
+  -fa {multi,shared,collective}, --file-access {multi,shared,collective} How the files are accessed in the benchmark.
+  -rl RECORD_LENGTH, --record-length RECORD_LENGTH Size of a record/image within dataset
+  -nf NUM_FILES, --num-files NUM_FILES Number of files that should be accessed.
+  -sf NUM_SAMPLES, --num-samples NUM_SAMPLES  Number of samples per file.
+  -bs BATCH_SIZE, --batch-size BATCH_SIZE Batch size for training records.
+  -e EPOCHS, --epochs EPOCHS Number of epochs to be emulated within benchmark.
+  -se SEED_CHANGE_EPOCH, --seed-change-epoch SEED_CHANGE_EPOCH change seed between epochs. y/n
+  -gd GENERATE_DATA, --generate-data GENERATE_DATA Enable generation of data. y/n
+  -df DATA_FOLDER, --data-folder DATA_FOLDER  Set the path of folder where data is present in top-level.
+  -of OUTPUT_FOLDER, --output-folder OUTPUT_FOLDER  Set the path of folder where output can be generated.
+  -fp FILE_PREFIX, --file-prefix FILE_PREFIX  Prefix for generated files.
+  -go GENERATE_ONLY, --generate-only GENERATE_ONLY  Only generate files.
+  -k KEEP_FILES, --keep-files KEEP_FILES Keep files after benchmark. y/n
+  -p PROFILING, --profiling PROFILING  Enable I/O profiling within benchmark. y/n
+  -l LOGDIR, --logdir LOGDIR Log Directory for profiling logs.
+  -s SEED, --seed SEED  The seed to be used shuffling during read/memory.
+  -c CHECKPOINT, --checkpoint CHECKPOINT Enable checkpoint within benchmark. y/n
+  -sc STEPS_CHECKPOINT, --steps-checkpoint STEPS_CHECKPOINT How many steps to enable checkpoint.
+  -ts TRANSFER_SIZE, --transfer-size TRANSFER_SIZE Transfer Size for tensorflow buffer size.
+  -tr READ_THREADS, --read-threads READ_THREADS Number of threads to be used for reads.
+  -tc COMPUTATION_THREADS, --computation-threads COMPUTATION_THREADS  Number of threads to be used for pre-processing.
+  -ct COMPUTATION_TIME, --computation-time COMPUTATION_TIME  Amount of time for computation.
+  -rp PREFETCH, --prefetch PREFETCH Enable prefetch within benchmark.
+  -ps PREFETCH_SIZE, --prefetch-size PREFETCH_SIZE Enable prefetch buffer within benchmark.
+  -ec ENABLE_CHUNKING, --enable-chunking ENABLE_CHUNKING  Enable chunking for HDF5 files.
+  -cs CHUNK_SIZE, --chunk-size CHUNK_SIZE  Set chunk size in bytes for HDF5.
+  -co {none,gzip,lzf,bz2,zip,xz}, --compression {none,gzip,lzf,bz2,zip,xz} Compression to use.
+  -cl COMPRESSION_LEVEL, --compression-level COMPRESSION_LEVEL  Level of compression for GZip.
+  -d DEBUG, --debug DEBUG Enable debug in code.
 ```
 
 ## Application Configurations (I/O)

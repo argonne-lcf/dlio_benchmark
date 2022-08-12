@@ -10,7 +10,7 @@
  You should have received a copy of the GNU General Public License along with this program.
  If not, see <http://www.gnu.org/licenses/>.
 """
-from time import sleep,time
+from time import sleep, time
 
 from src.common.enumerations import Profiler
 from src.data_generator.generator_factory import GeneratorFactory
@@ -18,11 +18,13 @@ from src.reader.reader_factory import ReaderFactory
 from src.profiler.profiler_factory import ProfilerFactory
 from src.utils.argument_parser import ArgumentParser
 import tensorflow as tf
+
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import horovod.tensorflow as hvd
 import math
 import os
 import shutil
+
 hvd.init()
 
 
@@ -33,7 +35,8 @@ def barrier():
     const = tf.constant(1)
     reduced = hvd.allreduce(const)
 
-def model(epoch,step, time):
+
+def model(epoch, step, time):
     sleep(time)
 
 
@@ -41,6 +44,7 @@ class DLIOBenchmark(object):
     """
     The Benchmark represents the I/O behavior of deep learning applications.
     """
+
     def __init__(self):
         """
         This initializes the DLIO benchmark. Intialization includes:
@@ -120,9 +124,7 @@ class DLIOBenchmark(object):
         f.close()
         pass
 
-
-
-    def _train(self,epoch_number):
+    def _train(self, epoch_number):
         """
         Training loop for reading the dataset and performing training computations.
         :return: returns total steps.
@@ -151,13 +153,16 @@ class DLIOBenchmark(object):
                 self.reader_handler.read(epoch_number)
                 barrier()
                 if self.arg_parser.args.my_rank == 0:
-                    print("Datasets loaded in {} epochs for rank {} in {} seconds".format(epoch_number + 1, self.arg_parser.args.my_rank,(time() - start_time)))
+                    print("Datasets loaded in {} epochs for rank {} in {} seconds".format(epoch_number + 1,
+                                                                                          self.arg_parser.args.my_rank,
+                                                                                          (time() - start_time)))
                 start_time = time()
                 steps = self._train(epoch_number)
                 barrier()
                 if self.arg_parser.args.my_rank == 0:
                     print("Finished {} steps in {} epochs for rank {}  in {} seconds".format(steps, epoch_number + 1,
-                                                                          self.arg_parser.args.my_rank,(time() - start_time)))
+                                                                                             self.arg_parser.args.my_rank,
+                                                                                             (time() - start_time)))
                 self.reader_handler.finalize()
 
     def finalize(self):
@@ -182,14 +187,18 @@ class DLIOBenchmark(object):
         #
 
 
-if __name__ == '__main__':
+def main():
     """
-    The main method to start the benchmark runtime.
-    """
+        The main method to start the benchmark runtime.
+        """
     os.environ["DARSHAN_DISABLE"] = "1"
     benchmark = DLIOBenchmark()
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()
     barrier()
+
+
+if __name__ == '__main__':
+    main()
     exit(0)
