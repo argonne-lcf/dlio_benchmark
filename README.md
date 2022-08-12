@@ -54,6 +54,8 @@ pip install dlio_benchmark
 Otherwise, you can also install from source by running (from source folder):
 ```bash
 python setup.py install
+# this install dlio_benchmark as an executable.
+dlio_benchmark -h
 ```
 On Theta
 ```bash
