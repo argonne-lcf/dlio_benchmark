@@ -63,7 +63,7 @@ To install VaniDL, the easiest way is to run
 
 For the bleeding edge version (recommended):
 ```bash
-pip install git+https://github.com/hariharan-devarajan/dlio_benchmark
+pip install git+https://github.com/argonne-lcf/dlio_benchmark
 ```
 
 For the latest stable version:
@@ -85,7 +85,7 @@ module load DLIO
 Locally
 
 ```bash
-git clone https://github.com/hariharan-devarajan/dlio_benchmark
+git clone https://github.com/argonne-lcf/dlio_benchmark
 cd dlio_benchmark/
 python3 -m venv ./venv
 source venv/bin/activate
