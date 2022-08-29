@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# If missing permissions, add yourself to the dlio group
-
 export PYTHONPATH=${PYTHONPATH}:$(pwd)
 echo $PYTHONPATH
 
