@@ -71,14 +71,14 @@ class ArgumentParser(object):
                                  help="change seed between epochs. y/n")
         self.parser.add_argument("-gd", "--generate-data", default=True, type=str2bool,
                                  help="Enable generation of data. y/n")
+        self.parser.add_argument("-go", "--generate-only", default=False, type=str2bool,
+                                 help="Only generate files.")
         self.parser.add_argument("-df", "--data-folder", default="./data", type=str,
                                  help="Set the path of folder where data is present in top-level.")
         self.parser.add_argument("-of", "--output-folder", default="./output", type=str,
-                                 help="Set the path of folder where output can be generated.")
+                                 help="Set the path of folder where output can be generated (like checkpoint files)")
         self.parser.add_argument("-fp", "--file-prefix", default="img", type=str,
                                  help="Prefix for generated files.")
-        self.parser.add_argument("-go", "--generate-only", default=False, type=str2bool,
-                                 help="Only generate files.")
         self.parser.add_argument("-k", "--keep-files", default=False, type=str2bool,
                                  help="Keep files after benchmark. y/n")
         self.parser.add_argument("-p", "--profiling",  default=False, type=str2bool,

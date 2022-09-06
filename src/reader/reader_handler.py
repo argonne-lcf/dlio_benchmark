@@ -6,7 +6,10 @@ from src.utils.argument_parser import ArgumentParser
 import os
 import math
 from numpy import random
+from datetime import datetime
 
+# Log timestamp format with microsecond precision
+LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
 class FormatReader(ABC):
     def __init__(self):
@@ -54,7 +57,7 @@ class FormatReader(ABC):
             partition_size = int(math.ceil(len(files) / self.comm_size))
             part_start, part_end = (partition_size * self.my_rank, partition_size * ( self.my_rank + 1))
             self._local_file_list = files[part_start:part_end]
-            print("rank {}, file_list {}, size {}".format(self.my_rank, self._local_file_list,partition_size))
+            print("{} Rank {} has read {} files: {}".format(datetime.utcnow().strftime(LOG_TS_FORMAT), self.my_rank, partition_size, self._local_file_list))
             if seed is not None:
                 random.seed(seed)
             if read_shuffle:

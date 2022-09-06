@@ -11,10 +11,12 @@
  If not, see <http://www.gnu.org/licenses/>.
 """
 from time import sleep,time
+from datetime import datetime
 
 from src.common.enumerations import Profiler
 from src.data_generator.generator_factory import GeneratorFactory
 from src.reader.reader_factory import ReaderFactory
+from src.reader.reader_handler import LOG_TS_FORMAT
 from src.profiler.profiler_factory import ProfilerFactory
 from src.utils.argument_parser import ArgumentParser
 import tensorflow as tf
@@ -78,8 +80,9 @@ class DLIOBenchmark(object):
             input("Press enter to start\n")
         barrier()
         if self.arg_parser.args.generate_data:
+            print("{} Starting data generation".format(datetime.utcnow().strftime(LOG_TS_FORMAT)))
             self.data_generator.generate()
-            print("Generation done")
+            print("{} Generation done".format(datetime.utcnow().strftime(LOG_TS_FORMAT)))
         if self.arg_parser.args.profiling:
             self.darshan.start()
             self.tensorboard.start()
@@ -103,6 +106,7 @@ class DLIOBenchmark(object):
         meta_file = os.path.join(self.arg_parser.args.output_folder,
                                  "meta_{}_{}.bin".format(step_number, self.arg_parser.args.my_rank))
         f = open(model_file, "w")
+        # TODO: This could be parametrized as "model size".
         string_val = "x" * (1024 * 1024 * 4)
         f.write(string_val)
         f.close()
@@ -120,7 +124,13 @@ class DLIOBenchmark(object):
         f.close()
         pass
 
-
+    def _eval(self, epoch_number):
+        """
+        TODO: We will need to create this method to mimic out workloads.
+        e.g. In image segmentation, we evaluate periodically and the operation performed are slightly different
+        so we would need a different sleep parameter.
+        """
+        pass
 
     def _train(self,epoch_number):
         """
@@ -145,25 +155,33 @@ class DLIOBenchmark(object):
         dataset.
         """
         if not self.arg_parser.args.generate_only:
+
+            if self.arg_parser.args.my_rank == 0:
+                total = math.ceil(self.num_samples * self.num_files / self.batch_size / self.comm_size)
+                print("{} Steps per epoch: {} = {} * {} / {} / {} (samples per file * num files / batch size / comm size)".format(datetime.utcnow().strftime(LOG_TS_FORMAT), total, self.num_samples, self.num_files, self.batch_size, self.comm_size))
+
             for epoch_number in range(0, self.arg_parser.args.epochs):
+                if self.arg_parser.args.my_rank == 0:
+                    print("{} Starting epoch {}".format(datetime.utcnow().strftime(LOG_TS_FORMAT), epoch_number))
                 start_time = time()
                 self.reader_handler.read(epoch_number)
                 barrier()
                 if self.arg_parser.args.my_rank == 0:
-                    print("Datasets loaded in {} epochs for rank {} in {} seconds".format(epoch_number + 1, self.arg_parser.args.my_rank,(time() - start_time)))
+                    print("{} Datasets loaded for all ranks in {} seconds".format(datetime.utcnow().strftime(LOG_TS_FORMAT), (time() - start_time)))
                 start_time = time()
                 steps = self._train(epoch_number)
                 barrier()
                 if self.arg_parser.args.my_rank == 0:
-                    print("Finished {} steps in {} epochs for rank {}  in {} seconds".format(steps, epoch_number + 1,
-                                                                          self.arg_parser.args.my_rank,(time() - start_time)))
+                    # print("Finished {} steps in {} epochs for rank {}  in {} seconds".format(steps, epoch_number + 1,
+                    #                                                       self.arg_parser.args.my_rank,(time() - start_time)))
+                    print("{} Ending epoch {} - {} steps completed".format(datetime.utcnow().strftime(LOG_TS_FORMAT), epoch_number, steps))
                 self.reader_handler.finalize()
 
     def finalize(self):
         """
-        It finalizes the dataset once the training epoch is completed.
+        It finalizes the dataset once training is completed.
         """
-        print("Finalizing for rank {}".format(self.arg_parser.args.my_rank))
+        print("{} Finalizing for rank {}".format(datetime.utcnow().strftime(LOG_TS_FORMAT), self.arg_parser.args.my_rank))
         barrier()
         if not self.arg_parser.args.generate_only:
             if self.arg_parser.args.profiling:
@@ -178,7 +196,6 @@ class DLIOBenchmark(object):
                     if os.path.exists(self.arg_parser.args.data_folder):
                         shutil.rmtree(self.arg_parser.args.data_folder)
                         print("Deleted data files")
-        #
 
 
 if __name__ == '__main__':
