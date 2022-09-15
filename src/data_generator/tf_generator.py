@@ -15,11 +15,13 @@ from src.data_generator.data_generator import DataGenerator
 from numpy import random
 import tensorflow as tf
 
-from src.utils.utility import progress
+from src.utils.utility import progress, utcnow
 from shutil import copyfile
 
+import logging
 """
 Generator for creating data in TFRecord format.
+TODO: Might be interesting / more realistic to add randomness to the file sizes
 """
 class TFRecordGenerator(DataGenerator):
     def __init__(self):
@@ -30,20 +32,25 @@ class TFRecordGenerator(DataGenerator):
         Generator for creating data in TFRecord format of 3d dataset.
         """
         super().generate()
+        # This create a 2d image representing a single record
         record = random.random((self._dimension, self._dimension))
         record_label = 0
         prev_out_spec =""
         count = 0
-        for i in range(0, int(self.num_files)):
+
+        for i in range(0, self.total_files_to_generate):
             if i % self.comm_size == self.my_rank:
-                progress(i+1, self.num_files, "Generating TFRecord Data")
-                out_path_spec = "{}_{}_of_{}.tfrecords".format(self._file_prefix, i, self.num_files)
+                progress(i+1, self.total_files_to_generate, "Generating TFRecord Data")
+                out_path_spec = "{}_{}_of_{}.tfrecords".format(self._file_prefix, i, self.total_files_to_generate)
+                logging.info("{} Generating TFRecord {}".format(utcnow(), out_path_spec))
                 # Open a TFRecordWriter for the output-file.
                 if count == 0:
                     prev_out_spec = out_path_spec
                     with tf.io.TFRecordWriter(out_path_spec) as writer:
                         for i in range(0, self.num_samples):
                             img_bytes = record.tostring()
+                            # TODO: We should adapt this to create realistic datasets for each workload
+                            # since only image segmentation uses images
                             data = {
                                 'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img_bytes])),
                                 'label': tf.train.Feature(int64_list=tf.train.Int64List(value=[record_label]))

@@ -2,10 +2,15 @@ from abc import ABC, abstractmethod
 
 from src.common.enumerations import Shuffle, FileAccess
 from src.utils.argument_parser import ArgumentParser
+from src.utils.utility import utcnow
 
 import os
 import math
 from numpy import random
+from datetime import datetime
+
+import logging
+
 
 
 class FormatReader(ABC):
@@ -26,41 +31,88 @@ class FormatReader(ABC):
         self.file_access = self._arg_parser.args.file_access
         self.my_rank = self._arg_parser.args.my_rank
         self.comm_size = self._arg_parser.args.comm_size
-        self.num_files = self._arg_parser.args.num_files
+        self.eval_enabled = self._arg_parser.args.do_eval
+        self.num_files_eval = self._arg_parser.args.num_files_eval
+        self.num_files_train = self._arg_parser.args.num_files_train
+        self.total_files = self.num_files_train + self.num_files_eval 
         self.num_samples = self._arg_parser.args.num_samples
         self._dimension = int(math.sqrt(self.record_size / 8))
-        self._dataset = None
-        self._local_file_list = None
+        self._local_train_file_list = None
+        self._local_eval_file_list = None
+        self._dataset_train = None
+        self._dataset_eval = None
+
+        # We do this in the init method instead of read so we keep the same eval case indices for every epoch
+        if self.eval_enabled:
+            # Pick randomly without replacement the indices of the held-out test set (evaluation set)
+            self.eval_indices = random.choice(a=range(self.total_files), size=self.num_files_eval, replace=False)
 
     @abstractmethod
-    def read(self, epoch_number):
+    def read(self, epoch_number, do_eval=False):
         filenames = os.listdir(self.data_dir)
-        files = list()
-        # Iterate over all the entries
-        for entry in filenames:
-            # Create full path
-            fullPath = os.path.join(self.data_dir, entry)
-            files.append(fullPath)
+        fullpaths = [os.path.join(self.data_dir, entry) for entry in filenames]
+        # Populate files_train with all training cases
+        files_train = [path for i, path in enumerate(fullpaths) if i not in self.eval_indices]
         seed = None
+
+        # Sanity check
+        assert len(files_train) == self.num_files_train, f"{len(files_train)}, {self.num_files_train}"
+
+        # Hold out self.num_files_eval files of the dataset to be used for evaluation
+        # We only need to do this if we're actually going to read the eval set this epoch
+        if self.eval_enabled and do_eval:
+            # Populate files_eval with the picked files
+            files_eval = [path for i, path in enumerate(fullpaths) if i in self.eval_indices]
+            # Sanity check
+            assert len(files_eval) == self.num_files_eval
+
+        # TODO: I think with 1 worker, DLIO will not emulate a single process multi-GPU reading behaviour
+        # What would that look like? Maybe we should explicitly call tf.distribute.Strategy and pytorch.DDP
+        # Else, we can have multi-process multi-GPU training using horovod, but we have to pin each GPU to a process
         if FileAccess.MULTI == self.file_access:
-            files = files[:self.num_files]
-            read_shuffle = True
-            if self.read_shuffle == Shuffle.OFF:
-                read_shuffle = False
-            if read_shuffle:
-                seed = self.seed
-                if self.seed_change_epoch:
-                    seed = self.seed + epoch_number
-            partition_size = int(math.ceil(len(files) / self.comm_size))
-            part_start, part_end = (partition_size * self.my_rank, partition_size * ( self.my_rank + 1))
-            self._local_file_list = files[part_start:part_end]
-            print("rank {}, file_list {}, size {}".format(self.my_rank, self._local_file_list,partition_size))
-            if seed is not None:
-                random.seed(seed)
-            if read_shuffle:
-                random.shuffle(self._local_file_list)
+
+            if self.eval_enabled and do_eval:
+                # Here, we calculate how many files each process should read
+                # and partition the files for each rank
+                partition_size = int(math.ceil(len(files_eval) / self.comm_size))
+                part_start, part_end = (partition_size * self.my_rank, partition_size * ( self.my_rank + 1))
+                self._local_eval_file_list = files_eval[part_start:part_end]
+                self._local_eval_file_list_size = len(self._local_eval_file_list)
+
+                logging.info("{} Rank {} will read {} files: {}".format(utcnow(), self.my_rank, self._local_eval_file_list_size, self._local_eval_file_list))
+            else:
+                # Here, they used to take a slice of the array up to num_files, i.e.
+                # files_train = files_train[:self.num_files]
+                # Now that we possibly removed some files for evaluation, we would write 
+                # files_train = files_train[:(self.num_files_train)]
+                # However, since I got rid of it since in practice we can assume we'll always want to read the whole dataset
+                read_shuffle = True
+                if self.read_shuffle == Shuffle.OFF:
+                    read_shuffle = False
+                if read_shuffle:
+                    seed = self.seed
+                    if self.seed_change_epoch:
+                        seed = self.seed + epoch_number
+                # Here, we calculate how many files each process should read
+                # and partition the files for each rank
+                partition_size = int(math.ceil(len(files_train) / self.comm_size))
+                part_start, part_end = (partition_size * self.my_rank, partition_size * ( self.my_rank + 1))
+                self._local_train_file_list = files_train[part_start:part_end]
+                self._local_train_file_list_size = len(self._local_train_file_list)
+
+                if seed is not None:
+                    random.seed(seed)
+                if read_shuffle:
+                    random.shuffle(self._local_train_file_list)
+
+                logging.info("{} Rank {} will read {} files: {}".format(utcnow(), self.my_rank, self._local_train_file_list_size, self._local_train_file_list))
         else:
-            self._local_file_list = files
+            if self.eval_enabled and do_eval:
+                self._local_eval_file_list = files_eval
+                self._local_eval_file_list = self.num_files_eval
+            else:
+                self._local_train_file_list = files_train
+                self._local_train_file_list_size = self.num_files_train
 
     @abstractmethod
     def next(self):

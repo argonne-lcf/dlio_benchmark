@@ -37,8 +37,8 @@ class CSVReader(FormatReader):
         super().read(epoch_number)
         packed_array = []
         count = 1
-        for file in self._local_file_list:
-            progress(count, len(self._local_file_list), "Opening CSV Data")
+        for file in self._local_train_file_list:
+            progress(count, len(self._local_train_file_list), "Opening CSV Data")
             count += 1
             rows = pd.read_csv(file, compression="infer").to_numpy()
             packed_array.append({

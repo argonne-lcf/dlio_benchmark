@@ -59,26 +59,26 @@ class ArgumentParser(object):
                                  help="How the files are accessed in the benchmark.")
         self.parser.add_argument("-rl", "--record-length", default=64 * 1024, type=int,
                                  help="Size of a record/image within dataset")
-        self.parser.add_argument("-nf", "--num-files", default=8, type=int,
-                                 help="Number of files that should be accessed.")
+        self.parser.add_argument("-nf", "--num-files-train", default=8, type=int,
+                                 help="Number of files that should be accessed for training.")
         self.parser.add_argument("-sf", "--num-samples", default=1024, type=int,
                                  help="Number of samples per file.")
         self.parser.add_argument("-bs", "--batch-size", default=1, type=int,
-                                 help="Batch size for training records.")
+                                 help="Per worker batch size for training records.")
         self.parser.add_argument("-e", "--epochs", default=1, type=int,
                                  help="Number of epochs to be emulated within benchmark.")
         self.parser.add_argument("-se", "--seed-change-epoch", default=False, type=str2bool,
                                  help="change seed between epochs. y/n")
         self.parser.add_argument("-gd", "--generate-data", default=True, type=str2bool,
                                  help="Enable generation of data. y/n")
+        self.parser.add_argument("-go", "--generate-only", default=False, type=str2bool,
+                                 help="Only generate files then exit.")
         self.parser.add_argument("-df", "--data-folder", default="./data", type=str,
                                  help="Set the path of folder where data is present in top-level.")
         self.parser.add_argument("-of", "--output-folder", default="./output", type=str,
-                                 help="Set the path of folder where output can be generated.")
+                                 help="Set the path of folder where output can be generated (checkpoints and logs)")
         self.parser.add_argument("-fp", "--file-prefix", default="img", type=str,
                                  help="Prefix for generated files.")
-        self.parser.add_argument("-go", "--generate-only", default=False, type=str2bool,
-                                 help="Only generate files.")
         self.parser.add_argument("-k", "--keep-files", default=False, type=str2bool,
                                  help="Keep files after benchmark. y/n")
         self.parser.add_argument("-p", "--profiling",  default=False, type=str2bool,
@@ -113,6 +113,20 @@ class ArgumentParser(object):
                                  help="Level of compression for GZip.")
         self.parser.add_argument("-d", "--debug", default=False, type=str2bool,
                                  help="Enable debug in code.")
+
+        # Added to support periodic evaluation on a held-out test set
+        # E.g. this is used by the image segmentation workload to determine if 
+        # the accuracy is good enough and if training should terminate
+        self.parser.add_argument("-de", "--do-eval", default=False, type=str2bool,
+                                 help="If we should simulate evaluation (single rank only for now). See -et, -eae and -eee to configure.")
+        self.parser.add_argument("-nfe", "--num-files-eval", default=0, type=int,
+                                 help="Number of files that should be put aside for evaluation. Defaults to zero, mimicking a training-only workload.")
+        self.parser.add_argument("-et", "--eval-time", default=0, type=float,
+                                 help="Amount of time each evaluation takes")
+        self.parser.add_argument("-eae", "--eval-after-epoch", default=5, type=int,
+                                 help="Epoch number after which to start evaluating")
+        self.parser.add_argument("-eee", "--eval-every-epoch", default=2, type=int,
+                                 help="Evaluation frequency: evaluate every x epochs")
         self.args = self.parser.parse_args()
         self._validate()
         self.args.my_rank = hvd.rank()
