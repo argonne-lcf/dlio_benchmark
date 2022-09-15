@@ -40,10 +40,10 @@ class CSVGenerator(DataGenerator):
         record_label = 0
         prev_out_spec = ""
         count = 0
-        for i in range(0, int(self.num_files)):
+        for i in range(0, int(self.total_files_to_generate)):
             if i % self.comm_size == self.my_rank:
-                progress(i+1, self.num_files, "Generating CSV Data")
-                out_path_spec = "{}_{}_of_{}.csv".format(self._file_prefix, i, self.num_files)
+                progress(i+1, self.total_files_to_generate, "Generating CSV Data")
+                out_path_spec = "{}_{}_of_{}.csv".format(self._file_prefix, i, self.total_files_to_generate)
                 if count == 0:
                     prev_out_spec = out_path_spec
                     df = pd.DataFrame(data=records)

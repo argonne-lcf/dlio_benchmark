@@ -16,16 +16,26 @@ from datetime import datetime
 from src.common.enumerations import Profiler
 from src.data_generator.generator_factory import GeneratorFactory
 from src.reader.reader_factory import ReaderFactory
-from src.reader.reader_handler import LOG_TS_FORMAT
 from src.profiler.profiler_factory import ProfilerFactory
 from src.utils.argument_parser import ArgumentParser
+from src.utils.utility import utcnow
+
 import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import horovod.tensorflow as hvd
 import math
 import os
 import shutil
+import logging
+
 hvd.init()
+
+# Horovod: pin GPU to be used to process local rank (one GPU per process)
+gpus = tf.config.experimental.list_physical_devices('GPU')
+for gpu in gpus:
+    tf.config.experimental.set_memory_growth(gpu, True)
+if gpus:
+    tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
 
 
 def barrier():
@@ -35,7 +45,7 @@ def barrier():
     const = tf.constant(1)
     reduced = hvd.allreduce(const)
 
-def model(epoch,step, time):
+def model(epoch, step, time):
     sleep(time)
 
 
@@ -54,12 +64,23 @@ class DLIOBenchmark(object):
         </ul>
         """
         self.arg_parser = ArgumentParser.get_instance()
+        self.output_folder = self.arg_parser.args.output_folder
+
+        logging.basicConfig(
+            level=logging.INFO,
+            handlers=[
+                logging.FileHandler(os.path.join(self.output_folder, f'dlio_{utcnow("%Y%m%d%H%M%S")}.log'), mode = "a", encoding='utf-8'),
+                logging.StreamHandler()
+            ],
+            format='%(message)s [%(pathname)s:%(lineno)d]'    # logging's max timestamp resolution is msecs, we will pass in microseconds in the message
+        )
+
         self.darshan = None
         self.tensorboard = None
         self.data_generator = None
         self.my_rank = self.arg_parser.args.my_rank
         self.comm_size = self.arg_parser.args.comm_size
-        self.num_files = self.arg_parser.args.num_files
+        self.num_files_train = self.arg_parser.args.num_files_train
         self.num_samples = self.arg_parser.args.num_samples
         self.batch_size = self.arg_parser.args.batch_size
         self.computation_time = self.arg_parser.args.computation_time
@@ -69,6 +90,13 @@ class DLIOBenchmark(object):
         if self.arg_parser.args.generate_data:
             self.data_generator = GeneratorFactory.get_generator(self.arg_parser.args.format)
         self.reader_handler = ReaderFactory.get_format(self.arg_parser.args.format)
+        # Evaluation support
+        self.do_eval = self.arg_parser.args.do_eval
+        self.num_files_eval = self.arg_parser.args.num_files_eval
+        self.eval_time = self.arg_parser.args.eval_time
+        self.eval_after_epoch = self.arg_parser.args.eval_after_epoch
+        self.eval_every_epoch = self.arg_parser.args.eval_every_epoch
+        
 
     def initialize(self):
         """
@@ -80,15 +108,15 @@ class DLIOBenchmark(object):
             input("Press enter to start\n")
         barrier()
         if self.arg_parser.args.generate_data:
-            print("{} Starting data generation".format(datetime.utcnow().strftime(LOG_TS_FORMAT)))
+            logging.info("{} Starting data generation".format(utcnow()))
             self.data_generator.generate()
-            print("{} Generation done".format(datetime.utcnow().strftime(LOG_TS_FORMAT)))
+            logging.info("{} Generation done".format(utcnow()))
         if self.arg_parser.args.profiling:
             self.darshan.start()
             self.tensorboard.start()
             barrier()
             if self.arg_parser.args.my_rank == 0:
-                print("profiling started")
+                logging.info("profiling started")
         barrier()
 
     def _checkpoint(self, step_number):
@@ -106,7 +134,8 @@ class DLIOBenchmark(object):
         meta_file = os.path.join(self.arg_parser.args.output_folder,
                                  "meta_{}_{}.bin".format(step_number, self.arg_parser.args.my_rank))
         f = open(model_file, "w")
-        # TODO: This could be parametrized as "model size".
+        # TODO: This could be parametrized as "model size" and affect the checkpoint writing time
+        # E.g. BERT is a very big model, with 330M parameters, and would take longer to write.
         string_val = "x" * (1024 * 1024 * 4)
         f.write(string_val)
         f.close()
@@ -126,20 +155,29 @@ class DLIOBenchmark(object):
 
     def _eval(self, epoch_number):
         """
-        TODO: We will need to create this method to mimic out workloads.
-        e.g. In image segmentation, we evaluate periodically and the operation performed are slightly different
-        so we would need a different sleep parameter.
+        Evaluation loop with a different sleep time than training.
+        E.g. I believe in imseg, eval happens on CPU and time is pretty stable across runs
         """
-        pass
+        step = 1
+        total = math.ceil(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
+        for batch in self.reader_handler.next(do_eval=True):
+            logging.debug("{} rank {} received tensor of shape {}".format(utcnow(), self.my_rank, batch[0].get_shape()))
+            if self.eval_time > 0:
+                tf.function(model)(epoch_number, step, self.eval_time)
+            step += 1
+            if step > total:
+                return step - 1
+        return step - 1
 
-    def _train(self,epoch_number):
+    def _train(self, epoch_number):
         """
         Training loop for reading the dataset and performing training computations.
         :return: returns total steps.
         """
         step = 1
-        total = math.ceil(self.num_samples * self.num_files / self.batch_size / self.comm_size)
-        for element in self.reader_handler.next():
+        total = math.ceil(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
+        for batch in self.reader_handler.next():
+            logging.debug("{} rank {} received tensor of shape {}".format(utcnow(), self.my_rank, batch[0].get_shape()))
             if self.computation_time > 0:
                 tf.function(model)(epoch_number, step, self.computation_time)
             if self.arg_parser.args.checkpoint and step % self.arg_parser.args.steps_checkpoint == 0:
@@ -155,33 +193,61 @@ class DLIOBenchmark(object):
         dataset.
         """
         if not self.arg_parser.args.generate_only:
-
+            # Print out the expected number of steps for each epoch and evaluation
             if self.arg_parser.args.my_rank == 0:
-                total = math.ceil(self.num_samples * self.num_files / self.batch_size / self.comm_size)
-                print("{} Steps per epoch: {} = {} * {} / {} / {} (samples per file * num files / batch size / comm size)".format(datetime.utcnow().strftime(LOG_TS_FORMAT), total, self.num_samples, self.num_files, self.batch_size, self.comm_size))
-
-            for epoch_number in range(0, self.arg_parser.args.epochs):
+                total = math.ceil(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
+                logging.info("{} Steps per epoch: {} = {} * {} / {} / {} (samples per file * num files / batch size / comm size)".format(utcnow(), total, self.num_samples, self.num_files_train, self.batch_size, self.comm_size))
+                if self.do_eval:
+                    total = math.ceil(self.num_samples * self.num_files_eval / self.batch_size / self.comm_size)
+                    logging.info("{} Steps per eval: {} = {} * {} / {} / {} (samples per file * num files / batch size / comm size)".format(utcnow(), total, self.num_samples, self.num_files_eval, self.batch_size, self.comm_size))
+            
+            next_eval_at = self.eval_after_epoch
+            for epoch_number in range(1, self.arg_parser.args.epochs + 1):
+                
                 if self.arg_parser.args.my_rank == 0:
-                    print("{} Starting epoch {}".format(datetime.utcnow().strftime(LOG_TS_FORMAT), epoch_number))
+                    logging.info("{} Starting epoch {}".format(utcnow(), epoch_number))
+
                 start_time = time()
-                self.reader_handler.read(epoch_number)
+                # Initialize the dataset
+                self.reader_handler.read(epoch_number, do_eval=False)
                 barrier()
                 if self.arg_parser.args.my_rank == 0:
-                    print("{} Datasets loaded for all ranks in {} seconds".format(datetime.utcnow().strftime(LOG_TS_FORMAT), (time() - start_time)))
+                    logging.info("{} Training dataset loaded for all ranks in {} seconds".format(utcnow(), (time() - start_time)))
+                
                 start_time = time()
                 steps = self._train(epoch_number)
+
                 barrier()
                 if self.arg_parser.args.my_rank == 0:
-                    # print("Finished {} steps in {} epochs for rank {}  in {} seconds".format(steps, epoch_number + 1,
-                    #                                                       self.arg_parser.args.my_rank,(time() - start_time)))
-                    print("{} Ending epoch {} - {} steps completed".format(datetime.utcnow().strftime(LOG_TS_FORMAT), epoch_number, steps))
+                    logging.info("{} Ending epoch {} - {} steps completed in {} seconds".format(utcnow(), epoch_number, steps, time() - start_time))
                 self.reader_handler.finalize()
+
+                # Perform evaluation if enabled
+                if self.do_eval and epoch_number == next_eval_at:
+                    next_eval_at += self.eval_every_epoch
+                
+                    if self.arg_parser.args.my_rank == 0:
+                        logging.info("{} Starting eval".format(utcnow()))
+
+                    start_time = time()
+                    # Initialize the eval dataset
+                    self.reader_handler.read(epoch_number, do_eval=True)
+                    barrier()
+                    if self.arg_parser.args.my_rank == 0:
+                        logging.info("{} Eval dataset loaded for all ranks in {} seconds".format(utcnow(), (time() - start_time)))
+                    
+                    start_time = time()
+                    steps = self._eval(epoch_number)
+                    barrier()
+                    if self.arg_parser.args.my_rank == 0:
+                        logging.info("{} Ending eval - {} steps completed in {} seconds".format(utcnow(), steps, time() - start_time))
+                    self.reader_handler.finalize()
 
     def finalize(self):
         """
         It finalizes the dataset once training is completed.
         """
-        print("{} Finalizing for rank {}".format(datetime.utcnow().strftime(LOG_TS_FORMAT), self.arg_parser.args.my_rank))
+        logging.info("{} Finalizing for rank {}".format(utcnow(), self.arg_parser.args.my_rank))
         barrier()
         if not self.arg_parser.args.generate_only:
             if self.arg_parser.args.profiling:
@@ -189,13 +255,14 @@ class DLIOBenchmark(object):
                 self.tensorboard.stop()
                 barrier()
                 if self.arg_parser.args.my_rank == 0:
-                    print("profiling stopped")
+                    logging.info("{} profiling stopped".format(utcnow()))
             if not self.arg_parser.args.keep_files:
+                logging.info("{} Keep files set to False. Deleting dataset", utcnow())
                 barrier()
                 if self.arg_parser.args.my_rank == 0:
                     if os.path.exists(self.arg_parser.args.data_folder):
                         shutil.rmtree(self.arg_parser.args.data_folder)
-                        print("Deleted data files")
+                        logging.info("{} Deleted data files".format(utcnow()))
 
 
 if __name__ == '__main__':

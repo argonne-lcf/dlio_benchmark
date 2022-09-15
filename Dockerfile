@@ -15,8 +15,7 @@ WORKDIR /workspace/dlio
 
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y git
-RUN apt-get install -y vim
+    apt-get install -y git vim
 
 RUN pip install --upgrade pip
 RUN pip install --disable-pip-version-check -r requirements.txt

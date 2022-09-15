@@ -59,7 +59,7 @@ class HDF5StimulateReader(FormatReader):
         if FileAccess.MULTI == self.file_access:
             # for multiple file access the whole file would read by each process.
             part_start, part_end = 0, int(math.ceil(self.num_samples/self.batch_size))
-            for file in self._local_file_list:
+            for file in self._local_train_file_list:
                 local_file_list.append((file,str(part_start),str(part_end)))
         else:
             # for shared file access a part of file would be read by each process.
@@ -73,7 +73,7 @@ class HDF5StimulateReader(FormatReader):
             else:
                 parallel_threads = 1
                 part_size = total_samples_per_rank;
-            for file in self._local_file_list:
+            for file in self._local_train_file_list:
                 for i in range(parallel_threads):
                     local_file_list.append((file,str(i*part_size),str(part_size)))
         options = tf.data.Options()

@@ -37,8 +37,8 @@ class HDF5Reader(FormatReader):
         super().read(epoch_number)
         packed_array = []
         count = 1
-        for file in self._local_file_list:
-            progress(count, len(self._local_file_list), "Opening HDF5 Data")
+        for file in self._local_train_file_list:
+            progress(count, len(self._local_train_file_list), "Opening HDF5 Data")
             count += 1
             file_h5 = h5py.File(file, 'r')
             dimention = int(math.sqrt(self.record_size))

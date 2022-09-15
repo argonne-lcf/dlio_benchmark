@@ -34,7 +34,7 @@ class NPZReader(FormatReader):
         """
         super().read(epoch_number)
         packed_array = []
-        for file in self._local_file_list:
+        for file in self._local_train_file_list:
             with np.load(file, allow_pickle=True) as data:
                 rows = data['x']
                 packed_array.append({
