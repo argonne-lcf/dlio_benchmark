@@ -11,30 +11,23 @@
  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from src.profiler.io_profiler import IOProfiler
+from src.reader.reader_handler import FormatReader
 
-class TFProfiler(IOProfiler):
-    __instance = None
 
-    @staticmethod
-    def get_instance():
-        """ Static access method. """
-        if TFProfiler.__instance is None:
-            TFProfiler()
-        return TFProfiler.__instance
+"""
+DataLoader reader and iterator logic.
+"""
 
+
+class DataLoaderReader(FormatReader):
     def __init__(self):
         super().__init__()
-        """ Virtually private constructor. """
-        if TFProfiler.__instance is not None:
-            raise Exception("This class is a singleton!")
-        else:
-            TFProfiler.__instance = self
 
-    def start(self):
-        import tensorflow as tf
-        tf.profiler.experimental.start(self.logdir)
+    def read(self, epoch_number):
+        pass
 
-    def stop(self):
-        import tensorflow as tf
-        tf.profiler.experimental.stop()
+    def next(self):
+        pass
+
+    def finalize(self):
+        pass

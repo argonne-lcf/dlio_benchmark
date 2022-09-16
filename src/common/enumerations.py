@@ -13,31 +13,44 @@
 
 from enum import Enum
 
-"""
-Different Computation Type for training loop.
-"""
+class FrameworkType(Enum):
+    """
+    Different Computation Type for training loop.
+    """
+    TENSORFLOW = 'tensorflow'
+    PYTORCH = 'pytorch'
+
+    def __str__(self):
+        return self.value
+
 class ComputationType(Enum):
+    """
+    Different Computation Type for training loop.
+    """
     NONE = 'none'
     SYNC = 'sync'
     ASYNC = 'async'
 
-"""
-Format Type supported by the benchmark.
-"""
+
 class FormatType(Enum):
+    """
+    Format Type supported by the benchmark.
+    """
     TFRECORD = 'tfrecord'
     HDF5 = 'hdf5'
     CSV = 'csv'
     NPZ = 'npz'
     HDF5_OPT = 'hdf5_opt'
+    DATA_LOADER = 'data_loader'
 
     def __str__(self):
         return self.value
 
-"""
-Profiler types supported by the benchmark.
-"""
+
 class Profiler(Enum):
+    """
+    Profiler types supported by the benchmark.
+    """
     NONE = 'none'
     DARSHAN = 'darshan'
     TENSORBOARD = 'tensorboard'
@@ -45,10 +58,10 @@ class Profiler(Enum):
     def __str__(self):
         return self.value
 
-"""
-Shuffle mode for files and memory.
-"""
 class Shuffle(Enum):
+    """
+    Shuffle mode for files and memory.
+    """
     OFF = 'off'
     SEED = 'seed'
     RANDOM = 'random'

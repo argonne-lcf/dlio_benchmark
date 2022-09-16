@@ -15,4 +15,4 @@ then
 	docker rm $container_name
 fi
 
-docker run -it --rm --name=$container_name --gpus $num_gpus -v /dl-bench/lhovon/dlio_benchmark/data:/workspace/dlio/data -v /dl-bench/lhovon/dlio_benchmark/output:/workspace/dlio/output dlio:latest /bin/bash run_dlio.sh $num_gpus $generate_data
+docker run -it --rm --name=$container_name --gpus $num_gpus -v /dl-bench/lhovon/dlio_benchmark/data:/workspace/dlio/data -v /dl-bench/lhovon/dlio_benchmark/output:/workspace/dlio/output dlio:pt /bin/bash run_dlio.sh $num_gpus $generate_data

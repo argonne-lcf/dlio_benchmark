@@ -13,8 +13,8 @@
 
 import argparse
 
-from src.common.enumerations import FormatType, Shuffle, ReadType, FileAccess, Compression
-import horovod.tensorflow as hvd
+from src.common.enumerations import FormatType, Shuffle, ReadType, FileAccess, Compression, FrameworkType
+
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -45,6 +45,9 @@ class ArgumentParser(object):
         else:
             ArgumentParser.__instance = self
         self.parser = argparse.ArgumentParser(description='DLIO Benchmark')
+        self.parser.add_argument("-fr", "--framework", default=FrameworkType.TENSORFLOW, type=FrameworkType,
+                                 choices=list(FrameworkType),
+                                 help="framework to use.")
         self.parser.add_argument("-f", "--format", default=FormatType.TFRECORD, type=FormatType, choices=list(FormatType),
                                  help="data reader to use.")
         self.parser.add_argument("-r", "--read-shuffle", default=Shuffle.OFF, type=Shuffle, choices=list(Shuffle),
@@ -129,10 +132,6 @@ class ArgumentParser(object):
                                  help="Evaluation frequency: evaluate every x epochs")
         self.args = self.parser.parse_args()
         self._validate()
-        self.args.my_rank = hvd.rank()
-        self.args.comm_size = hvd.size()
-        #self.args.my_rank = 0
-        #self.args.comm_size = 1
 
     def _validate(self):
         '''

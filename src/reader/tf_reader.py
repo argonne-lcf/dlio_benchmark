@@ -18,8 +18,6 @@ from src.common.enumerations import Shuffle
 from src.reader.reader_handler import FormatReader
 import tensorflow as tf
 
-from src.utils.utility import progress
-
 
 class TFReader(FormatReader):
     """
