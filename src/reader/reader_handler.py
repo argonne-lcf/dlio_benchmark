@@ -56,7 +56,7 @@ class FormatReader(ABC):
         seed = None
 
         # Sanity check
-        assert len(files_train) == self.num_files_train, f"{len(files_train)}, {self.num_files_train}"
+        assert len(files_train) == self.num_files_train, f"Expecting to see {self.num_files_train} training files but {len(files_train)} found. Ensure data was generated correctly."
 
         # Hold out self.num_files_eval files of the dataset to be used for evaluation
         # We only need to do this if we're actually going to read the eval set this epoch
@@ -64,7 +64,7 @@ class FormatReader(ABC):
             # Populate files_eval with the picked files
             files_eval = [path for i, path in enumerate(fullpaths) if i in self.eval_indices]
             # Sanity check
-            assert len(files_eval) == self.num_files_eval
+            assert len(files_eval) == self.num_files_eval, f"Expecting to see {self.num_files_train} eval files but {len(files_train)} found. Ensure data was generated correctly."
 
         # TODO: I think with 1 worker, DLIO will not emulate a single process multi-GPU reading behaviour
         # What would that look like? Maybe we should explicitly call tf.distribute.Strategy and pytorch.DDP
