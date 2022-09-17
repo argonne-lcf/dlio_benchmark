@@ -38,5 +38,5 @@ class DataGenerator(ABC):
 
         self.total_files_to_generate = self.num_files_train
 
-        if self.do_eval and self.num_files_eval > 0:
+        if self.num_files_eval > 0:
             self.total_files_to_generate += self.num_files_eval

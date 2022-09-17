@@ -1,13 +1,18 @@
 #!/bin/bash
 
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+DATA_DIR=${SCRIPT_DIR}/data
+OUTPUT_DIR=${SCRIPT_DIR}/output
+
 # Default names of directories for generating data and output
 # Aligned with dlio argument_parser.py
-mkdir -p /dl-bench/lhovon/dlio_benchmark/data
-mkdir -p /dl-bench/lhovon/dlio_benchmark/output
+mkdir -p $DATA_DIR
+mkdir -p $OUTPUT_DIR
 
-num_gpus=${1:-1} 				# Default option of 1 GPU
-generate_data=${2:-n} 			# Default: don't generate data
-container_name=${3:-train_dlio}
+num_gpus=${1:-all} 				# Default option of 1 GPU
+container_name=${2:-train_dlio}
+generate_data=${3:-n} 			# Default: don't generate data
 
 # Remove existing container if a previous run was interrupted
 if [ "$(docker ps -a | grep $container_name)" ]
@@ -15,4 +20,6 @@ then
 	docker rm $container_name
 fi
 
-docker run -it --rm --name=$container_name --gpus $num_gpus -v /dl-bench/lhovon/dlio_benchmark/data:/workspace/dlio/data -v /dl-bench/lhovon/dlio_benchmark/output:/workspace/dlio/output dlio:latest /bin/bash run_dlio.sh $num_gpus $generate_data
+# Must use ipc=host to launch the container else pytorch dataloader will crash
+# https://github.com/ultralytics/yolov3/issues/283#issuecomment-552776535
+docker run -it --rm --name=$container_name --ipc=host --gpus $num_gpus -v $DATA_DIR:/workspace/dlio/data -v $OUTPUT_DIR:/workspace/dlio/output dlio:pt /bin/bash run_dlio_pt.sh $num_gpus $generate_data

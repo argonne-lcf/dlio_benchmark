@@ -13,8 +13,8 @@
 
 import argparse
 
-from src.common.enumerations import FormatType, Shuffle, ReadType, FileAccess, Compression
-import horovod.tensorflow as hvd
+from src.common.enumerations import FormatType, Shuffle, ReadType, FileAccess, Compression, FrameworkType
+
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -45,6 +45,9 @@ class ArgumentParser(object):
         else:
             ArgumentParser.__instance = self
         self.parser = argparse.ArgumentParser(description='DLIO Benchmark')
+        self.parser.add_argument("-fr", "--framework", default=FrameworkType.TENSORFLOW, type=FrameworkType,
+                                 choices=list(FrameworkType),
+                                 help="framework to use.")
         self.parser.add_argument("-f", "--format", default=FormatType.TFRECORD, type=FormatType, choices=list(FormatType),
                                  help="data reader to use.")
         self.parser.add_argument("-r", "--read-shuffle", default=Shuffle.OFF, type=Shuffle, choices=list(Shuffle),
@@ -93,12 +96,12 @@ class ArgumentParser(object):
                                  help="How many steps to enable checkpoint.")
         self.parser.add_argument("-ts", "--transfer-size", default=None, type=int,
                                  help="Transfer Size for tensorflow buffer size.")
-        self.parser.add_argument("-tr", "--read-threads", default=None, type=int,
+        self.parser.add_argument("-tr", "--read-threads", default=1, type=int,
                                  help="Number of threads to be used for reads.")
-        self.parser.add_argument("-tc", "--computation-threads", default=None, type=int,
+        self.parser.add_argument("-tc", "--computation-threads", default=1, type=int,
                                  help="Number of threads to be used for pre-processing.")
         self.parser.add_argument("-ct", "--computation-time", default=0, type=float,
-                                 help="Amount of time for computation.")
+                                 help="Processing time (seconds) for each training data batch.")
         self.parser.add_argument("-rp", "--prefetch", default=False, type=str2bool,
                                  help="Enable prefetch within benchmark.")
         self.parser.add_argument("-ps", "--prefetch-size", default=0, type=int,
@@ -119,20 +122,18 @@ class ArgumentParser(object):
         # the accuracy is good enough and if training should terminate
         self.parser.add_argument("-de", "--do-eval", default=False, type=str2bool,
                                  help="If we should simulate evaluation (single rank only for now). See -et, -eae and -eee to configure.")
+        self.parser.add_argument("-bse", "--batch-size-eval", default=1, type=int,
+                                 help="Per worker batch size for evaluation records.")
         self.parser.add_argument("-nfe", "--num-files-eval", default=0, type=int,
                                  help="Number of files that should be put aside for evaluation. Defaults to zero, mimicking a training-only workload.")
         self.parser.add_argument("-et", "--eval-time", default=0, type=float,
-                                 help="Amount of time each evaluation takes")
-        self.parser.add_argument("-eae", "--eval-after-epoch", default=5, type=int,
+                                 help="Processing time (seconds) for each evaluation data batch.")
+        self.parser.add_argument("-eae", "--eval-after-epoch", default=0, type=int,
                                  help="Epoch number after which to start evaluating")
-        self.parser.add_argument("-eee", "--eval-every-epoch", default=2, type=int,
+        self.parser.add_argument("-eee", "--eval-every-epoch", default=0, type=int,
                                  help="Evaluation frequency: evaluate every x epochs")
         self.args = self.parser.parse_args()
         self._validate()
-        self.args.my_rank = hvd.rank()
-        self.args.comm_size = hvd.size()
-        #self.args.my_rank = 0
-        #self.args.comm_size = 1
 
     def _validate(self):
         '''

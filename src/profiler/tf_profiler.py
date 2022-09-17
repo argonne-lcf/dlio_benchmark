@@ -12,7 +12,6 @@
 """
 
 from src.profiler.io_profiler import IOProfiler
-import tensorflow as tf
 
 class TFProfiler(IOProfiler):
     __instance = None
@@ -33,7 +32,9 @@ class TFProfiler(IOProfiler):
             TFProfiler.__instance = self
 
     def start(self):
+        import tensorflow as tf
         tf.profiler.experimental.start(self.logdir)
 
     def stop(self):
+        import tensorflow as tf
         tf.profiler.experimental.stop()

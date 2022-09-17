@@ -13,7 +13,6 @@
 
 from src.data_generator.data_generator import DataGenerator
 from numpy import random
-import tensorflow as tf
 
 from src.utils.utility import progress, utcnow
 from shutil import copyfile
@@ -28,6 +27,7 @@ class TFRecordGenerator(DataGenerator):
         super().__init__()
 
     def generate(self):
+        import tensorflow as tf
         """
         Generator for creating data in TFRecord format of 3d dataset.
         """
