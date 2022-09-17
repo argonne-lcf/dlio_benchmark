@@ -6,6 +6,7 @@ ADD . /workspace/dlio
 # Remove scripts that should only be used outside of the container (to launch it)
 RUN rm /workspace/dlio/start_container.sh
 RUN rm /workspace/dlio/start_dlio.sh
+RUN rm /workspace/dlio/start_dlio_pt.sh
 
 WORKDIR /workspace/dlio
 
@@ -20,6 +21,7 @@ RUN apt-get update && \
 RUN pip install --upgrade pip
 RUN pip install --disable-pip-version-check -r requirements.txt
 
+# Force re-build of horovod with support for both tf and pt
 RUN ldconfig /usr/local/cuda-10.0/targets/x86_64-linux/lib/stubs && \
     HOROVOD_GPU_ALLREDUCE=NCCL HOROVOD_WITH_TENSORFLOW=1 HOROVOD_WITH_PYTORCH=1 \
     pip install --no-cache-dir --upgrade --force-reinstall horovod && ldconfig
