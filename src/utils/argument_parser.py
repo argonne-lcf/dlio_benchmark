@@ -96,9 +96,9 @@ class ArgumentParser(object):
                                  help="How many steps to enable checkpoint.")
         self.parser.add_argument("-ts", "--transfer-size", default=None, type=int,
                                  help="Transfer Size for tensorflow buffer size.")
-        self.parser.add_argument("-tr", "--read-threads", default=None, type=int,
+        self.parser.add_argument("-tr", "--read-threads", default=1, type=int,
                                  help="Number of threads to be used for reads.")
-        self.parser.add_argument("-tc", "--computation-threads", default=None, type=int,
+        self.parser.add_argument("-tc", "--computation-threads", default=1, type=int,
                                  help="Number of threads to be used for pre-processing.")
         self.parser.add_argument("-ct", "--computation-time", default=0, type=float,
                                  help="Amount of time for computation.")
@@ -122,13 +122,15 @@ class ArgumentParser(object):
         # the accuracy is good enough and if training should terminate
         self.parser.add_argument("-de", "--do-eval", default=False, type=str2bool,
                                  help="If we should simulate evaluation (single rank only for now). See -et, -eae and -eee to configure.")
+        self.parser.add_argument("-bse", "--batch-size-eval", default=1, type=int,
+                                 help="Per worker batch size for evaluation records.")
         self.parser.add_argument("-nfe", "--num-files-eval", default=0, type=int,
                                  help="Number of files that should be put aside for evaluation. Defaults to zero, mimicking a training-only workload.")
         self.parser.add_argument("-et", "--eval-time", default=0, type=float,
-                                 help="Amount of time each evaluation takes")
-        self.parser.add_argument("-eae", "--eval-after-epoch", default=5, type=int,
+                                 help="Amount of time each evaluation calculation takes (s)")
+        self.parser.add_argument("-eae", "--eval-after-epoch", default=0, type=int,
                                  help="Epoch number after which to start evaluating")
-        self.parser.add_argument("-eee", "--eval-every-epoch", default=2, type=int,
+        self.parser.add_argument("-eee", "--eval-every-epoch", default=0, type=int,
                                  help="Evaluation frequency: evaluate every x epochs")
         self.args = self.parser.parse_args()
         self._validate()

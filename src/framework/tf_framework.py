@@ -51,6 +51,12 @@ class TFFramework(Framework):
         const = tf.constant(1)
         reduced = hvd.allreduce(const)
 
+    def rank(self):
+        return hvd.rank()
+
+    def size(self):
+        return hvd.size()
+
     def start_framework_profiler(self):
         if self.profiling:
             self.tensorboard.start()

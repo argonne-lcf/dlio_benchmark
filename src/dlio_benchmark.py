@@ -43,8 +43,10 @@ class DLIOBenchmark(object):
         self.arg_parser = ArgumentParser.get_instance()
         self.output_folder = self.arg_parser.args.output_folder
 
+        log_level = logging.DEBUG if self.arg_parser.args.debug else logging.INFO
+
         logging.basicConfig(
-            level=logging.INFO,
+            level=log_level,
             handlers=[
                 logging.FileHandler(os.path.join(self.output_folder, f'dlio_{utcnow("%Y%m%d%H%M%S")}.log'), mode = "a", encoding='utf-8'),
                 logging.StreamHandler()
@@ -73,6 +75,7 @@ class DLIOBenchmark(object):
         # Evaluation support
         self.do_eval = self.arg_parser.args.do_eval
         self.num_files_eval = self.arg_parser.args.num_files_eval
+        self.batch_size_eval = self.arg_parser.args.batch_size_eval
         self.eval_time = self.arg_parser.args.eval_time
         self.eval_after_epoch = self.arg_parser.args.eval_after_epoch
         self.eval_every_epoch = self.arg_parser.args.eval_every_epoch
@@ -105,9 +108,8 @@ class DLIOBenchmark(object):
         E.g. I believe in imseg, eval happens on CPU and time is pretty stable across runs
         """
         step = 1
-        total = math.ceil(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
+        total = math.ceil(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         for batch in self.framework.get_reader().next(do_eval=True):
-            logging.debug("{} rank {} received tensor of shape {}".format(utcnow(), self.my_rank, batch[0].get_shape()))
             if self.eval_time > 0:
                 self.framework.compute(epoch_number, step, self.eval_time)
             step += 1
@@ -123,7 +125,6 @@ class DLIOBenchmark(object):
         step = 1
         total = math.ceil(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
         for batch in self.framework.get_reader().next():
-            logging.debug("{} rank {} received tensor of shape {}".format(utcnow(), self.my_rank, batch[0].get_shape()))
             if self.computation_time > 0:
                 self.framework.compute(epoch_number, step, self.computation_time)
             if self.arg_parser.args.checkpoint and step % self.arg_parser.args.steps_checkpoint == 0:
@@ -144,8 +145,8 @@ class DLIOBenchmark(object):
                 total = math.ceil(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
                 logging.info("{} Steps per epoch: {} = {} * {} / {} / {} (samples per file * num files / batch size / comm size)".format(utcnow(), total, self.num_samples, self.num_files_train, self.batch_size, self.comm_size))
                 if self.do_eval:
-                    total = math.ceil(self.num_samples * self.num_files_eval / self.batch_size / self.comm_size)
-                    logging.info("{} Steps per eval: {} = {} * {} / {} / {} (samples per file * num files / batch size / comm size)".format(utcnow(), total, self.num_samples, self.num_files_eval, self.batch_size, self.comm_size))
+                    total = math.ceil(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
+                    logging.info("{} Steps per eval: {} = {} * {} / {} / {} (samples per file * num files / batch size eval / comm size)".format(utcnow(), total, self.num_samples, self.num_files_eval, self.batch_size_eval, self.comm_size))
             
             next_eval_at = self.eval_after_epoch
             for epoch_number in range(1, self.arg_parser.args.epochs + 1):

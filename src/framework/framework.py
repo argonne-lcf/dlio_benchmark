@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 
 from time import sleep
-import horovod.tensorflow as hvd
 import os
 
 class DummyTraceObject(object):
@@ -27,11 +26,13 @@ class Framework(ABC):
     def barrier(self):
         pass
 
+    @abstractmethod
     def rank(self):
-        return hvd.rank()
+        pass
 
+    @abstractmethod
     def size(self):
-        return hvd.size()
+        pass
 
     @abstractmethod
     def start_framework_profiler(self):
