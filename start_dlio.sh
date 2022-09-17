@@ -10,7 +10,7 @@ OUTPUT_DIR=${SCRIPT_DIR}/output
 mkdir -p $DATA_DIR
 mkdir -p $OUTPUT_DIR
 
-num_gpus=${1:-all} 				# Default option of 1 GPU
+num_gpus=${1:-8}
 container_name=${2:-train_dlio}
 generate_data=${3:-n} 			# Default: don't generate data
 
@@ -22,4 +22,4 @@ fi
 
 # Must use ipc=host to launch the container else pytorch dataloader will crash
 # https://github.com/ultralytics/yolov3/issues/283#issuecomment-552776535
-docker run -it --rm --name=$container_name --ipc=host --gpus $num_gpus -v $DATA_DIR:/workspace/dlio/data -v $OUTPUT_DIR:/workspace/dlio/output dlio:pt /bin/bash run_dlio_pt.sh $num_gpus $generate_data
+docker run -it --rm --name=$container_name --ipc=host --gpus $num_gpus -v $DATA_DIR:/workspace/dlio/data -v $OUTPUT_DIR:/workspace/dlio/output dlio:latest /bin/bash run_dlio_pt.sh $num_gpus $generate_data

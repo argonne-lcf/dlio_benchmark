@@ -6,7 +6,6 @@ echo $PYTHONPATH
 num_gpus=${1:-1}
 generate_data=${2:-n}
 
-
 # Generate npz files that we will open with the dataloader
 if [ $generate_data == "y" ] || [ $generate_data == "yes" ]; then
     horovodrun -np $num_gpus python3 src/dlio_benchmark.py --framework pytorch --data-folder data/ --output-folder output/ --format npz \
