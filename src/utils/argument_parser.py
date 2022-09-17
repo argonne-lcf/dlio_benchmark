@@ -101,7 +101,7 @@ class ArgumentParser(object):
         self.parser.add_argument("-tc", "--computation-threads", default=1, type=int,
                                  help="Number of threads to be used for pre-processing.")
         self.parser.add_argument("-ct", "--computation-time", default=0, type=float,
-                                 help="Amount of time for computation.")
+                                 help="Processing time (seconds) for each training data batch.")
         self.parser.add_argument("-rp", "--prefetch", default=False, type=str2bool,
                                  help="Enable prefetch within benchmark.")
         self.parser.add_argument("-ps", "--prefetch-size", default=0, type=int,
@@ -127,7 +127,7 @@ class ArgumentParser(object):
         self.parser.add_argument("-nfe", "--num-files-eval", default=0, type=int,
                                  help="Number of files that should be put aside for evaluation. Defaults to zero, mimicking a training-only workload.")
         self.parser.add_argument("-et", "--eval-time", default=0, type=float,
-                                 help="Amount of time each evaluation calculation takes (s)")
+                                 help="Processing time (seconds) for each evaluation data batch.")
         self.parser.add_argument("-eae", "--eval-after-epoch", default=0, type=int,
                                  help="Epoch number after which to start evaluating")
         self.parser.add_argument("-eee", "--eval-every-epoch", default=0, type=int,
