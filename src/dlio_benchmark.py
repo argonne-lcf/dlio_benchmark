@@ -48,7 +48,7 @@ class DLIOBenchmark(object):
         logging.basicConfig(
             level=log_level,
             handlers=[
-                logging.FileHandler(os.path.join(self.output_folder, f'dlio_{utcnow("%Y%m%d%H%M%S")}.log'), mode = "a", encoding='utf-8'),
+                logging.FileHandler(os.path.join(self.output_folder, self.arg_parser.args.log_file), mode = "a", encoding='utf-8'),
                 logging.StreamHandler()
             ],
             format='%(message)s [%(pathname)s:%(lineno)d]'    # logging's max timestamp resolution is msecs, we will pass in microseconds in the message
@@ -194,7 +194,6 @@ class DLIOBenchmark(object):
         """
         It finalizes the dataset once training is completed.
         """
-        logging.info("{} Finalizing for rank {}".format(utcnow(), self.arg_parser.args.my_rank))
         self.framework.barrier()
         if not self.arg_parser.args.generate_only:
             if self.arg_parser.args.profiling:
@@ -210,6 +209,9 @@ class DLIOBenchmark(object):
                     if os.path.exists(self.arg_parser.args.data_folder):
                         shutil.rmtree(self.arg_parser.args.data_folder)
                         logging.info("{} Deleted data files".format(utcnow()))
+        self.framework.barrier()
+        if self.arg_parser.args.my_rank == 0:
+            logging.info("{} Finalized for all ranks".format(utcnow()))
 
 
 if __name__ == '__main__':

@@ -80,6 +80,8 @@ class ArgumentParser(object):
                                  help="Set the path of folder where data is present in top-level.")
         self.parser.add_argument("-of", "--output-folder", default="./output", type=str,
                                  help="Set the path of folder where output can be generated (checkpoints and logs)")
+        self.parser.add_argument("-lf", "--log-file", default="dlio.log", type=str,
+                                 help="Name of the logfile")
         self.parser.add_argument("-fp", "--file-prefix", default="img", type=str,
                                  help="Prefix for generated files.")
         self.parser.add_argument("-k", "--keep-files", default=False, type=str2bool,
