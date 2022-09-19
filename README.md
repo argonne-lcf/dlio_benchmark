@@ -270,5 +270,5 @@ This work used resources of the Argonne Leadership Computing Facility, which is 
 
 
 ## License
-BSD-3-Clause license
+Apache 2.0 
 
