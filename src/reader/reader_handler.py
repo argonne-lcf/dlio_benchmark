@@ -9,7 +9,6 @@ from src.utils.utility import utcnow
 import os
 import math
 from numpy import random
-from datetime import datetime
 
 import logging
 
@@ -70,9 +69,7 @@ class FormatReader(ABC):
             # Sanity check
             assert len(files_eval) == self.num_files_eval, f"Expecting to see {self.num_files_eval} eval files but {len(files_eval)} found. Ensure data was generated correctly."
 
-        # TODO: I think with 1 worker, DLIO will not emulate a single process multi-GPU reading behaviour
-        # What would that look like? Maybe we should explicitly call tf.distribute.Strategy and pytorch.DDP
-        # Else, we can have multi-process multi-GPU training using horovod, but we have to pin each GPU to a process
+        # For PyTorch, we will split the data files in the data_loader subclass
         if self.framework is TFFramework and FileAccess.MULTI == self.file_access:
 
             if self.eval_enabled and do_eval:
@@ -85,11 +82,6 @@ class FormatReader(ABC):
 
                 logging.info("{} Rank {} will read {} files: {}".format(utcnow(), self.my_rank, self._local_eval_file_list_size, self._local_eval_file_list))
             else:
-                # Here, they used to take a slice of the array up to num_files, i.e.
-                # files_train = files_train[:self.num_files]
-                # Now that we possibly removed some files for evaluation, we would write 
-                # files_train = files_train[:(self.num_files_train)]
-                # However, since I got rid of it since in practice we can assume we'll always want to read the whole dataset
                 read_shuffle = True
                 if self.read_shuffle == Shuffle.OFF:
                     read_shuffle = False
@@ -110,7 +102,7 @@ class FormatReader(ABC):
                     random.shuffle(self._local_train_file_list)
 
                 logging.info("{} Rank {} will read {} files: {}".format(utcnow(), self.my_rank, self._local_train_file_list_size, self._local_train_file_list))
-        # Else wither the framework is Pytorch and we will do the case file separation in the data_loader_reader class
+        # Else either the framework is Pytorch and we will do the case file separation in the data_loader_reader class
         # Or we are in FileAccess different than Multi and we also want to do the below
         else:
             if self.eval_enabled and do_eval:

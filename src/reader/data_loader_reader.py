@@ -59,8 +59,7 @@ class DataLoaderReader(FormatReader):
             train_dataset = self.NpzDataset(self._local_train_file_list)
             logging.debug("{} Rank {} train_dataset length is {}".format(utcnow(), self.my_rank, len(train_dataset)))
 
-            # We can't use DistributedSampler as the splitting up of files between different ranks was already done
-            # in the superclass method!
+            # We can use DistributedSampler or perform the data split between different ranks in the superclass method!
             train_sampler = DistributedSampler(train_dataset, 
                                                 num_replicas=self.comm_size, 
                                                 rank=self.my_rank,

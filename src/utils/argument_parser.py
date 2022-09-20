@@ -72,7 +72,7 @@ class ArgumentParser(object):
                                  help="Number of epochs to be emulated within benchmark.")
         self.parser.add_argument("-se", "--seed-change-epoch", default=False, type=str2bool,
                                  help="change seed between epochs. y/n")
-        self.parser.add_argument("-gd", "--generate-data", default=True, type=str2bool,
+        self.parser.add_argument("-gd", "--generate-data", default=False, type=str2bool,
                                  help="Enable generation of data. y/n")
         self.parser.add_argument("-go", "--generate-only", default=False, type=str2bool,
                                  help="Only generate files then exit.")
