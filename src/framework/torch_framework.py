@@ -13,10 +13,10 @@ from src.reader.reader_factory import ReaderFactory
 
 hvd.init()
 
-# Pin each GPU to a single process
-# https://horovod.readthedocs.io/en/stable/pytorch.html
-if torch.cuda.is_available():
-    torch.cuda.set_device(hvd.local_rank())
+# # Pin each GPU to a single process
+# # https://horovod.readthedocs.io/en/stable/pytorch.html
+# if torch.cuda.is_available():
+#     torch.cuda.set_device(hvd.local_rank())
 
 HANDLED_FUNCTIONS = {}
 
