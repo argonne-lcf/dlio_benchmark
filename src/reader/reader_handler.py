@@ -54,8 +54,11 @@ class FormatReader(ABC):
     def read(self, epoch_number, do_eval=False):
         filenames = os.listdir(self.data_dir)
         fullpaths = [os.path.join(self.data_dir, entry) for entry in filenames]
-        # Populate files_train with all training cases
-        files_train = [path for i, path in enumerate(fullpaths) if i not in self.eval_indices]
+        if self.eval_enabled:
+            # Populate files_train with all training cases
+            files_train = [path for i, path in enumerate(fullpaths) if i not in self.eval_indices]
+        else:
+            files_train = fullpaths
         seed = None
 
         # Sanity check

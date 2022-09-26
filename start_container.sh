@@ -13,7 +13,8 @@ mkdir -p $OUTPUT_DIR
 num_gpus=${1:-8} 				
 container_name=${2:-train_dlio}
 
-# Remove existing container if a previous run was interrupted
+# Remove existing and inactive container from a previous run (docker won't let you use the same name otherwise).
+# This will fail if the container name is used by a running container so it won't kill someone's running container.
 if [ "$(docker ps -a | grep $container_name)" ]
 then
 	docker rm $container_name
