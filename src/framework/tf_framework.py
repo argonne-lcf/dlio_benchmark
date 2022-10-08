@@ -31,6 +31,7 @@ class TFFramework(Framework):
         if profiling:
             self.tensorboard = ProfilerFactory.get_profiler(Profiler.TENSORBOARD)
         self.reader_handler = None
+        self.arg_parser = ArgumentParser.get_instance()
 
     def init_reader(self, format_type):
         if format_type == FormatType.DATA_LOADER:

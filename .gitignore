@@ -143,3 +143,6 @@ dmypy.json
 /.idea/other.xml
 /data/
 /logdir/
+
+# Temporary files
+*~
