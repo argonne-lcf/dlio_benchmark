@@ -28,8 +28,9 @@ class TFReader(FormatReader):
         self.read_threads = self._arg_parser.args.read_threads
         self.computation_threads = self._arg_parser.args.computation_threads
 
-    # TODO: Extend this for the varying data files of the workloads
-    # Example, the BERT tfrecord structure has a lot more info and is not an image
+    # TODO: DLIO assumes the tfrecord files to contain image/label pairs.
+    # This is not always the case, e.g. in BERT, each record is more complex,
+    #  consisting of 6 lists and a label. Same for DLRM. 
     def _tf_parse_function(self, serialized):
         """
         performs deserialization of the tfrecord.
@@ -63,31 +64,55 @@ class TFReader(FormatReader):
         # superclass function initializes the file list
         super().read(epoch_number, do_eval)
 
-        if not do_eval:
-            dataset_train = tf.data.TFRecordDataset(filenames=self._local_train_file_list,
-                                            buffer_size=self.transfer_size,
-                                            num_parallel_reads=self.read_threads)
-            dataset_train = dataset_train.map(self._tf_parse_function, num_parallel_calls=self.computation_threads)
-
-            if self.memory_shuffle != Shuffle.OFF:
-                if self.memory_shuffle != Shuffle.SEED:
-                    dataset_train = dataset_train.shuffle(buffer_size=self.shuffle_size,
-                                            seed=self.seed)
-                else:
-                    dataset_train = dataset_train.shuffle(buffer_size=self.shuffle_size)
-            if self.prefetch:
-                dataset_train = dataset_train.prefetch(buffer_size=self.prefetch_size)
-            self._dataset_train = dataset_train.batch(self.batch_size, drop_remainder=True)
-        # We're evaluating, load the eval dataset
+        if do_eval:
+            dataset = tf.data.TFRecordDataset(filenames=self._local_eval_file_list,
+                                    buffer_size=self.transfer_size,
+                                    num_parallel_reads=self.read_threads)
         else:
-            dataset_eval = tf.data.TFRecordDataset(filenames=self._local_eval_file_list,
-                                            buffer_size=self.transfer_size,
-                                            num_parallel_reads=self.read_threads)
-            dataset_eval = dataset_eval.map(self._tf_parse_function, num_parallel_calls=self.computation_threads)
-            # No shuffling for eval set for now
-            if self.prefetch:
-                dataset_eval = dataset_eval.prefetch(buffer_size=self.prefetch_size)
-            self._dataset_eval = dataset_eval.batch(self.batch_size, drop_remainder=True)
+            dataset = tf.data.TFRecordDataset(filenames=self._local_train_file_list,
+                                    buffer_size=self.transfer_size,
+                                    num_parallel_reads=self.read_threads)
+
+        dataset = dataset.map(self._tf_parse_function, num_parallel_calls=self.computation_threads)
+
+        if self.memory_shuffle != Shuffle.OFF:
+            if self.memory_shuffle != Shuffle.SEED:
+                dataset = dataset.shuffle(buffer_size=self.shuffle_size,
+                                        seed=self.seed)
+            else:
+                dataset = dataset.shuffle(buffer_size=self.shuffle_size)
+        if self.prefetch:
+            dataset = dataset.prefetch(buffer_size=self.prefetch_size)
+
+        self._dataset = dataset.batch(self.batch_size, drop_remainder=True)
+
+        # # We're evaluating, load the eval dataset
+        # if do_eval:
+        #     dataset_eval = tf.data.TFRecordDataset(filenames=self._local_eval_file_list,
+        #                                     buffer_size=self.transfer_size,
+        #                                     num_parallel_reads=self.read_threads)
+        #     dataset_eval = dataset_eval.map(self._tf_parse_function, num_parallel_calls=self.computation_threads)
+        #     # No shuffling for eval set for now
+        #     if self.prefetch:
+        #         dataset_eval = dataset_eval.prefetch(buffer_size=self.prefetch_size)
+        #     self._dataset_eval = dataset_eval.batch(self.batch_size, drop_remainder=True)
+        # else:
+        #     dataset_train = tf.data.TFRecordDataset(filenames=self._local_train_file_list,
+        #                                     buffer_size=self.transfer_size,
+        #                                     num_parallel_reads=self.read_threads)
+        #     dataset_train = dataset_train.map(self._tf_parse_function, num_parallel_calls=self.computation_threads)
+
+        #     if self.memory_shuffle != Shuffle.OFF:
+        #         if self.memory_shuffle != Shuffle.SEED:
+        #             dataset_train = dataset_train.shuffle(buffer_size=self.shuffle_size,
+        #                                     seed=self.seed)
+        #         else:
+        #             dataset_train = dataset_train.shuffle(buffer_size=self.shuffle_size)
+        #     if self.prefetch:
+        #         dataset_train = dataset_train.prefetch(buffer_size=self.prefetch_size)
+        #     self._dataset_train = dataset_train.batch(self.batch_size, drop_remainder=True)
+
+
 
     def next(self, do_eval=False):
         """
@@ -96,30 +121,21 @@ class TFReader(FormatReader):
         """
         super().next()
 
-        if do_eval:
-            dataset = self._dataset_eval
-            total = math.ceil(self.num_samples*self._local_eval_file_list_size/self.batch_size)
-        else:
-            dataset = self._dataset_train 
-            total = math.ceil(self.num_samples*self._local_train_file_list_size/self.batch_size)
+        dataset = self._dataset
 
-        logging.debug("{} Rank {} should read {} batches".format(utcnow(), self.my_rank, total))
+        # In tf, we can't get the length of the dataset easily so we calculate it
+        if self._debug:
+            if do_eval:
+                total = math.ceil(self.num_samples*self._local_eval_file_list_size/self.batch_size)
+            else:
+                total = math.ceil(self.num_samples*self._local_train_file_list_size/self.batch_size)
 
-        # The previous verion (commented out below) crashed when all workers could not generate the same amount of batches
-        # Using the inbuilt tensorflow dataset functionality works fine
+            logging.debug(f"{utcnow()} Rank {self.my_rank} should read {total} batches")
+
+        # The previous version crashed when all workers could not generate the same amount of batches
+        # Using the inbuilt tensorflow dataset iteration seems to work fine, was there an advantage of doing it the old way?
         for batch in dataset:
             yield batch
-
-        # Was there an advantage of doing this?
-        # a = iter(dataset)
-        # count = 1
-        # for i in a:
-        #     progress(count, total, "Reading TFRecord Data")
-        #     count += 1
-        #     yield i
-        #     yield next(a)
-        #     if count > total:
-        #         break
 
     def finalize(self):
         pass

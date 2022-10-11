@@ -72,11 +72,8 @@ class Shuffle(Enum):
 class ReadType(Enum):
     """
     Type of read to be performed in the benchmark. 
-
-    Q: Need to discuss this; I think when the dataset fits in memory, we are loading it. If it does not fit, it is more similar to on_demand.
-    Huihuo: Yes, on_demand is loading data in a batch-by-batch fashion; where IN_MEMORY is loading data all at once in the beginning. 
-    In most of the cases, data loader is used, so it is ON_DEMAND even when the dataset fits in memory. 
-    → ON_DEMAND for most workloads; BERT might load everything; we need to have a way to scale the workloads up to obtain the dataset size:memory size ratio that we want.
+    - On Demand: loading data in a batch-by-batch fashion
+    - In Memory: loading data all at once in the beginning. 
     """
     IN_MEMORY = 'memory'
     ON_DEMAND = 'on_demand'
@@ -87,8 +84,7 @@ class ReadType(Enum):
 class FileAccess(Enum):
     """
     File access mode.
-    From Huihuo's comments:
-    - "Multi = save dataset into multiple files
+    - Multi = save dataset into multiple files
     - Shared = save everything in a single file
     - Collective = specific for the shared case, when we want to do collective I/O. 
     “Collective” is MPI specific; typically used for a huge file with small objects; 

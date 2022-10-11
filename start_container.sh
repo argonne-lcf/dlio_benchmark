@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SCRIPT_DIR=$( dirname -- "$( readlink -f -- "$0"; )" )
 
 DATA_DIR=${SCRIPT_DIR}/data
 OUTPUT_DIR=${SCRIPT_DIR}/output
@@ -22,4 +22,4 @@ fi
 
 # Must use ipc=host to launch the container else pytorch dataloader will crash
 # https://github.com/ultralytics/yolov3/issues/283#issuecomment-552776535
-docker run -it --rm --name=$container_name --ipc=host --gpus $num_gpus -v $DATA_DIR:/workspace/dlio/data -v $OUTPUT_DIR:/workspace/dlio/output dlio:latest /bin/bash
+docker run -it --rm --name=$container_name --ipc=host --gpus $num_gpus -v $DATA_DIR:/workspace/dlio/data -v $OUTPUT_DIR:/workspace/dlio/output dlio:test /bin/bash

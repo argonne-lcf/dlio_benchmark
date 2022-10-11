@@ -107,7 +107,7 @@ class ArgumentParser(object):
         self.parser.add_argument("-rp", "--prefetch", default=False, type=str2bool,
                                  help="Enable prefetch within benchmark.")
         self.parser.add_argument("-ps", "--prefetch-size", default=0, type=int,
-                                 help="Enable prefetch buffer within benchmark.")
+                                 help="Number of batches to prefetch.")
         self.parser.add_argument("-ec", "--enable-chunking", default=False, type=str2bool,
                                  help="Enable chunking for HDF5 files.")
         self.parser.add_argument("-cs", "--chunk-size", default=0, type=int,

@@ -1,7 +1,6 @@
-from src.common.enumerations import Profiler, FormatType
+from src.common.enumerations import FormatType
 from src.common.error_code import ErrorCodes
 from src.framework.framework import Framework, DummyTraceObject
-from src.profiler.profiler_factory import ProfilerFactory
 
 import torch
 import functools
@@ -12,11 +11,6 @@ import horovod.torch as hvd
 from src.reader.reader_factory import ReaderFactory
 
 hvd.init()
-
-# # Pin each GPU to a single process
-# # https://horovod.readthedocs.io/en/stable/pytorch.html
-# if torch.cuda.is_available():
-#     torch.cuda.set_device(hvd.local_rank())
 
 HANDLED_FUNCTIONS = {}
 

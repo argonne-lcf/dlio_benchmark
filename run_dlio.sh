@@ -1,8 +1,5 @@
 #!/bin/bash
 
-export PYTHONPATH=${PYTHONPATH}:$(pwd)
-echo $PYTHONPATH
-
 num_gpus=${1:-1}
 generate_data=${2:-n}
 

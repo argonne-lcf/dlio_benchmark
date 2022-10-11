@@ -40,18 +40,23 @@ class FormatReader(ABC):
         self._dimension = int(math.sqrt(self.record_size / 8))
         self._local_train_file_list = None
         self._local_eval_file_list = None
-        self._dataset_train = None
-        self._dataset_eval = None
+        self._dataset = None
+        self._debug = self._arg_parser.args.debug
+        # self._dataset_eval = None
         self.framework = FrameworkFactory().get_framework(self._arg_parser.args.framework,
                                                           self._arg_parser.args.profiling)
 
-        # We do this in the init method instead of read so we keep the same eval case indices for every epoch
+        # We do this here so we keep the same evaluation files every epoch
         if self.eval_enabled:
             # Pick randomly without replacement the indices of the held-out test set (evaluation set)
             self.eval_indices = random.choice(a=range(self.total_files), size=self.num_files_eval, replace=False)
 
     @abstractmethod
     def read(self, epoch_number, do_eval=False):
+        """
+            This method creates and stores the lists of files to read.
+            This is done by separating them between ranks and by training/evaluation phase.
+        """
         filenames = os.listdir(self.data_dir)
         fullpaths = [os.path.join(self.data_dir, entry) for entry in filenames]
         if self.eval_enabled:
@@ -65,33 +70,37 @@ class FormatReader(ABC):
         assert len(files_train) == self.num_files_train, f"Expecting to see {self.num_files_train} training files but {len(files_train)} found. Ensure data was generated correctly."
 
         # Hold out self.num_files_eval files of the dataset to be used for evaluation
-        # We only need to do this if we're actually going to read the eval set this epoch
+        # We only need to do this if we're actually going to read the evaluation set
         if self.eval_enabled and do_eval:
-            # Populate files_eval with the picked files
             files_eval = [path for i, path in enumerate(fullpaths) if i in self.eval_indices]
-            # Sanity check
             assert len(files_eval) == self.num_files_eval, f"Expecting to see {self.num_files_eval} eval files but {len(files_eval)} found. Ensure data was generated correctly."
 
-        # For PyTorch, we will split the data files in the data_loader subclass
+        # For PyTorch, we will split the data files in the data_loader subclass.
+        # Same thing if using FileAccess.SHARED e.g. for HDF5 reader
         if self.framework is TFFramework and FileAccess.MULTI == self.file_access:
 
+            read_shuffle = True
+            if self.read_shuffle == Shuffle.OFF:
+                read_shuffle = False
+            if read_shuffle:
+                seed = self.seed
+                if self.seed_change_epoch:
+                    seed = self.seed + epoch_number
+
             if self.eval_enabled and do_eval:
-                # Here, we calculate how many files each process should read
-                # and partition the files for each rank
+                # Partition the files among rank
                 partition_size = int(math.ceil(len(files_eval) / self.comm_size))
                 part_start, part_end = (partition_size * self.my_rank, partition_size * ( self.my_rank + 1))
                 self._local_eval_file_list = files_eval[part_start:part_end]
                 self._local_eval_file_list_size = len(self._local_eval_file_list)
 
-                logging.info("{} Rank {} will read {} files: {}".format(utcnow(), self.my_rank, self._local_eval_file_list_size, self._local_eval_file_list))
-            else:
-                read_shuffle = True
-                if self.read_shuffle == Shuffle.OFF:
-                    read_shuffle = False
+                if seed is not None:
+                    random.seed(seed)
                 if read_shuffle:
-                    seed = self.seed
-                    if self.seed_change_epoch:
-                        seed = self.seed + epoch_number
+                    random.shuffle(self._local_train_file_list)
+
+                logging.info(f"{utcnow()} Rank {self.my_rank} will read {self._local_eval_file_list_size} files: {self._local_eval_file_list}")
+            else:
                 # Here, we calculate how many files each process should read
                 # and partition the files for each rank
                 partition_size = int(math.ceil(len(files_train) / self.comm_size))
@@ -104,9 +113,7 @@ class FormatReader(ABC):
                 if read_shuffle:
                     random.shuffle(self._local_train_file_list)
 
-                logging.info("{} Rank {} will read {} files: {}".format(utcnow(), self.my_rank, self._local_train_file_list_size, self._local_train_file_list))
-        # Else either the framework is Pytorch and we will do the case file separation in the data_loader_reader class
-        # Or we are in FileAccess different than Multi and we also want to do the below
+                logging.info(f"{utcnow()} Rank {self.my_rank} will read {self._local_train_file_list_size} files: {self._local_train_file_list}")
         else:
             if self.eval_enabled and do_eval:
                 self._local_eval_file_list = files_eval
