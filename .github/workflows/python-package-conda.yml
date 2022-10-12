@@ -1,0 +1,32 @@
+name: Python Package using Conda
+
+on: [push]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 5
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: 3.10.5
+    - name: Install DLIO
+      run: |
+        sudo apt-get install mpich
+        python -m pip install --upgrade pip
+        pip install tensorflow h5py mpi4py pandas
+        HOROVOD_WITH_TENSORFLOW=1 pip install horovod 
+        python setup.py build
+        python setup.py install
+    - name: test
+      run: |
+        mkdir -p ResNet50
+        export APP_DATA_DIR=ResNet50
+        touch __init__.py
+        export PYTHONPATH=./:$PYTHONPATH
+        mpirun -n 2 python ./src/dlio_benchmark.py -f tfrecord -fa multi -nf 1024 -sf 1024 -rl 262144 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR} -gd 1 -go 1 -k 1
+        mpirun -n 2 python ./src/dlio_benchmark.py -f tfrecord -fa multi -nf 1024 -sf 1024 -rl 262144 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR} -gd 0 -k 1
