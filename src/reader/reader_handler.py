@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from framework.tf_framework import TFFramework
 
-from src.common.enumerations import Shuffle, FileAccess
+from src.common.enumerations import FrameworkType, Shuffle, FileAccess, Framework
 from src.utils.argument_parser import ArgumentParser
 from src.framework.framework_factory import FrameworkFactory
 from src.utils.utility import utcnow
@@ -42,7 +42,6 @@ class FormatReader(ABC):
         self._local_eval_file_list = None
         self._dataset = None
         self._debug = self._arg_parser.args.debug
-        # self._dataset_eval = None
         self.framework = FrameworkFactory().get_framework(self._arg_parser.args.framework,
                                                           self._arg_parser.args.profiling)
 
@@ -67,17 +66,18 @@ class FormatReader(ABC):
         seed = None
 
         # Sanity check
-        assert len(files_train) == self.num_files_train, f"Expecting to see {self.num_files_train} training files but {len(files_train)} found. Ensure data was generated correctly."
+        assert len(files_train) == self.num_files_train, f"Expected {self.num_files_train} training files but {len(files_train)} found. Ensure data was generated correctly."
 
         # Hold out self.num_files_eval files of the dataset to be used for evaluation
         # We only need to do this if we're actually going to read the evaluation set
         if self.eval_enabled and do_eval:
             files_eval = [path for i, path in enumerate(fullpaths) if i in self.eval_indices]
-            assert len(files_eval) == self.num_files_eval, f"Expecting to see {self.num_files_eval} eval files but {len(files_eval)} found. Ensure data was generated correctly."
+            assert len(files_eval) == self.num_files_eval, f"Expected {self.num_files_eval} eval files but {len(files_eval)} found. Ensure data was generated correctly."
 
         # For PyTorch, we will split the data files in the data_loader subclass.
         # Same thing if using FileAccess.SHARED e.g. for HDF5 reader
-        if self.framework is TFFramework and FileAccess.MULTI == self.file_access:
+        # Added the get_type() method because isinstance(self.framework, TFFramework) did not return true
+        if self.framework.get_type() == FrameworkType.TENSORFLOW and FileAccess.MULTI == self.file_access:
 
             read_shuffle = True
             if self.read_shuffle == Shuffle.OFF:
@@ -99,7 +99,7 @@ class FormatReader(ABC):
                 if read_shuffle:
                     random.shuffle(self._local_train_file_list)
 
-                logging.info(f"{utcnow()} Rank {self.my_rank} will read {self._local_eval_file_list_size} files: {self._local_eval_file_list}")
+                logging.debug(f"{utcnow()} Rank {self.my_rank} will read {self._local_eval_file_list_size} files: {self._local_eval_file_list}")
             else:
                 # Here, we calculate how many files each process should read
                 # and partition the files for each rank
@@ -113,7 +113,7 @@ class FormatReader(ABC):
                 if read_shuffle:
                     random.shuffle(self._local_train_file_list)
 
-                logging.info(f"{utcnow()} Rank {self.my_rank} will read {self._local_train_file_list_size} files: {self._local_train_file_list}")
+                logging.debug(f"{utcnow()} Rank {self.my_rank} will read {self._local_train_file_list_size} files: {self._local_train_file_list}")
         else:
             if self.eval_enabled and do_eval:
                 self._local_eval_file_list = files_eval

@@ -48,7 +48,7 @@ class DLIOBenchmark(object):
         logging.basicConfig(
             level=log_level,
             handlers=[
-                logging.FileHandler(os.path.join(self.output_folder, self.arg_parser.args.log_file), mode = "w", encoding='utf-8'),
+                logging.FileHandler(os.path.join(self.output_folder, self.arg_parser.args.log_file), mode = "a", encoding='utf-8'),
                 logging.StreamHandler()
             ],
             format='%(message)s [%(pathname)s:%(lineno)d]'  # logging's max timestamp resolution is msecs, we will pass in usecs in the message

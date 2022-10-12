@@ -1,7 +1,7 @@
-from src.common.enumerations import Profiler, FormatType
 from src.common.error_code import ErrorCodes
 from src.framework.framework import Framework
 from src.profiler.profiler_factory import ProfilerFactory
+from src.common.enumerations import FrameworkType, Profiler, FormatType
 
 import tensorflow as tf
 
@@ -29,6 +29,9 @@ class TFFramework(Framework):
         if format_type == FormatType.DATA_LOADER:
             raise Exception(str(ErrorCodes.EC1001))
         self.reader_handler = ReaderFactory.get_format(format_type)
+
+    def get_type(self):
+        return FrameworkType.TENSORFLOW
 
     @staticmethod
     def get_instance(profiling):

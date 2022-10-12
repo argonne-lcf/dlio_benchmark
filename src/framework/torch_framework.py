@@ -1,5 +1,5 @@
-from src.common.enumerations import FormatType
 from src.common.error_code import ErrorCodes
+from src.common.enumerations import FormatType, FrameworkType
 from src.framework.framework import Framework, DummyTraceObject
 
 import torch
@@ -40,6 +40,9 @@ class TorchFramework(Framework):
         if format_type == FormatType.TFRECORD:
             raise Exception(str(ErrorCodes.EC1001))
         self.reader_handler = ReaderFactory.get_format(format_type)
+
+    def get_type(self):
+        return FrameworkType.PYTORCH
 
     @staticmethod
     def get_instance(profiling):

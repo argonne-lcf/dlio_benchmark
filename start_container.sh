@@ -10,8 +10,17 @@ OUTPUT_DIR=${SCRIPT_DIR}/output
 mkdir -p $DATA_DIR
 mkdir -p $OUTPUT_DIR
 
+# # Check if GPUs are available on the system
+# # DLIO does not need them to work but it will save some TF error output
+# if [[ $(lshw -C display | grep vendor) =~ Nvidia ]]; then
+# 	gpu_arg="--gpus $num_gpus"
+# else
+# 	gpu_arg=""
+# fi
+
 num_gpus=${1:-8} 				
 container_name=${2:-train_dlio}
+image_name=${3:-"dlio:latest"}
 
 # Remove existing and inactive container from a previous run (docker won't let you use the same name otherwise).
 # This will fail if the container name is used by a running container so it won't kill someone's running container.
@@ -22,4 +31,5 @@ fi
 
 # Must use ipc=host to launch the container else pytorch dataloader will crash
 # https://github.com/ultralytics/yolov3/issues/283#issuecomment-552776535
-docker run -it --rm --name=$container_name --ipc=host --gpus $num_gpus -v $DATA_DIR:/workspace/dlio/data -v $OUTPUT_DIR:/workspace/dlio/output dlio:test /bin/bash
+# docker run -it --rm --name=$container_name --ipc=host $gpu_arg -v $DATA_DIR:/workspace/dlio/data -v $OUTPUT_DIR:/workspace/dlio/output $image_name /bin/bash
+docker run -it --rm --name=$container_name --ipc=host -v $DATA_DIR:/workspace/dlio/data -v $OUTPUT_DIR:/workspace/dlio/output $image_name /bin/bash

@@ -22,6 +22,10 @@ class Framework(ABC):
     def init_reader(self, format_type):
         pass
 
+    @abstractmethod 
+    def get_type(self):
+        pass
+    
     @abstractmethod
     def barrier(self):
         pass

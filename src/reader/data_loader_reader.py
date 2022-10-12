@@ -40,6 +40,7 @@ class DataLoaderReader(FormatReader):
             return len(self.samples)
 
         def __getitem__(self, idx):
+            logging.debug(f"{utcnow()} Reading {self.samples[idx]}")
             return np.load(self.samples[idx])
 
 
@@ -61,15 +62,11 @@ class DataLoaderReader(FormatReader):
             dataset = self.NpzDataset(self._local_train_file_list)
             batch_size = self.batch_size
 
-        logging.debug(f"{utcnow()} Rank {self.my_rank} dataset length is {len(dataset)}")
-
         sampler = DistributedSampler(dataset, 
                                 num_replicas=self.comm_size, 
                                 rank=self.my_rank,
                                 shuffle=do_shuffle, 
                                 seed=self.seed)
-
-        logging.debug(f"{utcnow()} Rank {self.my_rank} sampler length is {len(sampler)}")
 
         self._dataset = DataLoader(dataset,
                                     batch_size=batch_size,
@@ -81,7 +78,9 @@ class DataLoaderReader(FormatReader):
 
         # Must set the epoch in DistributedSampler to ensure proper shuffling
         # https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler
-        self._dataset.sampler.set_epoch(epoch_number)  
+        self._dataset.sampler.set_epoch(epoch_number)
+
+        logging.debug(f"{utcnow()} Rank {self.my_rank} will read {len(self._dataset) * batch_size} files")
 
         # if not do_eval:
         #     # Creates dataset objects using the file list

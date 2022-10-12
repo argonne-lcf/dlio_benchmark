@@ -30,7 +30,7 @@ class TFReader(FormatReader):
 
     # TODO: DLIO assumes the tfrecord files to contain image/label pairs.
     # This is not always the case, e.g. in BERT, each record is more complex,
-    #  consisting of 6 lists and a label. Same for DLRM. 
+    # consisting of 6 lists and a label. Same for DLRM. 
     def _tf_parse_function(self, serialized):
         """
         performs deserialization of the tfrecord.
@@ -68,10 +68,12 @@ class TFReader(FormatReader):
             dataset = tf.data.TFRecordDataset(filenames=self._local_eval_file_list,
                                     buffer_size=self.transfer_size,
                                     num_parallel_reads=self.read_threads)
+            batch_size = self.batch_size_eval
         else:
             dataset = tf.data.TFRecordDataset(filenames=self._local_train_file_list,
                                     buffer_size=self.transfer_size,
                                     num_parallel_reads=self.read_threads)
+            batch_size = self.batch_size
 
         dataset = dataset.map(self._tf_parse_function, num_parallel_calls=self.computation_threads)
 
@@ -84,7 +86,7 @@ class TFReader(FormatReader):
         if self.prefetch:
             dataset = dataset.prefetch(buffer_size=self.prefetch_size)
 
-        self._dataset = dataset.batch(self.batch_size, drop_remainder=True)
+        self._dataset = dataset.batch(batch_size, drop_remainder=True)
 
         # # We're evaluating, load the eval dataset
         # if do_eval:
@@ -126,9 +128,9 @@ class TFReader(FormatReader):
         # In tf, we can't get the length of the dataset easily so we calculate it
         if self._debug:
             if do_eval:
-                total = math.ceil(self.num_samples*self._local_eval_file_list_size/self.batch_size)
+                total = math.ceil(self.num_samples*self._local_eval_file_list_size/self.batch_size_eval/self.comm_size)
             else:
-                total = math.ceil(self.num_samples*self._local_train_file_list_size/self.batch_size)
+                total = math.ceil(self.num_samples*self._local_train_file_list_size/self.batch_size/self.comm_size)
 
             logging.debug(f"{utcnow()} Rank {self.my_rank} should read {total} batches")
 
