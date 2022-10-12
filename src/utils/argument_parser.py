@@ -51,11 +51,11 @@ class ArgumentParser(object):
         self.parser.add_argument("-f", "--format", default=FormatType.TFRECORD, type=FormatType, choices=list(FormatType),
                                  help="data reader to use.")
         self.parser.add_argument("-r", "--read-shuffle", default=Shuffle.OFF, type=Shuffle, choices=list(Shuffle),
-                                 help="Enable shuffle during read.")
+                                 help="Shuffle the list of files to be read.")
         self.parser.add_argument("-ms", "--shuffle-size", default=1024 * 1024, type=int,
-                                 help="Size of a shuffle in bytes.")
+                                 help="(TF only) Size of the shuffle buffer in bytes.")
         self.parser.add_argument("-m", "--memory-shuffle", default=Shuffle.OFF, type=Shuffle, choices=list(Shuffle),
-                                 help="Enable memory during pre-processing.")
+                                 help="Shuffle the records returned by the data loader.")
         self.parser.add_argument("-rt", "--read-type", default=ReadType.ON_DEMAND, type=ReadType, choices=list(ReadType),
                                  help="The read behavior for the benchmark.")
         self.parser.add_argument("-fa", "--file-access", default=FileAccess.MULTI, type=FileAccess, choices=list(FileAccess),

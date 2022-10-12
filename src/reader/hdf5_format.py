@@ -36,8 +36,8 @@ class HDF5Reader(FormatReader):
         super().read(epoch_number)
         packed_array = []
         count = 1
-        for file in self._local_train_file_list:
-            progress(count, len(self._local_train_file_list), "Opening HDF5 Data")
+        for file in self._local_file_list:
+            progress(count, len(self._local_file_list), "Opening HDF5 Data")
             count += 1
             file_h5 = h5py.File(file, 'r')
             dimention = int(math.sqrt(self.record_size))
@@ -86,9 +86,10 @@ class HDF5Reader(FormatReader):
                 resized_images = []
                 with self.framework.trace_object('Resize', num_set / self.batch_size, 1):
                     for image in images:
-                        resized_images.append(np.resize(image,(self._dimension,self._dimension)))
+                        resized_images.append(np.resize(image,(self._dimension, self._dimension)))
                     sleep(.001)
                 yield resized_images
             file_h5.close()
+            
     def finalize(self):
         pass

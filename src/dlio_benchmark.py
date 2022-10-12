@@ -19,13 +19,16 @@ from src.profiler.profiler_factory import ProfilerFactory
 from src.utils.argument_parser import ArgumentParser
 from src.utils.utility import utcnow
 
-import tensorflow as tf
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import math
 import shutil
 import os
 import logging
 
+# Remove (some) TF and CUDA logging
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['AUTOGRAPH_VERBOSITY'] = '0'
+import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 class DLIOBenchmark(object):
     """
@@ -107,7 +110,7 @@ class DLIOBenchmark(object):
         """
         step = 1
         total = math.ceil(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
-        for batch in self.framework.get_reader().next(do_eval=True):
+        for batch in self.framework.get_reader().next():
             if self.eval_time > 0:
                 self.framework.compute(epoch_number, step, self.eval_time)
             step += 1

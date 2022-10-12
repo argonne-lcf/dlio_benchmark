@@ -1,3 +1,5 @@
+# We may be able to further simplify this Dockerfile, but this works
+
 # Has tensorflow >= 2.2.0
 FROM nvcr.io/nvidia/tensorflow:20.12-tf2-py3
 
@@ -5,7 +7,6 @@ FROM nvcr.io/nvidia/tensorflow:20.12-tf2-py3
 ADD . /workspace/dlio
 
 # Remove scripts that are used to launch the container
-RUN rm /workspace/dlio/start_container.sh
 RUN rm /workspace/dlio/start_dlio.sh
 
 WORKDIR /workspace/dlio

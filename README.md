@@ -1,12 +1,64 @@
-# Tutorial 
+# Overview
 
 Find below the original documentation for DLIO.
 
-You can find the list of command line parameters in `src/utils/argument_parser.py` along with a short description. Ask Oana and Loic for more info on these, we may ourselves have to ask the developers. The goal will be, once you have recorded your workload, to tweak values to parameters of dlio to try to reproduce the real behaviour. 
+This fork of DLIO was extended/modified with the objective of simulating as closely as possible the MLCommons Image Segmentation (UNET3D), BERT and DLRM workloads, and plug into our plotting software. This is still a work in progress.
 
-See the `run_benchmark.sh` example script for how to use DLIO. The script will generate test data then run DLIO on it to simulate a DL workload.
+For this, we have added the following features:
+- Dockerfile with dependencies
+- support for evaluation phases on a held-out dataset
+- support for PyTorch DataLoader reading NPZ files
+- microsecond precision logging
 
-Note: You will have to be added to the `dlio` group on `discslab-server2` for it to work there.
+These additions have only been tested for TFRecord files, and PyTorch Dataloader with NPZ files as this is what our workload use. Because of this, other functionality is probably broken. More specifically, we're not trying to support the HDF5, CSV and NPZ readers, and we don't use Darshan or Tensorboard profiling.
+
+# Current Limitations
+
+There is an abtraction problem where DLIO considers PyTorch's data loader as a data type when it really is data type agnostic.
+Any of the existing data formats could be supported by extending the Dataset class and implementing the __len__ and __getitem__ methods. https://pytorch.org/docs/stable/data.html
+
+Since UNET3D reads in NPZ data, we currently only support this format for PyTorch. We will have to modify this for DLRM which reads in a custom binary format.
+
+Considering our objectives and the already significant changes made, I believe it might make more sense to change the abstraction to be workload based, instead of framework/datareader based.
+Under a `workload/` folder, we would add BERT, DLRM, UNET3D and could implement their simulations more precisely than by trying to bend DLIO into reproducing them when it was not built for this purpose.
+
+Another conflict is that DLIO currently assumes the samples to be images and hardcodes the TFRecord format to be image/label pairs in the generator and reader. The records for BERT do not follow this format however, being composed of 6 lists. 
+To precisely simulate BERT, we would have to modify this by parametrizing the TFRecord format, or hardcoding a version specifically for it.
+
+
+
+# Instructions
+
+The Dockerfile defines a Docker image containing all the dependencies. We will build this image, then run a container based on the image and run the benchmark within it.
+
+The `run_dlio_tf.sh` and `run_dlio_pt.sh` scripts, show examples of generating data and running the benchmark using both supported frameworks. These scripts must be run within the Docker container. You can modify them or include new scripts for other configurations.
+
+You can find the list of command line parameters in `src/utils/argument_parser.py` along with a short description.
+
+Once you've looked at/modified the run scripts, build the docker image. The `<tag>` field can be anything and serves to differentiate versions of an image.
+```bash
+sudo docker build -t dlio:<tag> .
+```
+The `start_dlio.sh` script can then be used to launch DLIO within the container or launch an interactive session to the container.
+
+```bash
+sudo ./start_dlio.sh --help
+```
+
+You can use debug mode in the DLIO scripts to print out the files reads by each rank and other information. The horovod output is nice as it contains the rank information, but teeing it to a file in debug mode does not work.
+
+
+# Workload characteristics
+
+Here are some of the workload characteristics:
+- UNET3D and DLRM are implemented in PyTorch while BERT is in Tensorflow. Though we are looking to eventually support each workload in both frameworks.
+- UNET3D trains over multiple epochs while BERT and DLRM train in a single epoch
+- UNET3D and DLRM perform periodic evaluations, while BERT does not.
+- UNET3D reads in image/label pairs in NPZ format
+- BERT reads in TFRecords from multiple files (in a format of 6 arrays of varying sizes + a label)
+- DLRM reads in records from a single binary file.
+
+<br>
 
 # DLIO Benchmark
 This is repository for a I/O benchmark which represents Scientific Deep Learning Workloads. DLIO benchmark is aimed at emulating the behavior of scientific deep learning applications, as described in the previous section. The benchmark is delivered as an executable that can be configured for various I/O patterns. It uses a modular design to incorporate more data formats, datasets, and configuration parameters. It emulates modern scientific deep learning applications using Benchmark Runner, Data Generator, Format Handler, and I/O Profiler modules. These modules utilize state-of-the-art design patterns to build a transparent and extensible framework. The DLIO benchmark has been designed with the following goals in mind.
