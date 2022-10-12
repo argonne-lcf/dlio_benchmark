@@ -1,7 +1,7 @@
-from src.common.enumerations import Profiler, FormatType
 from src.common.error_code import ErrorCodes
 from src.framework.framework import Framework
 from src.profiler.profiler_factory import ProfilerFactory
+from src.common.enumerations import FrameworkType, Profiler, FormatType
 
 import tensorflow as tf
 
@@ -15,13 +15,6 @@ from src.reader.reader_factory import ReaderFactory
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 hvd.init()
-
-# Horovod: pin GPU to be used to process local rank (one GPU per process)
-gpus = tf.config.experimental.list_physical_devices('GPU')
-for gpu in gpus:
-    tf.config.experimental.set_memory_growth(gpu, True)
-if gpus:
-    tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
 
 class TFFramework(Framework):
     __instance = None
@@ -37,6 +30,9 @@ class TFFramework(Framework):
         if format_type == FormatType.DATA_LOADER:
             raise Exception(str(ErrorCodes.EC1001))
         self.reader_handler = ReaderFactory.get_format(format_type)
+
+    def get_type(self):
+        return FrameworkType.TENSORFLOW
 
     @staticmethod
     def get_instance(profiling):

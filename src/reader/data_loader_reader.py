@@ -32,6 +32,7 @@ class DataLoaderReader(FormatReader):
         """
         Only support a single list of files for now 
         Could be extended to support different X and Y files, like in imseg
+        TODO: Move the Dataset somewhere else and support other file formats.
         """
         def __init__(self, samples):
             self.samples = samples
@@ -40,6 +41,7 @@ class DataLoaderReader(FormatReader):
             return len(self.samples)
 
         def __getitem__(self, idx):
+            logging.debug(f"{utcnow()} Reading {self.samples[idx]}")
             return np.load(self.samples[idx])
 
 
@@ -53,67 +55,36 @@ class DataLoaderReader(FormatReader):
         super().read(epoch_number, do_eval)
 
         do_shuffle = True if self.memory_shuffle != Shuffle.OFF else False
-        
-        if not do_eval:
-            # Creates dataset objects using the file list
-            train_dataset = self.NpzDataset(self._local_train_file_list)
-            logging.debug("{} Rank {} train_dataset length is {}".format(utcnow(), self.my_rank, len(train_dataset)))
 
-            # We can use DistributedSampler or perform the data split between different ranks in the superclass method!
-            train_sampler = DistributedSampler(train_dataset, 
-                                                num_replicas=self.comm_size, 
-                                                rank=self.my_rank,
-                                                shuffle=do_shuffle, 
-                                                seed=self.seed)
-            logging.debug("{} Rank {} train_sampler length is {}".format(utcnow(), self.my_rank, len(train_sampler)))
-            
-            self._dataset_train = DataLoader(train_dataset,
-                                        batch_size=self.batch_size,
-                                        sampler=train_sampler,
-                                        num_workers=self.read_threads,
-                                        # Recommended to pin memory when using num_workers > 1 and GPUs 
-                                        # See second warning https://pytorch.org/docs/stable/data.html#multi-process-data-loading
-                                        pin_memory=True,
-                                        drop_last=True)
+        dataset = self.NpzDataset(self._local_file_list)
 
-            # https://discuss.pytorch.org/t/why-is-sampler-set-epoch-epoch-needed-for-distributedsampler/149672
-            self._dataset_train.sampler.set_epoch(epoch_number)                    
+        # TODO: In image segmentation, the distributed sampler is not used during eval, we could parametrize this away if needed
+        # This handles the partitioning between ranks
+        sampler = DistributedSampler(dataset, 
+                                num_replicas=self.comm_size, 
+                                rank=self.my_rank,
+                                shuffle=do_shuffle, 
+                                seed=self.seed)
 
-            # TODO: If this becomes important, pytorch has a dif way of doing it.
-            # We give it the number of batches to prefetch instead of a buffer size
-            # See https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
-            # if self.prefetch:
-            #     dataset_train = dataset_train.prefetch(buffer_size=self.prefetch_size)
+        self._dataset = DataLoader(dataset,
+                                    batch_size=self.batch_size,
+                                    sampler=sampler,
+                                    num_workers=self.read_threads,
+                                    pin_memory=True,
+                                    drop_last=True,
+                                    prefetch_factor=self.prefetch_size if self.prefetch_size > 0 else 2) # 2 is the default value
 
-        # We're evaluating, load the eval dataset
-        else:
-            val_dataset = self.NpzDataset(self._local_eval_file_list)
+        # Must set the epoch in DistributedSampler to ensure proper shuffling
+        # https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler
+        self._dataset.sampler.set_epoch(epoch_number)
 
-            # TODO: For image segmentation eval, they don't use a distributed sampler so we could parametrize this away if needed
-            val_sampler = DistributedSampler(val_dataset, 
-                                                num_replicas=self.comm_size, 
-                                                rank=self.my_rank,
-                                                shuffle=do_shuffle, 
-                                                seed=self.seed)
+        logging.debug(f"{utcnow()} Rank {self.my_rank} will read {len(self._dataset) * self.batch_size} files")
 
-            self._dataset_eval = DataLoader(val_dataset,
-                                        batch_size=self.batch_size_eval,
-                                        sampler=val_sampler,
-                                        num_workers=self.read_threads,
-                                        pin_memory=True,
-                                        drop_last=False)
-
-            self._dataset_eval.sampler.set_epoch(epoch_number)                    
-        
-
-    def next(self, do_eval=False):
+    def next(self):
         super().next()
-        if do_eval:
-            dataset = self._dataset_eval
-        else:
-            dataset = self._dataset_train 
 
-        logging.debug("{} Rank {} should read {} batches".format(utcnow(), self.my_rank, len(dataset)))
+        dataset = self._dataset
+        logging.debug(f"{utcnow()} Rank {self.my_rank} should read {len(dataset)} batches")
 
         for batch in dataset:
             yield batch

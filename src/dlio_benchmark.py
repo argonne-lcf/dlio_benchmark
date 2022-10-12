@@ -19,13 +19,16 @@ from src.profiler.profiler_factory import ProfilerFactory
 from src.utils.argument_parser import ArgumentParser
 from src.utils.utility import utcnow
 
-import tensorflow as tf
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import math
 import shutil
 import os
 import logging
 
+# Remove (some) TF and CUDA logging
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['AUTOGRAPH_VERBOSITY'] = '0'
+import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 class DLIOBenchmark(object):
     """
@@ -51,18 +54,16 @@ class DLIOBenchmark(object):
                 logging.FileHandler(os.path.join(self.output_folder, self.arg_parser.args.log_file), mode = "a", encoding='utf-8'),
                 logging.StreamHandler()
             ],
-            format='%(message)s [%(pathname)s:%(lineno)d]'    # logging's max timestamp resolution is msecs, we will pass in microseconds in the message
+            format='%(message)s [%(pathname)s:%(lineno)d]'  # logging's max timestamp resolution is msecs, we will pass in usecs in the message
         )
 
         self.framework = FrameworkFactory().get_framework(self.arg_parser.args.framework,
                                                           self.arg_parser.args.profiling)
-        self.arg_parser.args.my_rank = self.framework.rank()
-        self.arg_parser.args.comm_size = self.framework.size()
+        self.my_rank = self.arg_parser.args.my_rank = self.framework.rank()
+        self.comm_size = self.arg_parser.args.comm_size = self.framework.size()
         self.framework.init_reader(self.arg_parser.args.format)
         self.darshan = None
         self.data_generator = None
-        self.my_rank = self.arg_parser.args.my_rank
-        self.comm_size = self.arg_parser.args.comm_size
         self.num_files_train = self.arg_parser.args.num_files_train
         self.num_samples = self.arg_parser.args.num_samples
         self.batch_size = self.arg_parser.args.batch_size
@@ -91,15 +92,15 @@ class DLIOBenchmark(object):
             input("Press enter to start\n")
         self.framework.barrier()
         if self.arg_parser.args.generate_data:
-            logging.info("{} Starting data generation".format(utcnow()))
+            logging.info(f"{utcnow()} Starting data generation")
             self.data_generator.generate()
-            logging.info("{} Generation done".format(utcnow()))
+            logging.info(f"{utcnow()} Generation done")
         if self.arg_parser.args.profiling:
             self.darshan.start()
             self.framework.start_framework_profiler()
             self.framework.barrier()
             if self.arg_parser.args.my_rank == 0:
-                print("profiling started")
+                logging.info(f"{utcnow()} Profiling Started")
         self.framework.barrier()
 
     def _eval(self, epoch_number):
@@ -109,7 +110,7 @@ class DLIOBenchmark(object):
         """
         step = 1
         total = math.ceil(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
-        for batch in self.framework.get_reader().next(do_eval=True):
+        for batch in self.framework.get_reader().next():
             if self.eval_time > 0:
                 self.framework.compute(epoch_number, step, self.eval_time)
             step += 1
@@ -136,58 +137,65 @@ class DLIOBenchmark(object):
 
     def run(self):
         """
-        Run the total epochs for training. On each epoch, it prepares dataset for reading, it trains, and finalizes the
-        dataset.
+        Run the total epochs for training. 
+        On each epoch, it prepares dataset for reading, it trains, and finalizes the dataset.
+        If evaluation is enabled, it reads the eval dataset, performs evaluation and finalizes.
         """
         if not self.arg_parser.args.generate_only:
             # Print out the expected number of steps for each epoch and evaluation
-            if self.arg_parser.args.my_rank == 0:
+            if self.my_rank == 0:
                 total = math.ceil(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
-                logging.info("{} Steps per epoch: {} = {} * {} / {} / {} (samples per file * num files / batch size / comm size)".format(utcnow(), total, self.num_samples, self.num_files_train, self.batch_size, self.comm_size))
+                logging.info(f"{utcnow()} Steps per epoch: {total} = {self.num_samples} * {self.num_files_train} / {self.batch_size} / {self.comm_size} (samples per file * num files / batch size / comm size)")
                 if self.do_eval:
                     total = math.ceil(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
-                    logging.info("{} Steps per eval: {} = {} * {} / {} / {} (samples per file * num files / batch size eval / comm size)".format(utcnow(), total, self.num_samples, self.num_files_eval, self.batch_size_eval, self.comm_size))
+                    logging.info(f"{utcnow()} Steps per eval: {total} = {self.num_samples} * {self.num_files_eval} / {self.batch_size_eval} / {self.comm_size} (samples per file * num files / batch size eval / comm size)")
             
+            # Keep track of the next epoch at which we will evaluate
             next_eval_at = self.eval_after_epoch
             for epoch_number in range(1, self.arg_parser.args.epochs + 1):
                 
-                if self.arg_parser.args.my_rank == 0:
-                    logging.info("{} Starting epoch {}".format(utcnow(), epoch_number))
+                if self.my_rank == 0:
+                    logging.info(f"{utcnow()} Starting epoch {epoch_number}")
 
                 start_time = time()
                 # Initialize the dataset
                 self.framework.get_reader().read(epoch_number, do_eval=False)
                 self.framework.barrier()
-                if self.arg_parser.args.my_rank == 0:
-                    logging.info("{} Training dataset loaded for all ranks in {} seconds".format(utcnow(), (time() - start_time)))
+
+                if self.my_rank == 0:
+                    logging.info(f"{utcnow()} Training dataset loaded for all ranks in {time() - start_time} seconds")
                 
                 start_time = time()
                 steps = self._train(epoch_number)
-
                 self.framework.barrier()
-                if self.arg_parser.args.my_rank == 0:
-                    logging.info("{} Ending epoch {} - {} steps completed in {} seconds".format(utcnow(), epoch_number, steps, time() - start_time))
+
+                if self.my_rank == 0:
+                    logging.info(f"{utcnow()} Ending epoch {epoch_number} - {steps} steps completed in {time() - start_time} seconds")
+
                 self.framework.get_reader().finalize()
 
                 # Perform evaluation if enabled
                 if self.do_eval and epoch_number == next_eval_at:
                     next_eval_at += self.eval_every_epoch
                 
-                    if self.arg_parser.args.my_rank == 0:
-                        logging.info("{} Starting eval".format(utcnow()))
+                    if self.my_rank == 0:
+                        logging.info(f"{utcnow()} Starting eval")
 
                     start_time = time()
                     # Initialize the eval dataset
                     self.framework.get_reader().read(epoch_number, do_eval=True)
                     self.framework.barrier()
-                    if self.arg_parser.args.my_rank == 0:
-                        logging.info("{} Eval dataset loaded for all ranks in {} seconds".format(utcnow(), (time() - start_time)))
+
+                    if self.my_rank == 0:
+                        logging.info(f"{utcnow()} Eval dataset loaded for all ranks in {time() - start_time} seconds")
                     
                     start_time = time()
                     steps = self._eval(epoch_number)
                     self.framework.barrier()
-                    if self.arg_parser.args.my_rank == 0:
-                        logging.info("{} Ending eval - {} steps completed in {} seconds".format(utcnow(), steps, time() - start_time))
+
+                    if self.my_rank == 0:
+                        logging.info(f"{utcnow()} Ending eval - {steps} steps completed in {time() - start_time} seconds")
+
                     self.framework.get_reader().finalize()
 
     def finalize(self):
@@ -200,18 +208,18 @@ class DLIOBenchmark(object):
                 self.darshan.stop()
                 self.framework.stop_framework_profiler.stop()
                 self.framework.barrier()
-                if self.arg_parser.args.my_rank == 0:
-                    logging.info("{} profiling stopped".format(utcnow()))
+                if self.my_rank == 0:
+                    logging.info(f"{utcnow()} profiling stopped")
             if not self.arg_parser.args.keep_files:
-                logging.info("{} Keep files set to False. Deleting dataset", utcnow())
+                logging.info(f"{utcnow()} Keep files set to False. Deleting dataset")
                 self.framework.barrier()
-                if self.arg_parser.args.my_rank == 0:
+                if self.my_rank == 0:
                     if os.path.exists(self.arg_parser.args.data_folder):
                         shutil.rmtree(self.arg_parser.args.data_folder)
-                        logging.info("{} Deleted data files".format(utcnow()))
+                        logging.info(f"{utcnow()} Deleted data files")
         self.framework.barrier()
-        if self.arg_parser.args.my_rank == 0:
-            logging.info("{} Finalized for all ranks".format(utcnow()))
+        if self.my_rank == 0:
+            logging.info(f"{utcnow()} Finalized for all ranks")
 
 
 if __name__ == '__main__':

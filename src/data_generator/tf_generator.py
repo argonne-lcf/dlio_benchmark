@@ -30,6 +30,7 @@ class TFRecordGenerator(DataGenerator):
         import tensorflow as tf
         """
         Generator for creating data in TFRecord format of 3d dataset.
+        TODO: Extend this to create accurate records for BERT, which does not use image/label pairs.
         """
         super().generate()
         # This create a 2d image representing a single record
@@ -41,16 +42,14 @@ class TFRecordGenerator(DataGenerator):
         for i in range(0, self.total_files_to_generate):
             if i % self.comm_size == self.my_rank:
                 progress(i+1, self.total_files_to_generate, "Generating TFRecord Data")
-                out_path_spec = "{}_{}_of_{}.tfrecords".format(self._file_prefix, i, self.total_files_to_generate)
-                logging.info("{} Generating TFRecord {}".format(utcnow(), out_path_spec))
+                out_path_spec = f"{self._file_prefix}_{i}_of_{self.total_files_to_generate}.tfrecords"
+                logging.info(f"{utcnow()} Generating TFRecord {out_path_spec}")
                 # Open a TFRecordWriter for the output-file.
                 if count == 0:
                     prev_out_spec = out_path_spec
                     with tf.io.TFRecordWriter(out_path_spec) as writer:
                         for i in range(0, self.num_samples):
                             img_bytes = record.tostring()
-                            # TODO: We should adapt this to create realistic datasets for each workload
-                            # since only image segmentation uses images
                             data = {
                                 'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img_bytes])),
                                 'label': tf.train.Feature(int64_list=tf.train.Int64List(value=[record_label]))
