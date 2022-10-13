@@ -227,11 +227,15 @@ class DLIOBenchmark(object):
 
 def main():
     """
-        The main method to start the benchmark runtime.
-        """
+    The main method to start the benchmark runtime.
+    """
     os.environ["DARSHAN_DISABLE"] = "1"
     benchmark = DLIOBenchmark()
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()
+
+
+if __name__ == '__main__':
+    main()
     exit(0)
