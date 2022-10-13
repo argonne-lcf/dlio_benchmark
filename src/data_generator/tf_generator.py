@@ -16,32 +16,31 @@
 
 from src.data_generator.data_generator import DataGenerator
 from numpy import random
+import tensorflow as tf
 
 from src.utils.utility import progress, utcnow
 from shutil import copyfile
 
 import logging
-"""
-Generator for creating data in TFRecord format.
-TODO: Might be interesting / more realistic to add randomness to the file sizes
-"""
 class TFRecordGenerator(DataGenerator):
+    """
+    Generator for creating data in TFRecord format.
+    """
     def __init__(self):
         super().__init__()
 
     def generate(self):
-        import tensorflow as tf
         """
         Generator for creating data in TFRecord format of 3d dataset.
+        TODO: Might be interesting / more realistic to add randomness to the file sizes.
         TODO: Extend this to create accurate records for BERT, which does not use image/label pairs.
         """
         super().generate()
-        # This create a 2d image representing a single record
+        # This creates a 2D image representing a single record
         record = random.random((self._dimension, self._dimension))
         record_label = 0
         prev_out_spec =""
         count = 0
-
         for i in range(0, self.total_files_to_generate):
             if i % self.comm_size == self.my_rank:
                 progress(i+1, self.total_files_to_generate, "Generating TFRecord Data")

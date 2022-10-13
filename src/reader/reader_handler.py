@@ -7,10 +7,8 @@ from src.utils.utility import utcnow
 
 import os
 import math
-from numpy import random
-
 import logging
-
+from numpy import random
 
 
 class FormatReader(ABC):
@@ -39,14 +37,12 @@ class FormatReader(ABC):
         self.batch_size_train = self._arg_parser.args.batch_size
         self.batch_size_eval = self._arg_parser.args.batch_size_eval
         self.batch_size = None
-
         self._local_file_list = None
         self._local_eval_file_list = None
         self._dataset = None
         self._debug = self._arg_parser.args.debug
         self.framework = FrameworkFactory().get_framework(self._arg_parser.args.framework,
                                                           self._arg_parser.args.profiling)
-
         # We do this here so we keep the same evaluation files every epoch
         if self.eval_enabled:
             # Pick randomly without replacement the indices of the held-out test set (evaluation set)
@@ -116,8 +112,6 @@ class FormatReader(ABC):
                 random.shuffle(self._local_file_list)
 
             logging.debug(f"{utcnow()} Rank {self.my_rank} {self._local_file_list_size} local files: {self._local_file_list}")
-
-
 
     @abstractmethod
     def next(self):

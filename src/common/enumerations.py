@@ -89,10 +89,8 @@ class FileAccess(Enum):
     File access mode.
     - Multi = save dataset into multiple files
     - Shared = save everything in a single file
-    - Collective = specific for the shared case, when we want to do collective I/O. 
-    “Collective” is MPI specific, typically used for a huge file with small objects. 
-    one thread T reads from disk and the other threads read from T's memory, which is used as a cache.
-    "
+    - Collective = specific for the shared case, when we want to do collective I/O. Typically used for a huge file with small objects. 
+      One thread T reads from disk and the other threads read from T's memory, which is used as a cache.
     """
     MULTI = 'multi'
     SHARED = 'shared'

@@ -23,8 +23,8 @@ from src.utils.argument_parser import ArgumentParser
 from src.utils.utility import utcnow
 
 import math
-import shutil
 import os
+import shutil
 import logging
 
 # Remove (some) TF and CUDA logging
@@ -41,16 +41,17 @@ class DLIOBenchmark(object):
     def __init__(self):
         """
         This initializes the DLIO benchmark. Intialization includes:
-        - argument parser
-        - profiler instances
-        - internal components
-        - local variables
+        <ul>
+            <li> argument parser </li>
+            <li> profiler instances </li>
+            <li> internal components </li>
+            <li> local variables </li>
+        </ul>
         """
         self.arg_parser = ArgumentParser.get_instance()
         self.output_folder = self.arg_parser.args.output_folder
-
+        # Configure the logging library
         log_level = logging.DEBUG if self.arg_parser.args.debug else logging.INFO
-
         logging.basicConfig(
             level=log_level,
             handlers=[
@@ -71,7 +72,6 @@ class DLIOBenchmark(object):
         self.num_samples = self.arg_parser.args.num_samples
         self.batch_size = self.arg_parser.args.batch_size
         self.computation_time = self.arg_parser.args.computation_time
-
         if self.arg_parser.args.profiling:
             self.darshan = ProfilerFactory().get_profiler(Profiler.DARSHAN)
         if self.arg_parser.args.generate_data:
@@ -108,8 +108,7 @@ class DLIOBenchmark(object):
 
     def _eval(self, epoch_number):
         """
-        Evaluation loop with a different sleep time than training.
-        E.g. I believe in imseg, eval happens on CPU and time is pretty stable across runs
+        Evaluation loop will read a separate dataset and has its own own computation time.
         """
         step = 1
         total = math.ceil(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
@@ -136,7 +135,7 @@ class DLIOBenchmark(object):
             step += 1
             if step > total:
                 return step - 1
-            barrier()
+            self.framework.barrier()
         return step - 1
 
     def run(self):

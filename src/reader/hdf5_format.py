@@ -89,10 +89,9 @@ class HDF5Reader(FormatReader):
                 resized_images = []
                 with self.framework.trace_object('Resize', num_set / self.batch_size, 1):
                     for image in images:
-                        resized_images.append(np.resize(image,(self._dimension, self._dimension)))
+                        resized_images.append(np.resize(image,(self._dimension,self._dimension)))
                     sleep(.001)
                 yield resized_images
             file_h5.close()
-            
     def finalize(self):
         pass

@@ -62,26 +62,25 @@ class TFReader(FormatReader):
         """
         Sets up the tf data pipeline to read tf record files.
         Called once at the start of every epoch.
-        param: epoch_number
+        :param epoch_number:
         """
         # superclass function initializes the file list
         super().read(epoch_number, do_eval)
 
         dataset = tf.data.TFRecordDataset(filenames=self._local_file_list,
-                                buffer_size=self.transfer_size,
-                                num_parallel_reads=self.read_threads)
+                                          buffer_size=self.transfer_size,
+                                          num_parallel_reads=self.read_threads)
 
         dataset = dataset.map(self._tf_parse_function, num_parallel_calls=self.computation_threads)
 
         if self.memory_shuffle != Shuffle.OFF:
             if self.memory_shuffle != Shuffle.SEED:
                 dataset = dataset.shuffle(buffer_size=self.shuffle_size,
-                                        seed=self.seed)
+                                          seed=self.seed)
             else:
                 dataset = dataset.shuffle(buffer_size=self.shuffle_size)
         if self.prefetch:
             dataset = dataset.prefetch(buffer_size=self.prefetch_size)
-
         self._dataset = dataset.batch(self.batch_size, drop_remainder=True)
 
 
@@ -91,7 +90,6 @@ class TFReader(FormatReader):
         :return: data to be processed by the training step.
         """
         super().next()
-
         dataset = self._dataset
 
         # In tf, we can't get the length of the dataset easily so we calculate it
