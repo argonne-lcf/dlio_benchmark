@@ -17,6 +17,7 @@
 from src.common.enumerations import Compression
 from src.data_generator.data_generator import DataGenerator
 
+import logging
 import numpy as np
 from numpy import random
 
@@ -40,6 +41,8 @@ class NPZGenerator(DataGenerator):
         prev_out_spec =""
         count = 0
         for i in range(0, int(self.total_files_to_generate)):
+            if self.my_rank == 0 and i % 100 == 0:
+                logging.info(f"Generated file {i}/{self.total_files_to_generate}")
             if i % self.comm_size == self.my_rank:
                 progress(i+1, self.total_files_to_generate, "Generating NPZ Data")
                 out_path_spec = "{}_{}_of_{}.npz".format(self._file_prefix, i, self.total_files_to_generate)

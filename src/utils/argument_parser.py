@@ -67,7 +67,7 @@ class ArgumentParser(object):
                                  help="Size of a record/image within dataset")
         self.parser.add_argument("-nf", "--num-files-train", default=8, type=int,
                                  help="Number of files that should be accessed for training.")
-        self.parser.add_argument("-sf", "--num-samples", default=1024, type=int,
+        self.parser.add_argument("-sf", "--num-samples", default=1, type=int,
                                  help="Number of samples per file.")
         self.parser.add_argument("-bs", "--batch-size", default=1, type=int,
                                  help="Per worker batch size for training records.")
@@ -82,7 +82,7 @@ class ArgumentParser(object):
         self.parser.add_argument("-df", "--data-folder", default="./data", type=str,
                                  help="Set the path of folder where data is present in top-level.")
         self.parser.add_argument("-of", "--output-folder", default="./output", type=str,
-                                 help="Set the path of folder where output can be generated (checkpoints and logs)")
+                                 help="Set the path of folder where output can be generated (checkpoint files and logs)")
         self.parser.add_argument("-lf", "--log-file", default="dlio.log", type=str,
                                  help="Name of the logfile")
         self.parser.add_argument("-fp", "--file-prefix", default="img", type=str,
@@ -95,13 +95,17 @@ class ArgumentParser(object):
                                  help="Log Directory for profiling logs.")
         self.parser.add_argument("-s", "--seed", default=123, type=int,
                                  help="The seed to be used shuffling during read/memory.")
-        self.parser.add_argument("-c", "--checkpoint", default=False, type=str2bool,
-                                 help="Enable checkpoint within benchmark. y/n")
-        self.parser.add_argument("-sc", "--steps-checkpoint", default=0, type=int,
-                                 help="How many steps to enable checkpoint.")
+        self.parser.add_argument("-c", "--do-checkpoint", default=False, type=str2bool,
+                                 help="Enable checkpointing. y/n")
+        self.parser.add_argument("-cae", "--checkpoint-after-epoch", default=1, type=int,
+                                 help="Epoch number after which to enable checkpointing.")
+        self.parser.add_argument("-ebc", "--epochs-between-checkpoints", default=0, type=int,
+                                 help="Number of epochs between checkpoints.")
+        self.parser.add_argument("-sbc", "--steps-between-checkpoints", default=0, type=int,
+                                 help="Number of steps between checkpoints.")
         self.parser.add_argument("-ts", "--transfer-size", default=None, type=int,
                                  help="Transfer Size for tensorflow buffer size.")
-        self.parser.add_argument("-tr", "--read-threads", default=1, type=int,
+        self.parser.add_argument("-tr", "--read-threads", default=0, type=int,
                                  help="Number of threads to be used for reads.")
         self.parser.add_argument("-tc", "--computation-threads", default=1, type=int,
                                  help="Number of threads to be used for pre-processing.")
@@ -121,22 +125,25 @@ class ArgumentParser(object):
                                  help="Level of compression for GZip.")
         self.parser.add_argument("-d", "--debug", default=False, type=str2bool,
                                  help="Enable debug in code.")
+        self.parser.add_argument("-tts", "--total-training-steps", default=-1, type=int,
+                                 help="Total number of training steps to take. Used for single epoch training to stop DLIO before it goes through all the data.")
 
         # Added to support periodic evaluation on a held-out test set
-        # E.g. this is used by the image segmentation workload to determine if 
-        # the accuracy is good enough and if training should terminate
         self.parser.add_argument("-de", "--do-eval", default=False, type=str2bool,
                                  help="If we should simulate evaluation (single rank only for now). See -et, -eae and -eee to configure.")
         self.parser.add_argument("-bse", "--batch-size-eval", default=1, type=int,
                                  help="Per worker batch size for evaluation records.")
         self.parser.add_argument("-nfe", "--num-files-eval", default=0, type=int,
-                                 help="Number of files that should be put aside for evaluation. Defaults to zero, mimicking a training-only workload.")
+                                 help="Number of files that should be put aside for evaluation. Defaults to zero.")
         self.parser.add_argument("-et", "--eval-time", default=0, type=float,
                                  help="Processing time (seconds) for each evaluation data batch.")
         self.parser.add_argument("-eae", "--eval-after-epoch", default=0, type=int,
                                  help="Epoch number after which to start evaluating")
-        self.parser.add_argument("-eee", "--eval-every-epoch", default=0, type=int,
+        self.parser.add_argument("-ebe", "--epochs-between-evals", default=0, type=int,
                                  help="Evaluation frequency: evaluate every x epochs")
+        self.parser.add_argument("-mos", "--model-size", default=10240, type=int,
+                                 help="Size of the model (for checkpointing) in bytes")
+
         self.args = self.parser.parse_args()
         self._validate()
 
@@ -145,5 +152,5 @@ class ArgumentParser(object):
         TODO: MULTI FILES should have files more than nranks
         TODO: SHARED FILE should have file equal to 1
         '''
-
         pass
+

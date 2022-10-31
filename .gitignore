@@ -1,6 +1,10 @@
 # Benchmark generated data
 data/
+data*/
 output/
+notes/
+stuff/
+*.un~
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

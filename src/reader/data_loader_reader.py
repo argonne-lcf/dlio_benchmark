@@ -13,6 +13,7 @@
 import math
 import logging
 import numpy as np
+from time import time
 
 from src.utils.utility import utcnow
 
@@ -34,14 +35,15 @@ class DataLoaderReader(FormatReader):
         Could be extended to support different X and Y files, like in imseg
         TODO: Move the Dataset somewhere else and support other file formats.
         """
-        def __init__(self, samples):
+        def __init__(self, samples, rank):
             self.samples = samples
+            self.my_rank = rank
 
         def __len__(self):
             return len(self.samples)
 
         def __getitem__(self, idx):
-            logging.debug(f"{utcnow()} Reading {self.samples[idx]}")
+            logging.debug(f"{utcnow()} Rank {self.my_rank} reading {self.samples[idx]}")
             return np.load(self.samples[idx])
 
 
@@ -56,7 +58,7 @@ class DataLoaderReader(FormatReader):
 
         do_shuffle = True if self.memory_shuffle != Shuffle.OFF else False
 
-        dataset = self.NpzDataset(self._local_file_list)
+        dataset = self.NpzDataset(self._local_file_list, self.my_rank)
 
         # TODO: In image segmentation, the distributed sampler is not used during eval, we could parametrize this away if needed
         # This handles the partitioning between ranks
@@ -86,7 +88,7 @@ class DataLoaderReader(FormatReader):
         dataset = self._dataset
         logging.debug(f"{utcnow()} Rank {self.my_rank} should read {len(dataset)} batches")
 
-        for batch in dataset:
+        for batch in dataset:   
             yield batch
 
     def finalize(self):

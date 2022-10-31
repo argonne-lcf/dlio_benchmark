@@ -1,0 +1,54 @@
+{"sysstat": {
+	"hosts": [
+		{
+			"nodename": "discslab-server1",
+			"sysname": "Linux",
+			"release": "5.4.0-126-generic",
+			"machine": "x86_64",
+			"number-of-cpus": 36,
+			"date": "10/28/2022",
+			"statistics": [
+				{
+					"timestamp": "10/28/2022 10:15:52 AM",
+					"avg-cpu":  {"user": 15.74, "nice": 0.00, "system": 10.53, "iowait": 0.08, "steal": 0.00, "idle": 73.65},
+					"disk": [
+                        {"disk_device": "sdb", "r/s": 0.00, "w/s": 0.00, "d/s": 0.00, "rMB/s": 0.00, "wMB/s": 0.00, "dMB/s": 0.00, "rrqm/s": 0.00, "wrqm/s": 0.00, "drqm/s": 0.00, "rrqm": 0.00, "wrqm": 0.00, "drqm": 0.00, "r_await": 0.00, "w_await": 0.00, "d_await": 0.00, "rareq-sz": 0.00, "wareq-sz": 0.00, "dareq-sz": 0.00, "aqu-sz": 0.00, "util": 0.00},
+                        {"disk_device": "sda", "r/s": 52.00, "w/s": 2.00, "d/s": 0.00, "rMB/s": 8.52, "wMB/s": 0.07, "dMB/s": 0.00, "rrqm/s": 0.00, "wrqm/s": 16.00, "drqm/s": 0.00, "rrqm": 0.00, "wrqm": 88.89, "drqm": 0.00, "r_await": 1.27, "w_await": 0.00, "d_await": 0.00, "rareq-sz": 167.69, "wareq-sz": 36.00, "dareq-sz": 0.00, "aqu-sz": 0.00, "util": 2.40}
+					]
+				},
+				{
+					"timestamp": "10/28/2022 10:15:53 AM",
+					"avg-cpu":  {"user": 11.20, "nice": 0.00, "system": 0.64, "iowait": 0.00, "steal": 0.00, "idle": 88.16},
+					"disk": [
+						{"disk_device": "sdb", "r/s": 0.00, "w/s": 0.00, "d/s": 0.00, "rMB/s": 0.00, "wMB/s": 0.00, "dMB/s": 0.00, "rrqm/s": 0.00, "wrqm/s": 0.00, "drqm/s": 0.00, "rrqm": 0.00, "wrqm": 0.00, "drqm": 0.00, "r_await": 0.00, "w_await": 0.00, "d_await": 0.00, "rareq-sz": 0.00, "wareq-sz": 0.00, "dareq-sz": 0.00, "aqu-sz": 0.00, "util": 0.00},
+						{"disk_device": "sda", "r/s": 25.00, "w/s": 11.00, "d/s": 0.00, "rMB/s": 4.00, "wMB/s": 0.07, "dMB/s": 0.00, "rrqm/s": 0.00, "wrqm/s": 4.00, "drqm/s": 0.00, "rrqm": 0.00, "wrqm": 26.67, "drqm": 0.00, "r_await": 0.96, "w_await": 0.09, "d_await": 0.00, "rareq-sz": 164.00, "wareq-sz": 6.55, "dareq-sz": 0.00, "aqu-sz": 0.00, "util": 1.60}
+					]
+				},
+				{
+					"timestamp": "10/28/2022 10:15:54 AM",
+					"avg-cpu":  {"user": 13.77, "nice": 0.00, "system": 0.17, "iowait": 0.08, "steal": 0.00, "idle": 85.98},
+					"disk": [
+						{"disk_device": "sdb", "r/s": 0.00, "w/s": 0.00, "d/s": 0.00, "rMB/s": 0.00, "wMB/s": 0.00, "dMB/s": 0.00, "rrqm/s": 0.00, "wrqm/s": 0.00, "drqm/s": 0.00, "rrqm": 0.00, "wrqm": 0.00, "drqm": 0.00, "r_await": 0.00, "w_await": 0.00, "d_await": 0.00, "rareq-sz": 0.00, "wareq-sz": 0.00, "dareq-sz": 0.00, "aqu-sz": 0.00, "util": 0.00},
+						{"disk_device": "sda", "r/s": 12.00, "w/s": 0.00, "d/s": 0.00, "rMB/s": 2.00, "wMB/s": 0.00, "dMB/s": 0.00, "rrqm/s": 0.00, "wrqm/s": 0.00, "drqm/s": 0.00, "rrqm": 0.00, "wrqm": 0.00, "drqm": 0.00, "r_await": 0.92, "w_await": 0.00, "d_await": 0.00, "rareq-sz": 170.67, "wareq-sz": 0.00, "dareq-sz": 0.00, "aqu-sz": 0.00, "util": 0.80}
+					]
+				},
+				{
+					"timestamp": "10/28/2022 10:15:55 AM",
+					"avg-cpu":  {"user": 12.23, "nice": 0.00, "system": 0.28, "iowait": 0.14, "steal": 0.00, "idle": 87.35},
+					"disk": [
+						{"disk_device": "sdb", "r/s": 0.00, "w/s": 0.00, "d/s": 0.00, "rMB/s": 0.00, "wMB/s": 0.00, "dMB/s": 0.00, "rrqm/s": 0.00, "wrqm/s": 0.00, "drqm/s": 0.00, "rrqm": 0.00, "wrqm": 0.00, "drqm": 0.00, "r_await": 0.00, "w_await": 0.00, "d_await": 0.00, "rareq-sz": 0.00, "wareq-sz": 0.00, "dareq-sz": 0.00, "aqu-sz": 0.00, "util": 0.00},
+						{"disk_device": "sda", "r/s": 0.00, "w/s": 0.00, "d/s": 0.00, "rMB/s": 0.00, "wMB/s": 0.00, "dMB/s": 0.00, "rrqm/s": 0.00, "wrqm/s": 0.00, "drqm/s": 0.00, "rrqm": 0.00, "wrqm": 0.00, "drqm": 0.00, "r_await": 0.00, "w_await": 0.00, "d_await": 0.00, "rareq-sz": 0.00, "wareq-sz": 0.00, "dareq-sz": 0.00, "aqu-sz": 0.00, "util": 0.00}
+					]
+				},
+				{
+					"timestamp": "10/28/2022 10:15:56 AM",
+					"avg-cpu":  {"user": 12.20, "nice": 0.00, "system": 0.50, "iowait": 0.00, "steal": 0.00, "idle": 87.31},
+					"disk": [
+						{"disk_device": "sdb", "r/s": 0.00, "w/s": 0.00, "d/s": 0.00, "rMB/s": 0.00, "wMB/s": 0.00, "dMB/s": 0.00, "rrqm/s": 0.00, "wrqm/s": 0.00, "drqm/s": 0.00, "rrqm": 0.00, "wrqm": 0.00, "drqm": 0.00, "r_await": 0.00, "w_await": 0.00, "d_await": 0.00, "rareq-sz": 0.00, "wareq-sz": 0.00, "dareq-sz": 0.00, "aqu-sz": 0.00, "util": 0.00},
+						{"disk_device": "sda", "r/s": 0.00, "w/s": 0.00, "d/s": 0.00, "rMB/s": 0.00, "wMB/s": 0.00, "dMB/s": 0.00, "rrqm/s": 0.00, "wrqm/s": 0.00, "drqm/s": 0.00, "rrqm": 0.00, "wrqm": 0.00, "drqm": 0.00, "r_await": 0.00, "w_await": 0.00, "d_await": 0.00, "rareq-sz": 0.00, "wareq-sz": 0.00, "dareq-sz": 0.00, "aqu-sz": 0.00, "util": 0.00}
+					]
+				}
+			]
+		}
+	]
+}}

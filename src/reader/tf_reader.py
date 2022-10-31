@@ -15,6 +15,7 @@
 """
 import math
 import logging
+from time import time
 
 from src.utils.utility import utcnow
 from src.common.enumerations import Shuffle
@@ -62,6 +63,7 @@ class TFReader(FormatReader):
         """
         Sets up the tf data pipeline to read tf record files.
         Called once at the start of every epoch.
+        Does not necessarily read in all the data at the start however.
         :param epoch_number:
         """
         # superclass function initializes the file list
@@ -99,6 +101,7 @@ class TFReader(FormatReader):
 
         # The previous version crashed when all workers could not generate the same amount of batches
         # Using the inbuilt tensorflow dataset iteration seems to work fine, was there an advantage of doing it the old way?
+        # t1
         for batch in dataset:
             yield batch
 

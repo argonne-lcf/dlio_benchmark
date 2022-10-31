@@ -13,7 +13,7 @@ WORKDIR /workspace/dlio
 
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y git vim
+    apt-get install -y git vim sysstat
 
 RUN pip install --upgrade pip
 RUN pip install --disable-pip-version-check -r requirements.txt
@@ -24,3 +24,7 @@ RUN ldconfig /usr/local/cuda-10.0/targets/x86_64-linux/lib/stubs && \
     pip install --no-cache-dir --upgrade --force-reinstall horovod && ldconfig
 
 ENV PYTHONPATH="${PYTHONPATH}:/workspace/dlio"
+
+# Set the timezone in the container to UTC
+ENV TZ=Etc/UTC
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone

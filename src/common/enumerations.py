@@ -55,6 +55,7 @@ class Profiler(Enum):
     Profiler types supported by the benchmark.
     """
     NONE = 'none'
+    IOSTAT = 'iostat'
     DARSHAN = 'darshan'
     TENSORBOARD = 'tensorboard'
 

@@ -1,317 +1,243 @@
 # Overview
 
-Find below the original documentation for DLIO.
+This benchmark's objective is to simulate UNET3D, BERT and DLRM training workloads, and measure their I/O impact.
 
-This fork of DLIO was extended/modified with the objective of simulating as closely as possible the MLCommons Image Segmentation (UNET3D), BERT and DLRM workloads, and plug into our plotting software. This is still a work in progress.
+The training workloads were taken from the [MLCommons training benchmark repository](https://github.com/mlcommons/training).
+We ran and characterized these workloads using [eBPF traces](https://github.com/iovisor/bpftrace) to understand their I/O behaviour, and attempted to reproduce them as closely as possible. You can find the traces we used, along with other stuff, in our [organization repository](https://github.com/discslab-dl-bench).
 
-For this, we have added the following features:
+This tool is a fork of [DLIO](https://github.com/argonne-lcf/dlio_benchmark/), with the following features added:
 - Dockerfile with dependencies
 - support for evaluation phases on a held-out dataset
 - support for PyTorch DataLoader reading NPZ files
 - microsecond precision logging
 
-These additions have only been tested for TFRecord files, and PyTorch Dataloader with NPZ files as this is what our workload use. Because of this, other functionality is probably broken. More specifically, we're not trying to support the HDF5, CSV and NPZ readers, and we don't use Darshan or Tensorboard profiling.
+Note: These additions have only been tested for TFRecord files, and PyTorch Dataloader with NPZ files as this is what our workload use. Because of this, other functionality is probably broken. More specifically, we're not trying to support the HDF5, CSV and NPZ readers, and we don't use Darshan or Tensorboard profiling.
 
-# Current Limitations
+# Supported Workloads
 
-There is an abtraction problem where DLIO considers PyTorch's data loader as a data type when it really is data type agnostic.
-Any of the existing data formats could be supported by extending the Dataset class and implementing the __len__ and __getitem__ methods. https://pytorch.org/docs/stable/data.html
+- UNET3D: 3D Medical Image Segmentation 
+  - Reference Implementation: https://github.com/mlcommons/training/tree/master/image_segmentation/pytorch
+  - Framework: PyTorch
+  - Dataset: `.npz` format image files containing a single sample.
+  - Trains over multiple epochs, performs evaluation on a held-out test set periodically.
 
-Since UNET3D reads in NPZ data, we currently only support this format for PyTorch. We will have to modify this for DLRM which reads in a custom binary format.
-
-Considering our objectives and the already significant changes made, I believe it might make more sense to change the abstraction to be workload based, instead of framework/datareader based.
-Under a `workload/` folder, we would add BERT, DLRM, UNET3D and could implement their simulations more precisely than by trying to bend DLIO into reproducing them when it was not built for this purpose.
-
-Another conflict is that DLIO currently assumes the samples to be images and hardcodes the TFRecord format to be image/label pairs in the generator and reader. The records for BERT do not follow this format however, being composed of 6 lists. 
-To precisely simulate BERT, we would have to modify this by parametrizing the TFRecord format, or hardcoding a version specifically for it.
+- BERT: A Large Language Model
+  - Reference Implementation: https://github.com/mlcommons/training/tree/master/language_model/tensorflow/bert
+  - Framework: Tensorflow
+  - Dataset: Multiple `tfrecord` files containing many samples each.
+  - Trains in a single epoch, performs periodic checkpointing of its parameters.
 
 
+- DLRM: Deep Learning Recommendation Model (Work in Progress)
+  - Reference Implementation: https://github.com/facebookresearch/dlrm/tree/6d75c84d834380a365e2f03d4838bee464157516
+  - Framework: PyTorch
+  - Dataset: a single large file containing all the training records, and a seocnd one with the evaluation records
+  - Trains in a single epoch, and performs periodic evaluations.
 
-# Instructions
+  <br>
+  We are also looking to port each of these models to the other framework, in order to evaluate if there is a difference in I/O.
 
-The Dockerfile defines a Docker image containing all the dependencies. We will build this image, then run a container based on the image and run the benchmark within it.
+# Installation
 
-The `run_dlio_tf.sh` and `run_dlio_pt.sh` scripts, show examples of generating data and running the benchmark using both supported frameworks. These scripts must be run within the Docker container. You can modify them or include new scripts for other configurations.
+## Pre-requisites
+You must have docker installed on your system. Refer to https://docs.docker.com/get-docker/ for instructions.
 
-You can find the list of command line parameters in `src/utils/argument_parser.py` along with a short description.
+## Installation Instructions
 
-Once you've looked at/modified the run scripts, build the docker image. The `<tag>` field can be anything and serves to differentiate versions of an image.
+Clone the repository.
+```
+git clone <repository_address>/dlio_benchmark
+cd dlio_benchmark/
+```
+
+Build the docker image.
 ```bash
 sudo docker build -t dlio:<tag> .
 ```
-The `start_dlio.sh` script can then be used to launch DLIO within the container or launch an interactive session to the container.
-
-```bash
-sudo ./start_dlio.sh --help
-```
-
-You can use debug mode in the DLIO scripts to print out the files reads by each rank and other information. The horovod output is nice as it contains the rank information, but teeing it to a file in debug mode does not work.
-
-
-# Workload characteristics
-
-Here are some of the workload characteristics:
-- UNET3D and DLRM are implemented in PyTorch while BERT is in Tensorflow. Though we are looking to eventually support each workload in both frameworks.
-- UNET3D trains over multiple epochs while BERT and DLRM train in a single epoch
-- UNET3D and DLRM perform periodic evaluations, while BERT does not.
-- UNET3D reads in image/label pairs in NPZ format
-- BERT reads in TFRecords from multiple files (in a format of 6 arrays of varying sizes + a label)
-- DLRM reads in records from a single binary file.
+The image name can be anything you want. The `<tag>` field is optionnal and serves to differentiate versions of an image.
 
 <br>
 
-# DLIO Benchmark
-This is repository for a I/O benchmark which represents Scientific Deep Learning Workloads. DLIO benchmark is aimed at emulating the behavior of scientific deep learning applications, as described in the previous section. The benchmark is delivered as an executable that can be configured for various I/O patterns. It uses a modular design to incorporate more data formats, datasets, and configuration parameters. It emulates modern scientific deep learning applications using Benchmark Runner, Data Generator, Format Handler, and I/O Profiler modules. These modules utilize state-of-the-art design patterns to build a transparent and extensible framework. The DLIO benchmark has been designed with the following goals in mind.
+# Running the benchmark
 
-## DLIO features include:
+A DLIO run is split in 3 phases: 
+- Generate synthetic data DLIO will use
+- Run the benchmark using the previously generated data
+- Post-process the results to generate a report
 
-- Easy-to-use and highly configurable argument list to emulate any DL application's I/O behavior.
-- Fast prototyping through highly modular components to enhance the benchmark with more data formats.
-- Full transparency over emulation of I/O access with logging at different levels.
-- Easy to use data generator to test the performance of different data layouts and its impact on the I/O performance.
-- Compatible with modern profiling tools such as Tensorboard and Darshan to extract and analyze I/O behavior.
-
-## Usage
-
-```bash
-	python dlio_benchmark.py [-h] [-f {tfrecord,hdf5,csv,npz,hdf5_opt}]
-                         [-r {off,seed,random}] [-ms SHUFFLE_SIZE]
-                         [-m {off,seed,random}] [-rt {memory,on_demand}]
-                         [-fa {multi,shared,collective}] [-rl RECORD_LENGTH]
-                         [-nf NUM_FILES] [-sf NUM_SAMPLES] [-bs BATCH_SIZE]
-                         [-e EPOCHS] [-se SEED_CHANGE_EPOCH]
-                         [-gd GENERATE_DATA] [-df DATA_FOLDER]
-                         [-of OUTPUT_FOLDER] [-fp FILE_PREFIX]
-                         [-go GENERATE_ONLY] [-k KEEP_FILES] [-p PROFILING]
-                         [-l LOGDIR] [-s SEED] [-c CHECKPOINT]
-                         [-sc STEPS_CHECKPOINT] [-ts TRANSFER_SIZE]
-                         [-tr READ_THREADS] [-tc COMPUTATION_THREADS]
-                         [-ct COMPUTATION_TIME] [-rp PREFETCH]
-                         [-ps PREFETCH_SIZE] [-ec ENABLE_CHUNKING]
-                         [-cs CHUNK_SIZE] [-co {none,gzip,lzf,bz2,zip,xz}]
-                         [-cl COMPRESSION_LEVEL] [-d DEBUG]
+`start_dlio.sh` provides a convenient way to run these steps, by copying the given scripts to the container and running them within. This way, we don't have to rebuild the image evyer time we modify the scripts. The script will flush the caches on the host between data-generation and running the benchmark, as well as start `iostat` to gather device-level I/O information. 
 
 ```
-Examples: 
-```
-# Example option list
-DATA_DIR=~/dlio_datasets/temp
-OPTS=(-f tfrecord -fa multi -nf 1024 -sf 1024 -df ${DATA_DIR} -rl 262144 -gd 1 -k 1)
-python ./dlio_benchmark.py ${OPTS[@]}
+$ sudo ./start_dlio.sh --help
+Usage: ./start_dlio.sh [OPTIONS] -- [EXTRA ARGS]
+Convenience script to launch the DLIO benchmark and container.
 
-# To only generate data
-DATA_DIR=~/dlio_datasets/temp
-OPTS=(-f tfrecord -fa multi -nf 1024 -sf 1024 -df ${DATA_DIR} -rl 262144 -gd 1 -go 1 -k 1)
-python ./dlio_benchmark.py ${OPTS[@]}
+The given data-generation and run scripts will be launched within the container, flushing the caches between them.
+If no data-generation script is given, the data is assumed to have previously been generated in the data directory.
+If no run-script is given, an interactive session to the container will be started instead.
 
-# To run on already generated data
-DATA_DIR=~/dlio_datasets/temp
-OPTS=(-f tfrecord -fa multi -nf 1024 -sf 1024 -df ${DATA_DIR} -rl 262144 -gd 0 -k 1)
-python ./dlio_benchmark.py ${OPTS[@]}
-```
+Options:
+  -h, --help                    Print this message.
+  -dd, --data-dir               Directory where the training data is read and generated. ./data by default.
+  -od, --output-dir             Output directory for log and checkpoint files. ./output by default.
+  -bd, --device                 An I/O device to trace. Can be passed multiple times.
+  -im, --image-name             Name of the docker image to launch the container from. Defaults to 'dlio:latest'.
+  -c, --container-name          Name to give the docker container. Defaults to dlio.
+  -dgs, --datagen-script        Script to generate the data for this run. If empty, data will be assumed to exist in data-dir.
+  -rs, --run-script             Script used to launch DLIO within the container.
+  -pps, --postproc-script       Post-Porcessing script to generate a report from the DLIO output.
+  -it, --interactive            Pass withouth a value. Will launch an interactive session to the container. Gets activated if no run-script or post-processing scripts are given.
 
-## Installation
-
-### Requirements
-- horovod[tensorflow]>=0.19.5
-- tensorflow>=2.2.0
-- numpy>=1.19.1
-- h5py~=2.10.0
-- pandas>=1.1.3
-- mpi4py>=3.1.3
-
-### Installations Instructions
-To install VaniDL, the easiest way is to run
-
-For the bleeding edge version (recommended):
-```bash
-pip install git+https://github.com/argonne-lcf/dlio_benchmark
+Extra args:
+  Any extra arguments passed after after '--' will be passed as is to the DLIO launch script.
 ```
 
-For the latest stable version:
-```bash
-pip install dlio_benchmark
+We have included some scripts to emulate the MLCommons UNET3D and BERT workloads under `workloads/`.
+
+Note: Make sure to remove or rename the data-directory between runs of different workloads or else the run will fail.
+
+## UNET3D
+
+To run the UNET3D simulation:
+```
+sudo ./start_dlio.sh -im <image:tag> -dgs workloads/UNET3D/datagen.sh -rs workloads/UNET3D/run.sh -pps workloads/UNET3D/postproc.sh -bd <dev-to-trace>
 ```
 
-Otherwise, you can also install from source by running (from source folder):
-```bash
-python setup.py install
-# this install dlio_benchmark as an executable.
-dlio_benchmark -h
-```
-On Theta
-```bash
-module load DLIO
-```
+You can include multiple `-bd` options to trace multiple devices.
 
-Locally
+## BERT
 
-```bash
-git clone https://github.com/argonne-lcf/dlio_benchmark
-cd dlio_benchmark/
-python3 -m venv ./venv
-source venv/bin/activate
-pip install -r requirements.txt 
-export PYTHONPATH=$PWD/src:$PYTHONPATH
-python ./src/dlio_benchmark.py -h
+To run the BERT simulation:
 ```
+sudo ./start_dlio.sh -im <image:tag> -dgs workloads/BERT/datagen.sh -rs workloads/BERT/run.sh -pps workloads/BERT/postproc.sh -bd <dev-to-trace>
+```
+## DLRM
+Work in progress.
 
-### Command line options for DLIO
+<br>
+
+## Command line options for DLIO
 
 ```
-$ $python ./src/dlio_benchmark.py -h
-usage: dlio_benchmark.py [-h] [-f {tfrecord,hdf5,csv,npz,hdf5_opt}] [-r {off,seed,random}] [-ms SHUFFLE_SIZE] [-m {off,seed,random}] [-rt {memory,on_demand}] [-fa {multi,shared,collective}] [-rl RECORD_LENGTH] [-nf NUM_FILES] [-sf NUM_SAMPLES] [-bs BATCH_SIZE] [-e EPOCHS]
-                         [-se SEED_CHANGE_EPOCH] [-gd GENERATE_DATA] [-df DATA_FOLDER] [-of OUTPUT_FOLDER] [-fp FILE_PREFIX] [-go GENERATE_ONLY] [-k KEEP_FILES] [-p PROFILING] [-l LOGDIR] [-s SEED] [-c CHECKPOINT] [-sc STEPS_CHECKPOINT] [-ts TRANSFER_SIZE]
-                         [-tr READ_THREADS] [-tc COMPUTATION_THREADS] [-ct COMPUTATION_TIME] [-rp PREFETCH] [-ps PREFETCH_SIZE] [-ec ENABLE_CHUNKING] [-cs CHUNK_SIZE] [-co {none,gzip,lzf,bz2,zip,xz}] [-cl COMPRESSION_LEVEL] [-d DEBUG]
+$ python3 src/dlio_benchmark.py -h
+usage: dlio_benchmark.py [-h] [-fr {tensorflow,pytorch}] [-f {tfrecord,hdf5,csv,npz,hdf5_opt,data_loader}] [-r {off,seed,random}] [-ms SHUFFLE_SIZE] [-m {off,seed,random}] [-rt {memory,on_demand}] [-fa {multi,shared,collective}] [-rl RECORD_LENGTH] [-nf NUM_FILES_TRAIN] [-sf NUM_SAMPLES] [-bs BATCH_SIZE] [-e EPOCHS]
+                         [-se SEED_CHANGE_EPOCH] [-gd GENERATE_DATA] [-go GENERATE_ONLY] [-df DATA_FOLDER] [-of OUTPUT_FOLDER] [-lf LOG_FILE] [-fp FILE_PREFIX] [-k KEEP_FILES] [-p PROFILING] [-l LOGDIR] [-s SEED] [-c DO_CHECKPOINT] [-cae CHECKPOINT_AFTER_EPOCH] [-ebc EPOCHS_BETWEEN_CHECKPOINTS] [-sbc STEPS_BETWEEN_CHECKPOINTS]
+                         [-ts TRANSFER_SIZE] [-tr READ_THREADS] [-tc COMPUTATION_THREADS] [-ct COMPUTATION_TIME] [-rp PREFETCH] [-ps PREFETCH_SIZE] [-ec ENABLE_CHUNKING] [-cs CHUNK_SIZE] [-co {none,gzip,lzf,bz2,zip,xz}] [-cl COMPRESSION_LEVEL] [-d DEBUG] [-tts TOTAL_TRAINING_STEPS] [-de DO_EVAL] [-bse BATCH_SIZE_EVAL]
+                         [-nfe NUM_FILES_EVAL] [-et EVAL_TIME] [-eae EVAL_AFTER_EPOCH] [-ebe EPOCHS_BETWEEN_EVALS] [-mos MODEL_SIZE]
 
 DLIO Benchmark
 
 optional arguments:
   -h, --help            show this help message and exit
-  -f {tfrecord,hdf5,csv,npz,hdf5_opt}, --format {tfrecord,hdf5,csv,npz,hdf5_opt} data reader to use.
-  -r {off,seed,random}, --read-shuffle {off,seed,random} Enable shuffle during read.
-  -ms SHUFFLE_SIZE, --shuffle-size SHUFFLE_SIZE Size of a shuffle in bytes.
-  -m {off,seed,random}, --memory-shuffle {off,seed,random} Enable memory during pre-processing.
-  -rt {memory,on_demand}, --read-type {memory,on_demand} The read behavior for the benchmark.
-  -fa {multi,shared,collective}, --file-access {multi,shared,collective} How the files are accessed in the benchmark.
-  -rl RECORD_LENGTH, --record-length RECORD_LENGTH Size of a record/image within dataset
-  -nf NUM_FILES, --num-files NUM_FILES Number of files that should be accessed.
-  -sf NUM_SAMPLES, --num-samples NUM_SAMPLES  Number of samples per file.
-  -bs BATCH_SIZE, --batch-size BATCH_SIZE Batch size for training records.
-  -e EPOCHS, --epochs EPOCHS Number of epochs to be emulated within benchmark.
-  -se SEED_CHANGE_EPOCH, --seed-change-epoch SEED_CHANGE_EPOCH change seed between epochs. y/n
-  -gd GENERATE_DATA, --generate-data GENERATE_DATA Enable generation of data. y/n
-  -df DATA_FOLDER, --data-folder DATA_FOLDER  Set the path of folder where data is present in top-level.
-  -of OUTPUT_FOLDER, --output-folder OUTPUT_FOLDER  Set the path of folder where output can be generated.
-  -fp FILE_PREFIX, --file-prefix FILE_PREFIX  Prefix for generated files.
-  -go GENERATE_ONLY, --generate-only GENERATE_ONLY  Only generate files.
-  -k KEEP_FILES, --keep-files KEEP_FILES Keep files after benchmark. y/n
-  -p PROFILING, --profiling PROFILING  Enable I/O profiling within benchmark. y/n
-  -l LOGDIR, --logdir LOGDIR Log Directory for profiling logs.
+  -fr {tensorflow,pytorch}, --framework {tensorflow,pytorch}
+                        framework to use.
+  -f {tfrecord,hdf5,csv,npz,hdf5_opt,data_loader}, --format {tfrecord,hdf5,csv,npz,hdf5_opt,data_loader}
+                        data reader to use.
+  -r {off,seed,random}, --read-shuffle {off,seed,random}
+                        Shuffle the list of files to be read.
+  -ms SHUFFLE_SIZE, --shuffle-size SHUFFLE_SIZE
+                        (TF only) Size of the shuffle buffer in bytes.
+  -m {off,seed,random}, --memory-shuffle {off,seed,random}
+                        Shuffle the records returned by the data loader.
+  -rt {memory,on_demand}, --read-type {memory,on_demand}
+                        The read behavior for the benchmark.
+  -fa {multi,shared,collective}, --file-access {multi,shared,collective}
+                        How the files are accessed in the benchmark.
+  -rl RECORD_LENGTH, --record-length RECORD_LENGTH
+                        Size of a record/image within dataset
+  -nf NUM_FILES_TRAIN, --num-files-train NUM_FILES_TRAIN
+                        Number of files that should be accessed for training.
+  -sf NUM_SAMPLES, --num-samples NUM_SAMPLES
+                        Number of samples per file.
+  -bs BATCH_SIZE, --batch-size BATCH_SIZE
+                        Per worker batch size for training records.
+  -e EPOCHS, --epochs EPOCHS
+                        Number of epochs to be emulated within benchmark.
+  -se SEED_CHANGE_EPOCH, --seed-change-epoch SEED_CHANGE_EPOCH
+                        change seed between epochs. y/n
+  -gd GENERATE_DATA, --generate-data GENERATE_DATA
+                        Enable generation of data. y/n
+  -go GENERATE_ONLY, --generate-only GENERATE_ONLY
+                        Only generate files then exit.
+  -df DATA_FOLDER, --data-folder DATA_FOLDER
+                        Set the path of folder where data is present in top-level.
+  -of OUTPUT_FOLDER, --output-folder OUTPUT_FOLDER
+                        Set the path of folder where output can be generated (checkpoint files and logs)
+  -lf LOG_FILE, --log-file LOG_FILE
+                        Name of the logfile
+  -fp FILE_PREFIX, --file-prefix FILE_PREFIX
+                        Prefix for generated files.
+  -k KEEP_FILES, --keep-files KEEP_FILES
+                        Keep files after benchmark. y/n
+  -p PROFILING, --profiling PROFILING
+                        Enable I/O profiling within benchmark. y/n
+  -l LOGDIR, --logdir LOGDIR
+                        Log Directory for profiling logs.
   -s SEED, --seed SEED  The seed to be used shuffling during read/memory.
-  -c CHECKPOINT, --checkpoint CHECKPOINT Enable checkpoint within benchmark. y/n
-  -sc STEPS_CHECKPOINT, --steps-checkpoint STEPS_CHECKPOINT How many steps to enable checkpoint.
-  -ts TRANSFER_SIZE, --transfer-size TRANSFER_SIZE Transfer Size for tensorflow buffer size.
-  -tr READ_THREADS, --read-threads READ_THREADS Number of threads to be used for reads.
-  -tc COMPUTATION_THREADS, --computation-threads COMPUTATION_THREADS  Number of threads to be used for pre-processing.
-  -ct COMPUTATION_TIME, --computation-time COMPUTATION_TIME  Amount of time for computation.
-  -rp PREFETCH, --prefetch PREFETCH Enable prefetch within benchmark.
-  -ps PREFETCH_SIZE, --prefetch-size PREFETCH_SIZE Enable prefetch buffer within benchmark.
-  -ec ENABLE_CHUNKING, --enable-chunking ENABLE_CHUNKING  Enable chunking for HDF5 files.
-  -cs CHUNK_SIZE, --chunk-size CHUNK_SIZE  Set chunk size in bytes for HDF5.
-  -co {none,gzip,lzf,bz2,zip,xz}, --compression {none,gzip,lzf,bz2,zip,xz} Compression to use.
-  -cl COMPRESSION_LEVEL, --compression-level COMPRESSION_LEVEL  Level of compression for GZip.
-  -d DEBUG, --debug DEBUG Enable debug in code.
+  -c DO_CHECKPOINT, --do-checkpoint DO_CHECKPOINT
+                        Enable checkpointing. y/n
+  -cae CHECKPOINT_AFTER_EPOCH, --checkpoint-after-epoch CHECKPOINT_AFTER_EPOCH
+                        Epoch number after which to enable checkpointing.
+  -ebc EPOCHS_BETWEEN_CHECKPOINTS, --epochs-between-checkpoints EPOCHS_BETWEEN_CHECKPOINTS
+                        Number of epochs between checkpoints.
+  -sbc STEPS_BETWEEN_CHECKPOINTS, --steps-between-checkpoints STEPS_BETWEEN_CHECKPOINTS
+                        Number of steps between checkpoints.
+  -ts TRANSFER_SIZE, --transfer-size TRANSFER_SIZE
+                        Transfer Size for tensorflow buffer size.
+  -tr READ_THREADS, --read-threads READ_THREADS
+                        Number of threads to be used for reads.
+  -tc COMPUTATION_THREADS, --computation-threads COMPUTATION_THREADS
+                        Number of threads to be used for pre-processing.
+  -ct COMPUTATION_TIME, --computation-time COMPUTATION_TIME
+                        Processing time (seconds) for each training data batch.
+  -rp PREFETCH, --prefetch PREFETCH
+                        Enable prefetch within benchmark.
+  -ps PREFETCH_SIZE, --prefetch-size PREFETCH_SIZE
+                        Number of batches to prefetch.
+  -ec ENABLE_CHUNKING, --enable-chunking ENABLE_CHUNKING
+                        Enable chunking for HDF5 files.
+  -cs CHUNK_SIZE, --chunk-size CHUNK_SIZE
+                        Set chunk size in bytes for HDF5.
+  -co {none,gzip,lzf,bz2,zip,xz}, --compression {none,gzip,lzf,bz2,zip,xz}
+                        Compression to use.
+  -cl COMPRESSION_LEVEL, --compression-level COMPRESSION_LEVEL
+                        Level of compression for GZip.
+  -d DEBUG, --debug DEBUG
+                        Enable debug in code.
+  -tts TOTAL_TRAINING_STEPS, --total-training-steps TOTAL_TRAINING_STEPS
+                        Total number of training steps to take. DLIO will terminate after this number.
+  -de DO_EVAL, --do-eval DO_EVAL
+                        If we should simulate evaluation (single rank only for now). See -et, -eae and -eee to configure.
+  -bse BATCH_SIZE_EVAL, --batch-size-eval BATCH_SIZE_EVAL
+                        Per worker batch size for evaluation records.
+  -nfe NUM_FILES_EVAL, --num-files-eval NUM_FILES_EVAL
+                        Number of files that should be put aside for evaluation. Defaults to zero.
+  -et EVAL_TIME, --eval-time EVAL_TIME
+                        Processing time (seconds) for each evaluation data batch.
+  -eae EVAL_AFTER_EPOCH, --eval-after-epoch EVAL_AFTER_EPOCH
+                        Epoch number after which to start evaluating
+  -ebe EPOCHS_BETWEEN_EVALS, --epochs-between-evals EPOCHS_BETWEEN_EVALS
+                        Evaluation frequency: evaluate every x epochs
+  -mos MODEL_SIZE, --model-size MODEL_SIZE
+                        Size of the model (for checkpointing) in bytes
 ```
 
-## Application Configurations (I/O)
-```bash
-# DLIO_ROOT directory of DLIO benchmark
-# APP_DATA_DIR directory where application data would be generated
-```
+# Benchmark Submission
 
-### Neutrino and Cosmic Tagging with UNet
+TBD
 
-```bash
-# Generate data
-mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
-		-f hdf5 -fa shared -nf 1 -sf 6000 -rl 40960 -bs 1 -ec 1 -cs 4096 -df ${APP_DATA_DIR} \
-		-gd 1 -go 1 -k 1
+# Current Limitations and Future Work
 
-# Run application
-mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
-		-f hdf5 -fa shared -nf 1 -sf 6000 -rl 40960 -bs 1 -ec 1 -cs 4096 -df ${APP_DATA_DIR} \
-		-gd 0 -k 1
-```
-
-### Distributed Flood Filling Networks (FFN)
-
-```bash
-# Generate data
-mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
-		-f hdf5 -fa shared -nf 1 -sf 43008 -rl 32768 -bs 1 -ec 1 -cs 4096 -df ${APP_DATA_DIR} \
-		-gd 1 -go 1 -k 1
-
-# Run application
-mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
-		-f hdf5 -fa shared -nf 1 -sf 43008 -rl 32768 -bs 1 -ec 1 -cs 4096 -df ${APP_DATA_DIR} \
-		-gd 0 -k 1
-```
-
-### TensorFlow CNN Benchmarks
-
-```bash
-# Generate data
-mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
-		-f tfrecord -fa multi -nf 1024 -sf 1024 -rl 262144 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR} \
-		-gd 1 -go 1 -k 1
-
-# Run application
-mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
-		-f tfrecord -fa multi -nf 1024 -sf 1024 -rl 262144 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR} \
-		-gd 0 -k 1
-```
-
-### CosmoFlow for learning universe at scale
-
-```bash
-# Generate data
-mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
-		-f tfrecord -fa multi -nf 1024 -sf 512 -rl 131072 -tc 64 -bs 1 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR} \
-		-gd 1 -go 1 -k 1
-
-# Run application
-mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
-		-f tfrecord -fa multi -nf 1024 -sf 512 -rl 131072 -tc 64 -bs 1 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR} \
-		-gd 0 -k 1
-```
-
-### Fusion Recurrent Neural Net (FRNN) for representation learning in plasma science
-
-```bash
-# Generate data
-mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
-		-f npz -fa multi -nf 28000 -sf 1024 -rl 2048 -bs 1 -df ${APP_DATA_DIR} \
-		-gd 1 -go 1 -k 1
-
-# Run application
-mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
-		-f npz -fa multi -nf 28000 -sf 1024 -rl 2048 -bs 1 -df ${APP_DATA_DIR} \
-		-gd 0 -k 1
-```
-
-### Cancer Distributed Learning Environment (CANDLE) for cancer research
-```bash
-# Generate data
-mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
-		-f csv -fa shared -nf 1 -sf 1120 -rl 32768 -bs 1 -df ${APP_DATA_DIR} \
-		-gd 1 -go 1 -k 1
-
-# Run application
-mpirun -n 1 python ${DLIO_ROOT}/src/dlio_benchmark.py \
-		-f csv -fa shared -nf 1 -sf 1120 -rl 32768 -bs 1 -df ${APP_DATA_DIR} \
-		-gd 0 -k 1
-```
+There is an abtraction problem where DLIO considers PyTorch's data loader as a data type when it really is data type agnostic.
+Any of the existing data formats could be supported by extending the Dataset class and implementing the [\_\_len__() and \_\_getitem__() methods](https://pytorch.org/docs/stable/data.html). This forces us to e.g. use `npz_generator` when generating, but switch to `data_loader_reader` when running, which is confusing.
 
 
-## Contributions
-This is the first release of DLIO, if you find any bug, please report it in the GitHub issues section.
+DLIO currently assumes the samples to always be 2D images, which is the case for none of our workloads. UNET3D operates on 3D images, which we faked by pretending to have multiple samples in a file (effectively the 3rd dimension). In reality, UNET3D reads in 2 files in every iteration (one for the sample and one for the label), which we can't imitate presently.
 
-Improvements and requests for new features are more than welcome! Do not hesitate to twist and tweak DLIO, and send pull-requests.
+Similarly, it hardcodes the TFRecord format to be image/label pairs in the generator and reader, when the records for BERT do not follow this format at all. We will have to modify this for DLRM which reads in a custom binary format.
 
-## Remaining feature list
-- Add argument validations
-    - Shared should use one file
-    - multiple should have atleast files = nranks
-- Add Collective reading
-    - create g groups within communicator (configurable when g == # of processes then there is no collective)
-    - randomly select 1 process from all groups which will read and then send read data to other processes. in the group
-- Add Computations
-    - Synchronous: Add computation cycles after reading data (busy waiting).
-    - Asynchronous: Add I/O on a different thread to overlap with previous compute.
-        - use a queue
-            - io thread uses queue to read next element.
-            - main thread (compute) puts element to queue and then goes to compute.
+Considering this and our objectives, it might make sense to change the DLIO abstraction to be workload based, instead of framework/datareader based.
+Under a `workload/` folder, we would add BERT, DLRM, UNET3D and could implement their simulations more precisely than by trying to bend DLIO into reproducing them when it was not built for this purpose.
 
 ## Citation
 ```
@@ -325,7 +251,19 @@ Improvements and requests for new features are more than welcome! Do not hesitat
   pages={},
   publisher={IEEE/ACM}
 }
+
+@article{balmau2022mlperfstorage,
+  title={Characterizing I/O in Machine Learning with MLPerf Storage},
+  author={O. Balmau},
+  booktitle={SIGMOD Record DBrainstorming},
+  year={2022},
+  volume={51},
+  number={3},
+  publisher={ACM}
+}
 ```
+
+
 
 ## Acknowledgements
 This work used resources of the Argonne Leadership Computing Facility, which is a DOE Office of Science User Facility under Contract DE-AC02-06CH11357 and is supported in part by National Science Foundation under NSF, OCI-1835764 and NSF, CSR-1814872.
