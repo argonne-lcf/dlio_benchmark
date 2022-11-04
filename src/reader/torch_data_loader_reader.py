@@ -29,7 +29,7 @@ from src.reader.reader_handler import FormatReader
 from torchvision.io import read_image, decode_png, decode_jpeg, read_file
 
 ### reading file of different formats. 
-def read_jpeg(f):
+def read_jpeg(filename):
     return read_image(filename)
 
 def read_png(filename):
@@ -61,7 +61,7 @@ class TorchDataset(Dataset):
             try:
                 self.read = filereader[format]
             except:
-                print("Unsupported file reader for %s. Reading the byte contents instead"%format)
+                print(f"Unsupported file reader for {format}. Reading the byte contents instead")
                 self.read = read_file
             
         def __len__(self):

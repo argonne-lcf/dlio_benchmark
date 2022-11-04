@@ -4,6 +4,8 @@ from src.data_generator.csv_generator import CSVGenerator
 from src.data_generator.tf_generator import TFRecordGenerator
 from src.data_generator.hdf5_generator import HDF5Generator
 from src.data_generator.npz_generator import NPZGenerator
+from src.data_generator.jpeg_generator import JPEGGenerator
+from src.data_generator.png_generator import PNGGenerator
 
 
 
@@ -21,5 +23,9 @@ class GeneratorFactory(object):
             return CSVGenerator()
         elif type == FormatType.NPZ:
             return NPZGenerator()
+        elif type == FormatType.JPEG:
+            return JPEGGenerator()
+        elif type == FormatType.PNG:
+            return PNGGenerator()
         else:
             raise Exception(str(ErrorCodes.EC1001))
