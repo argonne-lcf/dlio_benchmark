@@ -25,7 +25,7 @@ from src.utils.utility import progress
 from shutil import copyfile
 import PIL.Image as im
 """
-Generator for creating data in NPZ format.
+Generator for creating data in JPEG format.
 """
 class JPEGGenerator(DataGenerator):
     def __init__(self):
