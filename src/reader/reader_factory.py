@@ -8,6 +8,9 @@ class ReaderFactory(object):
 
     @staticmethod
     def get_reader(type, data_loader):
+        """
+        This function set the data reader based on the data format and the data loader specified. 
+        """
         if data_loader==None:
             if type == FormatType.HDF5:
                 from src.reader.hdf5_reader import HDF5Reader
@@ -22,8 +25,8 @@ class ReaderFactory(object):
                 from src.reader.npz_reader import NPZReader
                 return NPZReader()
             else:
-                print("Loading data of %s format is not supported without framework data loader")
-                raise Exception(str(ErrorCodes.EC1001))
+                print("Loading data of %s format is not supported without framework data loader" %type)
+                raise Exception(str(ErrorCodes.EC1004))
         elif data_loader == DataLoaderType.TENSORFLOW:
             if type == FormatType.TFRECORD:
                 from src.reader.tf_reader import TFReader
@@ -36,4 +39,4 @@ class ReaderFactory(object):
         # Implement other data loader here
         else:
             print("Data Loader %s is not implemented" %data_loader)
-            raise Exception(str(ErrorCodes.EC1003))
+            raise Exception(str(ErrorCodes.EC1004))
