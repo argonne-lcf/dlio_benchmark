@@ -31,7 +31,7 @@ class FormatReader(ABC):
         self.num_files_eval = self._arg_parser.args.num_files_eval
         self.num_files_train = self._arg_parser.args.num_files_train
         self.total_files = self.num_files_train + self.num_files_eval 
-        self.num_samples = self._arg_parser.args.num_samples
+        self.num_samples = self._arg_parser.args.num_samples_per_file
         self._dimension = int(math.sqrt(self.record_size / 8))
         # Batch sizes
         self.batch_size_train = self._arg_parser.args.batch_size
@@ -39,6 +39,7 @@ class FormatReader(ABC):
         self.batch_size = None
         self._local_file_list = None
         self._local_eval_file_list = None
+        self._file_list = None
         self._dataset = None
         self._debug = self._arg_parser.args.debug
         self.framework = FrameworkFactory().get_framework(self._arg_parser.args.framework,
@@ -75,7 +76,7 @@ class FormatReader(ABC):
             self.batch_size = self.batch_size_train
 
         assert len(files) == num_files, f"Expected {num_files} training files but {len(files)} found. Ensure data was generated correctly."
-
+        self._file_list = files
         read_shuffle = True
         if self.read_shuffle == Shuffle.OFF:
             read_shuffle = False

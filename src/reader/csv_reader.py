@@ -32,7 +32,7 @@ class CSVReader(FormatReader):
     def __init__(self):
         super().__init__()
 
-    def read(self, epoch_number):
+    def read(self, epoch_number, do_eval=False):
         """
         Opens the CSV dataset and reads the rows in memory.
         :param epoch_number: current epoch number

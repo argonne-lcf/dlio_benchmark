@@ -44,11 +44,22 @@ class FormatType(Enum):
     CSV = 'csv'
     NPZ = 'npz'
     HDF5_OPT = 'hdf5_opt'
-    DATA_LOADER = 'data_loader'
+    JPEG = 'jpeg'
+    PNG = 'png'
+    WAV = 'wav'
 
     def __str__(self):
         return self.value
 
+class DataLoaderType(Enum):
+    """
+    Framework DataLoader Type
+    """
+    TENSORFLOW='tensorflow'
+    PYTORCH='pytorch'
+
+    def __str__(self):
+        return self.value
 
 class Profiler(Enum):
     """

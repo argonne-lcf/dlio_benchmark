@@ -1,19 +1,17 @@
-# Overview
+# Deep Learining I/O (DLIO) Benchmark
 
-This benchmark's objective is to simulate UNET3D, BERT and DLRM training workloads, and measure their I/O impact.
+## Overview
 
-The training workloads were taken from the [MLCommons training benchmark repository](https://github.com/mlcommons/training).
-We ran and characterized these workloads using [eBPF traces](https://github.com/iovisor/bpftrace) to understand their I/O behaviour, and attempted to reproduce them as closely as possible. You can find the traces we used, along with other stuff, in our [organization repository](https://github.com/discslab-dl-bench).
+This is repository for a I/O benchmark which represents Deep Learning Workloads. DLIO benchmark is aimed at emulating the I/O behavior of deep learning applications. The benchmark is delivered as an executable that can be configured for various I/O patterns. It uses a modular design to incorporate more data loaders, data formats, datasets, and configuration parameters. It emulates modern deep learning applications using Benchmark Runner, Data Generator, Format Handler, and I/O Profiler modules. 
 
-This tool is a fork of [DLIO](https://github.com/argonne-lcf/dlio_benchmark/), with the following features added:
-- Dockerfile with dependencies
-- support for evaluation phases on a held-out dataset
-- support for PyTorch DataLoader reading NPZ files
-- microsecond precision logging
+### DLIO features include 
+* Easy-to-use and highly configurable argument list to emulate any DL application's I/O behavior.
+* Fast prototyping through highly modular components to enhance the benchmark with more data formats.
+* Full transparency over emulation of I/O access with logging at different levels.
+* Easy to use data generator to test the performance of different data layouts and its impact on the I/O performance.
+* Compatible with modern profiling tools such as Tensorboard and Darshan to extract and analyze I/O behavior
 
-Note: These additions have only been tested for TFRecord files, and PyTorch Dataloader with NPZ files as this is what our workload use. Because of this, other functionality is probably broken. More specifically, we're not trying to support the HDF5, CSV and NPZ readers, and we don't use Darshan or Tensorboard profiling.
-
-# Supported Workloads
+### Example supported workloads
 
 - UNET3D: 3D Medical Image Segmentation 
   - Reference Implementation: https://github.com/mlcommons/training/tree/master/image_segmentation/pytorch
@@ -34,19 +32,25 @@ Note: These additions have only been tested for TFRecord files, and PyTorch Data
   - Dataset: a single large file containing all the training records, and a seocnd one with the evaluation records
   - Trains in a single epoch, and performs periodic evaluations.
 
-  <br>
-  We are also looking to port each of these models to the other framework, in order to evaluate if there is a difference in I/O.
+## Installation
 
-# Installation
+### In conda environment
+```bash
+git clone https://github.com/argonne-lcf/dlio_benchmark
+cd dlio_benchmark/
+python3 -m venv ./venv
+source venv/bin/activate
+pip install -r requirements.txt 
+export PYTHONPATH=$PWD/src:$PYTHONPATH
+python ./src/dlio_benchmark.py -h
+```
 
-## Pre-requisites
+### In Docker container
 You must have docker installed on your system. Refer to https://docs.docker.com/get-docker/ for instructions.
 
-## Installation Instructions
-
 Clone the repository.
-```
-git clone <repository_address>/dlio_benchmark
+```bash
+git clone https://github.com/argonne-lcf/dlio_benchmark
 cd dlio_benchmark/
 ```
 
@@ -58,14 +62,14 @@ The image name can be anything you want. The `<tag>` field is optionnal and serv
 
 <br>
 
-# Running the benchmark
+## Running the benchmark
 
 A DLIO run is split in 3 phases: 
 - Generate synthetic data DLIO will use
 - Run the benchmark using the previously generated data
 - Post-process the results to generate a report
 
-`start_dlio.sh` provides a convenient way to run these steps, by copying the given scripts to the container and running them within. This way, we don't have to rebuild the image evyer time we modify the scripts. The script will flush the caches on the host between data-generation and running the benchmark, as well as start `iostat` to gather device-level I/O information. 
+`start_dlio.sh` provides a convenient way to run these steps, by copying the given scripts to the container and running them within. This way, we don't have to rebuild the image every time we modify the scripts. The script will flush the caches on the host between data-generation and running the benchmark, as well as start `iostat` to gather device-level I/O information. 
 
 ```
 $ sudo ./start_dlio.sh --help
@@ -97,7 +101,7 @@ The simulated compute times for each of these workloads was measured on a DGX-1 
 
 Make sure to remove or rename the data-directory between runs of different workloads or else the run will fail.
 
-## UNET3D
+### UNET3D
 
 To run the UNET3D simulation:
 ```
@@ -106,13 +110,13 @@ sudo ./start_dlio.sh -im <image:tag> -dgs workloads/UNET3D/datagen.sh -rs worklo
 
 You can include multiple `-bd` options to trace multiple devices.
 
-## BERT
+### BERT
 
 To run the BERT simulation:
 ```
 sudo ./start_dlio.sh -im <image:tag> -dgs workloads/BERT/datagen.sh -rs workloads/BERT/run.sh -pps workloads/BERT/postproc.sh -bd <dev-to-trace>
 ```
-## DLRM
+### DLRM
 Work in progress.
 
 <br>
@@ -148,7 +152,7 @@ optional arguments:
                         Size of a record/image within dataset
   -nf NUM_FILES_TRAIN, --num-files-train NUM_FILES_TRAIN
                         Number of files that should be accessed for training.
-  -sf NUM_SAMPLES, --num-samples NUM_SAMPLES
+  -sf NUM_SAMPLES_PER_FILE, --num-samples-per-files NUM_SAMPLES_PER_FILE
                         Number of samples per file.
   -bs BATCH_SIZE, --batch-size BATCH_SIZE
                         Per worker batch size for training records.
@@ -223,22 +227,20 @@ optional arguments:
                         Size of the model (for checkpointing) in bytes
 ```
 
-# Benchmark Submission
+## Current Limitations and Future Work
 
+* DLIO currently assumes the samples to always be 2D images, even though one can set the size of each sample through ```--record_length```. We expect the shape of the sample to have minimal impact to the I/O itself. This yet to be validated for case by case perspective. We plan to add option to allow specifying the shape of the sample. 
+
+* We assume the data/label pairs are stored in the same file. Storing data and labels in separate files will be supported in future.
+
+* File format support: we only support tfrecord, hdf5, npz, csv, jpg, jpeg formats. Other data formats can be extended. 
+
+* Data Loader support: we support reading datasets using TensorFlow tf.data data loader, PyTorch DataLoader, and a set of custom data readers implemented in ./reader. For TensorFlow tf.data data loader, PyTorch DataLoader  
+  - We have complete support for tfrecord format in TensorFlow data loader. 
+  - For npz, jpg, jpeg, hdf5, we currently only support one sample per file case. In other words, each sample is stored in an independent file. Multiple samples per file case will be supported in future. 
+
+## How to contribute 
 TBD
-
-# Current Limitations and Future Work
-
-There is an abtraction problem where DLIO considers PyTorch's data loader as a data type when it really is data type agnostic.
-Any of the existing data formats could be supported by extending the Dataset class and implementing the [\_\_len__() and \_\_getitem__() methods](https://pytorch.org/docs/stable/data.html). This forces us to e.g. use `npz_generator` when generating, but switch to `data_loader_reader` when running, which is confusing.
-
-
-DLIO currently assumes the samples to always be 2D images, which is the case for none of our workloads. UNET3D operates on 3D images, which we faked by pretending to have multiple samples in a file (effectively the 3rd dimension). In reality, UNET3D reads in 2 files in every iteration (one for the sample and one for the label), which we can't imitate presently.
-
-Similarly, it hardcodes the TFRecord format to be image/label pairs in the generator and reader, when the records for BERT do not follow this format at all. We will have to modify this for DLRM which reads in a custom binary format.
-
-Considering this and our objectives, it might make sense to change the DLIO abstraction to be workload based, instead of framework/datareader based.
-Under a `workload/` folder, we would add BERT, DLRM, UNET3D and could implement their simulations more precisely than by trying to bend DLIO into reproducing them when it was not built for this purpose.
 
 ## Citation
 ```

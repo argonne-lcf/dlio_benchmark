@@ -32,3 +32,4 @@ class ErrorCodes:
     EC1000 = {1000, "ERROR: Incorrect Computation Type"}
     EC1001 = {1001, "ERROR: Incorrect Format Type"}
     EC1002 = {1002, "ERROR: Invalid Parameter Combination"}
+    EC1003 = {1003, "ERROR: Invalid Data Loader"}

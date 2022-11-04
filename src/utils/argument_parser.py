@@ -16,8 +16,7 @@
 
 import argparse
 
-from src.common.enumerations import FormatType, Shuffle, ReadType, FileAccess, Compression, FrameworkType
-
+from src.common.enumerations import FormatType, Shuffle, ReadType, FileAccess, Compression, FrameworkType, DataLoaderType
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -48,6 +47,7 @@ class ArgumentParser(object):
         else:
             ArgumentParser.__instance = self
         self.parser = argparse.ArgumentParser(description='DLIO Benchmark')
+        self.parser.add_argument("config", nargs='?', default="configs/unet3d.yaml")
         self.parser.add_argument("-fr", "--framework", default=FrameworkType.TENSORFLOW, type=FrameworkType,
                                  choices=list(FrameworkType),
                                  help="framework to use.")
@@ -67,7 +67,7 @@ class ArgumentParser(object):
                                  help="Size of a record/image within dataset")
         self.parser.add_argument("-nf", "--num-files-train", default=8, type=int,
                                  help="Number of files that should be accessed for training.")
-        self.parser.add_argument("-sf", "--num-samples", default=1, type=int,
+        self.parser.add_argument("-sf", "--num-samples-per-file", default=1, type=int,
                                  help="Number of samples per file.")
         self.parser.add_argument("-bs", "--batch-size", default=1, type=int,
                                  help="Per worker batch size for training records.")
@@ -143,7 +143,8 @@ class ArgumentParser(object):
                                  help="Evaluation frequency: evaluate every x epochs")
         self.parser.add_argument("-mos", "--model-size", default=10240, type=int,
                                  help="Size of the model (for checkpointing) in bytes")
-
+        self.parser.add_argument("-dl", "--data-loader", default=None, type=DataLoaderType, 
+                                 help="data loader to use for loading the data [tensorflow|pytorch|None]")
         self.args = self.parser.parse_args()
         self._validate()
 

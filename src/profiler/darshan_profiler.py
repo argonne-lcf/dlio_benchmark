@@ -36,7 +36,8 @@ class DarshanProfiler(IOProfiler):
             DarshanProfiler.__instance = self
 
     def start(self):
-        os.environ["LD_PRELOAD"] = "=/soft/perftools/darshan/darshan-3.1.8/lib/libdarshan.so"
+        #  this has to be changed to allow specifying DARSHAN librrary through DARSHAN_PRELOAD
+        os.environ["LD_PRELOAD"] = os.environ["DARSHAN_PRELOAD"]
         os.environ["DXT_ENABLE_IO_TRACE"] = "1"
         os.environ["DARSHAN_DISABLE"] = "0"
 

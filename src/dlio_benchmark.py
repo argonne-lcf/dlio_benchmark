@@ -57,7 +57,7 @@ class DLIOBenchmark(object):
 
         self.my_rank = self.arg_parser.args.my_rank = self.framework.rank()
         self.comm_size = self.arg_parser.args.comm_size = self.framework.size()
-        self.framework.init_reader(self.arg_parser.args.format)
+        self.framework.init_reader(self.arg_parser.args.format, self.arg_parser.args.data_loader)
 
         self.logfile = os.path.join(self.output_folder, self.arg_parser.args.log_file)
 
@@ -83,7 +83,7 @@ class DLIOBenchmark(object):
 
         self.data_generator = None
         self.num_files_train = self.arg_parser.args.num_files_train
-        self.num_samples = self.arg_parser.args.num_samples
+        self.num_samples = self.arg_parser.args.num_samples_per_file
         self.total_training_steps = self.arg_parser.args.total_training_steps
         
         self.epochs = self.arg_parser.args.epochs
@@ -251,7 +251,7 @@ class DLIOBenchmark(object):
                 self.stats.start_epoch(epoch)
 
                 # Initialize the dataset
-                self.framework.get_reader().read(epoch, do_eval=False)
+                self.framework.get_reader().read(epoch)
                 self.framework.barrier()
 
                 self._train(epoch)

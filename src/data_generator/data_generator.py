@@ -17,7 +17,7 @@ class DataGenerator(ABC):
         self.num_files_train = self._arg_parser.args.num_files_train
         self.do_eval = self._arg_parser.args.do_eval
         self.num_files_eval = self._arg_parser.args.num_files_eval
-        self.num_samples = self._arg_parser.args.num_samples
+        self.num_samples = self._arg_parser.args.num_samples_per_file
         self.my_rank = self._arg_parser.args.my_rank
         self.comm_size = self._arg_parser.args.comm_size
         self.compression = self._arg_parser.args.compression

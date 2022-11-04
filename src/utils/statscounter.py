@@ -20,8 +20,8 @@ class StatsCounter(object):
         self.batch_size = self.args.batch_size
         self.batch_size_eval = self.args.batch_size_eval
         
-        self.steps = math.ceil(self.args.num_samples * self.args.num_files_train / self.args.batch_size / self.args.comm_size)
-        self.steps_eval = math.ceil(self.args.num_samples * self.args.num_files_eval / self.args.batch_size_eval / self.args.comm_size)
+        self.steps = math.ceil(self.args.num_samples_per_file * self.args.num_files_train / self.args.batch_size / self.args.comm_size)
+        self.steps_eval = math.ceil(self.args.num_samples_per_file * self.args.num_files_eval / self.args.batch_size_eval / self.args.comm_size)
         # Only the root process keeps track of overall stats
         if self.my_rank == 0:
             self.per_epoch_stats = {}

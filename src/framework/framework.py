@@ -5,7 +5,7 @@ from time import sleep
 import os
 import logging
 
-from utils.argument_parser import ArgumentParser
+from src.utils.argument_parser import ArgumentParser
 
 class DummyTraceObject(object):
     def __init__(self, string, step, r):
@@ -25,7 +25,7 @@ class Framework(ABC):
         pass
 
     @abstractmethod
-    def init_reader(self, format_type):
+    def init_reader(self, format_type, data_loader=None):
         pass
 
     @abstractmethod 

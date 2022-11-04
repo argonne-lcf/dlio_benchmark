@@ -50,7 +50,7 @@ class HDF5StimulateReader(FormatReader):
     def resize(self, step, image):
         return tf.image.resize(image, (self._dimension, self._dimension))
 
-    def read(self, epoch_number):
+    def read(self, epoch_number, do_eval=False):
         """
         Reading the hdf5 dataset. Here we take just take the filename and they are open during iteration
         :param epoch_number: epoch number for training loop
