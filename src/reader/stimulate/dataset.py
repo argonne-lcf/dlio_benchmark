@@ -19,7 +19,7 @@ class HDF5Generator(ABC):
 
     @abstractmethod
     def get_nevents(self):
-        pass;
+        pass
 
     def closef(self):
         try:

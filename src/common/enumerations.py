@@ -16,42 +16,56 @@
 
 from enum import Enum
 
-"""
-Different Computation Type for training loop.
-"""
+class FrameworkType(Enum):
+    """
+    Different Computation Type for training loop.
+    """
+    TENSORFLOW = 'tensorflow'
+    PYTORCH = 'pytorch'
+
+    def __str__(self):
+        return self.value
+
 class ComputationType(Enum):
+    """
+    Different Computation Type for training loop.
+    """
     NONE = 'none'
     SYNC = 'sync'
     ASYNC = 'async'
 
-"""
-Format Type supported by the benchmark.
-"""
+
 class FormatType(Enum):
+    """
+    Format Type supported by the benchmark.
+    """
     TFRECORD = 'tfrecord'
     HDF5 = 'hdf5'
     CSV = 'csv'
     NPZ = 'npz'
     HDF5_OPT = 'hdf5_opt'
+    DATA_LOADER = 'data_loader'
 
     def __str__(self):
         return self.value
 
-"""
-Profiler types supported by the benchmark.
-"""
+
 class Profiler(Enum):
+    """
+    Profiler types supported by the benchmark.
+    """
     NONE = 'none'
+    IOSTAT = 'iostat'
     DARSHAN = 'darshan'
     TENSORBOARD = 'tensorboard'
 
     def __str__(self):
         return self.value
 
-"""
-Shuffle mode for files and memory.
-"""
 class Shuffle(Enum):
+    """
+    Shuffle mode for files and memory.
+    """
     OFF = 'off'
     SEED = 'seed'
     RANDOM = 'random'
@@ -59,20 +73,26 @@ class Shuffle(Enum):
     def __str__(self):
         return self.value
 
-"""
-Type of read to be performed in the benchmark. 
-"""
 class ReadType(Enum):
+    """
+    Type of read to be performed in the benchmark. 
+    - On Demand: loading data in a batch-by-batch fashion
+    - In Memory: loading data all at once in the beginning. 
+    """
     IN_MEMORY = 'memory'
     ON_DEMAND = 'on_demand'
 
     def __str__(self):
         return self.value
 
-"""
-File access mode.
-"""
 class FileAccess(Enum):
+    """
+    File access mode.
+    - Multi = save dataset into multiple files
+    - Shared = save everything in a single file
+    - Collective = specific for the shared case, when we want to do collective I/O. Typically used for a huge file with small objects. 
+      One thread T reads from disk and the other threads read from T's memory, which is used as a cache.
+    """
     MULTI = 'multi'
     SHARED = 'shared'
     COLLECTIVE = 'collective'
@@ -81,10 +101,10 @@ class FileAccess(Enum):
         return self.value
 
 
-"""
-Different Compression Libraries.
-"""
 class Compression(Enum):
+    """
+    Different Compression Libraries.
+    """
     NONE = 'none'
     GZIP = 'gzip'
     LZF = 'lzf'

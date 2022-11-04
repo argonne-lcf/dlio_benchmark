@@ -13,15 +13,17 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-from src.common.enumerations import Shuffle, FileAccess
-from src.reader.reader_handler import FormatReader
-import numpy as np
 import math
-from numpy import random
+import logging
+import numpy as np
 import tensorflow as tf
 
+from numpy import random
+from src.reader.reader_handler import FormatReader
+from src.common.enumerations import Shuffle, FileAccess
 
-from src.utils.utility import progress
+
+from src.utils.utility import progress, utcnow
 
 class NPZReader(FormatReader):
     """
@@ -40,12 +42,13 @@ class NPZReader(FormatReader):
         for file in self._local_file_list:
             with np.load(file, allow_pickle=True) as data:
                 rows = data['x']
+                logging.info(f"{utcnow()} loading numpy array of shape {rows.shape}")
                 packed_array.append({
                     'dataset': rows,
                     'current_sample': 0,
                     'total_samples': rows.shape[2]
                 })
-        self._dataset =  packed_array
+        self._dataset = packed_array
 
     def next(self):
         """
@@ -71,10 +74,12 @@ class NPZReader(FormatReader):
                     random.seed(self.seed)
                 random.shuffle(num_sets)
             for num_set in num_sets:
+                # Should we check if profiling is enabled and if we're using PT?
                 with tf.profiler.experimental.Trace('HDF5 Input', step_num=num_set / self.batch_size, _r=1):
                     progress(count, total, "Reading NPZ Data")
                     count += 1
                     images = element['dataset'][:][:][num_set * self.batch_size:(num_set + 1) * self.batch_size - 1]
                 yield images
+
     def finalize(self):
         pass

@@ -14,12 +14,13 @@
    limitations under the License.
 """
 import math
+import logging
+from time import time
 
+from src.utils.utility import utcnow
 from src.common.enumerations import Shuffle
 from src.reader.reader_handler import FormatReader
 import tensorflow as tf
-
-from src.utils.utility import progress
 
 
 class TFReader(FormatReader):
@@ -31,6 +32,9 @@ class TFReader(FormatReader):
         self.read_threads = self._arg_parser.args.read_threads
         self.computation_threads = self._arg_parser.args.computation_threads
 
+    # TODO: DLIO assumes the tfrecord files to contain image/label pairs.
+    # This is not always the case, e.g. in BERT, each record is more complex,
+    # consisting of 6 lists and a label. Same for DLRM. 
     def _tf_parse_function(self, serialized):
         """
         performs deserialization of the tfrecord.
@@ -55,16 +59,22 @@ class TFReader(FormatReader):
         d = image, label
         return d
 
-    def read(self, epoch_number):
+    def read(self, epoch_number, do_eval=False):
         """
         Sets up the tf data pipeline to read tf record files.
+        Called once at the start of every epoch.
+        Does not necessarily read in all the data at the start however.
         :param epoch_number:
         """
-        super().read(epoch_number)
+        # superclass function initializes the file list
+        super().read(epoch_number, do_eval)
+
         dataset = tf.data.TFRecordDataset(filenames=self._local_file_list,
                                           buffer_size=self.transfer_size,
                                           num_parallel_reads=self.read_threads)
+
         dataset = dataset.map(self._tf_parse_function, num_parallel_calls=self.computation_threads)
+
         if self.memory_shuffle != Shuffle.OFF:
             if self.memory_shuffle != Shuffle.SEED:
                 dataset = dataset.shuffle(buffer_size=self.shuffle_size,
@@ -73,7 +83,8 @@ class TFReader(FormatReader):
                 dataset = dataset.shuffle(buffer_size=self.shuffle_size)
         if self.prefetch:
             dataset = dataset.prefetch(buffer_size=self.prefetch_size)
-        self._dataset = dataset.batch(self.batch_size)
+        self._dataset = dataset.batch(self.batch_size, drop_remainder=True)
+
 
     def next(self):
         """
@@ -81,16 +92,18 @@ class TFReader(FormatReader):
         :return: data to be processed by the training step.
         """
         super().next()
-        a = iter(self._dataset)
-        count = 1
-        total = math.ceil(self.num_samples*self.num_files/self.batch_size/self.comm_size)
-        for i in a:
-            progress(count, total, "Reading TFRecord Data")
-            count += 1
-            yield i
-            yield next(a)
-            if count > total:
-                break
+        dataset = self._dataset
+
+        # In tf, we can't get the length of the dataset easily so we calculate it
+        if self._debug:
+            total = math.ceil(self.num_samples*self._local_file_list_size/self.batch_size/self.comm_size)
+            logging.debug(f"{utcnow()} Rank {self.my_rank} should read {total} batches")
+
+        # The previous version crashed when all workers could not generate the same amount of batches
+        # Using the inbuilt tensorflow dataset iteration seems to work fine, was there an advantage of doing it the old way?
+        # t1
+        for batch in dataset:
+            yield batch
 
     def finalize(self):
         pass

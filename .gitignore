@@ -1,3 +1,11 @@
+# Benchmark generated data
+data/
+data*/
+output/
+notes/
+stuff/
+*.un~
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -139,3 +147,6 @@ dmypy.json
 /.idea/other.xml
 /data/
 /logdir/
+
+# Temporary files
+*~

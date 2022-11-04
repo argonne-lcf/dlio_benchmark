@@ -15,10 +15,14 @@
 """
 
 import os
+from datetime import datetime
 
 from src.utils.argument_parser import ArgumentParser
 
+# UTC timestamp format with microsecond precision
+LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
+# Where does this print? I don't see it in the terminal
 def progress(count, total, status=''):
     _arg_parser = ArgumentParser.get_instance()
     bar_len = 60
@@ -32,3 +36,6 @@ def progress(count, total, status=''):
         if count == total:
             print("")
         os.sys.stdout.flush()
+
+def utcnow(format=LOG_TS_FORMAT):
+    return datetime.utcnow().strftime(format)

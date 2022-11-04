@@ -1,0 +1,6 @@
+.git
+.github
+output/
+data/
+logs/
+data*/

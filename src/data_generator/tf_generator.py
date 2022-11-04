@@ -18,29 +18,34 @@ from src.data_generator.data_generator import DataGenerator
 from numpy import random
 import tensorflow as tf
 
-from src.utils.utility import progress
+from src.utils.utility import progress, utcnow
 from shutil import copyfile
 
-"""
-Generator for creating data in TFRecord format.
-"""
+import logging
 class TFRecordGenerator(DataGenerator):
+    """
+    Generator for creating data in TFRecord format.
+    """
     def __init__(self):
         super().__init__()
 
     def generate(self):
         """
         Generator for creating data in TFRecord format of 3d dataset.
+        TODO: Might be interesting / more realistic to add randomness to the file sizes.
+        TODO: Extend this to create accurate records for BERT, which does not use image/label pairs.
         """
         super().generate()
+        # This creates a 2D image representing a single record
         record = random.random((self._dimension, self._dimension))
         record_label = 0
         prev_out_spec =""
         count = 0
-        for i in range(0, int(self.num_files)):
+        for i in range(0, self.total_files_to_generate):
             if i % self.comm_size == self.my_rank:
-                progress(i+1, self.num_files, "Generating TFRecord Data")
-                out_path_spec = "{}_{}_of_{}.tfrecords".format(self._file_prefix, i, self.num_files)
+                progress(i+1, self.total_files_to_generate, "Generating TFRecord Data")
+                out_path_spec = f"{self._file_prefix}_{i}_of_{self.total_files_to_generate}.tfrecords"
+                logging.info(f"{utcnow()} Generating TFRecord {out_path_spec}")
                 # Open a TFRecordWriter for the output-file.
                 if count == 0:
                     prev_out_spec = out_path_spec

@@ -34,7 +34,7 @@ class HDF5StimulateGenerator(HDF5Generator):
         super().__init__(hdf5_file, batch_size)
 
     def get_nevents(self):
-        return self._f['records'].shape[0];
+        return self._f['records'].shape[0]
 
     def get_examples(self, start_idx, stop_idx):
         with tf.profiler.experimental.Trace('Read', step_num=start_idx / self.batch_size, _r=1):
@@ -75,7 +75,7 @@ class HDF5StimulateReader(FormatReader):
                 part_size = math.ceil(total_samples_per_rank/parallel_threads)
             else:
                 parallel_threads = 1
-                part_size = total_samples_per_rank;
+                part_size = total_samples_per_rank
             for file in self._local_file_list:
                 for i in range(parallel_threads):
                     local_file_list.append((file,str(i*part_size),str(part_size)))
