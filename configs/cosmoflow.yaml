@@ -1,0 +1,17 @@
+framework: tensorflow
+
+workflow:
+ generate_data: True
+ train: True
+
+dataset:
+ num_files: 1024
+ num_samples_per_file: 512
+ record_length: 131072
+ batch_size 1
+
+data_loader:
+ data_loader: tensorflow
+ computation_threads 8
+ read_threads 8
+

@@ -7,3 +7,4 @@ torchvision>=0.8.0
 torchaudio>=0.7.0
 horovod>=0.20.0
 pillow>=8.0.0
+hydra>=1.1.0
