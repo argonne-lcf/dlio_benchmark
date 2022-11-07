@@ -330,5 +330,3 @@ def main(cfg : DictConfig) -> None:
 if __name__ == '__main__':
     main()
     exit(0)
-BB
-B
