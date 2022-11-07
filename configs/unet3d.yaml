@@ -34,5 +34,4 @@ train:
   do_eval: yes
   eval_time: 11.572
   computation_time: 4.59
-  epochs_between_evals 2
-   
+  epochs_between_evals: 2

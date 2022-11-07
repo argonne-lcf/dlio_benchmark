@@ -57,12 +57,12 @@ class DLIOBenchmark(object):
         self.output_folder = self.args.output_folder
         self.logdir = self.args.logdir
         self.data_folder = self.args.data_folder
-        
+
         if not os.path.isdir(self.output_folder):
             os.mkdir(self.output_folder)
-        if not os.path.isdir(self.logdir)
+        if not os.path.isdir(self.logdir):
             os.mkdir(self.logdir)
-        if not os.path.isdir(self.data_folder)
+        if not os.path.isdir(self.data_folder):
             os.mkdir(self.data_folder)
     
         self.framework = FrameworkFactory().get_framework(self.args.framework,
