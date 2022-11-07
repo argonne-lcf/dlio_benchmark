@@ -1,0 +1,85 @@
+# App name, override to match the name your app is known by
+
+app_name: dlio_benchmark
+
+# Help header, customize to describe your app to your users
+header: == ${hydra.help.app_name} ==
+
+footer: |-
+  Please submit questions / bugs report to https://github.com/argonne-lcf/dlio_benchmark/issues
+  
+  Powered by Hydra (https://hydra.cc)
+  Use --hydra-help to view Hydra specific help
+
+# Basic Hydra flags:
+#   $FLAGS_HELP
+#
+# Config groups, choose one of:
+#   $APP_CONFIG_GROUPS: All config groups that does not start with hydra/.
+#   $HYDRA_CONFIG_GROUPS: All the Hydra config groups (starts with hydra/)
+#
+# Configuration generated with overrides:
+#   $CONFIG : Generated config
+#
+template: |-
+  ${hydra.help.header}
+
+  This is an benchmark for Deep Learning I/O.
+
+  Copyright 2021 UChicago Argonne, LLC
+  
+  The configuration can be specified by a yaml config file.
+
+  A complete list of config options are: 
+
+  workflow:
+    generate_data: whether to generate data
+    train: whether to perform training 
+    debug: whether to turn on debugging
+    profiling: whether to perform profiling
+  framework: specifying the framework to use [tensorflow | pytorch]
+  dataset:
+    record_length: size of sample in bytes
+    format: the format of the file that the dataset is stored [hdf5|png|jepg|csv...]
+    num_files_train: number of files for training dataset
+    num_files_val:  number of files for validation dataset
+    num_samples_per_file:  number of samples per file
+    data_dir: the directory that the dataset is stored
+    batch_size: batch size for the training dataset
+    batch_size_eval: batch size fo the validation dataset 
+    file_prefix: the prefix of the dataset files 
+    compression: compression to use
+    compression_level: Level of compression for GZIP
+    chunking: whether to use chunking in generating HDF5 datasets
+    keep_files: whether to keep the generated dataset after the training. 
+  data_loader: 
+    data_loader: data loader to use [tensorflow|pytorch]
+    read_threads: number of threads to be used to load the dataset
+    computation_threads:  number of threads for preprocessing the data
+    prefetch: whether to prefetch the data
+    prefetch_size: Number of batches to prefetch
+    read_shuffle: whether to shuffle the dataset
+    shuffle_size: the shuffle buffer size in byte
+    read_type: whether it is ON_DEMAND or MEMORY (stored in the memory)
+    file_access: multiple files or shared file access
+    transfer_size: transfer size for tensorflow data loader
+  train:
+    n_epochs: number of epochs for training
+    computation_time: simulated training time (in seconds) for each training step
+    eval_time: simulated evaluation time (in seconds) for each step
+    total_training_steps:  total number of traning steps. If this is set, epochs will be ignored
+    seed_change_epoch: whether to change the random seed after each epoch 
+    eval_after_epoch: start evaluation after eval_after_epoch epochs
+    do_eval: whether to do evaluation
+    seed: the random seed
+  checkpoint: 
+    do_checkpoint:  whether to do checkpoint
+    checkpoing_after_epoch: start checkpointing after certain number of epochs specified 
+    epochs_between_checkpoints: performing one checkpointing per certain number of epochs specified 
+    output_folder: the output folder for checkpointing 
+    model_size:  the size of the model in bytes
+
+  You can override everything in a command line, for example:
+  python src/dlio_benchmark.py framework=tensorflow
+
+  ${hydra.help.footer}

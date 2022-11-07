@@ -16,7 +16,6 @@
 from abc import ABC, abstractmethod
 
 from src.common.enumerations import FrameworkType, Shuffle, FileAccess
-from src.utils.argument_parser import ArgumentParser
 from src.framework.framework_factory import FrameworkFactory
 from src.utils.utility import utcnow
 from src.utils.config import ConfigArguments

@@ -1,4 +1,4 @@
 #!/bin/bash
+num_procs=${1:-8}
 
-horovodrun -np 1 python3 src/dlio_benchmark.py --format tfrecord --record-length 2500 --num-samples 313532 \
-    --generate-data yes --generate-only yes --num-files-train 500 --file-prefix "part"
+horovodrun -np $num_procs python3 src/dlio_benchmark.py --config-name=bert ++dataset.file-prefix="part"

@@ -22,27 +22,15 @@ jobs:
         HOROVOD_WITH_TENSORFLOW=1 pip install horovod 
         python setup.py build
         python setup.py install
-    - name: test-tfrecord
-      run: |
-        mkdir -p ResNet50
-        export APP_DATA_DIR=ResNet50
-        touch __init__.py
-        export PYTHONPATH=./:$PYTHONPATH
-        mpirun -n 2 python ./src/dlio_benchmark.py -f tfrecord --data-loader tensorflow -fa multi -nf 1024 -sf 1024 -rl 262144 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR} -gd 1 -go 1 -k 1
-        mpirun -n 2 python ./src/dlio_benchmark.py -f tfrecord --data-loader tensorflow -fa multi -nf 1024 -sf 1024 -rl 262144 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR} -gd 0 -k 1
     - name: test-torch-loader-npz
       run: |
         mkdir -p ResNet50
-        export APP_DATA_DIR=ResNet50
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -n 2 python ./src/dlio_benchmark.py -f npz --data-loader pytorch --framework pytorch -fa multi -nf 1024 -sf 1 -rl 262144 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR} -gd 1 -go 1 -k 1
-        mpirun -n 2 python ./src/dlio_benchmark.py -f npz --data-loader pytorch --framework pytorch -fa multi -nf 1024 -sf 1 -rl 262144 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR} -gd 0 -k 1
+        mpirun -n 2 python ./src/dlio_benchmark.py --config-name resnet50 ++dataset.num_files_train 64 ++dataset.data_folder=ResNet50
     - name: test-tf-loader-npz
       run: |
         mkdir -p ResNet50
-        export APP_DATA_DIR=ResNet50
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -n 2 python ./src/dlio_benchmark.py -f npz --data-loader tensorflow --framework tensorflow -fa multi -nf 1024 -sf 1 -rl 262144 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR} -gd 1 -go 1 -k 1
-        mpirun -n 2 python ./src/dlio_benchmark.py -f npz --data-loader tensorflow --framework tensorflow -fa multi -nf 1024 -sf 1 -rl 262144 -ts 1048576 -tr 8 -tc 8 -df ${APP_DATA_DIR} -gd 0 -k 1
+        mpirun -n 2 python ./src/dlio_benchmark.py --config-name unet3d ++dataset.data_folder=UNET3D

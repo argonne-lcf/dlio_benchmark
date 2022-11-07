@@ -315,7 +315,7 @@ class DLIOBenchmark(object):
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
-@hydra.main(version_base=None, config_path="../configs", config_name="unet3d")
+@hydra.main(version_base=None, config_path="../configs", config_name="default")
 def main(cfg : DictConfig) -> None:
     """
     The main method to start the benchmark runtime.
@@ -331,3 +331,4 @@ if __name__ == '__main__':
     main()
     exit(0)
 BB
+B

@@ -1,0 +1,30 @@
+framework: tensorflow
+
+workflow:
+ generate_data: True
+ train: True
+ debug: False
+ 
+dataset: 
+ data_folder: ./data
+ format: tfrecord
+ num_files_train: 500
+ num_samples_per_file: 313532
+ record-length: 2500
+ batch_size: 7
+
+train:
+ computation_time: 0.968
+
+ 
+data_loader:
+ data_loader: tensorflow
+ read_threads: 1
+ computation_threads: 8
+ transfer_size: 262144
+
+checkpoint:
+ do_checkpoint: True
+ steps_between_checkpoints: 1250
+ total_training_steps: 5000
+ model_size: 4034713312

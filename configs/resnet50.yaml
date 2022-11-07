@@ -1,0 +1,18 @@
+framework: tensorflow
+
+workflow:
+ generate_data: True
+ train: True
+
+dataset:
+ num_files_train: 1024
+ num_samples_per_file: 1024
+ record_length: 150528
+ data_folder: ResNet50
+ format: tfrecord
+ 
+data_loader:
+ data_loader: tensorflow
+ read_threads: 8
+ computation_threads: 8
+ 

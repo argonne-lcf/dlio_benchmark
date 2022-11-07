@@ -1,0 +1,35 @@
+defaults:
+ - override hydra/help: dlio_benchmark_help.yaml
+ 
+app_name: dlio_benchmark
+
+output_folder: "./output"
+
+model:
+  name: unet3d
+
+framework: pytorch
+
+workflow:
+  generate_data: True
+  train: True
+
+dataset: 
+  data_dir: ./data/
+  format: npz
+  num_files_train: 2048
+  num_files_val: 512
+  num_samples_per_file: 1
+  batch_size: 4
+  batch_size_eval: 1
+  file_access: multi
+  record_length: 1145359
+
+data_loader: 
+  data_loader: pytorch
+
+train:
+  epochs: 10
+  do_eval: yes
+  eval_time: 11.572
+  computation_time: 4.59
