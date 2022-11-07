@@ -78,9 +78,9 @@ class TorchDataLoaderReader(FormatReader):
 
     def __init__(self):
         super().__init__()
-        self.read_threads = self._arg_parser.args.read_threads
-        self.computation_threads = self._arg_parser.args.computation_threads
-        self.format = self._arg_parser.args.format
+        self.read_threads = self._args.read_threads
+        self.computation_threads = self._args.computation_threads
+        self.format = self._args.format
 
     def read(self, epoch_number, do_eval=False):
         # superclass function initializes the file list

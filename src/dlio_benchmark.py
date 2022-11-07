@@ -19,9 +19,9 @@ from src.common.enumerations import Profiler
 from src.data_generator.generator_factory import GeneratorFactory
 from src.framework.framework_factory import FrameworkFactory
 from src.profiler.profiler_factory import ProfilerFactory
-from src.utils.argument_parser import ArgumentParser
 from src.utils.utility import utcnow
 from src.utils.statscounter import StatsCounter
+from src.utils.config import load_config, ConfigArguments
 
 import math
 import os
@@ -40,7 +40,7 @@ class DLIOBenchmark(object):
     The Benchmark represents the I/O behavior of deep learning applications.
     """
 
-    def __init__(self):
+    def __init__(self, cfg):
         """
         This initializes the DLIO benchmark. Intialization includes:
         <ul>
@@ -50,16 +50,18 @@ class DLIOBenchmark(object):
             <li> local variables </li>
         </ul>
         """
-        self.arg_parser = ArgumentParser.get_instance()
-        self.output_folder = self.arg_parser.args.output_folder
-        self.framework = FrameworkFactory().get_framework(self.arg_parser.args.framework,
-                                                          self.arg_parser.args.profiling)
+        self.args = ConfigArguments.get_instance()
+    
+        load_config(self.args, cfg)
+        self.output_folder = self.args.output_folder
+        self.framework = FrameworkFactory().get_framework(self.args.framework,
+                                                          self.args.profiling)
 
-        self.my_rank = self.arg_parser.args.my_rank = self.framework.rank()
-        self.comm_size = self.arg_parser.args.comm_size = self.framework.size()
-        self.framework.init_reader(self.arg_parser.args.format, self.arg_parser.args.data_loader)
+        self.my_rank = self.args.my_rank = self.framework.rank()
+        self.comm_size = self.args.comm_size = self.framework.size()
+        self.framework.init_reader(self.args.format, self.args.data_loader)
 
-        self.logfile = os.path.join(self.output_folder, self.arg_parser.args.log_file)
+        self.logfile = os.path.join(self.output_folder, self.args.log_file)
 
         # Delete previous logfile
         if self.my_rank == 0:
@@ -67,7 +69,7 @@ class DLIOBenchmark(object):
                 os.remove(self.logfile)
 
         # Configure the logging library
-        log_level = logging.DEBUG if self.arg_parser.args.debug else logging.INFO
+        log_level = logging.DEBUG if self.args.debug else logging.INFO
         logging.basicConfig(
             level=log_level,
             handlers=[
@@ -78,38 +80,38 @@ class DLIOBenchmark(object):
         )
 
 
-        self.generate_only = self.arg_parser.args.generate_only
-        self.do_profiling = self.arg_parser.args.profiling
+        self.generate_only = self.args.generate_only
+        self.do_profiling = self.args.profiling
 
         self.data_generator = None
-        self.num_files_train = self.arg_parser.args.num_files_train
-        self.num_samples = self.arg_parser.args.num_samples_per_file
-        self.total_training_steps = self.arg_parser.args.total_training_steps
+        self.num_files_train = self.args.num_files_train
+        self.num_samples = self.args.num_samples_per_file
+        self.total_training_steps = self.args.total_training_steps
         
-        self.epochs = self.arg_parser.args.epochs
-        self.batch_size = self.arg_parser.args.batch_size
-        self.computation_time = self.arg_parser.args.computation_time
+        self.epochs = self.args.epochs
+        self.batch_size = self.args.batch_size
+        self.computation_time = self.args.computation_time
 
         if self.do_profiling:
             self.darshan = ProfilerFactory().get_profiler(Profiler.DARSHAN)
 
-        if self.arg_parser.args.generate_data:
-            self.data_generator = GeneratorFactory.get_generator(self.arg_parser.args.format)
+        if self.args.generate_data:
+            self.data_generator = GeneratorFactory.get_generator(self.args.format)
 
         # Checkpointing support
-        self.do_checkpoint = self.arg_parser.args.do_checkpoint
-        self.steps_between_checkpoints = self.arg_parser.args.steps_between_checkpoints
-        self.epochs_between_checkpoints = self.arg_parser.args.epochs_between_checkpoints
-        self.checkpoint_after_epoch = self.arg_parser.args.checkpoint_after_epoch
+        self.do_checkpoint = self.args.do_checkpoint
+        self.steps_between_checkpoints = self.args.steps_between_checkpoints
+        self.epochs_between_checkpoints = self.args.epochs_between_checkpoints
+        self.checkpoint_after_epoch = self.args.checkpoint_after_epoch
         
         # Evaluation support
-        self.do_eval = self.arg_parser.args.do_eval
-        self.num_files_eval = self.arg_parser.args.num_files_eval
+        self.do_eval = self.args.do_eval
+        self.num_files_eval = self.args.num_files_eval
 
-        self.batch_size_eval = self.arg_parser.args.batch_size_eval
-        self.eval_time = self.arg_parser.args.eval_time
-        self.eval_after_epoch = self.arg_parser.args.eval_after_epoch
-        self.epochs_between_evals = self.arg_parser.args.epochs_between_evals
+        self.batch_size_eval = self.args.batch_size_eval
+        self.eval_time = self.args.eval_time
+        self.eval_after_epoch = self.args.eval_after_epoch
+        self.epochs_between_evals = self.args.epochs_between_evals
 
         # Hold various lists/dicts for statistics
         self.time_to_load_train_batch = []
@@ -133,10 +135,10 @@ class DLIOBenchmark(object):
         - It generates the required data
         - Start profiling session for Darshan and Tensorboard.
         """
-        if self.arg_parser.args.debug and self.arg_parser.args.my_rank == 0:
+        if self.args.debug and self.args.my_rank == 0:
             input("Press enter to start\n")
         self.framework.barrier()
-        if self.arg_parser.args.generate_data:
+        if self.args.generate_data:
             logging.info(f"{utcnow()} Starting data generation")
             self.data_generator.generate()
             logging.info(f"{utcnow()} Generation done")
@@ -145,7 +147,7 @@ class DLIOBenchmark(object):
             self.darshan.start()
             self.framework.start_framework_profiler()
             self.framework.barrier()
-            if self.arg_parser.args.my_rank == 0:
+            if self.args.my_rank == 0:
                 logging.info(f"{utcnow()} Profiling Started")\
 
         self.framework.barrier()
@@ -297,12 +299,12 @@ class DLIOBenchmark(object):
                 self.framework.barrier()
                 if self.my_rank == 0:
                     logging.info(f"{utcnow()} profiling stopped")
-            if not self.arg_parser.args.keep_files:
+            if not self.args.keep_files:
                 logging.info(f"{utcnow()} Keep files set to False. Deleting dataset")
                 self.framework.barrier()
                 if self.my_rank == 0:
-                    if os.path.exists(self.arg_parser.args.data_folder):
-                        shutil.rmtree(self.arg_parser.args.data_folder)
+                    if os.path.exists(self.args.data_folder):
+                        shutil.rmtree(self.args.data_folder)
                         logging.info(f"{utcnow()} Deleted data files")
             
             # Save collected stats to disk
@@ -310,13 +312,16 @@ class DLIOBenchmark(object):
 
         self.framework.barrier()
 
+import hydra
+from omegaconf import DictConfig, OmegaConf
 
-def main():
+@hydra.main(version_base=None, config_path="../configs", config_name="unet3d")
+def main(cfg : DictConfig) -> None:
     """
     The main method to start the benchmark runtime.
     """
     os.environ["DARSHAN_DISABLE"] = "1"
-    benchmark = DLIOBenchmark()
+    benchmark = DLIOBenchmark(cfg)
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()
@@ -325,3 +330,4 @@ def main():
 if __name__ == '__main__':
     main()
     exit(0)
+BB

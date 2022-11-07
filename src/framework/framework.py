@@ -1,3 +1,19 @@
+"""
+   Copyright 2021 UChicago Argonne, LLC
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+"""
+
 from abc import ABC, abstractmethod
 from src.utils.utility import utcnow
 
@@ -5,7 +21,7 @@ from time import sleep
 import os
 import logging
 
-from src.utils.argument_parser import ArgumentParser
+from src.utils.config import ConfigArguments
 
 class DummyTraceObject(object):
     def __init__(self, string, step, r):
@@ -20,7 +36,7 @@ class DummyTraceObject(object):
 
 class Framework(ABC):
     def __init__(self):
-        self.args = ArgumentParser.get_instance().args
+        self.args = ConfigArguments.get_instance()
         self.output_folder = self.args.output_folder
         pass
 

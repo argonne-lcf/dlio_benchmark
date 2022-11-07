@@ -13,6 +13,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+
 from src.common.enumerations import Compression
 from src.data_generator.data_generator import DataGenerator
 
@@ -40,7 +41,7 @@ class PNGGenerator(DataGenerator):
         logging.info(f"dimension of images: {dim} x {dim} x 3")
         for i in range(0, int(self.total_files_to_generate)):
             records = random.randint(255, size=(dim, dim, 3))
-            im = Image.fromarray(records)
+            img = im.fromarray(records)
             if self.my_rank == 0 and i % 100 == 0:
                 logging.info(f"Generated file {i}/{self.total_files_to_generate}")
             if i % self.comm_size == self.my_rank:

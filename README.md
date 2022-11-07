@@ -124,107 +124,59 @@ Work in progress.
 ## Command line options for DLIO
 
 ```
-$ python3 src/dlio_benchmark.py -h
-usage: dlio_benchmark.py [-h] [-fr {tensorflow,pytorch}] [-f {tfrecord,hdf5,csv,npz,hdf5_opt,data_loader}] [-r {off,seed,random}] [-ms SHUFFLE_SIZE] [-m {off,seed,random}] [-rt {memory,on_demand}] [-fa {multi,shared,collective}] [-rl RECORD_LENGTH] [-nf NUM_FILES_TRAIN] [-sf NUM_SAMPLES] [-bs BATCH_SIZE] [-e EPOCHS]
-                         [-se SEED_CHANGE_EPOCH] [-gd GENERATE_DATA] [-go GENERATE_ONLY] [-df DATA_FOLDER] [-of OUTPUT_FOLDER] [-lf LOG_FILE] [-fp FILE_PREFIX] [-k KEEP_FILES] [-p PROFILING] [-l LOGDIR] [-s SEED] [-c DO_CHECKPOINT] [-cae CHECKPOINT_AFTER_EPOCH] [-ebc EPOCHS_BETWEEN_CHECKPOINTS] [-sbc STEPS_BETWEEN_CHECKPOINTS]
-                         [-ts TRANSFER_SIZE] [-tr READ_THREADS] [-tc COMPUTATION_THREADS] [-ct COMPUTATION_TIME] [-rp PREFETCH] [-ps PREFETCH_SIZE] [-ec ENABLE_CHUNKING] [-cs CHUNK_SIZE] [-co {none,gzip,lzf,bz2,zip,xz}] [-cl COMPRESSION_LEVEL] [-d DEBUG] [-tts TOTAL_TRAINING_STEPS] [-de DO_EVAL] [-bse BATCH_SIZE_EVAL]
-                         [-nfe NUM_FILES_EVAL] [-et EVAL_TIME] [-eae EVAL_AFTER_EPOCH] [-ebe EPOCHS_BETWEEN_EVALS] [-mos MODEL_SIZE]
+$ python3 src/dlio_benchmark.py --help
+  The configuration can be specified by a yaml config file.
 
-DLIO Benchmark
+  A complete list of config options are: 
 
-optional arguments:
-  -h, --help            show this help message and exit
-  -fr {tensorflow,pytorch}, --framework {tensorflow,pytorch}
-                        framework to use.
-  -f {tfrecord,hdf5,csv,npz,hdf5_opt,data_loader}, --format {tfrecord,hdf5,csv,npz,hdf5_opt,data_loader}
-                        data reader to use.
-  -r {off,seed,random}, --read-shuffle {off,seed,random}
-                        Shuffle the list of files to be read.
-  -ms SHUFFLE_SIZE, --shuffle-size SHUFFLE_SIZE
-                        (TF only) Size of the shuffle buffer in bytes.
-  -m {off,seed,random}, --memory-shuffle {off,seed,random}
-                        Shuffle the records returned by the data loader.
-  -rt {memory,on_demand}, --read-type {memory,on_demand}
-                        The read behavior for the benchmark.
-  -fa {multi,shared,collective}, --file-access {multi,shared,collective}
-                        How the files are accessed in the benchmark.
-  -rl RECORD_LENGTH, --record-length RECORD_LENGTH
-                        Size of a record/image within dataset
-  -nf NUM_FILES_TRAIN, --num-files-train NUM_FILES_TRAIN
-                        Number of files that should be accessed for training.
-  -sf NUM_SAMPLES_PER_FILE, --num-samples-per-files NUM_SAMPLES_PER_FILE
-                        Number of samples per file.
-  -bs BATCH_SIZE, --batch-size BATCH_SIZE
-                        Per worker batch size for training records.
-  -e EPOCHS, --epochs EPOCHS
-                        Number of epochs to be emulated within benchmark.
-  -se SEED_CHANGE_EPOCH, --seed-change-epoch SEED_CHANGE_EPOCH
-                        change seed between epochs. y/n
-  -gd GENERATE_DATA, --generate-data GENERATE_DATA
-                        Enable generation of data. y/n
-  -go GENERATE_ONLY, --generate-only GENERATE_ONLY
-                        Only generate files then exit.
-  -df DATA_FOLDER, --data-folder DATA_FOLDER
-                        Set the path of folder where data is present in top-level.
-  -of OUTPUT_FOLDER, --output-folder OUTPUT_FOLDER
-                        Set the path of folder where output can be generated (checkpoint files and logs)
-  -lf LOG_FILE, --log-file LOG_FILE
-                        Name of the logfile
-  -fp FILE_PREFIX, --file-prefix FILE_PREFIX
-                        Prefix for generated files.
-  -k KEEP_FILES, --keep-files KEEP_FILES
-                        Keep files after benchmark. y/n
-  -p PROFILING, --profiling PROFILING
-                        Enable I/O profiling within benchmark. y/n
-  -l LOGDIR, --logdir LOGDIR
-                        Log Directory for profiling logs.
-  -s SEED, --seed SEED  The seed to be used shuffling during read/memory.
-  -c DO_CHECKPOINT, --do-checkpoint DO_CHECKPOINT
-                        Enable checkpointing. y/n
-  -cae CHECKPOINT_AFTER_EPOCH, --checkpoint-after-epoch CHECKPOINT_AFTER_EPOCH
-                        Epoch number after which to enable checkpointing.
-  -ebc EPOCHS_BETWEEN_CHECKPOINTS, --epochs-between-checkpoints EPOCHS_BETWEEN_CHECKPOINTS
-                        Number of epochs between checkpoints.
-  -sbc STEPS_BETWEEN_CHECKPOINTS, --steps-between-checkpoints STEPS_BETWEEN_CHECKPOINTS
-                        Number of steps between checkpoints.
-  -ts TRANSFER_SIZE, --transfer-size TRANSFER_SIZE
-                        Transfer Size for tensorflow buffer size.
-  -tr READ_THREADS, --read-threads READ_THREADS
-                        Number of threads to be used for reads.
-  -tc COMPUTATION_THREADS, --computation-threads COMPUTATION_THREADS
-                        Number of threads to be used for pre-processing.
-  -ct COMPUTATION_TIME, --computation-time COMPUTATION_TIME
-                        Processing time (seconds) for each training data batch.
-  -rp PREFETCH, --prefetch PREFETCH
-                        Enable prefetch within benchmark.
-  -ps PREFETCH_SIZE, --prefetch-size PREFETCH_SIZE
-                        Number of batches to prefetch.
-  -ec ENABLE_CHUNKING, --enable-chunking ENABLE_CHUNKING
-                        Enable chunking for HDF5 files.
-  -cs CHUNK_SIZE, --chunk-size CHUNK_SIZE
-                        Set chunk size in bytes for HDF5.
-  -co {none,gzip,lzf,bz2,zip,xz}, --compression {none,gzip,lzf,bz2,zip,xz}
-                        Compression to use.
-  -cl COMPRESSION_LEVEL, --compression-level COMPRESSION_LEVEL
-                        Level of compression for GZip.
-  -d DEBUG, --debug DEBUG
-                        Enable debug in code.
-  -tts TOTAL_TRAINING_STEPS, --total-training-steps TOTAL_TRAINING_STEPS
-                        Total number of training steps to take. DLIO will terminate after this number.
-  -de DO_EVAL, --do-eval DO_EVAL
-                        If we should simulate evaluation (single rank only for now). See -et, -eae and -eee to configure.
-  -bse BATCH_SIZE_EVAL, --batch-size-eval BATCH_SIZE_EVAL
-                        Per worker batch size for evaluation records.
-  -nfe NUM_FILES_EVAL, --num-files-eval NUM_FILES_EVAL
-                        Number of files that should be put aside for evaluation. Defaults to zero.
-  -et EVAL_TIME, --eval-time EVAL_TIME
-                        Processing time (seconds) for each evaluation data batch.
-  -eae EVAL_AFTER_EPOCH, --eval-after-epoch EVAL_AFTER_EPOCH
-                        Epoch number after which to start evaluating
-  -ebe EPOCHS_BETWEEN_EVALS, --epochs-between-evals EPOCHS_BETWEEN_EVALS
-                        Evaluation frequency: evaluate every x epochs
-  -mos MODEL_SIZE, --model-size MODEL_SIZE
-                        Size of the model (for checkpointing) in bytes
+  workflow:
+    generate_data: whether to generate data
+    train: whether to perform training 
+    debug: whether to turn on debugging
+    profiling: whether to enable profiling within benchmark
+  framework: specifying the framework to use [tensorflow | pytorch]
+  dataset:
+    record_length: size of sample in bytes
+    format: the format of the file that the dataset is stored [hdf5|png|jepg|csv...]
+    num_files_train: number of files for training dataset
+    num_files_val:  number of files for validation dataset
+    num_samples_per_file:  number of samples per file
+    data_dir: the directory that the dataset is stored
+    batch_size: batch size for the training dataset
+    batch_size_eval: batch size fo the validation dataset 
+    file_prefix: the prefix of the dataset files 
+    compression: compression to use
+    compression_level: Level of compression for GZIP
+    chunking: whether to use chunking in generating HDF5 datasets
+  data_loader: 
+    data_loader: the data loader to use [tensorflow|pytorch]
+    read_threads: number of threads to load the dataset
+    computation_threads:  number of threads for preprocessing the data
+    prefetch: whether to prefetch the data
+    prefetch_size: the buffer size for prefetch
+    read_shuffle: whether to shuffle the dataset
+    shuffle_size: the shuffle buffer size in byte
+    read_type: whether it is ON_DEMAND or MEMORY (stored in the memory)
+    file_access: multiple files or shared file access
+    transfer_size: transfer size for tensorflow data loader
+  train:
+    n_epochs: number of epochs for training
+    computation_time: simulated training time (in seconds) for each training step
+    eval_time: simulated evaluation time (in seconds) for each step
+    total_training_steps:  total number of traning steps. If this is set, n_epochs will be ignored
+    seed_change_epoch: whether to change the random seed after each epoch 
+    eval_after_epoch: start evaluation after eval_after_epoch epochs
+    do_eval: whether to do evaluation
+    seed: the random seed
+  checkpoint: 
+    do_checkpoint:  whether to do checkpoint
+    checkpoing_after_epoch: start checkpointing after certain number of epochs specified 
+    epochs_between_checkpoints: performing one checkpointing per certain number of epochs specified 
+    output_folder: the output folder for checkpointing 
+    model_size:  the size of the model in bytes
+
+  You can override everything in a command line, for example:
+  python src/dlio_benchmark.py framework=tensorflow
 ```
 
 ## Current Limitations and Future Work

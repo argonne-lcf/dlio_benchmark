@@ -1,6 +1,6 @@
 
 from numpy import append
-from src.utils.argument_parser import ArgumentParser
+from src.utils.config import ConfigArguments
 from src.utils.utility import utcnow
 
 import os
@@ -13,7 +13,7 @@ from time import time
 class StatsCounter(object):
 
     def __init__(self):
-        self.args = ArgumentParser.get_instance().args
+        self.args = ConfigArguments.get_instance()
         self.my_rank = self.args.my_rank
         self.output_folder = self.args.output_folder
 

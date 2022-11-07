@@ -17,19 +17,19 @@
 import os
 from datetime import datetime
 
-from src.utils.argument_parser import ArgumentParser
+from src.utils.config import ConfigArguments
 
 # UTC timestamp format with microsecond precision
 LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
 # Where does this print? I don't see it in the terminal
 def progress(count, total, status=''):
-    _arg_parser = ArgumentParser.get_instance()
+    _args = ConfigArguments.get_instance()
     bar_len = 60
     filled_len = int(round(bar_len * count / float(total)))
     percents = round(100.0 * count / float(total), 1)
     bar = '=' * filled_len + '-' * (bar_len - filled_len)
-    if _arg_parser.args.debug:
+    if _args.debug:
         if count == 1:
             print("")
         print("\r[{}] {}% {} of {} {} ".format(bar, percents, count, total, status), end='')

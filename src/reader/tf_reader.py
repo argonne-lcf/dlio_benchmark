@@ -29,8 +29,8 @@ class TFReader(FormatReader):
     """
     def __init__(self):
         super().__init__()
-        self.read_threads = self._arg_parser.args.read_threads
-        self.computation_threads = self._arg_parser.args.computation_threads
+        self.read_threads = self._args.read_threads
+        self.computation_threads = self._args.computation_threads
 
     # TODO: DLIO assumes the tfrecord files to contain image/label pairs.
     # This is not always the case, e.g. in BERT, each record is more complex,
