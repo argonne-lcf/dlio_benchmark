@@ -42,15 +42,15 @@ class HDF5StimulateGenerator(HDF5Generator):
         return images
 
 class HDF5StimulateReader(FormatReader):
-    def __init__(self):
-        super().__init__()
-        self.read_threads = self._arg_parser.args.read_threads
-        self.computation_threads = self._arg_parser.args.computation_threads
+    def __init__(self, dataset_type):
+        super().__init__(dataset_type)
+        self.read_threads = self._args.read_threads
+        self.computation_threads = self._args.computation_threads
 
     def resize(self, step, image):
         return tf.image.resize(image, (self._dimension, self._dimension))
 
-    def read(self, epoch_number, do_eval=False):
+    def read(self, epoch_number):
         """
         Reading the hdf5 dataset. Here we take just take the filename and they are open during iteration
         :param epoch_number: epoch number for training loop

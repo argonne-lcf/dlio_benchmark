@@ -29,10 +29,10 @@ import tensorflow as tf
 CSV Reader reader and iterator logic.
 """
 class CSVReader(FormatReader):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, dataset_type):
+        super().__init__(dataset_type)
 
-    def read(self, epoch_number, do_eval=False):
+    def read(self, epoch_number):
         """
         Opens the CSV dataset and reads the rows in memory.
         :param epoch_number: current epoch number

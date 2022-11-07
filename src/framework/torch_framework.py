@@ -15,7 +15,7 @@
 """
 
 from src.common.error_code import ErrorCodes
-from src.common.enumerations import FormatType, FrameworkType
+from src.common.enumerations import FormatType, FrameworkType, DatasetType
 from src.framework.framework import Framework, DummyTraceObject
 
 import os
@@ -58,7 +58,8 @@ class TorchFramework(Framework):
         self.reader_handler = None
 
     def init_reader(self, format_type, data_loader=None):
-        self.reader_handler = ReaderFactory.get_reader(format_type, data_loader=data_loader)
+        self.reader_train = ReaderFactory.get_reader(format_type, data_loader=data_loader, dataset_type=DatasetType.TRAIN)
+        self.reader_valid = ReaderFactory.get_reader(format_type, data_loader=data_loader, dataset_type=DatasetType.VALID)
 
     def get_type(self):
         return FrameworkType.PYTORCH
@@ -110,5 +111,8 @@ class TorchFramework(Framework):
     def compute(self, epoch_number, step, computation_time):
         torch_sleep(computation_time)
 
-    def get_reader(self):
-        return self.reader_handler
+    def get_reader(self, dataset_type=DatasetType.TRAIN):
+        if dataset_type == DatasetType.TRAIN:
+            return self.reader_train
+        else:
+            return self.reader_valid

@@ -16,6 +16,17 @@
 
 from enum import Enum
 
+class DatasetType(Enum):
+    """
+    Training and Validation
+    """
+    TRAIN = 'train'
+    VALID = 'valid'
+
+    def __str__(self):
+        return self.value
+
+
 class FrameworkType(Enum):
     """
     Different Computation Type for training loop.

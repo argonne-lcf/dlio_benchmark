@@ -30,10 +30,10 @@ class NPZReader(FormatReader):
     """
     Reader for NPZ files
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, dataset_type):
+        super().__init__(dataset_type)
 
-    def read(self, epoch_number, do_eval=False):
+    def read(self, epoch_number):
         """
         for each epoch it opens the npz files and reads the data into memory
         :param epoch_number:

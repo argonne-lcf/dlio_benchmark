@@ -15,7 +15,7 @@
 """
 from time import time
 
-from src.common.enumerations import Profiler
+from src.common.enumerations import Profiler, DatasetType
 from src.data_generator.generator_factory import GeneratorFactory
 from src.framework.framework_factory import FrameworkFactory
 from src.profiler.profiler_factory import ProfilerFactory
@@ -57,13 +57,9 @@ class DLIOBenchmark(object):
         self.output_folder = self.args.output_folder
         self.logdir = self.args.logdir
         self.data_folder = self.args.data_folder
-
-        if not os.path.isdir(self.output_folder):
-            os.mkdir(self.output_folder)
-        if not os.path.isdir(self.logdir):
-            os.mkdir(self.logdir)
-        if not os.path.isdir(self.data_folder):
-            os.mkdir(self.data_folder)
+        os.makedirs(self.output_folder, exist_ok=True)
+        os.makedirs(self.logdir, exist_ok=True)
+        os.makedirs(self.data_folder, exist_ok=True)
     
         self.framework = FrameworkFactory().get_framework(self.args.framework,
                                                           self.args.profiling)
@@ -170,7 +166,7 @@ class DLIOBenchmark(object):
         step = 1
         total = math.ceil(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         t0 = time() 
-        for batch in self.framework.get_reader().next():
+        for batch in self.framework.get_reader(DatasetType.VALID).next():
             self.stats.eval_batch_loaded(epoch, t0)
 
             if self.eval_time > 0:
@@ -200,7 +196,7 @@ class DLIOBenchmark(object):
         self.stats.start_block(epoch, block)
 
         t0 = time()
-        for batch in self.framework.get_reader().next():
+        for batch in self.framework.get_reader(dataset_type=DatasetType.TRAIN).next():
             self.stats.batch_loaded(epoch, block, t0)
             
             # Log a new block, unless it's the first one which we've already logged before the loop
@@ -264,7 +260,7 @@ class DLIOBenchmark(object):
                 self.stats.start_epoch(epoch)
 
                 # Initialize the dataset
-                self.framework.get_reader().read(epoch)
+                self.framework.get_reader(dataset_type=DatasetType.TRAIN).read(epoch)
                 self.framework.barrier()
 
                 self._train(epoch)
@@ -273,23 +269,23 @@ class DLIOBenchmark(object):
                 self.next_checkpoint_epoch += self.epochs_between_checkpoints
 
                 self.framework.barrier()
-                self.framework.get_reader().finalize()
+                self.framework.get_reader(DatasetType.TRAIN).finalize()
 
                 # Perform evaluation if enabled
-                if self.do_eval and epoch == next_eval_epoch:
+                if self.do_eval and epoch >= next_eval_epoch:
                     next_eval_epoch += self.epochs_between_evals
 
                     self.stats.start_eval(epoch)
                 
                     # Initialize the eval dataset
-                    self.framework.get_reader().read(epoch, do_eval=True)
+                    self.framework.get_reader(DatasetType.VALID).read(epoch)
                     self.framework.barrier()
                     
                     self._eval(epoch)
                     self.stats.end_eval(epoch)
 
                     self.framework.barrier()
-                    self.framework.get_reader().finalize()
+                    self.framework.get_reader(DatasetType.VALID).finalize()
 
     def save(self, df_like, name):
         """
@@ -336,7 +332,6 @@ def main(cfg : DictConfig) -> None:
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()
-
 
 if __name__ == '__main__':
     main()

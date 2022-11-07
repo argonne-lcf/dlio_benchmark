@@ -27,8 +27,8 @@ class TFDataLoaderReader(FormatReader):
     """
     Reader for TFRecord files.
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, dataset_type):
+        super().__init__(dataset_type)
         self.read_threads = self._args.read_threads
         self.computation_threads = self._args.computation_threads
         self.format = self._args.format
@@ -57,7 +57,7 @@ class TFDataLoaderReader(FormatReader):
             print("Reading %f format using Tensorflow Data Loader is not implemented, reading as bytes contents directly" %self.format)
             return tf.io.read_file(filename)
 
-    def read(self, epoch_number, do_eval=False):
+    def read(self, epoch_number):
         """
         Sets up the tf data pipeline to read tf record files.
         Called once at the start of every epoch.
@@ -65,7 +65,7 @@ class TFDataLoaderReader(FormatReader):
         :param epoch_number:
         """
         # superclass function initializes the file list
-        super().read(epoch_number, do_eval)
+        super().read(epoch_number)
         dataset = tf.data.Dataset.from_tensor_slices(self._file_list)
         dataset = dataset.shard(num_shards=self.comm_size, index=self.my_rank)
         dataset = dataset.map(self._tf_parse_function, num_parallel_calls=self.read_threads)

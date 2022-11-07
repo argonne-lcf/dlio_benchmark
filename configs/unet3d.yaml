@@ -13,9 +13,10 @@ framework: pytorch
 workflow:
   generate_data: True
   train: True
+  evaluation: True
 
 dataset: 
-  data_dir: ./data/
+  data_folder: ./data/unet3d/
   format: npz
   num_files_train: 3620
   num_files_val: 42
@@ -31,7 +32,7 @@ data_loader:
 
 train:
   epochs: 10
-  do_eval: yes
+  do_eval: True
   eval_time: 11.572
   computation_time: 4.59
   epochs_between_evals: 2

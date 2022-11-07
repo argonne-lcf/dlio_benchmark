@@ -22,7 +22,7 @@ from src.common.error_code import ErrorCodes
 from src.framework.framework import Framework
 from src.reader.reader_factory import ReaderFactory
 from src.profiler.profiler_factory import ProfilerFactory
-from src.common.enumerations import FrameworkType, Profiler, FormatType
+from src.common.enumerations import FrameworkType, Profiler, FormatType, DatasetType
 
 import tensorflow as tf
 
@@ -43,7 +43,8 @@ class TFFramework(Framework):
         self.reader_handler = None
 
     def init_reader(self, format_type, data_loader=None):
-        self.reader_handler = ReaderFactory.get_reader(format_type, data_loader=data_loader)
+        self.reader_train = ReaderFactory.get_reader(format_type, data_loader=data_loader, dataset_type=DatasetType.TRAIN)
+        self.reader_valid = ReaderFactory.get_reader(format_type, data_loader=data_loader, dataset_type=DatasetType.VALID)
 
     def get_type(self):
         return FrameworkType.TENSORFLOW
@@ -109,5 +110,9 @@ class TFFramework(Framework):
     def compute(self, epoch_number, step, computation_time):
         tf.function(self.model)(epoch_number, step, computation_time)
 
-    def get_reader(self):
-        return self.reader_handler
+    def get_reader(self, dataset_type=DatasetType.TRAIN):
+        if dataset_type == DatasetType.TRAIN:
+            return self.reader_train
+        else:
+            return self.reader_valid
+        

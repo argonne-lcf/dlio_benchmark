@@ -40,13 +40,13 @@ class PNGGenerator(DataGenerator):
         count = 0
         logging.info(f"dimension of images: {dim} x {dim} x 3")
         for i in range(0, int(self.total_files_to_generate)):
+            out_path_spec = self._file_list[i]
             records = random.randint(255, size=(dim, dim, 3))
             img = im.fromarray(records)
             if self.my_rank == 0 and i % 100 == 0:
                 logging.info(f"Generated file {i}/{self.total_files_to_generate}")
             if i % self.comm_size == self.my_rank:
                 progress(i+1, self.total_files_to_generate, "Generating PNG Data")
-                out_path_spec = "{}_{}_of_{}.png".format(self._file_prefix, i, self.total_files_to_generate)
                 if count == 0:
                     prev_out_spec = out_path_spec
                     img.save(out_path_spec, format='PNG', bits=8)

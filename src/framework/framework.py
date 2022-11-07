@@ -83,5 +83,5 @@ class Framework(ABC):
         pass
 
     @abstractmethod
-    def get_reader(self):
+    def get_reader(self, dataset_type):
         pass

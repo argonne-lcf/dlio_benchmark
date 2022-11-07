@@ -44,8 +44,8 @@ class NPZGenerator(DataGenerator):
             if self.my_rank == 0 and i % 100 == 0:
                 logging.info(f"Generated file {i}/{self.total_files_to_generate}")
             if i % self.comm_size == self.my_rank:
+                out_path_spec = self._file_list[i]
                 progress(i+1, self.total_files_to_generate, "Generating NPZ Data")
-                out_path_spec = "{}_{}_of_{}.npz".format(self._file_prefix, i, self.total_files_to_generate)
                 if count == 0:
                     prev_out_spec = out_path_spec
                     if self.compression != Compression.ZIP:

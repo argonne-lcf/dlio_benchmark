@@ -28,10 +28,10 @@ from src.utils.utility import progress
 Reader for HDF5 files for training file.
 """
 class HDF5Reader(FormatReader):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, dataset_type):
+        super().__init__(dataset_type)
 
-    def read(self, epoch_number, do_eval=False):
+    def read(self, epoch_number):
         """
         Reading the hdf5 dataset. Here we take just take the filename and they are open during iteration
         :param epoch_number: epoch number for training loop

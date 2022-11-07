@@ -44,7 +44,7 @@ class TFRecordGenerator(DataGenerator):
         for i in range(0, self.total_files_to_generate):
             if i % self.comm_size == self.my_rank:
                 progress(i+1, self.total_files_to_generate, "Generating TFRecord Data")
-                out_path_spec = f"{self._file_prefix}_{i}_of_{self.total_files_to_generate}.tfrecords"
+                out_path_spec = self._file_list[i]
                 logging.info(f"{utcnow()} Generating TFRecord {out_path_spec}")
                 # Open a TFRecordWriter for the output-file.
                 if count == 0:

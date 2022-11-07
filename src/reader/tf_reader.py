@@ -27,8 +27,8 @@ class TFReader(FormatReader):
     """
     Reader for TFRecord files.
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, dataset_type):
+        super().__init__(dataset_type)
         self.read_threads = self._args.read_threads
         self.computation_threads = self._args.computation_threads
 
@@ -59,7 +59,7 @@ class TFReader(FormatReader):
         d = image, label
         return d
 
-    def read(self, epoch_number, do_eval=False):
+    def read(self, epoch_number):
         """
         Sets up the tf data pipeline to read tf record files.
         Called once at the start of every epoch.
@@ -67,12 +67,10 @@ class TFReader(FormatReader):
         :param epoch_number:
         """
         # superclass function initializes the file list
-        super().read(epoch_number, do_eval)
-
+        super().read(epoch_number)
         dataset = tf.data.TFRecordDataset(filenames=self._local_file_list,
                                           buffer_size=self.transfer_size,
                                           num_parallel_reads=self.read_threads)
-
         dataset = dataset.map(self._tf_parse_function, num_parallel_calls=self.computation_threads)
 
         if self.memory_shuffle != Shuffle.OFF:
@@ -96,7 +94,7 @@ class TFReader(FormatReader):
 
         # In tf, we can't get the length of the dataset easily so we calculate it
         if self._debug:
-            total = math.ceil(self.num_samples*self._local_file_list_size/self.batch_size/self.comm_size)
+            total = math.ceil(self.num_samples*len(self._local_file_list)/self.batch_size)
             logging.debug(f"{utcnow()} Rank {self.my_rank} should read {total} batches")
 
         # The previous version crashed when all workers could not generate the same amount of batches

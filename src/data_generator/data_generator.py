@@ -40,19 +40,30 @@ class DataGenerator(ABC):
         self.compression_level = self._args.compression_level
         self._file_prefix = None
         self._dimension = None
+        self._file_list = None
+        self.num_subfolders_train = self._args.num_subfolders_train
+        self.num_subfolders_val = self._args.num_subfolders_val
+        self.format = self._args.format
 
     @abstractmethod
     def generate(self):
-
-        if self.my_rank == 0 and not os.path.exists(self.data_dir):
-            os.makedirs(self.data_dir)
+        if self.my_rank == 0:
+            os.makedirs(self.data_dir, exist_ok=True)
+            os.makedirs(self.data_dir + "/train/", exist_ok=True)
+            os.makedirs(self.data_dir + "/valid/", exist_ok=True)
         MPI.COMM_WORLD.barrier()
         # What is the logic behind this formula? 
         # Will probably have to adapt to generate non-images
         self._dimension = int(math.sqrt(self.record_size/8))
-        self._file_prefix = os.path.join(self.data_dir, self.file_prefix)
 
         self.total_files_to_generate = self.num_files_train
 
         if self.num_files_eval > 0:
             self.total_files_to_generate += self.num_files_eval
+        self._file_list = []
+        for i in range(self.num_files_train):
+            file_spec = "{}/train/{}_{}_of_{}.{}".format(self.data_dir, self.file_prefix, i, self.num_files_train, self.format)
+            self._file_list.append(file_spec)
+        for i in range(self.num_files_eval):
+            file_spec = "{}/valid/{}_{}_of_{}.{}".format(self.data_dir, self.file_prefix, i, self.num_files_eval, self.format)
+            self._file_list.append(file_spec)  

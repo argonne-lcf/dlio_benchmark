@@ -76,19 +76,19 @@ class TorchDataLoaderReader(FormatReader):
     DataLoader reader and iterator logic.
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, dataset_type):
+        super().__init__(dataset_type)
         self.read_threads = self._args.read_threads
         self.computation_threads = self._args.computation_threads
         self.format = self._args.format
 
-    def read(self, epoch_number, do_eval=False):
+    def read(self, epoch_number):
         # superclass function initializes the file list
-        super().read(epoch_number, do_eval)
+        super().read(epoch_number)
 
         do_shuffle = True if self.memory_shuffle != Shuffle.OFF else False
 
-        dataset = TorchDataset(self._local_file_list, self.my_rank, self.format)
+        dataset = TorchDataset(self._file_list, self.my_rank, self.format)
 
         # TODO: In image segmentation, the distributed sampler is not used during eval, we could parametrize this away if needed
         # This handles the partitioning between ranks
