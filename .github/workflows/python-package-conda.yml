@@ -19,7 +19,7 @@ jobs:
         sudo apt-get install mpich
         python -m pip install --upgrade pip
         pip install tensorflow h5py mpi4py pandas
-        HOROVOD_WITH_TENSORFLOW=1 pip install horovod 
+        HOROVOD_WITH_TENSORFLOW=1 HOROVOD_WITH_PYTORCH=1 pip install horovod 
         python setup.py build
         python setup.py install
     - name: test-tf-loader-tfrecord
