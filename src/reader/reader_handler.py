@@ -24,6 +24,7 @@ import os
 import math
 import logging
 from numpy import random
+import glob
 
 
 class FormatReader(ABC):
@@ -74,13 +75,19 @@ class FormatReader(ABC):
         """
         if self.dataset_type == DatasetType.TRAIN:
             filenames = os.listdir(self.data_dir + "/train/")
-            fullpaths = [os.path.join(self.data_dir+"/train/", entry) for entry in filenames]
+            if not os.path.isfile(self.data_dir + "/train/" + filenames[0]):
+                fullpaths=glob.glob(self.data_dir + "/train/*/*")
+            else:
+                fullpaths = [os.path.join(self.data_dir+"/train/", entry) for entry in filenames]
 
             num_files = self.num_files_train
             self.batch_size = self.batch_size_train
         elif self.dataset_type == DatasetType.VALID:
             filenames = os.listdir(self.data_dir + "/valid/")
-            fullpaths = [os.path.join(self.data_dir+"/valid/", entry) for entry in filenames]
+            if not os.path.isfile(self.data_dir + "/valid/" + filenames[0]):
+                fullpaths=glob.glob(self.data_dir + "/valid/*/*")
+            else:
+                fullpaths = [os.path.join(self.data_dir+"/valid/", entry) for entry in filenames]
             num_files = self.num_files_eval
             self.batch_size = self.batch_size_eval
 

@@ -29,6 +29,9 @@ import shutil
 import logging
 import pandas as pd
 
+import hydra
+from omegaconf import DictConfig, OmegaConf
+
 # Remove (some) TF and CUDA logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['AUTOGRAPH_VERBOSITY'] = '0'
@@ -318,9 +321,6 @@ class DLIOBenchmark(object):
             self.stats.save_data()
 
         self.framework.barrier()
-
-import hydra
-from omegaconf import DictConfig, OmegaConf
 
 @hydra.main(version_base=None, config_path="../configs", config_name="default")
 def main(cfg : DictConfig) -> None:

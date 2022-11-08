@@ -28,7 +28,7 @@ class ConfigArguments:
     format: FormatType = FormatType.TFRECORD
     # Shuffle type
     read_shuffle: Shuffle = Shuffle.OFF
-    shuffle_size: int = 1024 * 1024
+    shuffle_size: int = 1024
     memory_shuffle: Shuffle =Shuffle.OFF
     read_type: ReadType = ReadType.ON_DEMAND
     file_access: FileAccess = FileAccess.MULTI
@@ -72,8 +72,8 @@ class ConfigArguments:
     epochs_between_evals: int = 0 
     model_size: int = 10240
     data_loader: DataLoaderType = DataLoaderType.TENSORFLOW
-    num_subfolders_train: int = 1
-    num_subfolders_val: int = 1
+    num_subfolders_train: int = 0
+    num_subfolders_eval: int = 0
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -88,7 +88,7 @@ class ConfigArguments:
         if ConfigArguments.__instance is None:
             ConfigArguments()
         return ConfigArguments.__instance
-
+    
 def load_config(args, config):
     '''
     Override the args by a system config (typically loaded from a YAML file)
@@ -114,8 +114,8 @@ def load_config(args, config):
             args.data_folder = config['dataset']['data_folder']
         if 'num_subfolders_train' in config['dataset']:
             args.num_subfolders_train = config['dataset']['num_subfolders_train']
-        if 'num_subfolders_val' in config['dataset']:
-            args.num_subfolders_val = config['dataset']['num_subfolders_val']
+        if 'num_subfolders_eval' in config['dataset']:
+            args.num_subfolders_eval = config['dataset']['num_subfolders_eval']
         if 'batch_size' in config['dataset']:
             args.batch_size = config['dataset']['batch_size']
         if 'batch_size_eval' in config['dataset']:
@@ -199,6 +199,5 @@ def load_config(args, config):
         if 'evaluation' in config['workflow']:
             args.do_eval= config['workflow']['evaluation']
         if 'checkpoint' in config['workflow']:
-            args.do_checkpoint= config['workflow']['checkpoint']  
-
+            args.do_checkpoint= config['workflow']['checkpoint']
         

@@ -32,52 +32,59 @@ template: |-
 
   A complete list of config options are: 
 
+  output_folder: the folder to save output, default="output"
+  logdir: the folder to save logs, default='logdir'
+  log_file: the filename for log, default='dlio.log'
+  framework: specifying the framework to use [tensorflow | pytorch], default=tensorflow
   workflow:
-    generate_data: whether to generate data
-    train: whether to perform training 
-    debug: whether to turn on debugging
-    profiling: whether to perform profiling
-  framework: specifying the framework to use [tensorflow | pytorch]
+    generate_data: whether to generate data [True/False], default=False
+    train: whether to perform training [True/False], default=True
+    evaluation: whether to perform validation [True/False], default=False
+    checkpoint: whether to checkpoint the model [True/False], default=False
+    debug: whether to turn on debugging [True/False], default=False
+    profiling: whether to perform profiling [True/False], default=False
   dataset:
-    record_length: size of sample in bytes
-    format: the format of the file that the dataset is stored [hdf5|png|jepg|csv...]
-    num_files_train: number of files for training dataset
-    num_files_val:  number of files for validation dataset
-    num_samples_per_file:  number of samples per file
-    data_dir: the directory that the dataset is stored
-    batch_size: batch size for the training dataset
-    batch_size_eval: batch size fo the validation dataset 
-    file_prefix: the prefix of the dataset files 
-    compression: compression to use
-    compression_level: Level of compression for GZIP
-    chunking: whether to use chunking in generating HDF5 datasets
-    keep_files: whether to keep the generated dataset after the training. 
+    record_length: size of sample in bytes, default = 64*1024
+    format: the format of the file that the dataset is stored [hdf5|png|jepg|csv...], default=tfrecord
+    num_files_train: number of files for training dataset, default=1
+    num_files_eval:  number of files for validation dataset, default=0
+    num_samples_per_file:  number of samples per file, default=1
+    data_folder: the directory that the dataset is stored, default=./data
+    num_subfolders_train: the number of subfolders to hold the training dataset, default=0
+    num_subfolders_eval: the number of subfolders to hold the validation dataset, default=0
+    batch_size: batch size for the training dataset, default=1
+    batch_size_eval: batch size fo the validation dataset, default=1
+    file_prefix: the prefix of the dataset files, default=img
+    compression: compression to use, default=Compression.NONE
+    compression_level: Level of compression for GZIP, default=4
+    chunking: whether to use chunking in generating HDF5 datasets, default=False
+    keep_files: whether to keep the generated dataset after the training, default=True
   data_loader: 
-    data_loader: data loader to use [tensorflow|pytorch]
-    read_threads: number of threads to be used to load the dataset
-    computation_threads:  number of threads for preprocessing the data
-    prefetch: whether to prefetch the data
-    prefetch_size: Number of batches to prefetch
-    read_shuffle: whether to shuffle the dataset
-    shuffle_size: the shuffle buffer size in byte
-    read_type: whether it is ON_DEMAND or MEMORY (stored in the memory)
-    file_access: multiple files or shared file access
-    transfer_size: transfer size for tensorflow data loader
+    data_loader: data loader to use [tensorflow|pytorch], default=tensorflow
+    read_threads: number of threads to be used to load the dataset, default=1
+    computation_threads:  number of threads for preprocessing the data, default=1
+    prefetch: whether to prefetch the data, default=False
+    prefetch_size: Number of batches to prefetch, default=0
+    read_shuffle: whether to shuffle the dataset, [seed|random|off], default=off
+    shuffle_size: (tensorflow only) number of samples from the dataset from which the dataset will sample, 
+    read_type: whether it is ON_DEMAND or MEMORY (stored in the memory), default=ON_DEMAND
+    file_access: multiple files or shared file access, default=multi
+    transfer_size: transfer size for tensorflow data loader, default=
   train:
-    n_epochs: number of epochs for training
-    computation_time: simulated training time (in seconds) for each training step
-    eval_time: simulated evaluation time (in seconds) for each step
-    total_training_steps:  total number of traning steps. If this is set, epochs will be ignored
-    seed_change_epoch: whether to change the random seed after each epoch 
-    eval_after_epoch: start evaluation after eval_after_epoch epochs
-    do_eval: whether to do evaluation
-    seed: the random seed
+    epochs: number of epochs for training, default=1
+    computation_time: simulated training time (in seconds) for each training step, default=0
+    total_training_steps:  total number of traning steps. If this is set, epochs will be ignored, default=-1
+    seed_change_epoch: whether to change the random seed after each epoch, default=True
+    seed: the random seed, default=123
+  evaluation:
+    eval_time: simulated evaluation time (in seconds) for each step, default=0
+    eval_after_epoch: start evaluation after eval_after_epoch epochs, default=0
+    epochs_between_evals: evaluate after x number of epochs, default=0
   checkpoint: 
-    do_checkpoint:  whether to do checkpoint
     checkpoing_after_epoch: start checkpointing after certain number of epochs specified 
-    epochs_between_checkpoints: performing one checkpointing per certain number of epochs specified 
-    output_folder: the output folder for checkpointing 
-    model_size:  the size of the model in bytes
+    epochs_between_checkpoints: performing one checkpointing per certain number of epochs specified, default=0
+    model_size: the size of the model in bytes
+    steps_between_checkpoints: performing one checkpointing per certain number of steps specified, default=0
 
   You can override everything in a command line, for example:
   python src/dlio_benchmark.py framework=tensorflow
