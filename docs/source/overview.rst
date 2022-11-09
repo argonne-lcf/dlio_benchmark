@@ -1,5 +1,6 @@
 Introduction
 =============
+
 Deep learning has been shown as a successful
 method for various tasks, and its popularity results in numerous
 open-source deep learning software tools. Deep learning has
@@ -127,10 +128,6 @@ In this YAML file,
 Dataset Generation
 '''''''''''''''''''''
 We have a dataset generation module, which can generate synthetic datasets base on the configuration specified in the YAML file. This eliminates the dependence on real dataset which is typically difficult to get. One can also scale the dataset to study the I/O load for large scale dataset. The dataset generation process can be done in parallel. 
-
-'''''''''''''''''''''
-Benchmark Simulation
-'''''''''''''''''''''
 
 '''''''''''''''''''''''
 DLIO excution
