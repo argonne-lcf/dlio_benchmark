@@ -1,0 +1,34 @@
+model: default
+
+framework: pytorch
+
+workflow:
+  generate_data: True
+  train: True
+  evaluation: True
+
+dataset: 
+  data_folder: ./data/default/
+  format: npz
+  num_files_train: 64
+  num_files_eval: 8
+  num_samples_per_file: 1
+  batch_size: 4
+  batch_size_eval: 1
+  file_access: multi
+  record_length: 1145359
+  keep_files: True
+  num_subfolders_train: 2
+  num_subfolders_eval: 2
+  
+data_loader: 
+  data_loader: pytorch
+
+train:
+  epochs: 10
+  computation_time: 1.00
+
+
+evaluation: 
+  eval_time: 0.5
+  epochs_between_evals: 2
