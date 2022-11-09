@@ -62,7 +62,7 @@ class FormatReader(ABC):
         self._debug = self._args.debug
         self.dataset_type = dataset_type
         self.framework = FrameworkFactory().get_framework(self._args.framework,
-                                                          self._args.profiling)
+                                                          self._args.do_profiling)
         # We do this here so we keep the same evaluation files every epoch
 
     @abstractmethod

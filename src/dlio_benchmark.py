@@ -66,7 +66,7 @@ class DLIOBenchmark(object):
         os.makedirs(self.data_folder, exist_ok=True)
 
         self.framework = FrameworkFactory().get_framework(self.args.framework,
-                                                          self.args.profiling)
+                                                          self.args.do_profiling)
 
         self.my_rank = self.args.my_rank = self.framework.rank()
         self.comm_size = self.args.comm_size = self.framework.size()
