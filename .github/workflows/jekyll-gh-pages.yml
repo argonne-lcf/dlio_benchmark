@@ -34,6 +34,7 @@ jobs:
           sudo apt-get install python3-sphinx
           pip install sphinx_rtd_theme
           cd ./docs
+          cp ./docs/source/index.rst ./docs/source/contents.rst
           make html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
