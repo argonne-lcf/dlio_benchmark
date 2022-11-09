@@ -1,9 +1,9 @@
 .. DLIO documentation master file
 
-Deep Learning I/O (DLIO) Benchmark
+Deep Learning I/O Benchmark
 ===============================================================
 
-DLIO is an I/O benchmark for Deep Learning. DLIO is aimed at emulating the I/O behavior of various deep learning applications. The benchmark is delivered as an executable that can be configured for various I/O patterns. It uses a modular design to incorporate more data loaders, data formats, datasets, and configuration parameters. It emulates modern deep learning applications using Benchmark Runner, Data Generator, Format Handler, and I/O Profiler modules.
+Deep Learning I/O (DLIO) Benchmark is a benchmark suite aimed at emulating the I/O behavior of various deep learning applications. The benchmark is delivered as an executable that can be configured for various I/O patterns. It uses a modular design to incorporate more data loaders, data formats, datasets, and configuration parameters. It emulates modern deep learning applications using Benchmark Runner, Data Generator, Format Handler, and I/O Profiler modules.
 
 The main features of DLIO include: 
 * Easy-to-use and rich configurations through YAML config files to emulate deep learning application's I/O behavior.
