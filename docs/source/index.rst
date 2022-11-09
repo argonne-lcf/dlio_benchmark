@@ -39,11 +39,17 @@ The main features of DLIO include:
 
 .. toctree::
    :maxdepth: 2
+   :caption: Resources
+
+   resources.rst
+
+.. toctree::
+   :maxdepth: 2
    :caption: Legal
 
    copyright
    license
-
+   
 Indices and tables
 ==================
 
