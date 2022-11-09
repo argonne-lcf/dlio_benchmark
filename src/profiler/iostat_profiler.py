@@ -23,16 +23,16 @@ class IostatProfiler(IOProfiler):
     __instance = None
 
     @staticmethod
-    def get_instance(*args):
+    def get_instance():
         """ Static access method. """
         if IostatProfiler.__instance is None:
-            IostatProfiler(*args)
+            IostatProfiler()
         return IostatProfiler.__instance
 
-    def __init__(self, logfile):
+    def __init__(self):
         super().__init__()
-        self.my_rank = self._arg_parser.args.my_rank
-        self.logfile = logfile
+        self.my_rank = self._args.my_rank
+        self.logfile = os.path.join(self._args.output_folder, 'iostat.json')
         """ Virtually private constructor. """
         if IostatProfiler.__instance is not None:
             raise Exception("This class is a singleton!")
@@ -44,7 +44,9 @@ class IostatProfiler(IOProfiler):
             # Open the logfile for writing
             self.logfile = open(self.logfile, 'w')
             #TODO: Get the relevant disks (from user input?)
-            cmd = ["iostat", "-mdxtcy", "-o", "JSON", "sda", "sdb", "1"]
+            #iostat -c 5 -w 10 disk0
+            #cmd = ["iostat", "-mdxtcy", "-o", "JSON", "sda", "sdb", "1"]
+            cmd = ['iostat','-w', '1']
             self.process = sp.Popen(cmd, stdout=self.logfile, stderr=self.logfile)
 
     def stop(self):

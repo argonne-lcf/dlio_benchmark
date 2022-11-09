@@ -21,7 +21,7 @@ from src.framework.framework_factory import FrameworkFactory
 from src.profiler.profiler_factory import ProfilerFactory
 from src.utils.utility import utcnow
 from src.utils.statscounter import StatsCounter
-from src.utils.config import load_config, ConfigArguments
+from src.utils.config import LoadConfig, ConfigArguments
 
 import math
 import os
@@ -31,7 +31,8 @@ import pandas as pd
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
-
+from hydra.core.config_store import ConfigStore
+from dataclasses import dataclass
 # Remove (some) TF and CUDA logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['AUTOGRAPH_VERBOSITY'] = '0'
@@ -55,22 +56,21 @@ class DLIOBenchmark(object):
         """
         self.args = ConfigArguments.get_instance()
     
-        load_config(self.args, cfg)
-    
-        self.output_folder = self.args.output_folder
+        LoadConfig(self.args, cfg)
+        hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
+        self.args.output_folder = hydra_cfg['runtime']['output_dir']
         self.logdir = self.args.logdir
         self.data_folder = self.args.data_folder
+        self.output_folder = self.args.output_folder
         os.makedirs(self.output_folder, exist_ok=True)
-        os.makedirs(self.logdir, exist_ok=True)
         os.makedirs(self.data_folder, exist_ok=True)
-    
+
         self.framework = FrameworkFactory().get_framework(self.args.framework,
                                                           self.args.profiling)
 
         self.my_rank = self.args.my_rank = self.framework.rank()
         self.comm_size = self.args.comm_size = self.framework.size()
         self.framework.init_reader(self.args.format, self.args.data_loader)
-
         self.logfile = os.path.join(self.output_folder, self.args.log_file)
 
         # Delete previous logfile
@@ -88,10 +88,10 @@ class DLIOBenchmark(object):
             ],
             format='%(message)s [%(pathname)s:%(lineno)d]'  # logging's max timestamp resolution is msecs, we will pass in usecs in the message
         )
-
-
+        logging.info(f"{utcnow()} Running DLIO with {self.comm_size} processes")
+        
         self.generate_only = self.args.generate_only
-        self.do_profiling = self.args.profiling
+        self.do_profiling = self.args.do_profiling
 
         self.data_generator = None
         self.num_files_train = self.args.num_files_train
@@ -103,7 +103,7 @@ class DLIOBenchmark(object):
         self.computation_time = self.args.computation_time
 
         if self.do_profiling:
-            self.darshan = ProfilerFactory().get_profiler(Profiler.DARSHAN)
+            self.profiler = ProfilerFactory().get_profiler(self.args.profiler)
 
         if self.args.generate_data:
             self.data_generator = GeneratorFactory.get_generator(self.args.format)
@@ -154,7 +154,7 @@ class DLIOBenchmark(object):
             logging.info(f"{utcnow()} Generation done")
 
         if self.do_profiling:
-            self.darshan.start()
+            self.profiler.start()
             self.framework.start_framework_profiler()
             self.framework.barrier()
             if self.args.my_rank == 0:
@@ -304,7 +304,7 @@ class DLIOBenchmark(object):
         self.framework.barrier()
         if not self.generate_only:
             if self.do_profiling:
-                self.darshan.stop()
+                self.profiler.stop()
                 self.framework.stop_framework_profiler()
                 self.framework.barrier()
                 if self.my_rank == 0:
@@ -322,13 +322,14 @@ class DLIOBenchmark(object):
 
         self.framework.barrier()
 
-@hydra.main(version_base=None, config_path="../configs", config_name="default")
+
+@hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg : DictConfig) -> None:
     """
     The main method to start the benchmark runtime.
     """
     os.environ["DARSHAN_DISABLE"] = "1"
-    benchmark = DLIOBenchmark(cfg)
+    benchmark = DLIOBenchmark(cfg['workload'])
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()

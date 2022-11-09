@@ -14,8 +14,9 @@
    limitations under the License.
 """
 
-from src.common.enumerations import FormatType, Shuffle, ReadType, FileAccess, Compression, FrameworkType, DataLoaderType
+from src.common.enumerations import FormatType, Shuffle, ReadType, FileAccess, Compression, FrameworkType, DataLoaderType, Profiler
 from dataclasses import dataclass
+import hydra
 
 @dataclass
 class ConfigArguments:
@@ -46,7 +47,8 @@ class ConfigArguments:
     log_file: str  = "dlio.log"
     file_prefix: str = "img"
     keep_files: bool = True
-    profiling: bool = False
+    do_profiling: bool = False
+    profiler: Profiler = Profiler.NONE
     seed: int = 123
     do_checkpoint: bool = False
     checkpoint_after_epoch: int = 1 
@@ -89,7 +91,7 @@ class ConfigArguments:
             ConfigArguments()
         return ConfigArguments.__instance
     
-def load_config(args, config):
+def LoadConfig(args, config):
     '''
     Override the args by a system config (typically loaded from a YAML file)
     '''
@@ -97,9 +99,6 @@ def load_config(args, config):
         args.framework = FrameworkType(config['framework'])
     if 'logdir' in config:
         args.logdir = config['logdir']
-    if 'output_folder' in config:
-        args.output_folder = config['output_folder']
-
     # dataset related settings
     if 'dataset' in config:
         if 'record_length' in config['dataset']:
@@ -200,4 +199,7 @@ def load_config(args, config):
             args.do_eval= config['workflow']['evaluation']
         if 'checkpoint' in config['workflow']:
             args.do_checkpoint= config['workflow']['checkpoint']
+        if 'profiling' in config['workflow']: 
+            args.do_profiling = True
+            args.profiler = Profiler(config['workflow']['profiling'])
         

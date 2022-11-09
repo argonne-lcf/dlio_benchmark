@@ -16,6 +16,7 @@
 
 from src.profiler.io_profiler import IOProfiler
 import tensorflow as tf
+import os 
 
 class TFProfiler(IOProfiler):
     __instance = None
@@ -34,7 +35,7 @@ class TFProfiler(IOProfiler):
             raise Exception("This class is a singleton!")
         else:
             TFProfiler.__instance = self
-
+        self.logdir = os.path.join(self.output_folder, "tf_logdir/")
     def start(self):
         tf.profiler.experimental.start(self.logdir)
 

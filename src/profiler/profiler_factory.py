@@ -30,8 +30,8 @@ class ProfilerFactory(object):
     def get_profiler(type):
         if type == Profiler.NONE:
             return NoProfiler()
-        # if type == Profiler.IOSTAT:
-        #     return IostatProfiler.get_instance(*args)
+        if type == Profiler.IOSTAT:
+            return IostatProfiler.get_instance()
         elif type == Profiler.DARSHAN:
             return DarshanProfiler.get_instance()
         elif type == Profiler.TENSORBOARD:

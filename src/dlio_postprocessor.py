@@ -1,13 +1,31 @@
+"""
+   Copyright 2021 UChicago Argonne, LLC
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+"""
 import os
 import re
 import json
 import logging
 import argparse
 import pandas as pd
-from src.utils.argument_parser import str2bool
+from src.utils.utility import str2bool
 from statistics import mean, median, stdev, quantiles
-
-
+from src.utils.config import ConfigArguments, LoadConfig
+import hydra
+from omegaconf import DictConfig, OmegaConf
+import yaml 
+import glob
 
 class DLIOPostProcessor:
     def __init__(self, args) -> None:
@@ -22,9 +40,11 @@ class DLIOPostProcessor:
 
         self.batch_size = args.batch_size
         self.batch_size_eval = args.batch_size_eval
+        self.iotrace = None
+        self.per_epoch_stats = None
 
         self.verify_and_load_all_files()
-
+        self.disks = []
         self.overall_stats = {}
 
 
@@ -39,20 +59,28 @@ class DLIOPostProcessor:
             load_and_proc_time_files.append(f'{rank}_load_and_proc_times.json')
 
         all_files.extend(load_and_proc_time_files)
-
+        '''
         is_missing_file = False
         for necessary_file in all_files:
             if necessary_file not in outdir_listing:
                 print(f"ERROR: missing necessary file: {os.path.join(self.outdir, necessary_file)}")
         if is_missing_file:
             exit(-1)
-
+        '''
         # All files are present, load some in
-        with open(os.path.join(self.outdir, 'iostat.json'), 'r') as iotrace_file:
-            self.iotrace = json.load(iotrace_file)
+        try:
+            with open(os.path.join(self.outdir, 'iostat.json'), 'r') as iotrace_file:
+                self.iotrace = json.load(iotrace_file)
+        except: 
+            self.iotrace = None
+            print(f"WARNING: missing necessary file: {os.path.join(self.outdir, 'iostat.json')}")
 
-        with open(os.path.join(self.outdir, 'per_epoch_stats.json'), 'r') as per_epoch_stats_file:
-            self.per_epoch_stats = json.load(per_epoch_stats_file)
+        try:
+            with open(os.path.join(self.outdir, 'per_epoch_stats.json'), 'r') as per_epoch_stats_file:
+                self.per_epoch_stats = json.load(per_epoch_stats_file)
+        except: 
+            self.per_epoch_stats = None
+            print(f"WARNING: missing necessary file: {os.path.join(self.outdir, 'per_epoch_stats.json')}")
 
         # These ones will be loaded in later
         self.load_and_proc_time_files = [os.path.join(self.outdir, f) for f in load_and_proc_time_files]
@@ -390,6 +418,8 @@ class DLIOPostProcessor:
             outfile.write("\n")
 
         def write_out_stats_table(outfile, stats_dict, has_loading=True, indent=0):
+            if self.iotrace == None:
+                return 
             indent = TAB * indent
 
             # This value should be large enough to hold the largest field name + all inner tab-ing + a margin
@@ -442,7 +472,7 @@ class DLIOPostProcessor:
             outfile.write("DLIO v1.0 Report\n\n")
             outfile.write("Note: Training phases lasting less than 2 seconds, will show 'n/a' values, as there is not enough data to compute statistics.\n\n")
             outfile.write("Overall\n\n")
-
+            
             overall_desc = {
                 'Run name:': self.name,
                 'Started:': self.overall_stats['start'],
@@ -456,7 +486,9 @@ class DLIOPostProcessor:
                 overall_desc['Eval batch size:'] = self.batch_size_eval
 
             format_print(outfile, overall_desc, indent=1)
-            write_out_stats_table(outfile, self.overall_stats, indent=1)
+            if (self.iotrace is not None):
+                print(self.iotrace)
+                write_out_stats_table(outfile, self.overall_stats, indent=1)
 
             outfile.write("\nDetailed Report\n\n")
 
@@ -513,10 +545,14 @@ class DLIOPostProcessor:
         logging.info(f"Generating Report")
         self.process_loading_and_processing_times()
         # parse iostat report
-        self.parse_iostat_trace()
-        self.extract_stats_from_iostat_trace()
+        if self.iotrace is not None: 
+            self.parse_iostat_trace()
+            self.extract_stats_from_iostat_trace()
         # Write the report
         self.write_report()
+import yaml
+from yaml.loader import SafeLoader
+
 
 
 def main():
@@ -524,7 +560,7 @@ def main():
     The main method to start the benchmark runtime.
     """
     parser = argparse.ArgumentParser(description='DLIO PostProcessor')
-    
+
     parser.add_argument("-of", "--output-folder", default="./output", type=str,
                         help="Folder containing the output of a benchmark run.")
     parser.add_argument("-np", "--num-proc", default=1, type=int,
@@ -543,14 +579,42 @@ def main():
                         help="Print out more logging")
     parser.add_argument("-n", "--name", default="", type=str,
                         help="Name of the run")
-
+    orig_args = parser.parse_args()
     args = parser.parse_args()
+
+    # figuring out the number of process from the outputs
+    args.num_proc = len(glob.glob(args.output_folder + "/*_load_and_proc_times.json"))
+
+    # load the yaml file and override the command line argument
+    base_config = os.path.join(args.output_folder, "./.hydra/config.yaml")
+    override_config = os.path.join(args.output_folder, "./.hydra/override.yaml")
+    with open(base_config) as f:
+        hydra_config  = yaml.load(f, Loader=SafeLoader)
+    LoadConfig(args, hydra_config['workload'])
+    if 'model' in hydra_config['workload']:
+        args.name = hydra_config['workload']['model']
+    for op in override_config:
+        if op.find("train.epochs")!=-1:
+            args.epochs = int(op.split("=")[1])
+        if op.find('batch_size=')!=-1:
+            args.batch_size = int(op.split("=")[1])
+        if op.find("batch_size_eval")!=-1:
+            args.batch_size_eval = int(op.split("=")[1])
+        if op.find('workflow.checkpoint')!=-1:
+            args.do_checkpoint=str2bool(op.split("=")[1])
+        if op.find("debug")!=-1:
+            args.debug = str2bool(op.split("=")[1])
 
     logging.basicConfig(
         format='%(asctime)s %(message)s',
         level=logging.DEBUG,
         datefmt="%Y-%m-%d %H:%M:%S")
 
+    print(f"===============Processing DLIO output================")
+    print(f"  Job configuration")
+
+    for arg in vars(orig_args):
+        print(f"  {arg}: {getattr(args, arg)}")
     postproc = DLIOPostProcessor(args)
     postproc.generate_report()
 

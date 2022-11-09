@@ -28,12 +28,11 @@ template: |-
 
   Copyright 2021 UChicago Argonne, LLC
   
-  The configuration can be specified by a yaml config file.
+  The configuration of a certain workload can be specified by a yaml file put inside ./configs/workload.
 
-  A complete list of config options are: 
+  A complete list of config options in the yaml file are: 
 
-  output_folder: the folder to save output, default="output"
-  logdir: the folder to save logs, default='logdir'
+  ------------------------------------------------------------
   log_file: the filename for log, default='dlio.log'
   framework: specifying the framework to use [tensorflow | pytorch], default=tensorflow
   workflow:
@@ -87,6 +86,8 @@ template: |-
     steps_between_checkpoints: performing one checkpointing per certain number of steps specified, default=0
 
   You can override everything in a command line, for example:
-  python src/dlio_benchmark.py framework=tensorflow
+  python src/dlio_benchmark.py workload.framework=tensorflow
+
+  By default all the output files will be saved in hydra.run.dir (can be changed in ./configs/config.yaml)
 
   ${hydra.help.footer}

@@ -2,39 +2,18 @@
 
 ## Overview
 
-This is repository for a I/O benchmark which represents Deep Learning Workloads. DLIO benchmark is aimed at emulating the I/O behavior of deep learning applications. The benchmark is delivered as an executable that can be configured for various I/O patterns. It uses a modular design to incorporate more data loaders, data formats, datasets, and configuration parameters. It emulates modern deep learning applications using Benchmark Runner, Data Generator, Format Handler, and I/O Profiler modules. 
+DLIO is an I/O benchmark for Deep Learning. DLIO is aimed at emulating the I/O behavior of various deep learning applications. The benchmark is delivered as an executable that can be configured for various I/O patterns. It uses a modular design to incorporate more data loaders, data formats, datasets, and configuration parameters. It emulates modern deep learning applications using Benchmark Runner, Data Generator, Format Handler, and I/O Profiler modules. 
 
-### DLIO features include 
-* Easy-to-use and highly configurable argument list to emulate any DL application's I/O behavior.
-* Fast prototyping through highly modular components to enhance the benchmark with more data formats.
+### Features 
+* Easy-to-use and highly configurable argument list to emulate deep learning application's I/O behavior.
+* Able to generate synthetic datasets for different deep learning applications. 
 * Full transparency over emulation of I/O access with logging at different levels.
 * Easy to use data generator to test the performance of different data layouts and its impact on the I/O performance.
-* Compatible with modern profiling tools such as Tensorboard and Darshan to extract and analyze I/O behavior
+* Compatible with modern profiling tools such as Tensorboard and Darshan to extract and analyze I/O behavior.
 
-### Example supported workloads
+## Installation and running DLIO
 
-- UNET3D: 3D Medical Image Segmentation 
-  - Reference Implementation: https://github.com/mlcommons/training/tree/master/image_segmentation/pytorch
-  - Framework: PyTorch
-  - Dataset: `.npz` format image files containing a single sample.
-  - Trains over multiple epochs, performs evaluation on a held-out test set periodically.
-
-- BERT: A Large Language Model
-  - Reference Implementation: https://github.com/mlcommons/training/tree/master/language_model/tensorflow/bert
-  - Framework: Tensorflow
-  - Dataset: Multiple `tfrecord` files containing many samples each.
-  - Trains in a single epoch, performs periodic checkpointing of its parameters.
-
-
-- DLRM: Deep Learning Recommendation Model (Work in Progress)
-  - Reference Implementation: https://github.com/facebookresearch/dlrm/tree/6d75c84d834380a365e2f03d4838bee464157516
-  - Framework: PyTorch
-  - Dataset: a single large file containing all the training records, and a seocnd one with the evaluation records
-  - Trains in a single epoch, and performs periodic evaluations.
-
-## Installation
-
-### In conda environment
+### conda
 ```bash
 git clone https://github.com/argonne-lcf/dlio_benchmark
 cd dlio_benchmark/
@@ -42,10 +21,10 @@ python3 -m venv ./venv
 source venv/bin/activate
 pip install -r requirements.txt 
 export PYTHONPATH=$PWD/src:$PYTHONPATH
-python ./src/dlio_benchmark.py -h
+python ./src/dlio_benchmark.py --help
 ```
 
-### In Docker container
+### Docker container
 You must have docker installed on your system. Refer to https://docs.docker.com/get-docker/ for instructions.
 
 Clone the repository.
@@ -69,59 +48,33 @@ A DLIO run is split in 3 phases:
 - Run the benchmark using the previously generated data
 - Post-process the results to generate a report
 
-`start_dlio.sh` provides a convenient way to run these steps, by copying the given scripts to the container and running them within. This way, we don't have to rebuild the image every time we modify the scripts. The script will flush the caches on the host between data-generation and running the benchmark, as well as start `iostat` to gather device-level I/O information. 
+The configurations of a workload can be specified through a yaml file. Examples of yaml files can be find in [./configs/workload/](./configs/workload). 
 
+One can specify specify workload through ```workload=``` option in the command line. The configuration can be overridden through commandline in the ```hyra``` framework (e.g.```++workload.framework=tensorflow```). 
+
+For example, to run the unet3d benchark, one can do
+```bash
+mpirun -np 8 python src/dlio_benchmark.py workload=unet3d
 ```
-$ sudo ./start_dlio.sh --help
-Usage: ./start_dlio.sh [OPTIONS] -- [EXTRA ARGS]
-Convenience script to launch the DLIO benchmark and container.
+This will both generate the dataset and perform benchmark. 
 
-The given data-generation and run scripts will be launched within the container, flushing the caches between them.
-If no data-generation script is given, the data is assumed to have previously been generated in the data directory.
-If no run-script is given, an interactive session to the container will be started instead.
+One can separate the data generation part and training part as 
+* data generation
+  ```bash
+  mpirun -np 8 python src/dlio_benchmark.py workload=unet3d ++workload.workflow.generate_data=True ++workload.workflow.train=False ++workload.workflow.evaluation=False
+  ```
+* running benchmark
+  ```bash
+  mpirun -np 8 python src/dlio_benchmark.py workload=unet3d ++workload.workflow.generate_data=False ++workload.workflow.train=True ++workload.workflow.evaluation=True
+  ```
 
-Options:
-  -h, --help                    Print this message.
-  -dd, --data-dir               Directory where the training data is read and generated. ./data by default.
-  -od, --output-dir             Output directory for log and checkpoint files. ./output by default.
-  -bd, --device                 An I/O device to trace. Can be passed multiple times.
-  -im, --image-name             Name of the docker image to launch the container from. Defaults to 'dlio:latest'.
-  -c, --container-name          Name to give the docker container. Defaults to dlio.
-  -dgs, --datagen-script        Script to generate the data for this run. If empty, data will be assumed to exist in data-dir.
-  -rs, --run-script             Script used to launch DLIO within the container.
-  -pps, --postproc-script       Post-Porcessing script to generate a report from the DLIO output.
-  -it, --interactive            Pass withouth a value. Will launch an interactive session to the container. Gets activated if no run-script or post-processing scripts are given.
-
-Extra args:
-  Any extra arguments passed after after '--' will be passed as is to the DLIO launch script.
+All the outputs will be stored in ```hydra_log/unet3d/$DATE-$TIME``` folder. To post process the data, one can do
+```bash 
+python3 src/dlio_postprocessor.py --output_folder=hydra_log/unet3d/$DATE-$TIME
 ```
+This will generate ```DLIO_$model_report.txt``` inside the output folder. 
 
-We have included some scripts to emulate the MLCommons UNET3D and BERT workloads under `workloads/`.
-The simulated compute times for each of these workloads was measured on a DGX-1 A100 system, and will have to be changed to simulate the behaviour of other systems. 
-
-Make sure to remove or rename the data-directory between runs of different workloads or else the run will fail.
-
-### UNET3D
-
-To run the UNET3D simulation:
-```
-sudo ./start_dlio.sh -im <image:tag> -dgs workloads/UNET3D/datagen.sh -rs workloads/UNET3D/run.sh -pps workloads/UNET3D/postproc.sh -bd <dev-to-trace>
-```
-
-You can include multiple `-bd` options to trace multiple devices.
-
-### BERT
-
-To run the BERT simulation:
-```
-sudo ./start_dlio.sh -im <image:tag> -dgs workloads/BERT/datagen.sh -rs workloads/BERT/run.sh -pps workloads/BERT/postproc.sh -bd <dev-to-trace>
-```
-### DLRM
-Work in progress.
-
-<br>
-
-## Command line options for DLIO
+## Workload YAML configuration file 
 
 ```
 $ python3 src/dlio_benchmark.py --help
@@ -133,7 +86,7 @@ $ python3 src/dlio_benchmark.py --help
     generate_data: whether to generate data
     train: whether to perform training 
     debug: whether to turn on debugging
-    profiling: whether to enable profiling within benchmark
+    profiling: profiler to be used. Default: none
   framework: specifying the framework to use [tensorflow | pytorch]
   dataset:
     record_length: size of sample in bytes
@@ -192,7 +145,14 @@ $ python3 src/dlio_benchmark.py --help
   - For npz, jpg, jpeg, hdf5, we currently only support one sample per file case. In other words, each sample is stored in an independent file. Multiple samples per file case will be supported in future. 
 
 ## How to contribute 
-TBD
+If you would like to contribute, please submit issue to https://github.com/argonne-lcf/dlio_benchmark/issues. 
+
+General new features needed including: 
+* support for new workloads: if you think that your workload(s) would be interested to the public, and would like to provide the yaml file to be included in the repo, please submit an issue.  
+* support for new data loaders, such as DALI loader, MxNet loader, etc
+* support for new frameworks, such as MxNet
+* support for noval file systems or storage, such as AWS S3. 
+* support for loading new data formats. 
 
 ## Citation
 ```
@@ -223,7 +183,8 @@ TBD
 ## Acknowledgements
 This work used resources of the Argonne Leadership Computing Facility, which is a DOE Office of Science User Facility under Contract DE-AC02-06CH11357 and is supported in part by National Science Foundation under NSF, OCI-1835764 and NSF, CSR-1814872.
 
-
 ## License
 Apache 2.0 
+
+Copyright@2021 UChicago Argonne LLC
 

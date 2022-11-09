@@ -27,14 +27,14 @@ jobs:
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -n 2 python ./src/dlio_benchmark.py --config-name=resnet50 ++dataset.num_files_train=64
+        mpirun -n 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64
     - name: test-torch-loader-npz
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -n 2 python ./src/dlio_benchmark.py --config-name=unet3d 
+        mpirun -n 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.train.computation_time=0.5 ++workload.evaluation.eval_time=0.1
     - name: test-tf-loader-npz
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -n 2 python ./src/dlio_benchmark.py --config-name=unet3d ++framework=tensorflow ++data_reader.data_loader=tensorflow
+        mpirun -n 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.5 ++workload.evaluation.eval_time=0.1
