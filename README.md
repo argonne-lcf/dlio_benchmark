@@ -1,5 +1,7 @@
 # Deep Learining I/O (DLIO) Benchmark
 
+Documentation: https://argonne-lcf.github.io/dlio_benchmark/
+
 ## Overview
 
 DLIO is an I/O benchmark for Deep Learning. DLIO is aimed at emulating the I/O behavior of various deep learning applications. The benchmark is delivered as an executable that can be configured for various I/O patterns. It uses a modular design to incorporate more data loaders, data formats, datasets, and configuration parameters. It emulates modern deep learning applications using Benchmark Runner, Data Generator, Format Handler, and I/O Profiler modules. 
@@ -13,29 +15,12 @@ DLIO is an I/O benchmark for Deep Learning. DLIO is aimed at emulating the I/O b
 
 ## Installation and running DLIO
 
-### conda
 ```bash
 git clone https://github.com/argonne-lcf/dlio_benchmark
 cd dlio_benchmark/
 pip install -r requirements.txt 
 python ./src/dlio_benchmark.py --help
 ```
-
-### Docker container
-You must have docker installed on your system. Refer to https://docs.docker.com/get-docker/ for instructions.
-
-Clone the repository.
-```bash
-git clone https://github.com/argonne-lcf/dlio_benchmark
-cd dlio_benchmark/
-```
-Build the docker image.
-```bash
-sudo docker build -t dlio:<tag> .
-```
-The image name can be anything you want. The `<tag>` field is optionnal and serves to differentiate versions of an image.
-
-<br>
 
 ## Running the benchmark
 
@@ -141,16 +126,19 @@ $ python3 src/dlio_benchmark.py --help
   - For npz, jpg, jpeg, hdf5, we currently only support one sample per file case. In other words, each sample is stored in an independent file. Multiple samples per file case will be supported in future. 
 
 ## How to contribute 
-If you would like to contribute, please submit issue to https://github.com/argonne-lcf/dlio_benchmark/issues. 
-
+We are open to the contribution from the community for the development of the benchmark. Specifically, we welcome contribution in the following aspects:
 General new features needed including: 
+
 * support for new workloads: if you think that your workload(s) would be interested to the public, and would like to provide the yaml file to be included in the repo, please submit an issue.  
 * support for new data loaders, such as DALI loader, MxNet loader, etc
 * support for new frameworks, such as MxNet
 * support for noval file systems or storage, such as AWS S3. 
 * support for loading new data formats. 
 
-## Citation
+If you would like to contribute, please submit issue to https://github.com/argonne-lcf/dlio_benchmark/issues, and contact ALCF DLIO team, Huihuo Zheng at huihuo.zheng@anl.gov
+
+## Citation and Reference
+The original paper describe the design and implementation of DLIO code is as follows: 
 ```
 @article{devarajan2021dlio,
   title={DLIO: A Data-Centric Benchmark for Scientific Deep Learning Applications},
@@ -163,6 +151,7 @@ General new features needed including:
   publisher={IEEE/ACM}
 }
 
+We also encourage people to take a look at a relevant work from MLPerf Storage working group. 
 @article{balmau2022mlperfstorage,
   title={Characterizing I/O in Machine Learning with MLPerf Storage},
   author={O. Balmau},
@@ -173,8 +162,6 @@ General new features needed including:
   publisher={ACM}
 }
 ```
-
-
 
 ## Acknowledgements
 This work used resources of the Argonne Leadership Computing Facility, which is a DOE Office of Science User Facility under Contract DE-AC02-06CH11357 and is supported in part by National Science Foundation under NSF, OCI-1835764 and NSF, CSR-1814872.
