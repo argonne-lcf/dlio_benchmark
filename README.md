@@ -17,10 +17,7 @@ DLIO is an I/O benchmark for Deep Learning. DLIO is aimed at emulating the I/O b
 ```bash
 git clone https://github.com/argonne-lcf/dlio_benchmark
 cd dlio_benchmark/
-python3 -m venv ./venv
-source venv/bin/activate
 pip install -r requirements.txt 
-export PYTHONPATH=$PWD/src:$PYTHONPATH
 python ./src/dlio_benchmark.py --help
 ```
 
@@ -32,7 +29,6 @@ Clone the repository.
 git clone https://github.com/argonne-lcf/dlio_benchmark
 cd dlio_benchmark/
 ```
-
 Build the docker image.
 ```bash
 sudo docker build -t dlio:<tag> .
