@@ -31,6 +31,7 @@ jobs:
         uses: actions/configure-pages@v2
       - name: Build with Jekyll
         run: |
+          sudo apt-get install python3-sphinx
           cd ./docs
           make html
       - name: Upload artifact
