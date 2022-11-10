@@ -10,8 +10,8 @@ workflow:
 dataset: 
   data_folder: ./data/unet3d/
   format: npz
-  num_files_train: 3620
-  num_files_eval: 42
+  num_files_train: 300
+  num_files_eval: 20
   num_samples_per_file: 1
   batch_size: 4
   batch_size_eval: 1
@@ -23,9 +23,10 @@ data_reader:
   data_loader: pytorch
 
 train:
-  epochs: 10
-  computation_time: 4.59
+  epochs: 3
+  computation_time: 0.59
 
 evaluation: 
-  eval_time: 11.572
-  epochs_between_evals: 2
+  eval_time: 1.572
+  eval_after_epoch: 1
+  epochs_between_evals: 1

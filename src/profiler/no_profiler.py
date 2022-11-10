@@ -18,8 +18,8 @@ from src.profiler.io_profiler import IOProfiler
 
 
 class NoProfiler(IOProfiler):
-    def __init__(self, logdir):
-        super().__init__(logdir)
+    def __init__(self):
+        super().__init__()
 
     def start(self):
         pass

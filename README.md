@@ -1,4 +1,4 @@
-# Deep Learining I/O (DLIO) Benchmark
+# Deep Learning I/O (DLIO) Benchmark
 
 This README provides a abbreviated documentation of the DLIO code. Please refer to https://argonne-lcf.github.io/dlio_benchmark/ for full user documentation. 
 
@@ -23,34 +23,32 @@ A DLIO run is split in 3 phases:
 - Run the benchmark using the previously generated data
 - Post-process the results to generate a report
 
-The configurations of a workload can be specified through a yaml file. Examples of yaml files can be find in [./configs/workload/](./configs/workload). 
+The configurations of a workload can be specified through a yaml file. Examples of yaml files can be found in [./configs/workload/](./configs/workload). 
 
-One can specify specify workload through ```workload=``` option in the command line. The configuration can be overridden through commandline in the ```hyra``` framework (e.g.```++workload.framework=tensorflow```). 
+One can specify the workload through the ```workload=``` option on the command line. Specific configuration fields can then be overridden following the ```hydra``` framework convention (e.g. ```++workload.framework=tensorflow```). 
 
-For example, to run the unet3d benchark, one can do
+First, generate the data
+  ```bash
+  mpirun -np 8 python src/dlio_benchmark.py workload=unet3d ++workload.workflow.generate_data=True ++workload.workflow.train=False
+  ```
+Then flush the filesystem caches in order to properly capture device I/O
 ```bash
-mpirun -np 8 python src/dlio_benchmark.py workload=unet3d
-```
-This will both generate the dataset and perform benchmark. 
+  sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches
+``` 
+Finally, run the benchmark specifying the I/O devices to trace (all by default).
+  ```bash
+  mpirun -np 8 python src/dlio_benchmark.py workload=unet3d ++workload.reporting.devices=[sda,sdb]
+  ```
 
-One can separate the data generation part and training part as 
-* data generation
-  ```bash
-  mpirun -np 8 python src/dlio_benchmark.py workload=unet3d ++workload.workflow.generate_data=True ++workload.workflow.train=False ++workload.workflow.evaluation=False
-  ```
-* running benchmark
-  ```bash
-  mpirun -np 8 python src/dlio_benchmark.py workload=unet3d ++workload.workflow.generate_data=False ++workload.workflow.train=True ++workload.workflow.evaluation=True
-  ```
 
 All the outputs will be stored in ```hydra_log/unet3d/$DATE-$TIME``` folder. To post process the data, one can do
 ```bash 
-python3 src/dlio_postprocessor.py --output_folder=hydra_log/unet3d/$DATE-$TIME
+python3 src/dlio_postprocessor.py --output-folder hydra_log/unet3d/$DATE-$TIME
 ```
-This will generate ```DLIO_$model_report.txt``` inside the output folder. 
+This will generate ```DLIO_$model_report.txt``` in the output folder. 
 
 ## Workload YAML configuration file 
-The characteristics of a workload is specified through a set of configuration in a YAML file. Below is an example of a YAML file for UNet3D workload which was used for 3D image segmentation. 
+Workload characteristics are specified by a YAML configuration file. Below is an example of a YAML file for the UNet3D workload which is used for 3D image segmentation. 
 
 ```
   # contents of unet3d.yaml
