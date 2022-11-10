@@ -1,17 +1,10 @@
 # Deep Learining I/O (DLIO) Benchmark
 
-Documentation: https://argonne-lcf.github.io/dlio_benchmark/
+This README provides a abbreviated documentation of the DLIO code. Please refer to https://argonne-lcf.github.io/dlio_benchmark/ for full user documentation. 
 
 ## Overview
 
 DLIO is an I/O benchmark for Deep Learning. DLIO is aimed at emulating the I/O behavior of various deep learning applications. The benchmark is delivered as an executable that can be configured for various I/O patterns. It uses a modular design to incorporate more data loaders, data formats, datasets, and configuration parameters. It emulates modern deep learning applications using Benchmark Runner, Data Generator, Format Handler, and I/O Profiler modules. 
-
-### Features 
-* Easy-to-use and highly configurable argument list to emulate deep learning application's I/O behavior.
-* Able to generate synthetic datasets for different deep learning applications. 
-* Full transparency over emulation of I/O access with logging at different levels.
-* Easy to use data generator to test the performance of different data layouts and its impact on the I/O performance.
-* Compatible with modern profiling tools such as Tensorboard and Darshan to extract and analyze I/O behavior.
 
 ## Installation and running DLIO
 
@@ -57,62 +50,48 @@ python3 src/dlio_postprocessor.py --output_folder=hydra_log/unet3d/$DATE-$TIME
 This will generate ```DLIO_$model_report.txt``` inside the output folder. 
 
 ## Workload YAML configuration file 
+The characteristics of a workload is specified through a set of configuration in a YAML file. Below is an example of a YAML file for UNet3D workload which was used for 3D image segmentation. 
 
 ```
-$ python3 src/dlio_benchmark.py --help
-  The configuration can be specified by a yaml config file.
+  # contents of unet3d.yaml
+  model: unet3d
 
-  A complete list of config options are: 
+  framework: pytorch
 
   workflow:
-    generate_data: whether to generate data
-    train: whether to perform training 
-    debug: whether to turn on debugging
-    profiling: profiler to be used. Default: none
-  framework: specifying the framework to use [tensorflow | pytorch]
-  dataset:
-    record_length: size of sample in bytes
-    format: the format of the file that the dataset is stored [hdf5|png|jepg|csv...]
-    num_files_train: number of files for training dataset
-    num_files_val:  number of files for validation dataset
-    num_samples_per_file:  number of samples per file
-    data_dir: the directory that the dataset is stored
-    batch_size: batch size for the training dataset
-    batch_size_eval: batch size fo the validation dataset 
-    file_prefix: the prefix of the dataset files 
-    compression: compression to use
-    compression_level: Level of compression for GZIP
-    chunking: whether to use chunking in generating HDF5 datasets
-  data_loader: 
-    data_loader: the data loader to use [tensorflow|pytorch]
-    read_threads: number of threads to load the dataset
-    computation_threads:  number of threads for preprocessing the data
-    prefetch: whether to prefetch the data
-    prefetch_size: the buffer size for prefetch
-    read_shuffle: whether to shuffle the dataset
-    shuffle_size: the shuffle buffer size in byte
-    read_type: whether it is ON_DEMAND or MEMORY (stored in the memory)
-    file_access: multiple files or shared file access
-    transfer_size: transfer size for tensorflow data loader
-  train:
-    n_epochs: number of epochs for training
-    computation_time: simulated training time (in seconds) for each training step
-    eval_time: simulated evaluation time (in seconds) for each step
-    total_training_steps:  total number of traning steps. If this is set, n_epochs will be ignored
-    seed_change_epoch: whether to change the random seed after each epoch 
-    eval_after_epoch: start evaluation after eval_after_epoch epochs
-    do_eval: whether to do evaluation
-    seed: the random seed
-  checkpoint: 
-    do_checkpoint:  whether to do checkpoint
-    checkpoing_after_epoch: start checkpointing after certain number of epochs specified 
-    epochs_between_checkpoints: performing one checkpointing per certain number of epochs specified 
-    output_folder: the output folder for checkpointing 
-    model_size:  the size of the model in bytes
+    generate_data: True
+    train: True
+    evaluation: True
 
-  You can override everything in a command line, for example:
-  python src/dlio_benchmark.py framework=tensorflow
+  dataset: 
+    data_folder: ./data/unet3d/
+    format: npz
+    num_files_train: 3620
+    num_files_eval: 42
+    num_samples_per_file: 1
+    batch_size: 4
+    batch_size_eval: 1
+    file_access: multi
+    record_length: 1145359
+    keep_files: True
+  
+  data_reader: 
+    data_loader: pytorch
+    read_threads: 4
+    prefetch: True
+
+  train:
+    epochs: 10
+    computation_time: 4.59
+
+  evaluation: 
+    eval_time: 11.572
+    epochs_between_evals: 2
 ```
+
+The full list of configurations can be found in: https://argonne-lcf.github.io/dlio_benchmark/config.html
+
+The YAML file is loaded through hydra (https://hydra.cc/). The default setting are overridden by the configurations loaded from the YAML file. One can override the configuration through command line (https://hydra.cc/docs/advanced/override_grammar/basic/). 
 
 ## Current Limitations and Future Work
 
@@ -168,7 +147,7 @@ We also encourage people to take a look at a relevant work from MLPerf Storage w
 }
 ```
 
-## Acknowledgements
+## Acknowledgments
 
 This work used resources of the Argonne Leadership Computing Facility, which is a DOE Office of Science User Facility under Contract DE-AC02-06CH11357 and is supported in part by National Science Foundation under NSF, OCI-1835764 and NSF, CSR-1814872.
 

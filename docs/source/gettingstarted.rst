@@ -6,7 +6,7 @@ DLIO itself should run directly without installation. However it depends on othe
 
     git clone https://github.com/argonne-lcf/dlio_benchmark
     cd dlio_benchmark/
-    HOROVOD_WITH_TENSORFLOW=1 HOROVOD_WITH_PYTORCH=1 pip install -r requirements.txt 
+    pip install -r requirements.txt 
     export PYTHONPATH=$PWD/:$PYTHONPATH
     python ./src/dlio_benchmark.py --help
 

@@ -59,7 +59,7 @@ benchmark to incorporate different data formats, data loaders or data generation
 the basic benchmark operations.
 
 ''''''''''''''''''''
-DLIO code modules
+DLIO Code Modules
 ''''''''''''''''''''
 Below shows the modules of the DLIO code. 
 
@@ -78,7 +78,7 @@ Workload Configuration
 '''''''''''''''''''''''''
 The characteristics of a workload is specified through a set of configuration in a YAML file. Below is an example of a YAML file for UNet3D workload which was used for 3D image segmentation. 
 
-.. block:: 
+.. block:: text
   
   model: unet3d
 
@@ -117,11 +117,6 @@ The characteristics of a workload is specified through a set of configuration in
 The full list of configurations can be found in: :ref:`yaml`. 
 
 The YAML file is loaded through hydra (https://hydra.cc/). The default setting are overridden by the configurations loaded from the YAML file. One can override the configuration through command line (https://hydra.cc/docs/advanced/override_grammar/basic/). 
-
-
-.. code-block:: bash
-
-  $ python src/dlio_benchmark.py --help
 
 '''''''''''''''''''''
 Dataset Generation
