@@ -78,7 +78,7 @@ Workload Configuration
 '''''''''''''''''''''''''
 The characteristics of a workload is specified through a set of configuration in a YAML file. Below is an example of a YAML file for UNet3D workload which was used for 3D image segmentation. 
 
-.. block:: text
+.. code-block:: text
   
   model: unet3d
 
