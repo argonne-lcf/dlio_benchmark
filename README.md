@@ -18,7 +18,8 @@ DLIO is an I/O benchmark for Deep Learning. DLIO is aimed at emulating the I/O b
 ```bash
 git clone https://github.com/argonne-lcf/dlio_benchmark
 cd dlio_benchmark/
-pip install -r requirements.txt 
+pip install -r requirements.txt
+export PYTHONPATH=$PWD/:$PYTHONPATH
 python ./src/dlio_benchmark.py --help
 ```
 
@@ -139,6 +140,7 @@ If you would like to contribute, please submit issue to https://github.com/argon
 
 ## Citation and Reference
 The original paper describe the design and implementation of DLIO code is as follows: 
+
 ```
 @article{devarajan2021dlio,
   title={DLIO: A Data-Centric Benchmark for Scientific Deep Learning Applications},
@@ -150,8 +152,11 @@ The original paper describe the design and implementation of DLIO code is as fol
   pages={},
   publisher={IEEE/ACM}
 }
+```
 
 We also encourage people to take a look at a relevant work from MLPerf Storage working group. 
+
+```
 @article{balmau2022mlperfstorage,
   title={Characterizing I/O in Machine Learning with MLPerf Storage},
   author={O. Balmau},
@@ -164,10 +169,17 @@ We also encourage people to take a look at a relevant work from MLPerf Storage w
 ```
 
 ## Acknowledgements
+
 This work used resources of the Argonne Leadership Computing Facility, which is a DOE Office of Science User Facility under Contract DE-AC02-06CH11357 and is supported in part by National Science Foundation under NSF, OCI-1835764 and NSF, CSR-1814872.
 
 ## License
-Apache 2.0 
 
-Copyright@2021 UChicago Argonne LLC
+Apache 2.0 [LICENSE](./LICENSE)
+
+---------------------------------------
+Copyright (c) 2021 UChicago Argonne, LLC
+
+If you have questions about your rights to use or distribute this software, please contact Argonne Intellectual Property Office at partners@anl.gov
+
+NOTICE. This Software was developed under funding from the U.S. Department of Energy and the U.S. Government consequently retains certain rights. As such, the U.S. Government has been granted for itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license in the Software to reproduce, distribute copies to the public, prepare derivative works, and perform publicly and display publicly, and to permit others to do so.
 

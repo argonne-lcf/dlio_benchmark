@@ -2,16 +2,13 @@
 
 Deep Learning I/O Benchmark
 ===============================================================
-
-Deep Learning I/O (DLIO) Benchmark is a benchmark suite aimed at emulating the I/O behavior of various deep learning applications. The benchmark is delivered as an executable that can be configured for various I/O patterns. It uses a modular design to incorporate more data loaders, data formats, datasets, and configuration parameters. It emulates modern deep learning applications using Benchmark Runner, Data Generator, Format Handler, and I/O Profiler modules.
+Deep Learning I/O (DLIO) Benchmark is a benchmark suite aiming at emulating the I/O pattern / behavior of various deep learning applications. The benchmark is delivered as an executable that can be configured for various I/O patterns. It uses a modular design to incorporate different data loaders, data formats, dataset organizations, and training configuration parameters. The code is composed of four modules: **Benchmark Runner**, **Data Generator**, **Format Handler**, and **I/O Profiler**. 
 
 The main features of DLIO include: 
-* Easy-to-use and rich configurations through YAML config files to emulate deep learning application's I/O behavior.
-* Able to generate synthetic datasets for different deep learning applications.
-* Full transparency over emulation of I/O access with logging at different levels.
-* Easy to use data generator to test the performance of different data layouts and its impact on the I/O performance.
-* Compatible with modern profiling tools such as Tensorboard and Darshan to extract and analyze I/O behavior.
-* Support both sequential training and distributed data parallel training workloads.
+   * Easy-to-use configuration through YAML config files to represent the I/O behavior of different deep learing applications.
+   * Easy-to-use data generator to generate synthetic datasets of different formats and different data organizations and layouts and to test its impact on the I/O performance.
+   * Full transparency over emulation of I/O access with logging and profiling at different levels with modern profilers such as Tensorboard, Torch profiler, darshan and iostat, etc. 
+   * Supporting emulating both sequential and distributed data parallel training. 
 
 .. toctree::
    :maxdepth: 2
@@ -24,6 +21,8 @@ The main features of DLIO include:
    :caption: Getting Started
 
    gettingstarted
+   examples
+   config
 
 .. toctree::
    :maxdepth: 2
@@ -41,7 +40,7 @@ The main features of DLIO include:
    :maxdepth: 2
    :caption: Resources
 
-   resources.rst
+   resources
 
 .. toctree::
    :maxdepth: 2

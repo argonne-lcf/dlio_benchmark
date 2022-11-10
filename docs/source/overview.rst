@@ -1,6 +1,5 @@
 Introduction
 =============
-
 Deep learning has been shown as a successful
 method for various tasks, and its popularity results in numerous
 open-source deep learning software tools. Deep learning has
@@ -10,8 +9,7 @@ astrophysics. Scientists have performed a great deal of work
 to optimize the computational performance of deep learning
 frameworks. However, the same cannot be said for I/O performance. As deep learning algorithms rely on big-data volume and
 variety to effectively train neural networks accurately, I/O is
-a significant bottleneck on large-scale distributed deep learning
-training. 
+a significant bottleneck on large-scale distributed deep learning training. 
 
 The DLIO benchmark aims to provide a detailed representation of
 the I/O behavior of deep learning workloads. DLIO can be utilized to accurately emulate the I/O behavior of modern deep learning
@@ -20,65 +18,65 @@ software solution architects can identify potential I/O bottlenecks
 in their applications and guide optimizations to boost the I/O
 performance. The storage vendors can also use DLIO benchmark as a guidance for storage and file system design. 
 
----------------------
-High-level Design
----------------------
+Foundation of DLIO benchmark 
+==========================================
+First, we assume that one can replace the computation part (training and validation) with a sleep of the same amount of time, while keeping the I/O pattern / behavior the same. The logic behind this is demonstrated as shown in the figure. In a typical deep leanring training process, a batch of data is loaded from the storage to host memory at each time step, and then transfered to the accelerator to perform the training. There might be some hardware supporting loading data from storage directly to the accelerators such as GPU Direct. In either case, the I/O (data access in the storage) should be independent of what is going on inside the accelerator, as long as the frequency of the I/O requests remains the same. 
 
-The DLIO benchmark is aimed at emulating
-the behavior of deep learning applications. The
-benchmark is delivered as an executable that can be configured
-for various I/O patterns. It uses a modular design to incorporate
+  .. figure:: ./images/training.png
+
+    Typical process of AI training. The dataset is loaded from the storage to the host RAM and then feed into the accelerators for training. The storage benchmarks will focus on data loading from the storage to the host RAM. 
+
+We have validated this in various cases. For example, in the figure shown below, we replace the computation with a sleep of different amounts corresponding to the training time in Nvidia A100, V100, and P100 GPUs, we were able to reproduce the I/O timeline trace of the real workload running on different GPUs. More results from distributed training were presented in our CCGrid paper. 
+
+  .. figure:: ./images/validation.png
+
+    Upper panel: I/O timeline on A100, V100, P100; Lower panel: I/O timeline on Skylake with training replaced by sleep of different amounts of time equal to the training time on A100, V100 and P100 respectively. 
+
+Second, one can have certain extent of abstraction of the dataset and igore the low level details. We assume that as long as the number of files, number of samples per file, size of each sample, batch size, are the same, the I/O behavior should be similar regardless of the details of each sample. We incorporate built-in data loaders such as tf.data, and torch DataLoader to incorporate advance features such as prefetch, and multithreaded data loading. 
+
+High-level Design
+=======================
+The benchmark uses a modular design to incorporate
 more data formats, datasets, and configuration parameters. It
 emulates deep learning applications using
-Benchmark Runner, Data Generator, Format Handler, and I/O
-Profiler modules. These modules utilize state-of-the-art design
+**Benchmark Runner**, **Data Generator**, **Format Handler**, and **I/O Profiler** modules. These modules utilize state-of-the-art design
 patterns to build a transparent and extensible framework. The
 DLIO benchmark has been designed with the following goals.
 
 1) Accurate: DLIO should be an accurate representation of
-selected scientific deep learning applications. It should
-incorporate all the I/O behavior seen in various configurations of applications, and act as a
-mini-application that can precisely mimic the I/O behavior. 
+selected deep learning applications. It should
+incorporate all the I/O behavior seen in various configurations of applications, and act as a mini-application that can precisely replay the I/O behavior. 
 
 2) Configurable: DLIO should be easily configurable for
 different scenarios required by the user. These include
-features such as the ratio-of-computation to I/O, available
-threads for I/O, data operators (e.g., decoding, shuffling,
-and batching), and mechanism to feed data into training.
+features such as different ratio-of-computation to I/O, multi
+threading for I/O, data operators (e.g., decoding, shuffling,
+prefetch, and batching), and mechanism to feed data into training.
 
 3) Extensible: DLIO benchmark should allow adding
 custom data directories and enable easy extensions to the
-benchmark to incorporate different data formats, data loaders or data
-generation algorithms. These changes should not affect
+benchmark to incorporate different data formats, data loaders or data generation algorithms. These changes should not affect
 the basic benchmark operations.
 
-'''''''''''''''''''''''''''
-Validity of DLIO Benchmark
-'''''''''''''''''''''''''''
-DLIO relies on two important assumption: 
-
-1) One can replace the computation part (training and validation) with sleep of the same amount of time, while the I/O pattern / behavior remains the same. The logic behind this is as follows. The following figure shows a schematic picture of a typical training process. At each time step, a batch of data is loaded from the storage to host memory, and then transfered to GPU to perform the training. In this case, the I/O (data access in the storage) is independent on what is going on in the accelerator, as long as the frequency of the I/O requests remains the same. We have validated this in various cases. The results were presented in our CCGrid paper. 
-
-2) One can have certain abstraction of the dataset and igore the low level details. For the data loading part, we would keep it as close as possible to the real workloads where as maintain a high level of abstraction to make it able to represent a broad spectrum of workloads. We assume that as long as the number of files, number of samples per file, size of each sample, batch size, are the same, the I/O behavior should be similar regardless of the details of each sample. We have build in dataloaders such as tf.data, and torch DataLoader to incorporate advance features such as prefetch, and multithreaded data loader. 
-
-.. image:: images/training.png
-
-
-'''''''''''''''''''''''''
+''''''''''''''''''''
 DLIO code modules
-'''''''''''''''''''''''''
+''''''''''''''''''''
+Below shows the modules of the DLIO code. 
+
 .. image:: images/dlio.png
 
-DLIO contains the following modules
-* Configuration Manager: the user specify a YAML file which represents the characteristics of a real workload. The configuration manager will load the configuration into DLIO. 
-* Format Handler: Format Handler will handle the data read and write for specific data format. 
-* Data generator: this is for generating synthetic datasets. 
-* Benchmark runner: this is for performing the whole benchmarking process, including data generating, training, evaluation, checkpointing, profiling, etc. 
+* **Configuration Manager**: the user specifies a YAML file which represents the characteristics of a real workload. The configuration manager will load the configuration into DLIO. 
+
+* **Format Handler**: Format Handler will handle the data read and write for specific data format. 
+
+* **Data Generator**: this is for generating synthetic datasets. 
+
+* **Benchmark Runner**: this is for performing the whole benchmarking process, including data generation, training, evaluation, checkpointing, profiling, etc. 
 
 '''''''''''''''''''''''''
 Workload Configuration
 '''''''''''''''''''''''''
-The characteristics of a workload are specified through a set of configuration which is represented in a workload YAML file. Below is an example of a YAML file
+The characteristics of a workload is specified through a set of configuration in a YAML file. Below is an example of a YAML file for UNet3D workload which was used for 3D image segmentation. 
 
 .. code-block::
   
@@ -116,23 +114,74 @@ The characteristics of a workload are specified through a set of configuration w
     eval_time: 11.572
     epochs_between_evals: 2
 
-In this YAML file, 
-* The "framework" block specify the framework to use. 
-* The "workflow" block specify the operations to perform, such as data generation, training, evaluation, debugging, profiling, etc. 
-* The "dataset" block defines all the information related to the dataset, including location of the dataset (data_folder), data format, number of files, batch size, the size of sample, etc. 
-* The "data_reader" block defines how the data is read, including the data loader to use, number of I/O threads, whether to perform prefetch, etc
+The YAML file has different groups of configuration: 
+
+* The "model" block specifies the name of the model
+
+* The "framework" block specifies the framework to use. 
+
+* The "workflow" block specifies the operations to perform, such as data generation, training, evaluation, debugging, profiling, etc. 
+
+* The "dataset" block defines all the configurations related to the dataset, including location of the dataset (data_folder), data format, data layout (number of files, number of samples per file, size of sample), batch size, etc. 
+
+* The "data_reader" block defines how the data is read, including the data loader to use, number of I/O threads, whether to perform prefetch and shuffling, etc.
+
 * The "train" block defines the training process, such as number of epochs, computation time per training step, etc. 
+
 * The "evaluation" block defines the evaluation (validation) process, such as the evalulation time per time step, the frequency of doing evaluations (epochs_between_evals, steps_between_evals). 
+
+* The "checkpoint" block (not shown here) defines the freqency to perform checkpoint, the amount of data to write. 
+
+The YAML file is loaded through hydra (https://hydra.cc/). The default setting are overridden by the configurations loaded from the YAML file. One can override the configuration through command line (https://hydra.cc/docs/advanced/override_grammar/basic/). 
+
+The full list of configurations can be found in: :ref:`yaml`
+
+
+.. code-block::
+
+  $ python src/dlio_benchmark.py --help
 
 '''''''''''''''''''''
 Dataset Generation
 '''''''''''''''''''''
-We have a dataset generation module, which can generate synthetic datasets base on the configuration specified in the YAML file. This eliminates the dependence on real dataset which is typically difficult to get. One can also scale the dataset to study the I/O load for large scale dataset. The dataset generation process can be done in parallel. 
+Data Generator can generate synthetic datasets based on the configuration specified in the YAML file. This eliminates the dependence on real dataset which is typically difficult to get. One can also scale the dataset to study the I/O load at different scales. The dataset generation process can be done in parallel. 
+
+The organization, layout and storage of the data on the file system can have significant impact on the data and metadata load and store. We support different data organizations, such as 
+
+* Single shared file in which the entire datasets is stored in one file. 
+* One samples per file
+* Multiple samples per file
+* Files putting in a single folder. 
+* Files putting in many subfolders.  
+
+All the options are configurable in the "dataset" section of the YAML file. 
+
+'''''''''''''''''''''''
+Profiling
+'''''''''''''''''''''''
+In the profiling module, we support following I/O profiling using following profilers: 
+
+* Darshan: https://www.mcs.anl.gov/research/projects/darshan/
+
+* iostat: https://linux.die.net/man/1/iostat
+
+* tf.profiler: https://www.tensorflow.org/api_docs/python/tf/profiler
+
+* torch.profiler: https://pytorch.org/docs/stable/profiler.html
+
+This can be enabled through through the "workflow" section in the workload YAML file. 
 
 '''''''''''''''''''''''
 DLIO excution
 '''''''''''''''''''''''
-The YAML file is first parsed and extracted into configurations for the benchmark. The extracted configurations are passed to the Configuration Manager, which is first initialized with default benchmark values and then updates itself with the incoming configurations. At this stage, incompatible/incorrect configurations would be thrown as error back to the users. Once the configurations are validated and applied, the benchmark runner is invoked. The runner initializes prepared data (if needed) and then starts the profiling session. Once the session has started successfully, the benchmark Run() is invoked, which runs the benchmark. In the run phase, we run the benchmark for several epochs. During each epoch, the whole data is read once using n steps. During an epoch, checkpoint operations are performed every c steps as well. Additionally, an inter-step computation is performed to emulate computation and I/O phases by deep learning application. Finally, once the benchmark run finishes, the finalize is called, which stops the profiler, saves its results, and exits the benchmark.
+**Configuration**: The YAML file is first parsed and extracted into configurations for the benchmark. The extracted configurations are passed to the Configuration Manager, which is first initialized with default benchmark values and then updates itself with the incoming configurations. At this stage, incompatible/incorrect configurations would be thrown as error back to the users. 
 
-As we have mentioned, we can replace the computation part of a workload with sleep of the same amount of time. Replacing with sleep allows the user to perform the benchmark in a acclerator absence environement. As long as the host is similar to where the real application will run. The computation time can be specified in the configuration file. Different accelerators will have different amount of computation time. 
+**Data generation**: Once the configurations are validated and applied, the benchmark runner is invoked. The runner initializes prepared data (if needed) and then starts the profiling session. 
 
+**Simulation**: Once the session has started successfully, the benchmark Run() is invoked, which runs the benchmark. In the run phase, we run the benchmark for multiple epochs. During each epoch, the whole data is read once using n steps. During an epoch, checkpoint operations are performed every c steps as well. 
+
+Additionally, an inter-step computation is performed to emulate computation (through a sleep function) and I/O phases by deep learning application. Replacing computaiton with sleep allows the user to perform the benchmark in a acclerator absence environement. Different accelerators will have different amounts of computation time. 
+
+Finally, once the benchmark run finishes, the finalize is called, which stops the profiler, saves its results, and exits the benchmark.
+
+**Post processing**: One can then use the post processing script to process the logs to produce a high level summary of the I/O performance. 

@@ -57,7 +57,6 @@ class FormatType(Enum):
     HDF5_OPT = 'hdf5_opt'
     JPEG = 'jpeg'
     PNG = 'png'
-    WAV = 'wav'
 
     def __str__(self):
         return self.value

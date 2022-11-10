@@ -1,6 +1,6 @@
 Copyright
 ===================================
-@Copyright 2021, UChicago Argonne, LLC
+@2021, UChicago Argonne, LLC
 
 If you have questions about your rights to use or distribute this software, please contact Argonne Intellectual Property Office at partners@anl.gov
 

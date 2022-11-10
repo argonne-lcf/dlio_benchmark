@@ -1,15 +1,14 @@
 # App name, override to match the name your app is known by
-
 app_name: dlio_benchmark
 
 # Help header, customize to describe your app to your users
-header: == ${hydra.help.app_name} ==
+header: =========================== ${hydra.help.app_name} ===========================
 
 footer: |-
-  Please submit questions / bugs report to https://github.com/argonne-lcf/dlio_benchmark/issues
-  
-  Powered by Hydra (https://hydra.cc)
-  Use --hydra-help to view Hydra specific help
+  Please submit questions/bugs to 
+    https://github.com/argonne-lcf/dlio_benchmark/issues
+
+            Copyright (c) 2021 UChicago Argonne, LLC
 
 # Basic Hydra flags:
 #   $FLAGS_HELP
@@ -22,72 +21,30 @@ footer: |-
 #   $CONFIG : Generated config
 #
 template: |-
+
   ${hydra.help.header}
 
-  This is an benchmark for Deep Learning I/O.
+  DLIO - an IO benchmark for deep learning applications. 
 
-  Copyright 2021 UChicago Argonne, LLC
-  
-  The configuration of a certain workload can be specified by a yaml file put inside ./configs/workload.
+  Running the benchmark: python src/dlio_benchmark.py workload=unet3d
 
-  A complete list of config options in the yaml file are: 
-
-  ------------------------------------------------------------
-  log_file: the filename for log, default='dlio.log'
-  framework: specifying the framework to use [tensorflow | pytorch], default=tensorflow
-  workflow:
-    generate_data: whether to generate data [True/False], default=False
-    train: whether to perform training [True/False], default=True
-    evaluation: whether to perform validation [True/False], default=False
-    checkpoint: whether to checkpoint the model [True/False], default=False
-    debug: whether to turn on debugging [True/False], default=False
-    profiling: whether to perform profiling [True/False], default=False
-  dataset:
-    record_length: size of sample in bytes, default = 64*1024
-    format: the format of the file that the dataset is stored [hdf5|png|jepg|csv...], default=tfrecord
-    num_files_train: number of files for training dataset, default=1
-    num_files_eval:  number of files for validation dataset, default=0
-    num_samples_per_file:  number of samples per file, default=1
-    data_folder: the directory that the dataset is stored, default=./data
-    num_subfolders_train: the number of subfolders to hold the training dataset, default=0
-    num_subfolders_eval: the number of subfolders to hold the validation dataset, default=0
-    batch_size: batch size for the training dataset, default=1
-    batch_size_eval: batch size fo the validation dataset, default=1
-    file_prefix: the prefix of the dataset files, default=img
-    compression: compression to use, default=Compression.NONE
-    compression_level: Level of compression for GZIP, default=4
-    chunking: whether to use chunking in generating HDF5 datasets, default=False
-    keep_files: whether to keep the generated dataset after the training, default=True
-  data_loader: 
-    data_loader: data loader to use [tensorflow|pytorch], default=tensorflow
-    read_threads: number of threads to be used to load the dataset, default=1
-    computation_threads:  number of threads for preprocessing the data, default=1
-    prefetch: whether to prefetch the data, default=False
-    prefetch_size: Number of batches to prefetch, default=0
-    read_shuffle: whether to shuffle the dataset, [seed|random|off], default=off
-    shuffle_size: (tensorflow only) number of samples from the dataset from which the dataset will sample, 
-    read_type: whether it is ON_DEMAND or MEMORY (stored in the memory), default=ON_DEMAND
-    file_access: multiple files or shared file access, default=multi
-    transfer_size: transfer size for tensorflow data loader, default=
-  train:
-    epochs: number of epochs for training, default=1
-    computation_time: simulated training time (in seconds) for each training step, default=0
-    total_training_steps:  total number of traning steps. If this is set, epochs will be ignored, default=-1
-    seed_change_epoch: whether to change the random seed after each epoch, default=True
-    seed: the random seed, default=123
-  evaluation:
-    eval_time: simulated evaluation time (in seconds) for each step, default=0
-    eval_after_epoch: start evaluation after eval_after_epoch epochs, default=0
-    epochs_between_evals: evaluate after x number of epochs, default=0
-  checkpoint: 
-    checkpoing_after_epoch: start checkpointing after certain number of epochs specified 
-    epochs_between_checkpoints: performing one checkpointing per certain number of epochs specified, default=0
-    model_size: the size of the model in bytes
-    steps_between_checkpoints: performing one checkpointing per certain number of steps specified, default=0
-
-  You can override everything in a command line, for example:
+  One can select the workload configuration using "workload={WORKLOAD}". 
+  The corresponding YAML file is ./configs/workload/{WORKLOAD}.yaml folder. 
+  Available choise for $APP_CONFIG_GROUPS
+  One can override everything in the command line, for example:
   python src/dlio_benchmark.py workload.framework=tensorflow
 
-  By default all the output files will be saved in hydra.run.dir (can be changed in ./configs/config.yaml)
+  One can also create a custom YAML file for a specific workload. 
+  An example of a YAML file is as follows. 
+
+  -------
+  $CONFIG
+  -------
+  A complete list of config options in the YAML file can be found: 
+  https://argonne-lcf.github.io/dlio_benchmark/config.html
+
+  By default all the output files will be saved in hydra.run.dir. 
+  This can be changed in ./configs/config.yaml.
 
   ${hydra.help.footer}
+  --

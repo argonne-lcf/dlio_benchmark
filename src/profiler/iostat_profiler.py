@@ -44,9 +44,7 @@ class IostatProfiler(IOProfiler):
             # Open the logfile for writing
             self.logfile = open(self.logfile, 'w')
             #TODO: Get the relevant disks (from user input?)
-            #iostat -c 5 -w 10 disk0
-            #cmd = ["iostat", "-mdxtcy", "-o", "JSON", "sda", "sdb", "1"]
-            cmd = ['iostat','-w', '1']
+            cmd = ["iostat", "-mdxtcy", "-o", "JSON", "sda", "sdb", "1"]
             self.process = sp.Popen(cmd, stdout=self.logfile, stderr=self.logfile)
 
     def stop(self):
