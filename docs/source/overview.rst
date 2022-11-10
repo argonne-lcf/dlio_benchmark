@@ -78,7 +78,7 @@ Workload Configuration
 '''''''''''''''''''''''''
 The characteristics of a workload is specified through a set of configuration in a YAML file. Below is an example of a YAML file for UNet3D workload which was used for 3D image segmentation. 
 
-.. code-block::
+.. code-block:: 
   
   model: unet3d
 
@@ -114,30 +114,12 @@ The characteristics of a workload is specified through a set of configuration in
     eval_time: 11.572
     epochs_between_evals: 2
 
-The YAML file has different groups of configuration: 
-
-* The "model" block specifies the name of the model
-
-* The "framework" block specifies the framework to use. 
-
-* The "workflow" block specifies the operations to perform, such as data generation, training, evaluation, debugging, profiling, etc. 
-
-* The "dataset" block defines all the configurations related to the dataset, including location of the dataset (data_folder), data format, data layout (number of files, number of samples per file, size of sample), batch size, etc. 
-
-* The "data_reader" block defines how the data is read, including the data loader to use, number of I/O threads, whether to perform prefetch and shuffling, etc.
-
-* The "train" block defines the training process, such as number of epochs, computation time per training step, etc. 
-
-* The "evaluation" block defines the evaluation (validation) process, such as the evalulation time per time step, the frequency of doing evaluations (epochs_between_evals, steps_between_evals). 
-
-* The "checkpoint" block (not shown here) defines the freqency to perform checkpoint, the amount of data to write. 
+The full list of configurations can be found in: :ref:`yaml`. 
 
 The YAML file is loaded through hydra (https://hydra.cc/). The default setting are overridden by the configurations loaded from the YAML file. One can override the configuration through command line (https://hydra.cc/docs/advanced/override_grammar/basic/). 
 
-The full list of configurations can be found in: :ref:`yaml`
 
-
-.. code-block::
+.. code-block:: bash
 
   $ python src/dlio_benchmark.py --help
 

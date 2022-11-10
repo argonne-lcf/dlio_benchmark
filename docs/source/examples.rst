@@ -50,13 +50,13 @@ We specify the configuration in ./configs/workload/unet3d.yaml
 
 To run the appliation with iostat profiling
 
-.. code-block::
+.. code-block:: bash
     
     python src/dlio_benchmark.py workload=unet3d ++workload.workflow.profiling=iostat
 
 To run in data parallel mode, one can do
 
-.. code-block::
+.. code-block:: bash
 
     mpirun -np 8 src/dlio_benchmark.py workload=unet3d ++workload.workflow.profiling=iostat
 
