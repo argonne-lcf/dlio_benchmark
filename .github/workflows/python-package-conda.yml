@@ -18,8 +18,6 @@ jobs:
       run: |
         sudo apt-get install mpich
         python -m pip install --upgrade pip
-        pip install tensorflow torch h5py mpi4py pandas
-        HOROVOD_WITH_TENSORFLOW=1 HOROVOD_WITH_PYTORCH=1 pip install horovod 
         pip install -r requirements.txt
         python setup.py build
         python setup.py install
