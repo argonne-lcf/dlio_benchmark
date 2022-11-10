@@ -25,7 +25,7 @@ One can specify specify workload through "workload=" option in the command line.
 
 For example, to run the unet3d benchark, one can do
 
-.. code-block::
+.. code-block:: bash
 
     mpirun -np 8 python src/dlio_benchmark.py workload=unet3d
 
@@ -35,19 +35,19 @@ One can separate the data generation part and training part as
 
 **Generate data**
 
-.. code-block::
+.. code-block:: bash
 
     mpirun -np 8 python src/dlio_benchmark.py workload=unet3d ++workload.workflow.generate_data=True ++workload.workflow.train=False ++workload.workflow.evaluation=False
 
 **Running benchmark**
 
-.. code-block::
+.. code-block:: bash 
 
     mpirun -np 8 python src/dlio_benchmark.py workload=unet3d ++workload.workflow.generate_data=False ++workload.workflow.train=True ++workload.workflow.evaluation=True
 
 All the outputs will be stored in the hydra_log/unet3d/$DATE-$TIME folder. To post process the data, one can do
 
-.. code-block::
+.. code-block:: bash 
 
     python3 src/dlio_postprocessor.py --output_folder=hydra_log/unet3d/$DATE-$TIME
 

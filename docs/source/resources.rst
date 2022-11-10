@@ -2,7 +2,7 @@ Resources
 ===================================
 Our initial DLIO paper published in CCGrid'2021 described the design and implementation of DLIO benchmark. 
 
-.. code-block::
+.. code-block:: text
 
     @article{devarajan2021dlio,
         title={DLIO: A Data-Centric Benchmark for Scientific Deep Learning Applications},
@@ -17,7 +17,7 @@ Our initial DLIO paper published in CCGrid'2021 described the design and impleme
 
 See also the following relevant paper from MLPerf Storage working group: 
 
-.. code-block::
+.. code-block:: text
 
     @article{balmau2022mlperfstorage,
         title={Characterizing I/O in Machine Learning with MLPerf Storage},
