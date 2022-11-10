@@ -105,7 +105,7 @@ def LoadConfig(args, config):
         args.logdir = config['logdir']
     if 'reporting' in config:
         args.io_devices_to_trace = config['reporting']['devices']
-        if not isinstance(args.io_devices_to_trace, list):
+        if isinstance(args.io_devices_to_trace, str):
             args.io_devices_to_trace = [args.io_devices_to_trace]
     # dataset related settings
     if 'dataset' in config:
