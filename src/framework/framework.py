@@ -21,6 +21,9 @@ from time import sleep
 import os
 import logging
 
+from mpi4py import MPI
+comm = MPI.COMM_WORLD
+
 from src.utils.config import ConfigArguments
 
 class DummyTraceObject(object):
@@ -48,17 +51,14 @@ class Framework(ABC):
     def get_type(self):
         pass
     
-    @abstractmethod
     def barrier(self):
-        pass
+        return comm.Barrier()
 
-    @abstractmethod
     def rank(self):
-        pass
+        return comm.rank
 
-    @abstractmethod
     def size(self):
-        pass
+        return comm.size
 
     @abstractmethod
     def start_framework_profiler(self):

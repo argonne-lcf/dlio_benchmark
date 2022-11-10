@@ -26,11 +26,8 @@ from src.common.enumerations import FrameworkType, Profiler, FormatType, Dataset
 
 import tensorflow as tf
 
-print(tf.sysconfig.get_link_flags())
-import horovod.tensorflow as hvd
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
-hvd.init()
 
 class TFFramework(Framework):
     __instance = None
@@ -55,19 +52,6 @@ class TFFramework(Framework):
         if TFFramework.__instance is None:
             TFFramework.__instance = TFFramework(profiling)
         return TFFramework.__instance
-
-    def barrier(self):
-        """
-        Barrier implementation using horovod's all-reduce
-        """
-        const = tf.constant(1)
-        reduced = hvd.allreduce(const)
-
-    def rank(self):
-        return hvd.rank()
-
-    def size(self):
-        return hvd.size()
 
     def start_framework_profiler(self):
         if self.profiling:

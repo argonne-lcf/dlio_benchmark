@@ -26,11 +26,7 @@ from src.utils.utility import utcnow
 
 from time import sleep
 
-import horovod.torch as hvd
-
 from src.reader.reader_factory import ReaderFactory
-
-hvd.init()
 
 HANDLED_FUNCTIONS = {}
 
@@ -70,19 +66,6 @@ class TorchFramework(Framework):
         if TorchFramework.__instance is None:
             TorchFramework.__instance = TorchFramework(profiling)
         return TorchFramework.__instance
-
-    def barrier(self):
-        """
-        Barrier implementation using horovod's all-reduce
-        """
-        const = torch.tensor(1)
-        reduced = hvd.allreduce(const)
-
-    def rank(self):
-        return hvd.rank()
-
-    def size(self):
-        return hvd.size()
 
     def start_framework_profiler(self):
         pass
