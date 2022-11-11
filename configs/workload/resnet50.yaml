@@ -3,7 +3,7 @@ model: resnet50
 framework: tensorflow
 
 workflow:
- generate_data: True
+ generate_data: False
  train: True
 
 dataset:

@@ -95,6 +95,12 @@ workflow
      - False
      - whether to perform profiling
 
+.. note:: 
+
+  If ``train`` is set to be ```False```, ``evaluation``, ``checkpoint``, ``profiling`` will be set to ```False``` automatically. 
+
+  Even though ``generate_data`` and ``train`` can be performed together in one job, we suggest to perform them seperately. One can generate the data first by running DLIO with ```generate_data=True``` and ```train=False```, and then run training benchmark with ```generate_data=False``` and ```train=True```. 
+
 dataset
 ------------------
 .. list-table:: 
@@ -287,7 +293,6 @@ We support following I/O profiling using following profilers:
 
 The YAML files are stored in the `workload`_ folder. 
 It then can be loaded by ```dlio_benchmark.py``` through hydra (https://hydra.cc/). This will override the default settings. One can override the configurations through command line (https://hydra.cc/docs/advanced/override_grammar/basic/). 
-
 
 
 .. _workload: https://github.com/argonne-lcf/dlio_benchmark/tree/main/configs/workload

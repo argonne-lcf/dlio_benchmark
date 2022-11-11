@@ -21,7 +21,7 @@ We specify the configuration in ./configs/workload/unet3d.yaml
     framework: pytorch
 
     workflow:
-        generate_data: True
+        generate_data: False
         train: True
         evaluation: True
 
@@ -48,7 +48,13 @@ We specify the configuration in ./configs/workload/unet3d.yaml
         eval_time: 11.572
         epochs_between_evals: 2
 
-To run the appliation with iostat profiling
+First, we generate the dataset with ```++workload.workflow.generate=False```
+
+.. code-block :: bash
+    
+    mpirun -np 8 python src/dlio_benchmark.py workload=unet3d ++workload.workflow.generate_data=True ++workload.workflow.train=False
+
+Then, we run the appliation with iostat profiling
 
 .. code-block:: bash
     
@@ -60,7 +66,7 @@ To run in data parallel mode, one can do
 
     mpirun -np 8 src/dlio_benchmark.py workload=unet3d ++workload.workflow.profiling=iostat
 
-This will generate the dataset and then run the application. The example out is shown below
+This will run the benchmark and produce the following logging output: 
 
 .. code-block:: text
 
@@ -274,7 +280,7 @@ BERT: Natural Language Processing Model
     framework: tensorflow
 
     workflow:
-        generate_data: True
+        generate_data: False
         train: True
         debug: False
         checkpoint: True
@@ -316,7 +322,7 @@ CosmoFlow: 3D CNN to Learn the Universe at Scale
     framework: tensorflow
 
     workflow:
-        generate_data: True
+        generate_data: False
         train: True
 
     dataset:
@@ -349,7 +355,7 @@ ResNet50: 3D Image classification
     framework: tensorflow
 
     workflow:
-        generate_data: True
+        generate_data: False
         train: True
 
     dataset:

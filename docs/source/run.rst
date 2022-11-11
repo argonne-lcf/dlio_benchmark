@@ -8,15 +8,7 @@ A DLIO run is split in 3 phases:
 
 One can specify the workload through ```workload=WORKLOAD``` option in the command line. This will read in corresponding configuration files in the `workload`_ folder.  The configuration can be overridden through command line following the hyra syntax (e.g.++workload.framework=tensorflow).
 
-1 and 2 can be done either together or in separate. This is controlled by ```workflow.generate_data``` and ```workload.train``` in the configure file. 
-
-For example, for `unet3d.yaml`_, ```workflow.generate_data```, ```workflow.train``` and ```workflow.evaluation``` are all set to be ``True``. Therefore, by default, the following command will generate data first and then perform the training and evaluation.
-
-.. code-block:: bash
-
-    mpirun -np 8 python src/dlio_benchmark.py workload=unet3d
-
-One can separate the data generation part and training part by simply the following two seperate jobs: 
+1 and 2 can be done either together or in separate. This is controlled by ```workflow.generate_data``` and ```workload.train``` in the configure file. If ```workflow.generate_data```, ```workflow.train```are all set to be ``True``, it will generate the data and then run the benchark. However, we always suggest to run it seperately, to avoid caching effect, and to avoid I/O profiling in the data generation part. 
 
 '''''''''''''''''''''''
 Generate data
@@ -24,9 +16,9 @@ Generate data
 
 .. code-block:: bash
 
-    mpirun -np 8 python src/dlio_benchmark.py workload=unet3d ++workload.workflow.generate_data=True ++workload.workflow.train=False ++workload.workflow.evaluation=False
+    mpirun -np 8 python src/dlio_benchmark.py workload=unet3d ++workload.workflow.generate_data=True ++workload.workflow.train=False 
 
-In this case, we override both ```workflow.train``` and ```workflow.evaluation``` with ``False`` and only perform the data generation.  
+In this case, we override ```workflow.generate_data``` and ```workflow.train``` in the configuration to perform the data generation.  
 
 ''''''''''''''''''''''
 Running benchmark

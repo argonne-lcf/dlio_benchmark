@@ -3,7 +3,7 @@ model: unet3d
 framework: pytorch
 
 workflow:
-  generate_data: True
+  generate_data: False
   train: True
   evaluation: True
 
