@@ -10,6 +10,8 @@ The main features of DLIO include:
    * Full transparency over emulation of I/O access with logging and profiling at different levels with modern profilers such as Tensorboard, Torch profiler, darshan and iostat, etc. 
    * Supporting emulating both sequential and distributed data parallel training. 
 
+GitHub repo: https://github.com/argonne-lcf/dlio_benchmark. 
+
 .. toctree::
    :maxdepth: 2
    :caption: Overview

@@ -24,18 +24,19 @@ Developing New Features
 ------------------------
 We welcome the contribution from the community for developing new features of the benchmark. Specifically, we welcome contribution in the following aspects: 
 
-* Support for new workloads: if you think that your workload(s) would be interested to the public, and would like to provide the yaml file to be included in the repo, please submit an issue in the `issue tracker`_. 
+* Support for new workloads: if you think that your workload(s) would be interested to the public, and would like to provide the yaml file to be included in the repo, please submit an issue in the `issue tracker`_. Please also include the link to the real workload github repo. 
 * Support for loading new data formats.
 * Support for new data loaders, such as DALI loader, MxNet loader, etc
 * Support for new frameworks, such as MxNet. 
-* Support for noval file systems or storage, such as AWS S3.
+* Support for noval file or storage systems, such as AWS S3.
 
-For developing all the new features, if you think that it will have significant impact on the original structure of the code, please submit issue to the `issue tracker`_, and contact ALCF DLIO `mailing list`_ to discuss first before proceeding further. This is to minize the effort involved in merging the pull request. 
+If there are other features that you think would be great to have in DLIO, please submit an issue with label ``feature request``. 
 
+For developing all these features, if you think that it will have significant impact on the original structure of the code, please submit an issue to the `issue tracker`_ first, and contact ALCF DLIO `mailing list`_ to discuss before proceeding further. This is to minize the effort involved in merging the pull request. 
 
 Pull Requests
 ------------------------
-* In the pull request, please include a comment in the pull request, mentioning the following things 
+* In the pull request, please include a comment in the pull request, mentioning the following information 
     - what new feature(s) has been added or what problem has been solved. 
     - what are the major changes to the code. 
     - what potential issues or limitations it will cause if there is any
