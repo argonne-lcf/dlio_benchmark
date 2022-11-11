@@ -16,7 +16,7 @@ dataset:
   batch_size: 4
   batch_size_eval: 1
   file_access: multi
-  record_length: 1145359
+  record_length: 147000000
   keep_files: True
   
 data_reader: 
