@@ -2,13 +2,13 @@ Running DLIO
 ======================
 A DLIO run is split in 3 phases:
 
-(1) Generate synthetic data DLIO will use
-(2) Run the benchmark using the previously generated data
-(3) Post-process the results to generate a report
+1. Generate synthetic data DLIO will use
+2. Run the benchmark using the previously generated data
+3. Post-process the results to generate a report
 
 One can specify the workload through ```workload=WORKLOAD``` option in the command line. This will read in corresponding configuration files in the `workload`_ folder.  The configuration can be overridden through command line following the hyra syntax (e.g.++workload.framework=tensorflow).
 
-(1) and (2) can be done either together or in separate. This is controlled by ```workflow.generate_data``` and ```workload.train``` in the configure file. 
+1 and 2 can be done either together or in separate. This is controlled by ```workflow.generate_data``` and ```workload.train``` in the configure file. 
 
 For example, for `unet3d.yaml`_, ```workflow.generate_data```, ```workflow.train``` and ```workflow.evaluation``` are all set to be ``True``. Therefore, by default, the following command will generate data first and then perform the training and evaluation.
 

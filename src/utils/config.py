@@ -76,6 +76,8 @@ class ConfigArguments:
     data_loader: DataLoaderType = DataLoaderType.TENSORFLOW
     num_subfolders_train: int = 0
     num_subfolders_eval: int = 0
+    iostat_command: str = "iostat -mdxtcy -o JSON sda sdb 1"
+    darshan_preload: str = "/usr/local/darshan-3.2.1/lib/libdarshan.so"
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -200,6 +202,13 @@ def LoadConfig(args, config):
         if 'checkpoint' in config['workflow']:
             args.do_checkpoint= config['workflow']['checkpoint']
         if 'profiling' in config['workflow']: 
-            args.do_profiling = True
-            args.profiler = Profiler(config['workflow']['profiling'])
+            args.do_profiling = config['workflow']['profiling']
+
+    if 'profiling' in config: 
+        if 'profiler' in config['profiling']:
+            args.profiler = Profiler(config['profiling']['profiler'])
+        if 'iostat_command' in config['profiling']:
+            args.iostat_command = config['profiling']['iostat_command']
+        if 'darshan_preload' in config['profiling']:
+            args.darshan_preload = config['profiling']['darshan_preload']
         

@@ -1,8 +1,46 @@
 .. _yaml: 
 
-Fully Reference of YAML Configuration 
+DLIO Configuration
 ==============================================
-The configure file contains following groups: 
+The characteristics of a workload is specified through a YAML file. This will then be read by the DLIO program to setup the benchmark. Below is an example of such a YAML file. More examples can be found in the `workload`_ folder. 
+
+.. code-block:: yaml
+  
+  model: unet3d
+
+  framework: pytorch
+
+  workflow:
+    generate_data: True
+    train: True
+    evaluation: True
+
+  dataset: 
+    data_folder: ./data/unet3d/
+    format: npz
+    num_files_train: 3620
+    num_files_eval: 42
+    num_samples_per_file: 1
+    batch_size: 4
+    batch_size_eval: 1
+    file_access: multi
+    record_length: 1145359
+    keep_files: True
+  
+  data_reader: 
+    data_loader: pytorch
+    read_threads: 4
+    prefetch: True
+
+  train:
+    epochs: 10
+    computation_time: 4.59
+
+  evaluation: 
+    eval_time: 11.572
+    epochs_between_evals: 2
+
+A DLIO YAML configuration file contains following sections: 
 
 * **model** - specifying the name of the model.
 * **framework** - specifying the framework to use for the benchmark, options: tensorflow, pytorch
@@ -12,6 +50,25 @@ The configure file contains following groups:
 * **train** - specifying the setup for training
 * **evaluation** - specifying the setup for evaluation. 
 * **checkpoint** - specifying the setup for checkpointing. 
+* **profiling** - specifying the setup for profiling
+
+model
+------------------
+No other parameters under this section. 
+One can specify the name of the model as 
+
+.. code-block:: yaml
+
+  model: unet3d
+
+framework
+-------------------
+No parameters under this group. 
+Specify the frameork (tensorflow or pytorch) as 
+
+.. code-block:: yaml
+
+  framework: tensorflow
 
 workflow
 ------------------
@@ -35,8 +92,8 @@ workflow
      - False
      - whether to perform checkpointing
    * - profiling
-     - none
-     - do profiling and specify the profiler
+     - False
+     - whether to perform profiling
 
 dataset
 ------------------
@@ -105,9 +162,9 @@ data_reader
    * - Parameter
      - Default
      - Description
-   * - data_loader
+   * - data_loader*
      - tensorflow
-     - select the data loader to use [tensorflow|pytorch|node]  
+     - select the data loader to use [tensorflow|pytorch|node]. 
    * - read_threads
      - 1
      - number of threads to load the data (for tensorflow and pytorch data loader)
@@ -130,6 +187,12 @@ data_reader
      - 1048576
      - transfer size in byte for tensorflow data loader. 
 
+.. note:: 
+
+  If ``none`` is set for ``data_reader.data_loader``, then custom 
+  data reader such as ``npz_reader``, ``csv_reader``, ``hdf5_reader`` will be used. 
+  Currently, these custom readers do not support advance features
+  such as multiple read_threads, prefetch, etc. 
 
 train
 ------------------
@@ -193,3 +256,38 @@ checkpoint
    * - model_size
      - 10240
      - the size of the model in bytes
+
+profiling
+------------------
+.. list-table:: 
+   :widths: 15 10 30
+   :header-rows: 1
+
+   * - Parameter
+     - Default
+     - Description
+   * - profiler
+     - none
+     - specifying the profiler to use [none|iostat|tensorflow|pytorch]
+   * - darshan_preload*
+     - /usr/local/darshan-3.2.1/lib/libdarshan.so
+     - specifying the DARSHAN LD_PRELOAD library.     
+   * - iostat_command**
+     - "iostat -mdxtcy -o JSON sda sdb 1"
+     - specifying the command which will be used for iostat profiling.  
+
+We support following I/O profiling using following profilers: 
+
+  * ``darshan``: https://www.mcs.anl.gov/research/projects/darshan/. ``darshan_preload`` has to be set for the runtime library to be loaded properly. 
+
+  * ``iostat``: https://linux.die.net/man/1/iostat. One can specify the command to use for profiling in order to get the profiling for specific disk.   
+  * ``tensorflow`` (tf.profiler): https://www.tensorflow.org/api_docs/python/tf/profiler. This works only for tensorflow framework (and data loader)
+
+  * ``pytorch`` (torch.profiler): https://pytorch.org/docs/stable/profiler.html. This works only for pytorch framework (and data loader).
+
+The YAML files are stored in the `workload`_ folder. 
+It then can be loaded by ```dlio_benchmark.py``` through hydra (https://hydra.cc/). This will override the default settings. One can override the configurations through command line (https://hydra.cc/docs/advanced/override_grammar/basic/). 
+
+
+
+.. _workload: https://github.com/argonne-lcf/dlio_benchmark/tree/main/configs/workload

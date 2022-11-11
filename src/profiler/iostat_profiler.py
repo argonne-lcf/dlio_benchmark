@@ -32,6 +32,7 @@ class IostatProfiler(IOProfiler):
     def __init__(self):
         super().__init__()
         self.my_rank = self._args.my_rank
+        self.iostat_command = self._args.iostat_command
         self.logfile = os.path.join(self._args.output_folder, 'iostat.json')
         """ Virtually private constructor. """
         if IostatProfiler.__instance is not None:
@@ -43,8 +44,7 @@ class IostatProfiler(IOProfiler):
         if self.my_rank == 0:
             # Open the logfile for writing
             self.logfile = open(self.logfile, 'w')
-            #TODO: Get the relevant disks (from user input?)
-            cmd = ["iostat", "-mdxtcy", "-o", "JSON", "sda", "sdb", "1"]
+            cmd = self.iostat_command.split()
             self.process = sp.Popen(cmd, stdout=self.logfile, stderr=self.logfile)
 
     def stop(self):

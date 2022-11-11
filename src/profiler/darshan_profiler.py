@@ -29,6 +29,7 @@ class DarshanProfiler(IOProfiler):
 
     def __init__(self):
         super().__init__()
+        self.darshan_preload = self._args.darshan_preload
         """ Virtually private constructor. """
         if DarshanProfiler.__instance is not None:
             raise Exception("This class is a singleton!")
@@ -37,7 +38,7 @@ class DarshanProfiler(IOProfiler):
 
     def start(self):
         #  this has to be changed to allow specifying DARSHAN librrary through DARSHAN_PRELOAD
-        os.environ["LD_PRELOAD"] = os.environ["DARSHAN_PRELOAD"]
+        os.environ["LD_PRELOAD"] = args.darshan_preload
         os.environ["DXT_ENABLE_IO_TRACE"] = "1"
         os.environ["DARSHAN_DISABLE"] = "0"
 

@@ -12,7 +12,7 @@ UNET3D: 3D Medical Image Segmentation
 
 We specify the configuration in ./configs/workload/unet3d.yaml
 
-.. code-block:: text
+.. code-block:: yaml
 
     # contents of unet3d.yaml
 
@@ -143,6 +143,7 @@ One can then post processing the data with dlio_postprocessor.py
 The output is
 
 .. code-block:: text
+
     ===============Processing DLIO output================
     Job configuration
     output_folder: hydra_log/unet3d/2022-11-09-17-55-44/
@@ -219,7 +220,7 @@ The output is
     2022-11-09 20:45:29 Successfully wrote hydra_log/unet3d/2022-11-09-17-55-44/DLIO_unet3d_report.txt
 
 
-.. code-block:: text
+.. code-block:: yaml
 
     #contents of DLIO_unet3d_report.txt
 
@@ -265,7 +266,7 @@ BERT: Natural Language Processing Model
 * Dataset: Multiple tfrecord files containing many samples each.
 * Trains in a single epoch, performs periodic checkpointing of its parameters.
 
-.. code-block:: text
+.. code-block:: yaml
 
     # contents of bert.yaml
     model: bert
@@ -307,7 +308,7 @@ CosmoFlow: 3D CNN to Learn the Universe at Scale
 * Dataset: Multiple tfrecord files containing many samples each.
 * Trains in multiple epochs
 
-.. code-block:: text
+.. code-block:: yaml
 
     # contents of cosmoflow.yaml
     model: cosmoflow
@@ -340,7 +341,7 @@ ResNet50: 3D Image classification
 * Dataset: ImageNet datasets saved in tfrecords files
 * Trains in multiple epochs. 
 
-.. code-block:: text
+.. code-block:: yaml
 
     # contents of resnet50.yaml
     model: resnet50
