@@ -15,7 +15,7 @@ Our initial DLIO paper published in CCGrid'2021 described the design and impleme
         publisher={IEEE/ACM}
     }
 
-See also the following relevant paper from MLPerf Storage working group: 
+DLIO is the key software for the MLPerf Storage benchmark: https://mlcommons.org/en/groups/research-storage/. See also the following relevant paper from MLPerf Storage working group: 
 
 .. code-block:: text
 

@@ -45,6 +45,12 @@ GitHub repo: https://github.com/argonne-lcf/dlio_benchmark.
 
    resources
 
+.. toctree:: 
+   :maxdepth: 2
+   :caption: Acknowdgments
+
+   acknowledgments
+
 .. toctree::
    :maxdepth: 2
    :caption: Legal

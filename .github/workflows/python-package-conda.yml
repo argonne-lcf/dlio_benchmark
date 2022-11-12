@@ -25,8 +25,8 @@ jobs:
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -n 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=False ++workload.workflow.generate_data=True
-        mpirun -n 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=True ++workload.workflow.generate_data=False
+        mpirun -n 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=False ++workload.workflow.generate_data=True  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
+        mpirun -n 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=True ++workload.workflow.generate_data=False  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
 
     - name: test-torch-loader-npz
       run: |
