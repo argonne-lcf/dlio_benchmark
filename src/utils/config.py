@@ -47,8 +47,6 @@ class ConfigArguments:
     log_file: str  = "dlio.log"
     file_prefix: str = "img"
     keep_files: bool = True
-    # TODO: Separate the general profiler iostat, beeded for benchmark report generation
-    # and framework specific profiler/ other profiler (i.e. darshan)
     do_profiling: bool = True
     profiler: Profiler = Profiler.IOSTAT
     # Will trace all io devices by default
@@ -105,10 +103,6 @@ def LoadConfig(args, config):
         args.framework = FrameworkType(config['framework'])
     if 'logdir' in config:
         args.logdir = config['logdir']
-    if 'reporting' in config:
-        args.io_devices_to_trace = config['reporting']['devices']
-        if isinstance(args.io_devices_to_trace, str):
-            args.io_devices_to_trace = [args.io_devices_to_trace]
     # dataset related settings
     if 'dataset' in config:
         if 'record_length' in config['dataset']:
@@ -203,8 +197,6 @@ def LoadConfig(args, config):
             args.generate_only = True
         if 'debug' in config['workflow']:
             args.debug = config['workflow']['debug']
-        if 'profiling' in config['workflow']:
-            args.profiling = config['workflow']['profiling']
         if 'evaluation' in config['workflow']:
             args.do_eval= config['workflow']['evaluation']
         if 'checkpoint' in config['workflow']:
