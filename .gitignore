@@ -151,3 +151,6 @@ dmypy.json
 
 # Temporary files
 *~
+
+#Apple system files
+.DS_Store
