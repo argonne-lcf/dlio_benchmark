@@ -47,8 +47,10 @@ class ConfigArguments:
     log_file: str  = "dlio.log"
     file_prefix: str = "img"
     keep_files: bool = True
-    do_profiling: bool = False
-    profiler: Profiler = Profiler.NONE
+    do_profiling: bool = True
+    profiler: Profiler = Profiler.IOSTAT
+    # Will trace all io devices by default
+    io_devices_to_trace = []
     seed: int = 123
     do_checkpoint: bool = False
     checkpoint_after_epoch: int = 1 
@@ -195,8 +197,6 @@ def LoadConfig(args, config):
             args.generate_only = True
         if 'debug' in config['workflow']:
             args.debug = config['workflow']['debug']
-        if 'profiling' in config['workflow']:
-            args.profiling = config['workflow']['profiling']
         if 'evaluation' in config['workflow']:
             args.do_eval= config['workflow']['evaluation']
         if 'checkpoint' in config['workflow']:

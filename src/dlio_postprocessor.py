@@ -487,7 +487,6 @@ class DLIOPostProcessor:
 
             format_print(outfile, overall_desc, indent=1)
             if (self.iotrace is not None):
-                print(self.iotrace)
                 write_out_stats_table(outfile, self.overall_stats, indent=1)
 
             outfile.write("\nDetailed Report\n\n")

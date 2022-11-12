@@ -35,8 +35,9 @@ class TFFramework(Framework):
     def __init__(self, profiling):
         super().__init__()
         self.profiling = profiling
+        # TODO: Temporary fix, need to separate the iostat profiler (needed for report gen) and the others
         if profiling:
-            self.tensorboard = ProfilerFactory.get_profiler(Profiler.TENSORBOARD)
+            self.tensorboard = ProfilerFactory.get_profiler(Profiler.NONE)
         self.reader_handler = None
 
     def init_reader(self, format_type, data_loader=None):

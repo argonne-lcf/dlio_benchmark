@@ -11,14 +11,14 @@ workflow:
 dataset: 
  data_folder: ./data/bert/
  format: tfrecord
- num_files_train: 500
- num_samples_per_file: 313532
+ num_files_train: 10
+ num_samples_per_file: 313
  record-length: 2500
- batch_size: 48
+ batch_size: 7
 
 train:
  computation_time: 0.968
- total_training_steps: 5000
+ total_training_steps: 200
  
 data_reader:
  data_loader: tensorflow
@@ -27,5 +27,5 @@ data_reader:
  transfer_size: 262144
 
 checkpoint:
- steps_between_checkpoints: 1250
- model_size: 4034713312
+ steps_between_checkpoints: 100
+ model_size: 40347133
