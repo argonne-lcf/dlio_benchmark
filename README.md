@@ -40,6 +40,7 @@ Finally, run the benchmark with ```iostat``` profiling.
   mpirun -np 8 python src/dlio_benchmark.py workload=unet3d ++workload.workflow.profiling=True ++workload.profiling.profiler=iostat ++workload.profiling.iostat_command="iostat -mdxtcy -o JSON sda sdb 1"
   ```
 
+
 All the outputs will be stored in ```hydra_log/unet3d/$DATE-$TIME``` folder. To post process the data, one can do
 ```bash 
 python3 src/dlio_postprocessor.py --output-folder hydra_log/unet3d/$DATE-$TIME

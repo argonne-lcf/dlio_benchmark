@@ -38,7 +38,7 @@ def progress(count, total, status=''):
         os.sys.stdout.flush()
 
 def utcnow(format=LOG_TS_FORMAT):
-    return datetime.utcnow().strftime(format)
+    return datetime.now().strftime(format)
 
 def str2bool(v):
     if isinstance(v, bool):

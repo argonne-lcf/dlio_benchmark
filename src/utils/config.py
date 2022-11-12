@@ -47,8 +47,12 @@ class ConfigArguments:
     log_file: str  = "dlio.log"
     file_prefix: str = "img"
     keep_files: bool = True
-    do_profiling: bool = False
-    profiler: Profiler = Profiler.NONE
+    # TODO: Separate the general profiler iostat, beeded for benchmark report generation
+    # and framework specific profiler/ other profiler (i.e. darshan)
+    do_profiling: bool = True
+    profiler: Profiler = Profiler.IOSTAT
+    # Will trace all io devices by default
+    io_devices_to_trace = []
     seed: int = 123
     do_checkpoint: bool = False
     checkpoint_after_epoch: int = 1 
@@ -101,6 +105,10 @@ def LoadConfig(args, config):
         args.framework = FrameworkType(config['framework'])
     if 'logdir' in config:
         args.logdir = config['logdir']
+    if 'reporting' in config:
+        args.io_devices_to_trace = config['reporting']['devices']
+        if isinstance(args.io_devices_to_trace, str):
+            args.io_devices_to_trace = [args.io_devices_to_trace]
     # dataset related settings
     if 'dataset' in config:
         if 'record_length' in config['dataset']:
