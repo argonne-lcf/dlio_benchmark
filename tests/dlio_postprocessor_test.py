@@ -10,7 +10,7 @@ class TestDLIOPostProcessor(unittest.TestCase):
 
     def test_process_loading_and_processing_times(self):
         args = {
-            'output_folder': 'tst/test_data',
+            'output_folder': 'tests/test_data',
             'name': '',
             'num_proc': 2,
             'epochs': 2,

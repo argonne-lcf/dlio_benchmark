@@ -109,6 +109,7 @@ class FormatReader(ABC):
         if read_shuffle:
             random.shuffle(self._file_list)
         self._local_file_list = self._file_list[self.my_rank::self.comm_size]
+
     @abstractmethod
     def next(self):
         pass

@@ -20,8 +20,19 @@ class StatsCounter(object):
         self.batch_size = self.args.batch_size
         self.batch_size_eval = self.args.batch_size_eval
         
-        self.steps = math.ceil(self.args.num_samples_per_file * self.args.num_files_train / self.args.batch_size / self.args.comm_size)
-        self.steps_eval = math.ceil(self.args.num_samples_per_file * self.args.num_files_eval / self.args.batch_size_eval / self.args.comm_size)
+        max_steps = math.floor(self.args.num_samples_per_file * self.args.num_files_train / self.args.batch_size / self.args.comm_size)
+
+        if self.args.total_training_steps > 0:
+            if self.args.total_training_steps > max_steps:
+                logging.error(f"Only have enough data for {max_steps} steps but {self.args.total_training_steps} desired")
+                exit(-1)
+            self.steps_override = True
+            self.steps = self.args.total_training_steps
+        else:
+            self.steps_override = False
+            self.steps = max_steps
+        
+        self.steps_eval = math.floor(self.args.num_samples_per_file * self.args.num_files_eval / self.args.batch_size_eval / self.args.comm_size)
         # Only the root process keeps track of overall stats
         if self.my_rank == 0:
             self.per_epoch_stats = {}
@@ -33,7 +44,10 @@ class StatsCounter(object):
     def start_epoch(self, epoch):
         if self.my_rank == 0:
             ts = utcnow()
-            logging.info(f"{ts} Starting epoch {epoch}")
+            if self.steps_override:
+                logging.info(f"{ts} Starting epoch {epoch}: Overriding number of steps to {self.steps}.")
+            else:
+                logging.info(f"{ts} Starting epoch {epoch}: {self.steps} steps expected.")
             self.per_epoch_stats[epoch] = {
                 'start': ts,
             }
@@ -44,14 +58,14 @@ class StatsCounter(object):
         self.load_and_proc_times[epoch]['load'] = {}
         self.load_and_proc_times[epoch]['proc'] = {}
 
-    def end_epoch(self, epoch):
+    def end_epoch(self, epoch, steps):
         if self.my_rank == 0:
             ts = utcnow()
             duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch]['start'])
             duration = '{:.2f}'.format(duration.total_seconds())
             self.per_epoch_stats[epoch]['end'] = ts
             self.per_epoch_stats[epoch]['duration'] = duration
-            logging.info(f"{ts} Ending epoch {epoch} - {self.steps} steps completed in {duration} s")
+            logging.info(f"{ts} Ending epoch {epoch} - {steps} steps completed in {duration} s")
 
     def start_eval(self, epoch):
         if self.my_rank == 0:
@@ -114,36 +128,36 @@ class StatsCounter(object):
             self.per_epoch_stats[epoch][f'ckpt{block}']['end'] = ts
             self.per_epoch_stats[epoch][f'ckpt{block}']['duration'] = duration
 
-    def batch_loaded(self, epoch, block, t0):
+    def batch_loaded(self, epoch, step, block, t0):
         duration = time() - t0
         key = f'block{block}'
         if key in self.load_and_proc_times[epoch]['load']:
             self.load_and_proc_times[epoch]['load'][key].append(duration)
         else:
             self.load_and_proc_times[epoch]['load'][key] = [duration]
-        logging.debug(f"{utcnow()} Rank {self.my_rank} loaded {self.batch_size} samples in {duration} s")
+        logging.debug(f"{utcnow()} Rank {self.my_rank} step {step}: loaded {self.batch_size} samples in {duration} s")
 
 
-    def batch_processed(self, epoch, block, t0):
+    def batch_processed(self, epoch, step, block, t0):
         duration = time() - t0
         key = f'block{block}'
         if key in self.load_and_proc_times[epoch]['proc']:
             self.load_and_proc_times[epoch]['proc'][key].append(duration)
         else:
             self.load_and_proc_times[epoch]['proc'][key] = [duration]
-        logging.info(f"{utcnow()} Rank {self.my_rank} processed {self.batch_size} samples in {duration} s")
+        logging.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size} samples in {duration} s")
 
 
-    def eval_batch_loaded(self, epoch, t0):
+    def eval_batch_loaded(self, epoch, step, t0):
         duration = time() - t0
         self.load_and_proc_times[epoch]['load']['eval'].append(duration)
-        logging.debug(f"{utcnow()} Rank {self.my_rank} loaded {self.batch_size_eval} samples in {duration} s")
+        logging.debug(f"{utcnow()} Rank {self.my_rank} step {step} loaded {self.batch_size_eval} samples in {duration} s")
 
 
-    def eval_batch_processed(self, epoch, t0):
+    def eval_batch_processed(self, epoch, step, t0):
         duration = time() - t0
         self.load_and_proc_times[epoch]['proc']['eval'].append(duration)
-        logging.info(f"{utcnow()} Rank {self.my_rank} processed {self.batch_size_eval} samples in {duration} s")
+        logging.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size_eval} samples in {duration} s")
 
     def save_data(self):
         # Dump statistic counters to files for postprocessing

@@ -91,7 +91,7 @@ class TFDataLoaderReader(FormatReader):
 
         # In tf, we can't get the length of the dataset easily so we calculate it
         if self._debug:
-            total = math.ceil(self.num_samples*len(self._file_list)/self.batch_size/self.comm_size)
+            total = math.floor(self.num_samples*len(self._file_list)/self.batch_size/self.comm_size)
             logging.debug(f"{utcnow()} Rank {self.my_rank} should read {total} batches")
 
         # The previous version crashed when all workers could not generate the same amount of batches

@@ -68,9 +68,13 @@ class TFReader(FormatReader):
         """
         # superclass function initializes the file list
         super().read(epoch_number)
-        dataset = tf.data.TFRecordDataset(filenames=self._local_file_list,
+
+        # We read the full _file_list here instead of _local_file_list
+        # because we will shard the data using the tf.data function
+        dataset = tf.data.TFRecordDataset(filenames=self._file_list,
                                           buffer_size=self.transfer_size,
                                           num_parallel_reads=self.read_threads)
+        dataset = dataset.shard(num_shards=self.comm_size, index=self.my_rank)
         dataset = dataset.map(self._tf_parse_function, num_parallel_calls=self.computation_threads)
 
         if self.memory_shuffle != Shuffle.OFF:
@@ -94,12 +98,11 @@ class TFReader(FormatReader):
 
         # In tf, we can't get the length of the dataset easily so we calculate it
         if self._debug:
-            total = math.ceil(self.num_samples*len(self._local_file_list)/self.batch_size)
+            total = math.floor(self.num_samples*len(self._file_list)/self.batch_size/self.comm_size)
             logging.debug(f"{utcnow()} Rank {self.my_rank} should read {total} batches")
 
         # The previous version crashed when all workers could not generate the same amount of batches
         # Using the inbuilt tensorflow dataset iteration seems to work fine, was there an advantage of doing it the old way?
-        # t1
         for batch in dataset:
             yield batch
 
