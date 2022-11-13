@@ -10,14 +10,7 @@ class TestDLIOPostProcessor(unittest.TestCase):
 
     def test_process_loading_and_processing_times(self):
         args = {
-            'output_folder': 'tst/test_data',
-            'name': '',
-            'num_proc': 2,
-            'epochs': 2,
-            'do_eval': False,
-            'do_checkpoint': False,
-            'batch_size': 8,
-            'batch_size_eval': 1,
+            'output_folder': 'tests/test_data',
         }
         args = namedtuple('args', args.keys())(*args.values())
         postproc = self.create_DLIO_PostProcessor(args)

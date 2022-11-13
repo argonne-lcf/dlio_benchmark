@@ -14,7 +14,7 @@
    limitations under the License.
 """
 
-from profiler.iostat_profiler import IostatProfiler
+from src.profiler.iostat_profiler import IostatProfiler
 from src.common.error_code import ErrorCodes
 from src.profiler.darshan_profiler import DarshanProfiler
 from src.profiler.no_profiler import NoProfiler

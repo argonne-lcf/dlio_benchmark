@@ -27,17 +27,24 @@ jobs:
         export PYTHONPATH=./:$PYTHONPATH
         mpirun -n 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=False ++workload.workflow.generate_data=True  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
         mpirun -n 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=True ++workload.workflow.generate_data=False  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
-
+        output=`ls -d ./hydra_log/unet3d/* | tail -1`
+        python ./src/dlio_postprocessor.py --output-folder=${output}
+        cat ${output}/*.txt
     - name: test-torch-loader-npz
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
         mpirun -n 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_train_files=16 ++workload.dataset.num_eval_files=4
         mpirun -n 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_train_files=16 ++workload.dataset.num_eval_files=4
-
+        output=`ls -d ./hydra_log/unet3d/* | tail -1`
+        python ./src/dlio_postprocessor.py --output-folder=${output}
+        cat ${output}/*.txt
     - name: test-tf-loader-npz
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
         mpirun -n 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_train_files=16 ++workload.dataset.num_eval_files=4
         mpirun -n 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_train_files=16 ++workload.dataset.num_eval_files=4
+        output=`ls -d ./hydra_log/unet3d/* | tail -1`
+        python ./src/dlio_postprocessor.py --output-folder=${output}
+        cat ${output}/*.txt
