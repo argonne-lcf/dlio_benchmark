@@ -192,8 +192,10 @@ def LoadConfig(args, config):
     if 'workflow' in config:
         if 'generate_data' in config['workflow']:
             args.generate_data = config['workflow']['generate_data']
-        if not ('train' in config['workflow'] and config['workflow']['train']):
+        if not (('train' in config['workflow']) and config['workflow']['train']):
             args.generate_only = True
+        else:
+            args.generate_only = False
         if 'debug' in config['workflow']:
             args.debug = config['workflow']['debug']
         if 'evaluation' in config['workflow']:

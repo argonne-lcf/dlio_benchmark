@@ -59,7 +59,6 @@ class DLIOBenchmark(object):
         </ul>
         """
         self.args = ConfigArguments.get_instance()
-    
         LoadConfig(self.args, cfg)
         try:
             hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
@@ -96,7 +95,7 @@ class DLIOBenchmark(object):
             format='%(message)s [%(pathname)s:%(lineno)d]'  # logging's max timestamp resolution is msecs, we will pass in usecs in the message
         )
         logging.info(f"{utcnow()} Running DLIO with {self.comm_size} processes")
-        
+
         self.generate_only = self.args.generate_only
         self.do_profiling = self.args.do_profiling
 
