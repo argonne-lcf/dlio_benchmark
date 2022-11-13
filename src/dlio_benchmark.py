@@ -27,6 +27,10 @@ os.environ['AUTOGRAPH_VERBOSITY'] = '0'
 import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
+# Remove PyTorch warning when libtorch_cuda_cu.so isn't found
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+
 from dataclasses import dataclass
 from src.utils.utility import utcnow
 from omegaconf import DictConfig, OmegaConf

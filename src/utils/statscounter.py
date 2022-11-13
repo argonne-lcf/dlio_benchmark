@@ -24,7 +24,7 @@ class StatsCounter(object):
 
         if self.args.total_training_steps > 0:
             if self.args.total_training_steps > max_steps:
-                logging.error(f"Only have enough data for {max_steps} steps but {self.args.total_training_steps} desired")
+                logging.error(f"Only have enough data for {max_steps} steps but {self.args.total_training_steps} wanted")
                 exit(-1)
             self.steps_override = True
             self.steps = self.args.total_training_steps
@@ -47,7 +47,7 @@ class StatsCounter(object):
             if self.steps_override:
                 logging.info(f"{ts} Starting epoch {epoch}: Overriding number of steps to {self.steps}.")
             else:
-                logging.info(f"{ts} Starting epoch {epoch}: {self.steps} steps expected.")
+                logging.info(f"{ts} Starting epoch {epoch}: {self.steps} steps expected")
             self.per_epoch_stats[epoch] = {
                 'start': ts,
             }
@@ -70,7 +70,7 @@ class StatsCounter(object):
     def start_eval(self, epoch):
         if self.my_rank == 0:
             ts = utcnow()
-            logging.info(f"{ts} Starting eval")
+            logging.info(f"{ts} Starting eval - {self.steps_eval} steps expected")
             self.per_epoch_stats[epoch]['eval'] = {
                 'start': ts
             }
