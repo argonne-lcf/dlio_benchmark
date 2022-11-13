@@ -27,7 +27,7 @@ jobs:
         export PYTHONPATH=./:$PYTHONPATH
         mpirun -n 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=False ++workload.workflow.generate_data=True  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
         mpirun -n 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=True ++workload.workflow.generate_data=False  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
-        output=`ls -d ./hydra_log/unet3d/* | tail -1`
+        output=`ls -d ./hydra_log/resnet50/* | tail -1`
         python ./src/dlio_postprocessor.py --output-folder=${output}
         cat ${output}/*.txt
     - name: test-torch-loader-npz
