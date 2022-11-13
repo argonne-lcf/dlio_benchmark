@@ -87,7 +87,7 @@ class TorchDataLoaderReader(FormatReader):
         super().read(epoch_number)
 
         do_shuffle = True if self.memory_shuffle != Shuffle.OFF else False
-
+        
         dataset = TorchDataset(self._file_list, self.my_rank, self.format)
 
         # TODO: In image segmentation, the distributed sampler is not used during eval, we could parametrize this away if needed
@@ -97,6 +97,7 @@ class TorchDataLoaderReader(FormatReader):
                                 rank=self.my_rank,
                                 shuffle=do_shuffle, 
                                 seed=self.seed)
+        logging.debug(f"{utcnow()} Rank {self.my_rank} length of distributed sampler {len(sampler)} ")
 
         self._dataset = DataLoader(dataset,
                                     batch_size=self.batch_size,

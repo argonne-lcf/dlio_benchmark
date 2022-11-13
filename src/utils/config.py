@@ -14,8 +14,9 @@
    limitations under the License.
 """
 
+from typing import List, ClassVar
 from src.common.enumerations import FormatType, Shuffle, ReadType, FileAccess, Compression, FrameworkType, DataLoaderType, Profiler
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import hydra
 
 @dataclass
@@ -49,8 +50,6 @@ class ConfigArguments:
     keep_files: bool = True
     do_profiling: bool = True
     profiler: Profiler = Profiler.IOSTAT
-    # Will trace all io devices by default
-    io_devices_to_trace = []
     seed: int = 123
     do_checkpoint: bool = False
     checkpoint_after_epoch: int = 1 
@@ -78,7 +77,7 @@ class ConfigArguments:
     data_loader: DataLoaderType = DataLoaderType.TENSORFLOW
     num_subfolders_train: int = 0
     num_subfolders_eval: int = 0
-    iostat_command: str = "iostat -mdxtcy -o JSON sda sdb 1"
+    iostat_devices: ClassVar[List[str]] = []
     darshan_preload: str = "/usr/local/darshan-3.2.1/lib/libdarshan.so"
 
     def __init__(self):
@@ -207,8 +206,10 @@ def LoadConfig(args, config):
     if 'profiling' in config: 
         if 'profiler' in config['profiling']:
             args.profiler = Profiler(config['profiling']['profiler'])
-        if 'iostat_command' in config['profiling']:
-            args.iostat_command = config['profiling']['iostat_command']
+        if 'devices' in config['profiling']:
+            args.iostat_devices = config['profiling']['iostat_devices']
+            if isinstance(args.io_devices_to_trace, str):
+                args.iostat_devices = [args.iostat_devices]
         if 'darshan_preload' in config['profiling']:
             args.darshan_preload = config['profiling']['darshan_preload']
         
