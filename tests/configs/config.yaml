@@ -1,0 +1,9 @@
+# A set of configuration
+defaults:
+ - _self_
+ - workload: unet3d_test
+ - override hydra/job_logging: disabled  
+ - override hydra/hydra_logging: disabled
+hydra:
+  run:
+    dir: ./hydra_log/${workload.model}/${now:%Y-%m-%d}-${now:%H-%M-%S}

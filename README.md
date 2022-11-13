@@ -16,6 +16,8 @@ export PYTHONPATH=$PWD/:$PYTHONPATH
 python ./src/dlio_benchmark.py --help
 ```
 
+Additionally, to generate the report `iostat` is needed and can be installed from the `sysstat` package using your package manager.
+
 ## Running the benchmark
 
 A DLIO run is split in 3 phases: 
@@ -29,17 +31,16 @@ One can specify the workload through the ```workload=``` option on the command l
 
 First, generate the data
   ```bash
-  mpirun -np 8 python src/dlio_benchmark.py workload=unet3d ++workload.workflow.generate_data=True ++workload.workflow.train=False
+  mpirun -np 8 python3 src/dlio_benchmark.py workload=unet3d ++workload.workflow.generate_data=True ++workload.workflow.train=False
   ```
 If possible, one can flush the filesystem caches in order to properly capture device I/O
-```bash
-  sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches
-``` 
-Finally, run the benchmark with ```iostat``` profiling.
   ```bash
-  mpirun -np 8 python src/dlio_benchmark.py workload=unet3d ++workload.workflow.profiling=True ++workload.profiling.profiler=iostat ++workload.profiling.iostat_command="iostat -mdxtcy -o JSON sda sdb 1"
+  sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches
   ```
-
+Finally, run the benchmark with ```iostat``` profiling, listing the io devices you would like to trace.
+  ```bash
+  mpirun -np 8 python3 src/dlio_benchmark.py workload=unet3d ++workload.workflow.profiling=True ++workload.profiling.profiler=iostat ++workload.profiling.io_devices_to_trace=[sda,sdb]
+  ```
 
 All the outputs will be stored in ```hydra_log/unet3d/$DATE-$TIME``` folder. To post process the data, one can do
 ```bash 
