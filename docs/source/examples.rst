@@ -34,7 +34,7 @@ We specify the configuration in ./configs/workload/unet3d.yaml
         batch_size: 4
         batch_size_eval: 1
         file_access: multi
-        record_length: 1145359
+        record_length: 147000000
         keep_files: True
     
     data_reader: 
@@ -274,7 +274,6 @@ BERT: Natural Language Processing Model
 
 .. code-block:: yaml
 
-    # contents of bert.yaml
     model: bert
 
     framework: tensorflow
@@ -291,7 +290,7 @@ BERT: Natural Language Processing Model
         num_files_train: 500
         num_samples_per_file: 313532
         record-length: 2500
-        batch_size: 7
+        batch_size: 48
 
     train:
         computation_time: 0.968

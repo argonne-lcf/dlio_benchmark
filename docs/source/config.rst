@@ -278,9 +278,9 @@ profiling
    * - darshan_preload*
      - /usr/local/darshan-3.2.1/lib/libdarshan.so
      - specifying the DARSHAN LD_PRELOAD library.     
-   * - iostat_command**
-     - "iostat -mdxtcy -o JSON sda sdb 1"
-     - specifying the command which will be used for iostat profiling.  
+   * - iostat_devices**
+     - [sda, sdb]
+     - specifying the devices to perform iostat tracing.  
 
 We support following I/O profiling using following profilers: 
 
