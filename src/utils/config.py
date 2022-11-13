@@ -77,7 +77,7 @@ class ConfigArguments:
     data_loader: DataLoaderType = DataLoaderType.TENSORFLOW
     num_subfolders_train: int = 0
     num_subfolders_eval: int = 0
-    io_devices_to_trace: ClassVar[List[str]] = []
+    iostat_devices: ClassVar[List[str]] = []
     darshan_preload: str = "/usr/local/darshan-3.2.1/lib/libdarshan.so"
 
     def __init__(self):
@@ -207,9 +207,9 @@ def LoadConfig(args, config):
         if 'profiler' in config['profiling']:
             args.profiler = Profiler(config['profiling']['profiler'])
         if 'devices' in config['profiling']:
-            args.io_devices_to_trace = config['profiling']['devices']
+            args.iostat_devices = config['profiling']['iostat_devices']
             if isinstance(args.io_devices_to_trace, str):
-                args.io_devices_to_trace = [args.io_devices_to_trace]
+                args.iostat_devices = [args.iostat_devices]
         if 'darshan_preload' in config['profiling']:
             args.darshan_preload = config['profiling']['darshan_preload']
         

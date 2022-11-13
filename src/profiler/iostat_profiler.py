@@ -32,7 +32,7 @@ class IostatProfiler(IOProfiler):
     def __init__(self):
         super().__init__()
         self.my_rank = self._args.my_rank
-        self.devices = self._args.io_devices_to_trace
+        self.devices = self._args.iostat_devices
         self.logfile = os.path.join(self._args.output_folder, 'iostat.json')
         """ Virtually private constructor. """
         if IostatProfiler.__instance is not None:
