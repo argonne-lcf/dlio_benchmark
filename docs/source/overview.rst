@@ -2,25 +2,37 @@ Introduction
 =============
 Deep learning has been shown as a successful
 method for various tasks, and its popularity results in numerous
-open-source deep learning software tools. Deep learning has
+open-source deep learning software tools. It has
 been applied to a broad spectrum of scientific domains such
 as cosmology, particle physics, computer vision, fusion, and
-astrophysics. Scientists have performed a great deal of work
-to optimize the computational performance of deep learning
-frameworks. However, the same cannot be said for I/O performance. As deep learning algorithms rely on big-data volume and
+astrophysics. As deep learning algorithms rely on big-data volume and
 variety to effectively train neural networks accurately, I/O is
 a significant bottleneck on large-scale distributed deep learning training. 
 
-The DLIO benchmark aims to provide a detailed representation of
-the I/O behavior of deep learning workloads. DLIO can be utilized to accurately emulate the I/O behavior of modern deep learning
-applications. Using DLIO, application developers and system
+The `DLIO` benchmark aims to provide a detailed representation of
+the data access pattern of deep learning workloads, to 
+to accurately emulate the I/O behavior in the training process. 
+Using `DLIO`, application developers and system
 software solution architects can identify potential I/O bottlenecks
 in their applications and guide optimizations to boost the I/O
-performance. The storage vendors can also use DLIO benchmark as a guidance for storage and file system design. 
+performance. The storage vendors can also use `DLIO` benchmark as 
+a guidance for designing storage and file system 
+targeting the deep learning applications. 
 
-In developing the benchmark, we have the following two considerations: 
+In developing the benchmark, we have the following two assume: 
 
-First, we assume that one can replace the computation part (training and validation) with a sleep of the same amount of time, while keeping the I/O pattern / behavior the same. The logic behind this is demonstrated as shown in the figure. In a typical deep leanring training process, a batch of data is loaded from the storage to host memory at each time step, and then transfered to the accelerator to perform the training. There might be some hardware supporting loading data from storage directly to the accelerators such as GPU Direct. In either case, the I/O (data access in the storage) should be independent of what is going on inside the accelerator, as long as the frequency of the I/O requests remains the same. 
+First, we assume that one can replace the computation part 
+(training and validation) with a sleep of the same amount of time, 
+while keeping the I/O pattern / behavior the same. 
+The logic behind this is demonstrated as shown in the figure. 
+In a typical deep leanring training process, a batch of data is 
+loaded from the storage to host memory at each time step, 
+and then transfered to the accelerator to perform the training. 
+There might be some hardware supporting loading data from storage 
+directly to the accelerators such as GPU Direct. In either case, 
+the I/O (data access in the storage) should likely be independent of 
+what is going on inside the accelerator, as long as the 
+frequency of the I/O requests remains the same. 
 
   .. figure:: ./images/training.png
 
@@ -41,35 +53,35 @@ more data formats, datasets, and configuration parameters. It
 emulates deep learning applications using
 **Benchmark Runner**, **Data Generator**, **Format Handler**, and **I/O Profiler** modules. These modules utilize state-of-the-art design
 patterns to build a transparent and extensible framework. The
-DLIO benchmark has been designed with the following goals.
+`DLIO` benchmark has been designed with the following goals.
 
-1) **Accurate**: DLIO should be an accurate representation of
+1) **Accurate**: `DLIO` should be an accurate representation of
 selected deep learning applications. It should
 incorporate all the I/O behavior seen in various configurations of applications, and act as a mini-application that can precisely replay the I/O behavior. 
 
-2) **Configurable**: DLIO should be easily configurable for
+2) **Configurable**: `DLIO` should be easily configurable for
 different scenarios required by the user. These include
 features such as different ratio-of-computation to I/O, multi
 threading for I/O, data operators (e.g., decoding, shuffling,
 prefetch, and batching), and mechanism to feed data into training.
 
-3) **Extensible**: DLIO benchmark should allow adding
+3) **Extensible**: `DLIO` benchmark should allow adding
 custom data directories and enable easy extensions to the
 benchmark to incorporate different data formats, data loaders or data generation algorithms. These changes should not affect
 the basic benchmark operations.
 
 ''''''''''''''''''''
-DLIO Code Modules
+`DLIO` Code Modules
 ''''''''''''''''''''
-Below shows the modules of the DLIO code. 
+Below shows the modules of the `DLIO` code. 
 
 .. image:: images/dlio.png
 
-* **Configuration Manager**: the user specifies a YAML file which represents the characteristics of a real workload. The configuration manager will load the configuration into DLIO. 
+* **Configuration Manager**: the user specifies a YAML file which represents the characteristics of a real workload. The configuration manager will load the configuration into `DLIO`. 
 
 * **Format Handler**: Format Handler will handle the data read and write for specific data format. 
 
-* **Data Generator**: this is for generating synthetic datasets. This eliminates the dependence on real dataset which is typically difficult to get. DLIO can generate synthetic data in different formats, different organization and layouts on the storage, such as: 
+* **Data Generator**: this is for generating synthetic datasets. This eliminates the dependence on real dataset which is typically difficult to get. `DLIO` can generate synthetic data in different formats, different organization and layouts on the storage, such as: 
 
   * Single shared file in which the entire datasets is stored in one file. 
   * One samples per file

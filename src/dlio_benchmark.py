@@ -59,12 +59,32 @@ class DLIOBenchmark(object):
         </ul>
         """
         self.args = ConfigArguments.get_instance()
+        
+
         LoadConfig(self.args, cfg)
+
         try:
             hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
             self.args.output_folder = hydra_cfg['runtime']['output_dir']
         except:
             self.args.output_folder = 'output/'
+
+        self.output_folder = self.args.output_folder
+        
+        self.logfile = os.path.join(self.output_folder, self.args.log_file)
+
+        # Configure the logging library
+        log_level = logging.DEBUG if self.args.debug else logging.INFO
+        logging.basicConfig(
+            level=log_level,
+            handlers=[
+                logging.FileHandler(self.logfile, mode = "a", encoding='utf-8'),
+                logging.StreamHandler()
+            ],
+            format='%(message)s [%(pathname)s:%(lineno)d]'  # logging's max timestamp resolution is msecs, we will pass in usecs in the message
+        )
+        
+        
         self.logdir = self.args.logdir
         self.data_folder = self.args.data_folder
         self.output_folder = self.args.output_folder
@@ -77,24 +97,18 @@ class DLIOBenchmark(object):
         self.my_rank = self.args.my_rank = self.framework.rank()
         self.comm_size = self.args.comm_size = self.framework.size()
         self.framework.init_reader(self.args.format, self.args.data_loader)
-        self.logfile = os.path.join(self.output_folder, self.args.log_file)
+
+        if self.args.my_rank==0:
+            logging.info(f"{utcnow()} Running DLIO with {self.args.comm_size} processes")
+            try:
+                logging.info(f"{utcnow()} Reading YAML config file './configs/workload/{hydra_cfg.runtime.choices.workload}.yaml'" )
+            except:
+                pass
 
         # Delete previous logfile
         if self.my_rank == 0:
             if os.path.isfile(self.logfile):
                 os.remove(self.logfile)
-
-        # Configure the logging library
-        log_level = logging.DEBUG if self.args.debug else logging.INFO
-        logging.basicConfig(
-            level=log_level,
-            handlers=[
-                logging.FileHandler(self.logfile, mode = "a", encoding='utf-8'),
-                logging.StreamHandler()
-            ],
-            format='%(message)s [%(pathname)s:%(lineno)d]'  # logging's max timestamp resolution is msecs, we will pass in usecs in the message
-        )
-        logging.info(f"{utcnow()} Running DLIO with {self.comm_size} processes")
 
         self.generate_only = self.args.generate_only
         self.do_profiling = self.args.do_profiling

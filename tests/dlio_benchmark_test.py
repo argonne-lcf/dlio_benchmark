@@ -16,18 +16,23 @@ from src.dlio_benchmark import DLIOBenchmark
 import glob
 class TestDLIOBenchmark(unittest.TestCase):
     def test_step0_gen_data(self) -> None:
-        with initialize(version_base=None, config_path="./configs"):
+        with initialize(version_base=None, config_path="../configs"):
             cfg = compose(config_name='config', overrides=['++workload.workflow.train=False', '++workload.workflow.generate_data=True'])
             
             benchmark = DLIOBenchmark(cfg['workload'])
             benchmark.initialize()
             benchmark.run()
             benchmark.finalize()
-            assert(len(glob.glob(cfg.workload.dataset.data_folder + "train/*.npz"))==cfg.workload.dataset.num_files_train)
-            assert(len(glob.glob(cfg.workload.dataset.data_folder + "valid/*.npz"))==cfg.workload.dataset.num_files_eval)
+            if benchmark.args.num_subfolders_train<=1:
+                assert(len(glob.glob(cfg.workload.dataset.data_folder + "train/*.npz"))==cfg.workload.dataset.num_files_train)
+                assert(len(glob.glob(cfg.workload.dataset.data_folder + "valid/*.npz"))==cfg.workload.dataset.num_files_eval)
+            else:
+                assert(len(glob.glob(cfg.workload.dataset.data_folder + "train/*/*.npz"))==cfg.workload.dataset.num_files_train)
+                assert(len(glob.glob(cfg.workload.dataset.data_folder + "valid/*/*.npz"))==cfg.workload.dataset.num_files_eval)
+                
         return 0
     def test_step1_train(self) -> None:
-        with initialize(version_base=None, config_path="./configs"):
+        with initialize(version_base=None, config_path="../configs"):
             cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', '++workload.workflow.generate_data=False', 'workload.train.computation_time=0.01', 'workload.evaluation.eval_time=0.005', 'workload.train.epochs=1'])
             benchmark = DLIOBenchmark(cfg['workload'])
             benchmark.initialize()

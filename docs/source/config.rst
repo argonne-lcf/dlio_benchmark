@@ -2,7 +2,7 @@
 
 DLIO Configuration
 ==============================================
-The characteristics of a workload is specified through a YAML file. This will then be read by the DLIO program to setup the benchmark. Below is an example of such a YAML file. More examples can be found in the `workload`_ folder. 
+The characteristics of a workload is specified through a YAML file. This file will then be read by `DLIO` to setup the benchmark. Below is an example of such a YAML file. More examples can be found in the `workload`_ folder. 
 
 .. code-block:: yaml
   
@@ -11,7 +11,7 @@ The characteristics of a workload is specified through a YAML file. This will th
   framework: pytorch
 
   workflow:
-    generate_data: True
+    generate_data: False
     train: True
     evaluation: True
 
@@ -40,11 +40,11 @@ The characteristics of a workload is specified through a YAML file. This will th
     eval_time: 11.572
     epochs_between_evals: 2
 
-A DLIO YAML configuration file contains following sections: 
+A `DLIO` YAML configuration file contains following sections: 
 
 * **model** - specifying the name of the model.
 * **framework** - specifying the framework to use for the benchmark, options: tensorflow, pytorch
-* **workflow** - specifying what workflow operations to perform, including dataset generation, training, evaluation, checkpointing, evaluation, debugging, etc. 
+* **workflow** - specifying what workflow operations to perform. Workflow operations include: dataset generation (``generate_data``), training (``train``), evaluation (``evaluation``), checkpointing (``checkpoint``), debugging (``debug``), etc. 
 * **dataset** - specifying all the information related to the dataset. 
 * **data_reader** - specifying the data loading options 
 * **train** - specifying the setup for training
@@ -54,21 +54,25 @@ A DLIO YAML configuration file contains following sections:
 
 model
 ------------------
-No other parameters under this section. 
 One can specify the name of the model as 
 
 .. code-block:: yaml
 
   model: unet3d
 
+No other parameters under this section. 
+
+
 framework
 -------------------
-No parameters under this group. 
 Specify the frameork (tensorflow or pytorch) as 
 
 .. code-block:: yaml
 
   framework: tensorflow
+
+No parameters under this group. 
+
 
 workflow
 ------------------
@@ -127,7 +131,7 @@ dataset
      - number of samples per file
    * - data_folder
      - ./data
-     - the path to store the dataset
+     - the path to store the dataset. 
    * - num_subfolders_train
      - 0
      - number of subfolders that the training set is stored
@@ -158,6 +162,10 @@ dataset
    * - keep_files
      - True
      - whether to keep the dataset files afer the simulation.    
+
+.. note :: 
+  The training and validation datasets will be put in ```${data_folder}/train``` and ```${data_folder}/valid``` respectively. If ``num_subfolders_train`` and ``num_subfolders_eval`` are larger than one, the datasets will be split into multiple subfolders within ```${data_folder}/train``` and ```${data_folder}/valid```. 
+
 
 data_reader 
 ------------------
@@ -197,7 +205,7 @@ data_reader
 
   If ``none`` is set for ``data_reader.data_loader``, then custom 
   data reader such as ``npz_reader``, ``csv_reader``, ``hdf5_reader`` will be used. 
-  Currently, these custom readers do not support advance features
+  Currently, these custom readers do not support advanced features
   such as multiple read_threads, prefetch, etc. 
 
 train

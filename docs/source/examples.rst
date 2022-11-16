@@ -1,7 +1,7 @@
 Examples
 =============
 
-We here list a set of workloads. In the first example, we show the whole process of generating the data, running the benchmark with profiling, and processing the logs and profiling data. For the rest of the workloads, we provide the YAML configure file.
+We here list a set of example workloads. In the first example, we show the benchmarking process, including generating the dataset, running the benchmark with profiling, and processing the logs and profiling data. For the rest of the workloads, we list the YAML configure files.
 
 UNET3D: 3D Medical Image Segmentation
 ---------------------------------------
@@ -9,8 +9,6 @@ UNET3D: 3D Medical Image Segmentation
 * Framework: PyTorch
 * Dataset: .npz format image files containing a single sample.
 * Trains over multiple epochs, performs evaluation on a held-out test set periodically.
-
-We specify the configuration in ./configs/workload/unet3d.yaml
 
 .. code-block:: yaml
 
