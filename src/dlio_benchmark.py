@@ -62,7 +62,7 @@ class DLIOBenchmark(object):
         
 
         LoadConfig(self.args, cfg)
-
+        self.args.validate()
         try:
             hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
             self.args.output_folder = hydra_cfg['runtime']['output_dir']

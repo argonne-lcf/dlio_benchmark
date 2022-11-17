@@ -18,6 +18,7 @@ from typing import List, ClassVar
 from src.common.enumerations import FormatType, Shuffle, ReadType, FileAccess, Compression, FrameworkType, DataLoaderType, Profiler
 from dataclasses import dataclass, field
 import hydra
+import os
 
 @dataclass
 class ConfigArguments:
@@ -93,7 +94,14 @@ class ConfigArguments:
         if ConfigArguments.__instance is None:
             ConfigArguments()
         return ConfigArguments.__instance
-    
+    def validate(self):
+        """ validate whether the parameters are set correctly"""
+        if (self.do_profiling == True) and (self.profiler == Profiler('darshan')):
+            if ('LD_PRELOAD' not in os.environ or os.environ["LD_PRELOAD"].find("libdarshan")==-1):
+                raise Exception("Please set darshan runtime library in LD_PRELOAD")
+        if (self.framework==FrameworkType.TENSORFLOW and self.data_loader == DataLoaderType.PYTORCH) or (self.framework==FrameworkType.PYTORCH and self.data_loader == DataLoaderType.TENSORFLOW):
+            raise Exception("Imcompatible between framework and data_loader setup.")
+
 def LoadConfig(args, config):
     '''
     Override the args by a system config (typically loaded from a YAML file)

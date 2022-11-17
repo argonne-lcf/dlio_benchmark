@@ -22,7 +22,7 @@ dataset:
   num_subfolders_train: 2
   num_subfolders_eval: 2
   
-data_loader: 
+data_reader: 
   data_loader: pytorch
 
 train:
