@@ -179,7 +179,7 @@ class DLIOBenchmark(object):
             self.framework.start_framework_profiler()
             self.framework.barrier()
             if self.args.my_rank == 0:
-                logging.info(f"{utcnow()} Profiling Started")
+                logging.info(f"{utcnow()} Profiling Started with {self.args.profiler}")
 
         self.framework.barrier()
 

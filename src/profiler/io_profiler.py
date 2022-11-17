@@ -18,6 +18,7 @@ from abc import ABC, abstractmethod
 
 from src.utils.config import ConfigArguments
 import os
+import logging
 
 class IOProfiler(ABC):
     def __init__(self):
