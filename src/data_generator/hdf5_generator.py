@@ -40,39 +40,33 @@ class HDF5Generator(DataGenerator):
         samples_per_iter=1024*100
         records = random.random((samples_per_iter, self._dimension, self._dimension))
         record_labels = [0] * self.num_samples
-        prev_out_spec = ""
-        count = 0
         for i in range(0, int(self.total_files_to_generate)):
             if i % self.comm_size == self.my_rank:
                 progress(i+1, self.total_files_to_generate, "Generating HDF5 Data")
                 out_path_spec = self._file_list[i]
-                if count == 0:
-                    prev_out_spec = out_path_spec
-                    hf = h5py.File(out_path_spec, 'w')
-                    chunks = None
-                    if self.enable_chunking:
-                        chunk_dimension = int(math.ceil(math.sqrt(self.chunk_size)))
-                        if chunk_dimension > self._dimension:
-                            chunk_dimension = self._dimension
-                        chunks = (1, chunk_dimension, chunk_dimension)
-                    compression = None
-                    compression_level = None
-                    if self.compression != Compression.NONE:
-                        compression = str(self.compression)
-                        if self.compression == Compression.GZIP:
-                            compression_level = self.compression_level
-                    dset = hf.create_dataset('records', (self.num_samples,self._dimension, self._dimension), chunks=chunks, compression=compression,
-                                             compression_opts=compression_level)
-                    samples_written = 0
-                    while samples_written < self.num_samples:
-                        if samples_per_iter < self.num_samples-samples_written:
-                            samples_to_write = samples_per_iter
-                        else:
-                            samples_to_write = self.num_samples-samples_written
-                        dset[samples_written:samples_written+samples_to_write] = records[:samples_to_write]
-                        samples_written += samples_to_write
-                    hf.create_dataset('labels', data=record_labels)
-                    hf.close()
-                    count += 1
-                else:
-                    copyfile(prev_out_spec, out_path_spec)
+                hf = h5py.File(out_path_spec, 'w')
+                chunks = None
+                if self.enable_chunking:
+                    chunk_dimension = int(math.ceil(math.sqrt(self.chunk_size)))
+                    if chunk_dimension > self._dimension:
+                        chunk_dimension = self._dimension
+                    chunks = (1, chunk_dimension, chunk_dimension)
+                compression = None
+                compression_level = None
+                if self.compression != Compression.NONE:
+                    compression = str(self.compression)
+                    if self.compression == Compression.GZIP:
+                        compression_level = self.compression_level
+                dset = hf.create_dataset('records', (self.num_samples,self._dimension, self._dimension), chunks=chunks, compression=compression,
+                                        compression_opts=compression_level)
+                samples_written = 0
+                while samples_written < self.num_samples:
+                    if samples_per_iter < self.num_samples-samples_written:
+                        samples_to_write = samples_per_iter
+                    else:
+                        samples_to_write = self.num_samples-samples_written
+                    dset[samples_written:samples_written+samples_to_write] = records[:samples_to_write]
+                    samples_written += samples_to_write
+                hf.create_dataset('labels', data=record_labels)
+                hf.close()
+                count += 1

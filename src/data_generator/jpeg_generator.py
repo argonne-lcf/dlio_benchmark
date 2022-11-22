@@ -38,8 +38,6 @@ class JPEGGenerator(DataGenerator):
         super().generate()
         dim = int(np.sqrt(self.record_size/3.0))
         record_labels = [0] 
-        prev_out_spec =""
-        count = 0
         logging.info(f"dimension of images: {dim} x {dim} x 3")
 
         for i in range(0, int(self.total_files_to_generate)):
@@ -50,9 +48,5 @@ class JPEGGenerator(DataGenerator):
             if i % self.comm_size == self.my_rank:
                 out_path_spec = self._file_list[i]
                 progress(i+1, self.total_files_to_generate, "Generating JPEG Data")
-                if count == 0:
-                    prev_out_spec = out_path_spec
-                    img.save(out_path_spec, format='JPEG', bits=8)
-                    count += 1
-                else:
-                    copyfile(prev_out_spec, out_path_spec)
+                prev_out_spec = out_path_spec
+                img.save(out_path_spec, format='JPEG', bits=8)

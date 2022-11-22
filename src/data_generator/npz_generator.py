@@ -38,20 +38,14 @@ class NPZGenerator(DataGenerator):
         super().generate()
         records = random.random((self._dimension, self._dimension, self.num_samples))
         record_labels = [0] * self.num_samples
-        prev_out_spec =""
-        count = 0
         for i in range(0, int(self.total_files_to_generate)):
             if self.my_rank == 0 and i % 100 == 0:
                 logging.info(f"Generated file {i}/{self.total_files_to_generate}")
             if i % self.comm_size == self.my_rank:
                 out_path_spec = self._file_list[i]
                 progress(i+1, self.total_files_to_generate, "Generating NPZ Data")
-                if count == 0:
-                    prev_out_spec = out_path_spec
-                    if self.compression != Compression.ZIP:
-                        np.savez(out_path_spec, x=records, y=record_labels)
-                    else:
-                        np.savez_compressed(out_path_spec, x=records, y=record_labels)
-                    count += 1
+                prev_out_spec = out_path_spec
+                if self.compression != Compression.ZIP:
+                    np.savez(out_path_spec, x=records, y=record_labels)
                 else:
-                    copyfile(prev_out_spec, out_path_spec)
+                    np.savez_compressed(out_path_spec, x=records, y=record_labels)
