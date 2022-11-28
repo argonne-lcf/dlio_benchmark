@@ -130,6 +130,8 @@ def LoadConfig(args, config):
             args.batch_size = config['dataset']['batch_size']
         if 'batch_size_eval' in config['dataset']:
             args.batch_size_eval = config['dataset']['batch_size_eval']
+        if 'enable_chunking' in config['dataset']:
+            args.enable_chunking = config['dataset']['enable_chunking']
         if 'chunk_size' in config['dataset']:
             args.chunk_size = config['dataset']['chunk_size']
         if 'compression' in config['dataset']:
@@ -186,12 +188,14 @@ def LoadConfig(args, config):
             args.eval_time = config['evaluation']['eval_time']
         if 'eval_after_epoch' in config['evaluation']:
             args.eval_after_epoch = config['evaluation']['eval_after_epoch']
+        if 'epochs_between_evals' in config['evaluation']:
+            args.epochs_between_evals = config['evaluation']['epochs_between_evals']
 
     if 'checkpoint' in config:   
         if 'checkpoint_after_epoch' in config['checkpoint']:
             args.checkpoint_after_epoch = config['checkpoint']['checkpoint_after_epoch']
         if 'epochs_between_checkpoints' in config['checkpoint']:
-            args.epochs_between_checkpoints = config['checkpoint']['steps_between_checkpoints']
+            args.epochs_between_checkpoints = config['checkpoint']['epochs_between_checkpoints']
         if 'steps_between_checkpoints' in config['checkpoint']:
             args.steps_between_checkpoints = config['checkpoint']['steps_between_checkpoints']
         if 'model_size' in config['checkpoint']:
