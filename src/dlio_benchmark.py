@@ -73,18 +73,6 @@ class DLIOBenchmark(object):
         
         self.logfile = os.path.join(self.output_folder, self.args.log_file)
 
-        # Configure the logging library
-        log_level = logging.DEBUG if self.args.debug else logging.INFO
-        logging.basicConfig(
-            level=log_level,
-            handlers=[
-                logging.FileHandler(self.logfile, mode = "a", encoding='utf-8'),
-                logging.StreamHandler()
-            ],
-            format='%(message)s [%(pathname)s:%(lineno)d]'  # logging's max timestamp resolution is msecs, we will pass in usecs in the message
-        )
-        
-        
         self.logdir = self.args.logdir
         self.data_folder = self.args.data_folder
         self.output_folder = self.args.output_folder
@@ -98,17 +86,29 @@ class DLIOBenchmark(object):
         self.comm_size = self.args.comm_size = self.framework.size()
         self.framework.init_reader(self.args.format, self.args.data_loader)
 
+        # Delete previous logfile
+        if self.my_rank == 0:
+            if os.path.isfile(self.logfile):
+                os.remove(self.logfile)
+
+        # Configure the logging library
+        log_level = logging.DEBUG if self.args.debug else logging.INFO
+        logging.basicConfig(
+            level=log_level,
+            handlers=[
+                logging.FileHandler(self.logfile, mode = "a", encoding='utf-8'),
+                logging.StreamHandler()
+            ],
+            format='%(message)s [%(pathname)s:%(lineno)d]'  # logging's max timestamp resolution is msecs, we will pass in usecs in the message
+        )
+ 
+
         if self.args.my_rank==0:
             logging.info(f"{utcnow()} Running DLIO with {self.args.comm_size} processes")
             try:
                 logging.info(f"{utcnow()} Reading YAML config file './configs/workload/{hydra_cfg.runtime.choices.workload}.yaml'" )
             except:
                 pass
-
-        # Delete previous logfile
-        if self.my_rank == 0:
-            if os.path.isfile(self.logfile):
-                os.remove(self.logfile)
 
         self.generate_only = self.args.generate_only
         self.do_profiling = self.args.do_profiling
