@@ -220,9 +220,9 @@ def LoadConfig(args, config):
     if 'profiling' in config: 
         if 'profiler' in config['profiling']:
             args.profiler = Profiler(config['profiling']['profiler'])
-        if 'devices' in config['profiling']:
+        if 'iostat_devices' in config['profiling']:
             args.iostat_devices = config['profiling']['iostat_devices']
-            if isinstance(args.io_devices_to_trace, str):
+            if isinstance(args.iostat_devices, str):
                 args.iostat_devices = [args.iostat_devices]
         if 'darshan_preload' in config['profiling']:
             args.darshan_preload = config['profiling']['darshan_preload']
