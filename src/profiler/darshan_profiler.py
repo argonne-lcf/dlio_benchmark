@@ -40,7 +40,7 @@ class DarshanProfiler(IOProfiler):
         #  this has to be changed to allow specifying DARSHAN librrary through DARSHAN_PRELOAD
         #os.environ["LD_PRELOAD"] = self.darshan_preload
         # We save the darshan log in the output folder
-        os.environ["DXT_ENABLE_IO_TRACE"] = "1"
+        os.environ["DARSHAN_MOD_ENABLE"]="DXT_POSIX,DXT_MPIIO"
         os.environ["DARSHAN_DISABLE"] = "0"
         os.environ["DARSHAN_LOG_DIR"] = self._args.output_folder
         os.environ["DARSHAN_LOGFILE"] = self._args.output_folder + "/dlio_benchmark.darshan"
@@ -48,4 +48,3 @@ class DarshanProfiler(IOProfiler):
     def stop(self):
         os.environ['DARSHAN_DISABLE'] = '1'
         #del os.environ['LD_PRELOAD']
-        del os.environ['DXT_ENABLE_IO_TRACE']
