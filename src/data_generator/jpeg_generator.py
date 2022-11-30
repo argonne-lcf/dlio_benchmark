@@ -33,7 +33,7 @@ class JPEGGenerator(DataGenerator):
 
     def generate(self):
         """
-        Generator for creating data in NPZ format of 3d dataset.
+        Generator for creating data in JPEG format of 3d dataset.
         """
         super().generate()
         dim = int(np.sqrt(self.record_size/3.0))
