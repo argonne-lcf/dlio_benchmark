@@ -101,7 +101,7 @@ class HDF5StimulateReader(FormatReader):
                                      num_parallel_calls=self.read_threads)
         #dataset = dataset.cache()
         if self.memory_shuffle != Shuffle.OFF:
-            if self.memory_shuffle != Shuffle.SEED:
+            if self.memory_shuffle == Shuffle.SEED:
                 dataset = dataset.shuffle(buffer_size=self.shuffle_size,
                                           seed=self.seed)
             else:

@@ -39,7 +39,7 @@ If possible, one can flush the filesystem caches in order to properly capture de
   ```
 Finally, run the benchmark with ```iostat``` profiling, listing the io devices you would like to trace.
   ```bash
-  mpirun -np 8 python3 src/dlio_benchmark.py workload=unet3d ++workload.workflow.profiling=True ++workload.profiling.profiler=iostat ++workload.profiling.io_devices_to_trace=[sda,sdb]
+  mpirun -np 8 python3 src/dlio_benchmark.py workload=unet3d ++workload.workflow.profiling=True ++workload.profiling.profiler=iostat ++workload.profiling.iostat_devices=[sda,sdb]
   ```
 
 All the outputs will be stored in ```hydra_log/unet3d/$DATE-$TIME``` folder. To post process the data, one can do
