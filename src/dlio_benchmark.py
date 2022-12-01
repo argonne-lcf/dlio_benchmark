@@ -73,7 +73,6 @@ class DLIOBenchmark(object):
         
         self.logfile = os.path.join(self.output_folder, self.args.log_file)
 
-        self.logdir = self.args.logdir
         self.data_folder = self.args.data_folder
         self.output_folder = self.args.output_folder
         os.makedirs(self.output_folder, exist_ok=True)
@@ -236,7 +235,7 @@ class DLIOBenchmark(object):
             if self.do_checkpoint and (self.steps_between_checkpoints>=0) and overall_step == self.next_checkpoint_step:
                 self.stats.end_block(epoch, block, block_step)
                 self.stats.start_ckpt(epoch, block, overall_step)
-                self.framework.checkpoint(overall_step)
+                self.framework.checkpoint(epoch, overall_step)
                 self.stats.end_ckpt(epoch, block)
                 self.framework.barrier()
                 block += 1
