@@ -83,7 +83,6 @@ class StatsCounter(object):
             duration = pd.to_datetime(ts)- pd.to_datetime(self.per_epoch_stats[epoch]['eval']['start'])
             duration = '{:.2f}'.format(duration.total_seconds())
             logging.info(f"{ts} Ending eval - {self.steps_eval} steps completed in {duration} s")
-
             self.per_epoch_stats[epoch]['eval']['end'] = ts
             self.per_epoch_stats[epoch]['eval']['duration'] = duration        
 
@@ -106,7 +105,6 @@ class StatsCounter(object):
             duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch][f'block{block}']['start'])
             duration = '{:.2f}'.format(duration.total_seconds())
             logging.info(f"{ts} Ending block {block} - {steps_taken} steps completed in {duration} s")
-
             self.per_epoch_stats[epoch][f'block{block}']['end'] = ts
             self.per_epoch_stats[epoch][f'block{block}']['duration'] = duration
 
