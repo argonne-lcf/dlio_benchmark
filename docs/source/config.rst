@@ -258,6 +258,9 @@ checkpoint
    * - Parameter
      - Default
      - Description
+   * - checkpoint_folder
+     - ./checkpoints/
+     - the folder to save the checkpoints
    * - checkpoing_after_epoch
      - 1
      - start checkpointing after certain number of epochs specified 
