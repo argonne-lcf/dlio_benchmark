@@ -29,23 +29,20 @@ class DarshanProfiler(IOProfiler):
 
     def __init__(self):
         super().__init__()
-        self.darshan_preload = self._args.darshan_preload
+
         """ Virtually private constructor. """
         if DarshanProfiler.__instance is not None:
             raise Exception("This class is a singleton!")
         else:
             DarshanProfiler.__instance = self
-
-    def start(self):
-        #  this has to be changed to allow specifying DARSHAN librrary through DARSHAN_PRELOAD
-        #os.environ["LD_PRELOAD"] = self.darshan_preload
-        # We save the darshan log in the output folder
-        os.environ["DXT_ENABLE_IO_TRACE"] = "1"
-        os.environ["DARSHAN_DISABLE"] = "0"
+            
+        os.environ["DARSHAN_MOD_ENABLE"]="DXT_POSIX,DXT_MPIIO"            
         os.environ["DARSHAN_LOG_DIR"] = self._args.output_folder
         os.environ["DARSHAN_LOGFILE"] = self._args.output_folder + "/dlio_benchmark.darshan"
 
+        
+    def start(self):
+        os.environ["DARSHAN_DISABLE"] = "0"
+
     def stop(self):
         os.environ['DARSHAN_DISABLE'] = '1'
-        #del os.environ['LD_PRELOAD']
-        del os.environ['DXT_ENABLE_IO_TRACE']

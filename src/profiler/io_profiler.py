@@ -23,7 +23,6 @@ import logging
 class IOProfiler(ABC):
     def __init__(self):
         self._args = ConfigArguments.get_instance()
-        self.logdir = self._args.logdir
         self.outdir = self._args.output_folder
 
     @abstractmethod

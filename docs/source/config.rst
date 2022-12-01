@@ -246,7 +246,7 @@ evaluation
      - 0
      - emulated computation time (sleep) for each evaluation step. 
    * - epochs_between_evals
-     - 0
+     - 1
      - evaluate after x number of epochs
 
 checkpoint
@@ -258,19 +258,29 @@ checkpoint
    * - Parameter
      - Default
      - Description
+   * - checkpoint_folder
+     - ./checkpoints/
+     - the folder to save the checkpoints
    * - checkpoing_after_epoch
-     - 0
+     - 1
      - start checkpointing after certain number of epochs specified 
    * - epochs_between_checkpoints
-     - 0
+     - 1
      - performing one checkpointing per certain number of epochs specified
    * - steps_between_checkpoints
-     - 0
+     - -1
      - performing one checkpointing per certain number of steps specified
    * - model_size
      - 10240
      - the size of the model in bytes
 
+.. note::
+   
+   By default, if checkpoint is enabled, it will perform checkpointing from every epoch.
+
+   One can perform multiple checkpoints within a single epoch, by setting ``steps_between_checkpoints``. If ``steps_between_checkpoints`` is set to be a positive number, ``epochs_between_checkpoints`` will be ignored.
+   
+     
 profiling
 ------------------
 .. list-table:: 
@@ -283,16 +293,15 @@ profiling
    * - profiler
      - none
      - specifying the profiler to use [none|iostat|tensorflow|pytorch]
-   * - darshan_preload*
-     - /usr/local/darshan-3.2.1/lib/libdarshan.so
-     - specifying the DARSHAN LD_PRELOAD library.     
    * - iostat_devices**
      - [sda, sdb]
      - specifying the devices to perform iostat tracing.  
 
+.. note::
+   
 We support following I/O profiling using following profilers: 
 
-  * ``darshan``: https://www.mcs.anl.gov/research/projects/darshan/. ``darshan_preload`` has to be set for the runtime library to be loaded properly. 
+  * ``darshan``: https://www.mcs.anl.gov/research/projects/darshan/. ``LD_PRELOAD`` has to be set for the darshan runtime library (libdarshan.so) to be loaded properly. 
 
   * ``iostat``: https://linux.die.net/man/1/iostat. One can specify the command to use for profiling in order to get the profiling for specific disk.   
   * ``tensorflow`` (tf.profiler): https://www.tensorflow.org/api_docs/python/tf/profiler. This works only for tensorflow framework (and data loader)

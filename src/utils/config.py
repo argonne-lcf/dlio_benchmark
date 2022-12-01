@@ -43,9 +43,9 @@ class ConfigArguments:
     seed_change_epoch: bool = True
     generate_data: bool = False
     generate_only: bool = False
-    data_folder: str = "./data"
+    data_folder: str = "./data/"
     output_folder: str = "./output"
-    logdir: str = "./logdir"
+    checkpoint_folder: str = "./checkpoints/"
     log_file: str  = "dlio.log"
     file_prefix: str = "img"
     keep_files: bool = True
@@ -54,8 +54,8 @@ class ConfigArguments:
     seed: int = 123
     do_checkpoint: bool = False
     checkpoint_after_epoch: int = 1 
-    epochs_between_checkpoints: int = 0
-    steps_between_checkpoints: int =0
+    epochs_between_checkpoints: int = 1
+    steps_between_checkpoints: int = -1
     transfer_size: int = None
     read_threads: int = 1
     computation_threads: int = 1
@@ -73,13 +73,12 @@ class ConfigArguments:
     num_files_eval: int = 0
     eval_time: float = 0.0
     eval_after_epoch: int = 0
-    epochs_between_evals: int = 0 
+    epochs_between_evals: int = 1
     model_size: int = 10240
     data_loader: DataLoaderType = DataLoaderType.TENSORFLOW
     num_subfolders_train: int = 0
     num_subfolders_eval: int = 0
     iostat_devices: ClassVar[List[str]] = []
-    darshan_preload: str = "/usr/local/darshan-3.2.1/lib/libdarshan.so"
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -108,8 +107,6 @@ def LoadConfig(args, config):
     '''
     if 'framework' in config:
         args.framework = FrameworkType(config['framework'])
-    if 'logdir' in config:
-        args.logdir = config['logdir']
     # dataset related settings
     if 'dataset' in config:
         if 'record_length' in config['dataset']:
@@ -191,7 +188,9 @@ def LoadConfig(args, config):
         if 'epochs_between_evals' in config['evaluation']:
             args.epochs_between_evals = config['evaluation']['epochs_between_evals']
 
-    if 'checkpoint' in config:   
+    if 'checkpoint' in config:
+        if 'checkpoint_folder' in config['checkpoint']:
+            args.checkpoint_folder = config['checkpoint']['checkpoint_folder']
         if 'checkpoint_after_epoch' in config['checkpoint']:
             args.checkpoint_after_epoch = config['checkpoint']['checkpoint_after_epoch']
         if 'epochs_between_checkpoints' in config['checkpoint']:
@@ -224,6 +223,3 @@ def LoadConfig(args, config):
             args.iostat_devices = config['profiling']['iostat_devices']
             if isinstance(args.io_devices_to_trace, str):
                 args.iostat_devices = [args.iostat_devices]
-        if 'darshan_preload' in config['profiling']:
-            args.darshan_preload = config['profiling']['darshan_preload']
-        

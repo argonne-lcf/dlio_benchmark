@@ -17,6 +17,7 @@ import math
 import logging
 import numpy as np
 from time import time
+import os
 
 from src.utils.utility import utcnow
 
@@ -66,7 +67,7 @@ class TorchDataset(Dataset):
             
         def __len__(self):
             return len(self.samples)
-
+        
         def __getitem__(self, idx):
             logging.debug(f"{utcnow()} Rank {self.my_rank} reading {self.samples[idx]}")
             return self.read(self.samples[idx])

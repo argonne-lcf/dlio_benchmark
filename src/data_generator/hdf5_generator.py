@@ -29,8 +29,8 @@ Generator for creating data in HDF5 format.
 class HDF5Generator(DataGenerator):
     def __init__(self):
         super().__init__()
-        self.chunk_size = self._arg_parser.args.chunk_size
-        self.enable_chunking = self._arg_parser.args.enable_chunking
+        self.chunk_size = self._args.chunk_size
+        self.enable_chunking = self._args.enable_chunking
 
     def generate(self):
         """
