@@ -46,7 +46,6 @@ class ConfigArguments:
     data_folder: str = "./data/"
     output_folder: str = "./output"
     checkpoint_folder: str = "./checkpoints/"
-    logdir: str = "./logdir"
     log_file: str  = "dlio.log"
     file_prefix: str = "img"
     keep_files: bool = True
@@ -108,8 +107,6 @@ def LoadConfig(args, config):
     '''
     if 'framework' in config:
         args.framework = FrameworkType(config['framework'])
-    if 'logdir' in config:
-        args.logdir = config['logdir']
     # dataset related settings
     if 'dataset' in config:
         if 'record_length' in config['dataset']:
