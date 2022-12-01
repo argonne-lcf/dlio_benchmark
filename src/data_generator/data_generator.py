@@ -58,7 +58,7 @@ class DataGenerator(ABC):
                 for i in range(self.num_subfolders_train):
                     os.makedirs(self.data_dir + "/train/%d"%i, exist_ok=True)
             if self.num_subfolders_eval > 1: 
-                for i in range(self.num_subfolders_train):
+                for i in range(self.num_subfolders_eval):
                     os.makedirs(self.data_dir + "/valid/%d"%i, exist_ok=True)
             logging.info(f"{utcnow()} Generating dataset in {self.data_dir}/train and {self.data_dir}/valid")
             logging.info(f"{utcnow()} Number of files for training dataset: {self.num_files_train}")
