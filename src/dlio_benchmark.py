@@ -233,13 +233,7 @@ class DLIOBenchmark(object):
 
             self.stats.batch_processed(epoch, overall_step, block, t0)
 
-            if overall_step >= max_steps or overall_step == self.total_training_steps:
-                self.framework.barrier()
-                logging.info(f"{utcnow()} Maximum number of steps reached")
-                self.stats.end_block(epoch, block, block_step)
-                return overall_step
-
-            if self.do_checkpoint and epoch == self.next_checkpoint_epoch and overall_step == self.next_checkpoint_step:
+            if self.do_checkpoint and (self.steps_between_checkpoints>=0) and overall_step == self.next_checkpoint_step:
                 self.stats.end_block(epoch, block, block_step)
                 self.stats.start_ckpt(epoch, block, overall_step)
                 self.framework.checkpoint(overall_step)
@@ -250,13 +244,24 @@ class DLIOBenchmark(object):
                 block_step = 1
                 self.next_checkpoint_step += self.steps_between_checkpoints
 
+            if overall_step >= max_steps or overall_step == self.total_training_steps:
+                self.framework.barrier()
+                logging.info(f"{utcnow()} Maximum number of steps reached")
+                self.stats.end_block(epoch, block, block_step)
+                break
+
             block_step += 1
             overall_step += 1
 
             t0 = time()
-        
-        # In case the block was not closed (dataset ran out of samples unexpectedly)
-        self.stats.end_block(epoch, block, overall_step)
+
+        if self.do_checkpoint and (self.steps_between_checkpoints < 0) and (epoch == self.next_checkpoint_epoch):
+            self.stats.end_block(epoch, block, block_step)
+            self.stats.start_ckpt(epoch, block, overall_step)
+            self.framework.checkpoint(epoch, overall_step)
+            self.stats.end_ckpt(epoch, block)
+            self.framework.barrier()
+            self.next_checkpoint_epoch += self.epochs_between_checkpoints
         return overall_step
 
     
@@ -292,7 +297,7 @@ class DLIOBenchmark(object):
                 self.stats.end_epoch(epoch, steps)
                 logging.debug(f"{utcnow()} Rank {self.my_rank} returned after {steps} steps.")
 
-                self.next_checkpoint_epoch += self.epochs_between_checkpoints
+
 
                 self.framework.barrier()
                 self.framework.get_reader(DatasetType.TRAIN).finalize()

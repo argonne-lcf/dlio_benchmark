@@ -45,7 +45,7 @@ class ConfigArguments:
     generate_only: bool = False
     data_folder: str = "./data/"
     output_folder: str = "./output"
-    checkpoint_folder: str = "./checkpoint/"
+    checkpoint_folder: str = "./checkpoints/"
     logdir: str = "./logdir"
     log_file: str  = "dlio.log"
     file_prefix: str = "img"
@@ -55,8 +55,8 @@ class ConfigArguments:
     seed: int = 123
     do_checkpoint: bool = False
     checkpoint_after_epoch: int = 1 
-    epochs_between_checkpoints: int = 0
-    steps_between_checkpoints: int =0
+    epochs_between_checkpoints: int = 1
+    steps_between_checkpoints: int = -1
     transfer_size: int = None
     read_threads: int = 1
     computation_threads: int = 1
@@ -74,7 +74,7 @@ class ConfigArguments:
     num_files_eval: int = 0
     eval_time: float = 0.0
     eval_after_epoch: int = 0
-    epochs_between_evals: int = 0 
+    epochs_between_evals: int = 1
     model_size: int = 10240
     data_loader: DataLoaderType = DataLoaderType.TENSORFLOW
     num_subfolders_train: int = 0

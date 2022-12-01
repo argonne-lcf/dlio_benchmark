@@ -76,7 +76,7 @@ class TorchFramework(Framework):
     def trace_object(self, string, step, r):
         return DummyTraceObject(string, step, r)
 
-    def checkpoint(self, step_number):
+    def checkpoint(self, epoch, step_number):
         if self.rank() == 0:
             """
             Performs Checkpointing for a specific step number. It writes different file of different sizes.
@@ -84,7 +84,7 @@ class TorchFramework(Framework):
             if not os.path.exists(self.checkpoint_folder):
                 os.makedirs(self.checkpoint_folder)
             my_rank = self.rank()
-            model_file = os.path.join(self.checkpoint_folder, f"model_{step_number}_{my_rank}.bin")
+            model_file = os.path.join(self.checkpoint_folder, f"model-{epoch}-{step_number}.bin")
 
             f = open(model_file, "w")
             string_val = "x" * self.args.model_size 

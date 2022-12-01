@@ -37,10 +37,7 @@ def read_png(filename):
     return read_image(filename)
 
 def read_npz(filename):
-    print(f"npz file {filename} with np.load {np.__version__}")
-    data = open(filename, "rb").read()
-    print(os.environ["LD_PRELOAD"])
-    return data
+    return np.load(filename)
 
 def read_hdf5(f):
     file_h5 = h5py.File(file, 'r')
@@ -73,7 +70,6 @@ class TorchDataset(Dataset):
         
         def __getitem__(self, idx):
             logging.debug(f"{utcnow()} Rank {self.my_rank} reading {self.samples[idx]}")
-            print("LD_PRELOAD2: ", os.environ["LD_PRELOAD"])
             return self.read(self.samples[idx])
 
 class TorchDataLoaderReader(FormatReader):

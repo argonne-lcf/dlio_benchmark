@@ -73,7 +73,7 @@ class Framework(ABC):
     def trace_object(self, string, step, r):
         pass
 
-    def checkpoint(self, step_number):
+    def checkpoint(self, epoch, step_number):
         pass
 
     def model(epoch, epoch_number, step, computation_time):

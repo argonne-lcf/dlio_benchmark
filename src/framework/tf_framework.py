@@ -65,7 +65,7 @@ class TFFramework(Framework):
     def trace_object(self, string, step, r):
         return tf.profiler.experimental.Trace(string, step_num=step, _r=r)
 
-    def checkpoint(self, step_number):
+    def checkpoint(self, epoch, step_number):
         """
         Performs Checkpointing for a specific step number. It writes different file of different sizes.
         """
@@ -74,9 +74,9 @@ class TFFramework(Framework):
             if not os.path.exists(self.checkpoint_folder):
                 os.makedirs(self.checkpoint_folder)
 
-            model_file = os.path.join(self.checkpoint_folder, f"model_{step_number}_{my_rank}.bin")
-            meta_file = os.path.join(self.checkpoint_folder, f"meta_{step_number}_{my_rank}.bin")
-            index_file = os.path.join(self.checkpoint_folder, f"index_{step_number}_{my_rank}.bin")
+            model_file = os.path.join(self.checkpoint_folder, f"model-{epoch}-{step_number}.bin")
+            meta_file = os.path.join(self.checkpoint_folder, f"meta-{epoch}-{step_number}.bin")
+            index_file = os.path.join(self.checkpoint_folder, f"index-{epoch}-{step_number}.bin")
 
             f = open(model_file, "w")
             string_val = "x" * self.args.model_size 
