@@ -283,16 +283,15 @@ profiling
    * - profiler
      - none
      - specifying the profiler to use [none|iostat|tensorflow|pytorch]
-   * - darshan_preload*
-     - /usr/local/darshan-3.2.1/lib/libdarshan.so
-     - specifying the DARSHAN LD_PRELOAD library.     
    * - iostat_devices**
      - [sda, sdb]
      - specifying the devices to perform iostat tracing.  
 
+.. note::
+   
 We support following I/O profiling using following profilers: 
 
-  * ``darshan``: https://www.mcs.anl.gov/research/projects/darshan/. ``darshan_preload`` has to be set for the runtime library to be loaded properly. 
+  * ``darshan``: https://www.mcs.anl.gov/research/projects/darshan/. ``LD_PRELOAD`` has to be set for the darshan runtime library (libdarshan.so) to be loaded properly. 
 
   * ``iostat``: https://linux.die.net/man/1/iostat. One can specify the command to use for profiling in order to get the profiling for specific disk.   
   * ``tensorflow`` (tf.profiler): https://www.tensorflow.org/api_docs/python/tf/profiler. This works only for tensorflow framework (and data loader)

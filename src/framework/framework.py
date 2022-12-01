@@ -41,6 +41,7 @@ class Framework(ABC):
     def __init__(self):
         self.args = ConfigArguments.get_instance()
         self.output_folder = self.args.output_folder
+        self.checkpoint_folder = self.args.checkpoint_folder
         pass
 
     @abstractmethod

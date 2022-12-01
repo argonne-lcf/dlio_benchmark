@@ -43,8 +43,9 @@ class ConfigArguments:
     seed_change_epoch: bool = True
     generate_data: bool = False
     generate_only: bool = False
-    data_folder: str = "./data"
+    data_folder: str = "./data/"
     output_folder: str = "./output"
+    checkpoint_folder: str = "./checkpoint/"
     logdir: str = "./logdir"
     log_file: str  = "dlio.log"
     file_prefix: str = "img"
@@ -79,7 +80,6 @@ class ConfigArguments:
     num_subfolders_train: int = 0
     num_subfolders_eval: int = 0
     iostat_devices: ClassVar[List[str]] = []
-    darshan_preload: str = "/usr/local/darshan-3.2.1/lib/libdarshan.so"
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -191,7 +191,9 @@ def LoadConfig(args, config):
         if 'epochs_between_evals' in config['evaluation']:
             args.epochs_between_evals = config['evaluation']['epochs_between_evals']
 
-    if 'checkpoint' in config:   
+    if 'checkpoint' in config:
+        if 'checkpoint_folder' in config['checkpoint']:
+            args.checkpoint_folder = config['checkpoint']['checkpoint_folder']
         if 'checkpoint_after_epoch' in config['checkpoint']:
             args.checkpoint_after_epoch = config['checkpoint']['checkpoint_after_epoch']
         if 'epochs_between_checkpoints' in config['checkpoint']:
@@ -224,6 +226,3 @@ def LoadConfig(args, config):
             args.iostat_devices = config['profiling']['iostat_devices']
             if isinstance(args.io_devices_to_trace, str):
                 args.iostat_devices = [args.iostat_devices]
-        if 'darshan_preload' in config['profiling']:
-            args.darshan_preload = config['profiling']['darshan_preload']
-        
