@@ -232,6 +232,7 @@ class DLIOBenchmark(object):
 
             self.stats.batch_processed(epoch, overall_step, block, t0)
 
+
             if self.do_checkpoint and (self.steps_between_checkpoints>=0) and overall_step == self.next_checkpoint_step:
                 self.stats.end_block(epoch, block, block_step)
                 self.stats.start_ckpt(epoch, block, overall_step)
@@ -242,14 +243,16 @@ class DLIOBenchmark(object):
                 # Reset the number of steps after every checkpoint to mark the start of a new block
                 block_step = 1
                 self.next_checkpoint_step += self.steps_between_checkpoints
+            else:
+                block_step += 1
 
             if overall_step >= max_steps or overall_step == self.total_training_steps:
                 self.framework.barrier()
                 logging.info(f"{utcnow()} Maximum number of steps reached")
-                self.stats.end_block(epoch, block, block_step)
+                if (block_step!=1 and self.do_checkpoint) or (not self.do_checkpoint):
+                    self.stats.end_block(epoch, block, block_step-1)
                 break
-
-            block_step += 1
+                
             overall_step += 1
 
             t0 = time()
@@ -283,9 +286,9 @@ class DLIOBenchmark(object):
             # Keep track of the next epoch at which we will evaluate
             next_eval_epoch = self.eval_after_epoch
             self.next_checkpoint_epoch = self.checkpoint_after_epoch
-            self.next_checkpoint_step = self.steps_between_checkpoints
 
             for epoch in range(1, self.epochs + 1):
+                self.next_checkpoint_step = self.steps_between_checkpoints                
                 self.stats.start_epoch(epoch)
 
                 # Initialize the dataset
