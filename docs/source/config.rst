@@ -246,7 +246,7 @@ evaluation
      - 0
      - emulated computation time (sleep) for each evaluation step. 
    * - epochs_between_evals
-     - 0
+     - 1
      - evaluate after x number of epochs
 
 checkpoint
@@ -259,18 +259,25 @@ checkpoint
      - Default
      - Description
    * - checkpoing_after_epoch
-     - 0
+     - 1
      - start checkpointing after certain number of epochs specified 
    * - epochs_between_checkpoints
-     - 0
+     - 1
      - performing one checkpointing per certain number of epochs specified
    * - steps_between_checkpoints
-     - 0
+     - -1
      - performing one checkpointing per certain number of steps specified
    * - model_size
      - 10240
      - the size of the model in bytes
 
+.. note::
+   
+   By default, if checkpoint is enabled, it will perform checkpointing from every epoch.
+
+   One can perform multiple checkpoints within a single epoch, by setting ``steps_between_checkpoints``. If ``steps_between_checkpoints`` is set to be a positive number, ``epochs_between_checkpoints`` will be ignored.
+   
+     
 profiling
 ------------------
 .. list-table:: 
