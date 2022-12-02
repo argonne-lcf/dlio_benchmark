@@ -17,11 +17,18 @@ export PYTHONPATH=$PWD/:$PYTHONPATH
 python ./src/dlio_benchmark.py
 ```
 ## Container
+
 ```
 git clone https://github.com/argonne-lcf/dlio_benchmark
 cd dlio_benchmark/
 docker build -t dlio .
 docker run -t dlio python ./src/dlio_benchmark.py 
+```
+
+You can also pull rebuilt container from docker hub: 
+```
+docker docker.io/zhenghh04/dlio:latest
+docker run -t docker.io/zhenghh04/dlio:latest python ./src/dlio_benchmark.py 
 ```
 
 Additionally, to generate the report `iostat` is needed and can be installed from the `sysstat` package using your package manager.
