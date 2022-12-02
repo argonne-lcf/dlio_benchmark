@@ -7,13 +7,21 @@ This README provides a abbreviated documentation of the DLIO code. Please refer 
 DLIO is an I/O benchmark for Deep Learning. DLIO is aimed at emulating the I/O behavior of various deep learning applications. The benchmark is delivered as an executable that can be configured for various I/O patterns. It uses a modular design to incorporate more data loaders, data formats, datasets, and configuration parameters. It emulates modern deep learning applications using Benchmark Runner, Data Generator, Format Handler, and I/O Profiler modules. 
 
 ## Installation and running DLIO
+### Bare metal
 
 ```bash
 git clone https://github.com/argonne-lcf/dlio_benchmark
 cd dlio_benchmark/
 pip install -r requirements.txt
 export PYTHONPATH=$PWD/:$PYTHONPATH
-python ./src/dlio_benchmark.py --help
+python ./src/dlio_benchmark.py
+```
+## Container
+```
+git clone https://github.com/argonne-lcf/dlio_benchmark
+cd dlio_benchmark/
+docker build -t dlio .
+docker run -t dlio python ./src/dlio_benchmark.py 
 ```
 
 Additionally, to generate the report `iostat` is needed and can be installed from the `sysstat` package using your package manager.
