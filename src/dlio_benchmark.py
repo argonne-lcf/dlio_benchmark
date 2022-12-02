@@ -343,7 +343,8 @@ class DLIOBenchmark(object):
             
             # Save collected stats to disk
             self.stats.save_data()
-
+        if self.my_rank==0:
+            logging.info(f"{utcnow()} Saved outputs in {self.output_folder}")
         self.framework.barrier()
 
 
