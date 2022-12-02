@@ -13,6 +13,7 @@ DLIO itself should run directly without installation. However it depends on othe
 One can run with docker 
 
 .. code-block:: bash
+
     git clone https://github.com/argonne-lcf/dlio_benchmark
     cd dlio_benchmark/
     docker build -t dlio .
