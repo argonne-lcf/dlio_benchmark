@@ -31,7 +31,7 @@ jobs:
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -np 2 python3 -m pytest
+        mpirun -np 2 python3 -m pytest  --with-mpi
     - name: test-tf-loader-tfrecord
       run: |
         touch __init__.py
