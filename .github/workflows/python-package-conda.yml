@@ -21,6 +21,17 @@ jobs:
         sudo apt-get install mpich
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+	pip install pytest-mpi
+    - name: pytest-seq
+      run: |
+        touch __init__.py
+        export PYTHONPATH=./:$PYTHONPATH
+        python3 -m pytest -v
+    - name: pytest-mpi
+      run: |
+        touch __init__.py
+        export PYTHONPATH=./:$PYTHONPATH
+        mpirun -np 2 python3 -m pytest
     - name: test-tf-loader-tfrecord
       run: |
         touch __init__.py

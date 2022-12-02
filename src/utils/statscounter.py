@@ -111,7 +111,7 @@ class StatsCounter(object):
     def start_ckpt(self, epoch, block, steps_taken):
         if self.my_rank == 0:
             ts = utcnow()
-            logging.info(f"{ts} Starting checkpoint {block} after total step {steps_taken}")
+            logging.info(f"{ts} Starting checkpoint {block} after total step {steps_taken} for epoch {epoch}")
             self.per_epoch_stats[epoch][f'ckpt{block}'] = {
                 'start': ts
             }
@@ -121,7 +121,7 @@ class StatsCounter(object):
             ts = utcnow()
             duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch][f'ckpt{block}']['start'])
             duration = '{:.2f}'.format(duration.total_seconds())
-            logging.info(f"{ts} Ending checkpoint {block}")
+            logging.info(f"{ts} Ending checkpoint {block} for epoch {epoch}")
 
             self.per_epoch_stats[epoch][f'ckpt{block}']['end'] = ts
             self.per_epoch_stats[epoch][f'ckpt{block}']['duration'] = duration

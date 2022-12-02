@@ -47,7 +47,7 @@ class TFRecordGenerator(DataGenerator):
                 # Open a TFRecordWriter for the output-file.
                 with tf.io.TFRecordWriter(out_path_spec) as writer:
                     for i in range(0, self.num_samples):
-                        img_bytes = record.tostring()
+                        img_bytes = record.tobytes()
                         data = {
                             'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img_bytes])),
                             'label': tf.train.Feature(int64_list=tf.train.Int64List(value=[record_label]))

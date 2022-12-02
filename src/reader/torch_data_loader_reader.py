@@ -27,14 +27,15 @@ from torch.utils.data.distributed import DistributedSampler
 from src.common.enumerations import Shuffle, FormatType
 from src.reader.reader_handler import FormatReader
 
-from torchvision.io import read_image, decode_png, decode_jpeg, read_file
-
+from PIL import Image
+import torchvision.transforms as transforms
+totensor=transforms.ToTensor()
 ### reading file of different formats. 
 def read_jpeg(filename):
-    return read_image(filename)
+    return totensor(Image.open(filename))
 
 def read_png(filename):
-    return read_image(filename)
+    return totensor(Image.open(filename))
 
 def read_npz(filename):
     return np.load(filename)
@@ -42,7 +43,12 @@ def read_npz(filename):
 def read_hdf5(f):
     file_h5 = h5py.File(file, 'r')
     d = file_h5['x']
-    return d
+    return totensor(d)
+
+def read_file(f):
+    with open(f, mode='rb') as file: # b is important -> binary
+        fileContent = file.read()
+    return fileContent
 
 filereader={
     FormatType.JPEG: read_jpeg, 
