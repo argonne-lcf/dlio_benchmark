@@ -117,22 +117,22 @@ class TestDLIOBenchmark(unittest.TestCase):
             self.assertEqual(len(glob.glob(benchmark.output_folder+"./*_load_and_proc_times.json")), benchmark.comm_size)            
     def test_full_formats(self) -> None:
         for fmt in "tfrecord", "jpeg", "png", "npz":
-            with self.subTest(f"Testing full benchmark for format: {fmt}", fmt=fmt):
                 for framework in "tensorflow", "pytorch":
-                    if fmt=="tfrecord" and framework=="pytorch":
-                        pass
-                    self.clean()
-                    with initialize(version_base=None, config_path="../configs"):
-                        cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', \
-                                                                       '++workload.workflow.generate_data=True',\
-                                                                       f"++workload.framework={framework}", \
-                                                                       f"++workload.data_reader.data_loader={framework}", \
-                                                                       f"++workload.dataset.format={fmt}", 
-                                                                       'workload.train.computation_time=0.01', \
-                                                                       'workload.evaluation.eval_time=0.005', \
-                                                                       '++workload.train.epochs=1', \
-                                                                       '++workload.dataset.num_files_train=4'])
-                        benchmark=self.run_benchmark(cfg)
-                        self.assertEqual(len(glob.glob(benchmark.output_folder+"./*_load_and_proc_times.json")), benchmark.comm_size)
+                    with self.subTest(f"Testing full benchmark for format: {fmt}-{framework}", fmt=fmt, framework=framework):
+                        if fmt=="tfrecord" and framework=="pytorch":
+                            pass
+                        self.clean()
+                        with initialize(version_base=None, config_path="../configs"):
+                            cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', \
+                                                                           '++workload.workflow.generate_data=True',\
+                                                                           f"++workload.framework={framework}", \
+                                                                           f"++workload.data_reader.data_loader={framework}", \
+                                                                           f"++workload.dataset.format={fmt}", 
+                                                                           'workload.train.computation_time=0.01', \
+                                                                           'workload.evaluation.eval_time=0.005', \
+                                                                           '++workload.train.epochs=1', \
+                                                                           '++workload.dataset.num_files_train=4'])
+                            benchmark=self.run_benchmark(cfg)
+                            self.assertEqual(len(glob.glob(benchmark.output_folder+"./*_load_and_proc_times.json")), benchmark.comm_size)
 if __name__ == '__main__':
     unittest.main()
