@@ -21,7 +21,7 @@ jobs:
         sudo apt-get install mpich
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-	pip install pytest-mpi
+        pip install pytest-mpi
     - name: pytest-seq
       run: |
         touch __init__.py
