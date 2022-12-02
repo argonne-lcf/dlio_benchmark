@@ -89,7 +89,7 @@ class DLIOBenchmark(object):
         if self.my_rank == 0:
             if os.path.isfile(self.logfile):
                 os.remove(self.logfile)
-
+        self.framework.barrier()
         # Configure the logging library
         log_level = logging.DEBUG if self.args.debug else logging.INFO
         logging.basicConfig(
