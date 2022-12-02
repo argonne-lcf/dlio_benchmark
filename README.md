@@ -36,7 +36,7 @@ docker run -t docker.io/zhenghh04/dlio:latest python ./src/dlio_benchmark.py ++w
 
 One can also run interactively 
 ```bash
-$ docker run -t docker.io/zhenghh04/dlio:latest
+docker run -t docker.io/zhenghh04/dlio:latest /bin/bash
 root@30358dd47935:/workspace/dlio# python ./src/dlio_benchmark.py ++workload.workflow.generate_data=True
 ```
 
