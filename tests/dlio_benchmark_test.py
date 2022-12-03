@@ -35,7 +35,7 @@ class TestDLIOBenchmark(unittest.TestCase):
         benchmark.finalize()
         return benchmark
     def test0_gen_data1_formats(self) -> None:
-        for fmt in "tfrecord", "jpeg", "png", "npz":
+        for fmt in "tfrecord", "jpeg", "png", "hdf5", "npz":
             with self.subTest(f"Testing data generator for format: {fmt}", fmt=fmt):
                 self.clean()
                 with initialize(version_base=None, config_path="../configs"):
@@ -130,9 +130,28 @@ class TestDLIOBenchmark(unittest.TestCase):
                                      'workload.evaluation.eval_time=0.005', \
                                      '++workload.train.epochs=4', '++workload.workflow.evaluation=True'])
             benchmark = self.run_benchmark(cfg)
-            self.assertEqual(len(glob.glob(benchmark.output_folder+"./*_load_and_proc_times.json")), benchmark.comm_size)            
-    def test_full_formats(self) -> None:
-        for fmt in "tfrecord", "jpeg", "png", "npz":
+            self.assertEqual(len(glob.glob(benchmark.output_folder+"./*_load_and_proc_times.json")), benchmark.comm_size)
+    def test3_multi_threads(self) -> None:
+        self.clean()
+        for framework in "tensorflow", "pytorch":
+            for nt in 1, 2, 4:
+                with self.subTest(f"Testing full benchmark for format: {framework}-NT{nt}", nt=nt, framework=framework):
+                    with initialize(version_base=None, config_path="../configs"):
+                        cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', \
+                                                                       '++workload.workflow.generate_data=True',\
+                                                                       f"++workload.framework={framework}", \
+                                                                       f"++workload.data_reader.data_loader={framework}", \
+                                                                       f"++workload.data_reader.read_threads={nt}", \
+                                                                       'workload.train.computation_time=0.01', \
+                                                                       'workload.evaluation.eval_time=0.005', \
+                                                                       '++workload.train.epochs=1', \
+                                                                       '++workload.dataset.num_files_train=16'])
+                        benchmark = self.run_benchmark(cfg)
+                        self.assertEqual(len(glob.glob(benchmark.output_folder+"./*_load_and_proc_times.json")), benchmark.comm_size)
+
+
+    def test3_full_formats(self) -> None:
+        for fmt in "tfrecord", "jpeg", "png", "npz", "hdf5":
                 for framework in "tensorflow", "pytorch":
                     with self.subTest(f"Testing full benchmark for format: {fmt}-{framework}", fmt=fmt, framework=framework):
                         if fmt=="tfrecord" and framework=="pytorch":
@@ -147,7 +166,7 @@ class TestDLIOBenchmark(unittest.TestCase):
                                                                            'workload.train.computation_time=0.01', \
                                                                            'workload.evaluation.eval_time=0.005', \
                                                                            '++workload.train.epochs=1', \
-                                                                           '++workload.dataset.num_files_train=4'])
+                                                                           '++workload.dataset.num_files_train=16'])
                             benchmark=self.run_benchmark(cfg)
                             self.assertEqual(len(glob.glob(benchmark.output_folder+"./*_load_and_proc_times.json")), benchmark.comm_size)
 if __name__ == '__main__':

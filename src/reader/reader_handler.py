@@ -38,7 +38,6 @@ class FormatReader(ABC):
         self.shuffle_size = self._args.shuffle_size
         self.data_dir = self._args.data_folder
         self.record_size = self._args.record_length
-        self.prefetch = self._args.prefetch
         self.prefetch_size = self._args.prefetch_size
         self.transfer_size = self._args.transfer_size
         self.file_access = self._args.file_access
@@ -64,16 +63,9 @@ class FormatReader(ABC):
         self.dataset_type = dataset_type
         self.framework = FrameworkFactory().get_framework(self._args.framework,
                                                           self._args.do_profiling)
+
         # We do this here so we keep the same evaluation files every epoch
 
-    @abstractmethod
-    def read(self, epoch_number):
-        """
-            This method creates and stores the lists of files to be read.
-            If using TF, it will partition files between ranks.
-            For PT, this is done by the DistributedSampler in data_loader_reader.py.
-            We also split files depending on if we are in an evaluation phase or not.
-        """
         if self.dataset_type == DatasetType.TRAIN:
             filenames = os.listdir(self.data_dir + "/train/")
             if not os.path.isfile(self.data_dir + "/train/" + filenames[0]):
@@ -94,6 +86,17 @@ class FormatReader(ABC):
 
         assert len(fullpaths) == num_files, f"Expected {num_files} training files but {len(fullpaths)} found. Ensure data was generated correctly."
         self._file_list = fullpaths
+        self._local_file_list = self._file_list[self.my_rank::self.comm_size]
+
+        
+    @abstractmethod
+    def read(self, epoch_number):
+        """
+            This method creates and stores the lists of files to be read.
+            If using TF, it will partition files between ranks.
+            For PT, this is done by the DistributedSampler in data_loader_reader.py.
+            We also split files depending on if we are in an evaluation phase or not.
+        """
         read_shuffle = True
         if self.read_shuffle == Shuffle.OFF:
             read_shuffle = False
@@ -110,7 +113,7 @@ class FormatReader(ABC):
         if read_shuffle:
             random.shuffle(self._file_list)
         self._local_file_list = self._file_list[self.my_rank::self.comm_size]
-
+        
     @abstractmethod
     def next(self):
         pass

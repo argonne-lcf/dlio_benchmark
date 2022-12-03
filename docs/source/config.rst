@@ -30,7 +30,7 @@ The characteristics of a workload is specified through a YAML file. This file wi
   data_reader: 
     data_loader: pytorch
     read_threads: 4
-    prefetch: True
+    prefetch_size: 2
 
   train:
     epochs: 10
@@ -185,12 +185,9 @@ data_reader
    * - computation_threads
      - 1
      - number of threads to preprocess the data
-   * - prefetch
-     - False
-     - whether to prefetch the dataset
    * - prefetch_size
      - 0
-     - number of batch to prefetch
+     - number of batch to prefetch (0 - no prefetch at all)
    * - read_shuffle
      - off
      - [seed|random|off] whether and how to shuffle the dataset

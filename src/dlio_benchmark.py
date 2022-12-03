@@ -84,7 +84,7 @@ class DLIOBenchmark(object):
 
         self.my_rank = self.args.my_rank = self.framework.rank()
         self.comm_size = self.args.comm_size = self.framework.size()
-        self.framework.init_reader(self.args.format, self.args.data_loader)
+
 
         # Delete previous logfile
         if self.my_rank == 0:
@@ -99,12 +99,12 @@ class DLIOBenchmark(object):
                 logging.FileHandler(self.logfile, mode = "a", encoding='utf-8'),
                 logging.StreamHandler()
             ],
-            format='%(message)s [%(pathname)s:%(lineno)d]'  # logging's max timestamp resolution is msecs, we will pass in usecs in the message
+            format='[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'  # logging's max timestamp resolution is msecs, we will pass in usecs in the message
         )
  
 
         if self.args.my_rank==0:
-            logging.info(f"{utcnow()} Running DLIO with {self.args.comm_size} processes")
+            logging.info(f"{utcnow()} Running DLIO with {self.args.comm_size} process(es)")
             try:
                 logging.info(f"{utcnow()} Reading YAML config file './configs/workload/{hydra_cfg.runtime.choices.workload}.yaml'" )
             except:
@@ -170,9 +170,11 @@ class DLIOBenchmark(object):
             input("Debug mode: Press enter to start\n")
 
         if self.args.generate_data:
-            logging.info(f"{utcnow()} Starting data generation")
+            if self.args.my_rank==0:
+                logging.info(f"{utcnow()} Starting data generation")
             self.data_generator.generate()
-            logging.info(f"{utcnow()} Generation done")
+            if self.args.my_rank==0:
+                logging.info(f"{utcnow()} Generation done")
 
         if not self.generate_only and self.do_profiling:
             self.profiler.start()
@@ -180,7 +182,7 @@ class DLIOBenchmark(object):
             self.framework.barrier()
             if self.args.my_rank == 0:
                 logging.info(f"{utcnow()} Profiling Started with {self.args.profiler}")
-
+        self.framework.init_reader(self.args.format, self.args.data_loader)
         self.framework.barrier()
 
     def _eval(self, epoch):
@@ -222,7 +224,6 @@ class DLIOBenchmark(object):
         for batch in self.framework.get_reader(dataset_type=DatasetType.TRAIN).next():
             self.stats.batch_loaded(epoch, overall_step, block, t0)
             self.framework.barrier()
-
             # Log a new block, unless it's the first one which we've already logged before the loop
             if block_step == 1 and block != 1:
                 self.stats.start_block(epoch, block)
@@ -249,14 +250,15 @@ class DLIOBenchmark(object):
 
             if overall_step >= max_steps or overall_step == self.total_training_steps:
                 self.framework.barrier()
-                logging.info(f"{utcnow()} Maximum number of steps reached")
+                if self.args.my_rank==0:
+                    logging.info(f"{utcnow()} Maximum number of steps reached")
                 if (block_step!=1 and self.do_checkpoint) or (not self.do_checkpoint):
                     self.stats.end_block(epoch, block, block_step-1)
                 break
                 
             overall_step += 1
-
             t0 = time()
+
 
         if self.do_checkpoint and (self.steps_between_checkpoints < 0) and (epoch == self.next_checkpoint_epoch):
             self.stats.end_block(epoch, block, block_step)

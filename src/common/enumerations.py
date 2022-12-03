@@ -68,7 +68,8 @@ class DataLoaderType(Enum):
     """
     TENSORFLOW='tensorflow'
     PYTORCH='pytorch'
-
+    NONE='none'
+    
     def __str__(self):
         return self.value
 

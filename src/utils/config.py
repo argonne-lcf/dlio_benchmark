@@ -60,7 +60,6 @@ class ConfigArguments:
     read_threads: int = 1
     computation_threads: int = 1
     computation_time: float = 0.
-    prefetch: bool = False
     prefetch_size: int = 0 
     enable_chunking: bool = False
     chunk_size: int = 0
