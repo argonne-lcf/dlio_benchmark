@@ -75,16 +75,20 @@ class FormatReader(ABC):
 
             num_files = self.num_files_train
             self.batch_size = self.batch_size_train
+            assert len(fullpaths) == num_files, f"Expected {num_files} training files but {len(fullpaths)} found. Ensure data was generated correctly."            
         elif self.dataset_type == DatasetType.VALID:
             filenames = os.listdir(self.data_dir + "/valid/")
-            if not os.path.isfile(self.data_dir + "/valid/" + filenames[0]):
-                fullpaths=glob.glob(self.data_dir + "/valid/*/*")
+            if (len(filenames)>0):
+                if not os.path.isfile(self.data_dir + "/valid/" + filenames[0]):
+                    fullpaths=glob.glob(self.data_dir + "/valid/*/*")
+                else:
+                    fullpaths = [os.path.join(self.data_dir+"/valid/", entry) for entry in filenames]
+                num_files = self.num_files_eval
+                self.batch_size = self.batch_size_eval
+                assert len(fullpaths) == num_files, f"Expected {num_files} validation files but {len(fullpaths)} found. Ensure data was generated correctly."
             else:
-                fullpaths = [os.path.join(self.data_dir+"/valid/", entry) for entry in filenames]
-            num_files = self.num_files_eval
-            self.batch_size = self.batch_size_eval
+                fullpaths=[]
 
-        assert len(fullpaths) == num_files, f"Expected {num_files} training files but {len(fullpaths)} found. Ensure data was generated correctly."
         self._file_list = fullpaths
         self._local_file_list = self._file_list[self.my_rank::self.comm_size]
 
