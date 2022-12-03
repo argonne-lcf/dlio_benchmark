@@ -24,7 +24,7 @@ class TestDLIOBenchmark(unittest.TestCase):
             shutil.rmtree("./data/", ignore_errors=True)
             shutil.rmtree("./output", ignore_errors=True)
         comm.Barrier()
-    def run_benchmark(self, cfg):
+    def run_benchmark(self, cfg, verify=True):
         comm.Barrier()
         if (comm.rank==0):
             shutil.rmtree("./output", ignore_errors=True)
@@ -33,8 +33,10 @@ class TestDLIOBenchmark(unittest.TestCase):
         benchmark.initialize()
         benchmark.run()
         benchmark.finalize()
+        if (verify):
+            self.assertEqual(len(glob.glob(benchmark.output_folder+"./*_load_and_proc_times.json")), benchmark.comm_size)
         return benchmark
-    def test0_gen_data1_formats(self) -> None:
+    def test_gen_data(self) -> None:
         for fmt in "tfrecord", "jpeg", "png", "hdf5", "npz":
             with self.subTest(f"Testing data generator for format: {fmt}", fmt=fmt):
                 self.clean()
@@ -42,7 +44,7 @@ class TestDLIOBenchmark(unittest.TestCase):
                     cfg = compose(config_name='config', overrides=['++workload.workflow.train=False', \
                                                                    '++workload.workflow.generate_data=True',
                                                                    f"++workload.dataset.format={fmt}"])
-                    benchmark=self.run_benchmark(cfg)
+                    benchmark=self.run_benchmark(cfg, verify=False)
                     if benchmark.args.num_subfolders_train<=1:
                         self.assertEqual(len(glob.glob(cfg.workload.dataset.data_folder + f"train/*.{fmt}")), cfg.workload.dataset.num_files_train)
                         self.assertEqual(len(glob.glob(cfg.workload.dataset.data_folder + f"valid/*.{fmt}")), cfg.workload.dataset.num_files_eval)
@@ -50,10 +52,22 @@ class TestDLIOBenchmark(unittest.TestCase):
                         self.assertEqual(len(glob.glob(cfg.workload.dataset.data_folder + f"train/*/*.{fmt}")), cfg.workload.dataset.num_files_train)
                         self.assertEqual(len(glob.glob(cfg.workload.dataset.data_folder + f"valid/*/*.{fmt}")), cfg.workload.dataset.num_files_eval)
         
-    def test1_train(self) -> None:
+    def test_iostat_profiling(self) -> None:
+        self.clean()
         with initialize(version_base=None, config_path="../configs"):
-            cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', '++workload.workflow.generate_data=False', 'workload.train.computation_time=0.01', 'workload.evaluation.eval_time=0.005', 'workload.train.epochs=1'])
-            benchmark=self.run_benchmark(cfg)            
+            cfg = compose(config_name='config', overrides=['++workload.workflow.train=False',
+                                                           '++workload.workflow.generate_data=True'])
+
+            benchmark=self.run_benchmark(cfg, verify=False)
+            cfg = compose(config_name='config', overrides=['++workload.workflow.train=True',
+                                                           '++workload.workflow.generate_data=True',
+                                                           'workload.train.computation_time=0.01',
+                                                           'workload.evaluation.eval_time=0.005',
+                                                           'workload.train.epochs=1',
+                                                           'workload.workflow.profiling=True',
+                                                           'workload.profiling.profiler=iostat'])
+            benchmark=self.run_benchmark(cfg)
+            assert(os.path.isfile(benchmark.output_folder+"/iostat.json"))
             if (comm.rank==0):
                 os.makedirs(benchmark.output_folder+"/.hydra/", exist_ok=True)
                 yl: str = OmegaConf.to_yaml(cfg)
@@ -61,12 +75,13 @@ class TestDLIOBenchmark(unittest.TestCase):
                     OmegaConf.save(cfg, f)
                 with open(benchmark.output_folder+"./.hydra/overrides.yaml", "w") as f:
                     f.write('[]')
-            self.assertEqual(len(glob.glob(benchmark.output_folder+"./*_load_and_proc_times.json")), benchmark.comm_size)
-    def test2_checkpoint1_epoch(self) -> None:
+                os.system(f"python src/dlio_postprocessor.py --output-folder={benchmark.output_folder}")
+    def test_checkpoint_epoch(self) -> None:
+        self.clean()
         with initialize(version_base=None, config_path="../configs"):
             cfg = compose(config_name='config',
                           overrides=['++workload.workflow.train=True',\
-                                     '++workload.workflow.generate_data=False', \
+                                     '++workload.workflow.generate_data=True', \
                                      '++workload.train.computation_time=0.01', \
                                      '++workload.evaluation.eval_time=0.005', \
                                      '++workload.train.epochs=8', '++workload.workflow.checkpoint=True', \
@@ -77,11 +92,12 @@ class TestDLIOBenchmark(unittest.TestCase):
             comm.Barrier()
             benchmark=self.run_benchmark(cfg)            
             self.assertEqual(len(glob.glob("./checkpoints/*.bin")), 4)
-    def test2_checkpoint2_step(self) -> None:
+    def test_checkpoint_step(self) -> None:
+        self.clean()
         with initialize(version_base=None, config_path="../configs"):
             cfg = compose(config_name='config',
                           overrides=['++workload.workflow.train=True',\
-                                     '++workload.workflow.generate_data=False', \
+                                     '++workload.workflow.generate_data=True', \
                                      '++workload.train.computation_time=0.01', \
                                      '++workload.evaluation.eval_time=0.005', \
                                      '++workload.train.epochs=8', '++workload.workflow.checkpoint=True', \
@@ -95,43 +111,16 @@ class TestDLIOBenchmark(unittest.TestCase):
             nstep = dataset.num_files_train * dataset.num_samples_per_file // dataset.batch_size//benchmark.comm_size
             ncheckpoints=nstep//2*8
             self.assertEqual(len(glob.glob("./checkpoints/*.bin")), ncheckpoints)
-    def test3_eval(self) -> None:
+    def test_eval(self) -> None:
         with initialize(version_base=None, config_path="../configs"):
             cfg = compose(config_name='config',
                           overrides=['++workload.workflow.train=True',\
-                                     '++workload.workflow.generate_data=False', \
+                                     '++workload.workflow.generate_data=True', \
                                      'workload.train.computation_time=0.01', \
                                      'workload.evaluation.eval_time=0.005', \
                                      '++workload.train.epochs=4', '++workload.workflow.evaluation=True'])
             benchmark=self.run_benchmark(cfg)
-            self.assertEqual(len(glob.glob(benchmark.output_folder+"./*_load_and_proc_times.json")), benchmark.comm_size)            
-    def test2_tf_loader(self) -> None:
-        with initialize(version_base=None, config_path="../configs"):
-            cfg = compose(config_name='config',
-                          overrides=['++workload.data_reader.data_loader=tensorflow',\
-                                     '++workload.framework=tensorflow', \
-                                     '++workload.workflow.generate_data=False', \
-                                     'workload.train.computation_time=0.01', \
-                                     'workload.evaluation.eval_time=0.005', \
-                                     '++workload.train.epochs=4', '++workload.workflow.evaluation=True'])
-            comm.Barrier()
-            if comm.rank==0:
-                shutil.rmtree("./output", ignore_errors=True)
-            comm.Barrier()
-            benchmark = self.run_benchmark(cfg)                                                
-            self.assertEqual(len(glob.glob(benchmark.output_folder+"./*_load_and_proc_times.json")), benchmark.comm_size)            
-    def test2_torch_loader(self) -> None:
-        with initialize(version_base=None, config_path="../configs"):
-            cfg = compose(config_name='config',
-                          overrides=['++workload.data_reader.data_loader=pytorch',\
-                                     '++workload.framework=pytorch', \
-                                     '++workload.workflow.generate_data=False', \
-                                     'workload.train.computation_time=0.01', \
-                                     'workload.evaluation.eval_time=0.005', \
-                                     '++workload.train.epochs=4', '++workload.workflow.evaluation=True'])
-            benchmark = self.run_benchmark(cfg)
-            self.assertEqual(len(glob.glob(benchmark.output_folder+"./*_load_and_proc_times.json")), benchmark.comm_size)
-    def test3_multi_threads(self) -> None:
+    def test_multi_threads(self) -> None:
         self.clean()
         for framework in "tensorflow", "pytorch":
             for nt in 1, 2, 4:
@@ -147,10 +136,8 @@ class TestDLIOBenchmark(unittest.TestCase):
                                                                        '++workload.train.epochs=1', \
                                                                        '++workload.dataset.num_files_train=16'])
                         benchmark = self.run_benchmark(cfg)
-                        self.assertEqual(len(glob.glob(benchmark.output_folder+"./*_load_and_proc_times.json")), benchmark.comm_size)
 
-
-    def test3_full_formats(self) -> None:
+    def test_train(self) -> None:
         for fmt in "tfrecord", "jpeg", "png", "npz", "hdf5":
                 for framework in "tensorflow", "pytorch":
                     with self.subTest(f"Testing full benchmark for format: {fmt}-{framework}", fmt=fmt, framework=framework):
@@ -166,8 +153,8 @@ class TestDLIOBenchmark(unittest.TestCase):
                                                                            'workload.train.computation_time=0.01', \
                                                                            'workload.evaluation.eval_time=0.005', \
                                                                            '++workload.train.epochs=1', \
-                                                                           '++workload.dataset.num_files_train=16'])
+                                                                           '++workload.dataset.num_files_train=16',\
+                                                                           '++workload.data_reader.read_threads=1'])
                             benchmark=self.run_benchmark(cfg)
-                            self.assertEqual(len(glob.glob(benchmark.output_folder+"./*_load_and_proc_times.json")), benchmark.comm_size)
 if __name__ == '__main__':
     unittest.main()
