@@ -173,6 +173,8 @@ class DLIOBenchmark(object):
             if self.args.my_rank==0:
                 logging.info(f"{utcnow()} Starting data generation")
             self.data_generator.generate()
+            # important to have this barrier to ensure that the data generation is done for all the ranks
+            self.framework.barrier()
             if self.args.my_rank==0:
                 logging.info(f"{utcnow()} Generation done")
 
