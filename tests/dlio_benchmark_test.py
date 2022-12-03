@@ -138,12 +138,13 @@ class TestDLIOBenchmark(unittest.TestCase):
                         benchmark = self.run_benchmark(cfg)
 
     def test_train(self) -> None:
-        for fmt in "tfrecord", "jpeg", "png", "npz", "hdf5":
+        for fmt in "npz","jpeg", "png", "tfrecord", "hdf5":
                 for framework in "tensorflow", "pytorch":
+                    self.clean()
                     with self.subTest(f"Testing full benchmark for format: {fmt}-{framework}", fmt=fmt, framework=framework):
                         if fmt=="tfrecord" and framework=="pytorch":
-                            pass
-                        self.clean()
+                            continue
+                        
                         with initialize(version_base=None, config_path="../configs"):
                             cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', \
                                                                            '++workload.workflow.generate_data=True',\
