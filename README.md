@@ -1,4 +1,5 @@
 # Deep Learning I/O (DLIO) Benchmark
+![test status](https://github.com/zhenghh04/dlio_benchmark/actions/workflows/python-package-conda.yml/badge.svg)
 
 This README provides a abbreviated documentation of the DLIO code. Please refer to https://argonne-lcf.github.io/dlio_benchmark/ for full user documentation. 
 
@@ -7,16 +8,39 @@ This README provides a abbreviated documentation of the DLIO code. Please refer 
 DLIO is an I/O benchmark for Deep Learning. DLIO is aimed at emulating the I/O behavior of various deep learning applications. The benchmark is delivered as an executable that can be configured for various I/O patterns. It uses a modular design to incorporate more data loaders, data formats, datasets, and configuration parameters. It emulates modern deep learning applications using Benchmark Runner, Data Generator, Format Handler, and I/O Profiler modules. 
 
 ## Installation and running DLIO
+### Bare metal installation 
 
 ```bash
 git clone https://github.com/argonne-lcf/dlio_benchmark
 cd dlio_benchmark/
 pip install -r requirements.txt
 export PYTHONPATH=$PWD/:$PYTHONPATH
-python ./src/dlio_benchmark.py --help
-```
+python ./src/dlio_benchmark.py ++workload.workflow.generate_data=True
 
 Additionally, to generate the report `iostat` is needed and can be installed from the `sysstat` package using your package manager.
+
+```
+## Container
+
+```bash
+git clone https://github.com/argonne-lcf/dlio_benchmark
+cd dlio_benchmark/
+docker build -t dlio .
+docker run -t dlio python ./src/dlio_benchmark.py ++workload.workflow.generate_data=True
+``` 
+
+You can also pull rebuilt container from docker hub: 
+```bash
+docker docker.io/zhenghh04/dlio:latest
+docker run -t docker.io/zhenghh04/dlio:latest python ./src/dlio_benchmark.py ++workload.workflow.generate_data=True
+```
+
+One can also run interactively 
+```bash
+docker run -t docker.io/zhenghh04/dlio:latest /bin/bash
+root@30358dd47935:/workspace/dlio# python ./src/dlio_benchmark.py ++workload.workflow.generate_data=True
+```
+
 
 ## Running the benchmark
 
@@ -155,7 +179,8 @@ This work used resources of the Argonne Leadership Computing Facility, which is 
 Apache 2.0 [LICENSE](./LICENSE)
 
 ---------------------------------------
-Copyright (c) 2021 UChicago Argonne, LLC
+Copyright © 2022, UChicago Argonne, LLC
+All Rights Reserved
 
 If you have questions about your rights to use or distribute this software, please contact Argonne Intellectual Property Office at partners@anl.gov
 

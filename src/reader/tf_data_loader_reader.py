@@ -1,5 +1,6 @@
 """
-   Copyright 2021 UChicago Argonne, LLC
+   Copyright © 2022, UChicago Argonne, LLC
+   All Rights Reserved
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -32,6 +33,7 @@ class TFDataLoaderReader(FormatReader):
         self.read_threads = self._args.read_threads
         self.computation_threads = self._args.computation_threads
         self.format = self._args.format
+
     # TODO: DLIO assumes the tfrecord files to contain image/label pairs.
     # This is not always the case, e.g. in BERT, each record is more complex,
     # consisting of 6 lists and a label. Same for DLRM. 
@@ -54,8 +56,9 @@ class TFDataLoaderReader(FormatReader):
             img = tf.image.decode_png(img, channels=3)
             return img
         else:
-            print("Reading %f format using Tensorflow Data Loader is not implemented, reading as bytes contents directly" %self.format)
+            logging.warning(f"{utcnow()} Reading {self.format} format using Tensorflow Data Loader is not implemented, reading as bytes contents directly")
             return tf.io.read_file(filename)
+        
 
     def read(self, epoch_number):
         """
@@ -66,6 +69,7 @@ class TFDataLoaderReader(FormatReader):
         """
         # superclass function initializes the file list
         super().read(epoch_number)
+
         dataset = tf.data.Dataset.from_tensor_slices(self._file_list)
         dataset = dataset.shard(num_shards=self.comm_size, index=self.my_rank)
         dataset = dataset.map(self._tf_parse_function, num_parallel_calls=self.read_threads)
@@ -76,10 +80,10 @@ class TFDataLoaderReader(FormatReader):
                                           seed=self.seed)
             else:
                 dataset = dataset.shuffle(buffer_size=self.shuffle_size)
-        if self.prefetch:
-            dataset = dataset.prefetch(buffer_size=self.prefetch_size)
         self._dataset = dataset.batch(self.batch_size, drop_remainder=True)
-
+        
+        if self.prefetch_size > 0:
+            self._dataset = self._dataset.prefetch(buffer_size=self.prefetch_size)
 
     def next(self):
         """
@@ -87,7 +91,6 @@ class TFDataLoaderReader(FormatReader):
         :return: data to be processed by the training step.
         """
         super().next()
-        dataset = self._dataset
 
         # In tf, we can't get the length of the dataset easily so we calculate it
         if self._debug:
@@ -97,7 +100,7 @@ class TFDataLoaderReader(FormatReader):
         # The previous version crashed when all workers could not generate the same amount of batches
         # Using the inbuilt tensorflow dataset iteration seems to work fine, was there an advantage of doing it the old way?
         # t1
-        for batch in dataset:
+        for batch in self._dataset:
             yield batch
 
     def finalize(self):

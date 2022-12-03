@@ -3,7 +3,7 @@ model: default
 framework: pytorch
 
 workflow:
-  generate_data: False
+  generate_data: True
   train: True
   evaluation: True
   profiling: False

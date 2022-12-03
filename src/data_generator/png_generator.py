@@ -1,5 +1,6 @@
 """
-   Copyright 2021 UChicago Argonne, LLC
+   Copyright © 2022, UChicago Argonne, LLC
+   All Rights Reserved
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -37,13 +38,12 @@ class PNGGenerator(DataGenerator):
         dim = int(np.sqrt(self.record_size/3.0))
         record_labels = [0] 
         logging.info(f"dimension of images: {dim} x {dim} x 3")
-        for i in range(0, int(self.total_files_to_generate)):
+        for i in range(self.my_rank, int(self.total_files_to_generate), self.comm_size):
             out_path_spec = self._file_list[i]
             records = random.randint(255, size=(dim, dim, 3), dtype=np.uint8)
             img = im.fromarray(records)
             if self.my_rank == 0 and i % 100 == 0:
                 logging.info(f"Generated file {i}/{self.total_files_to_generate}")
-            if i % self.comm_size == self.my_rank:
-                progress(i+1, self.total_files_to_generate, "Generating PNG Data")
-                prev_out_spec = out_path_spec
-                img.save(out_path_spec, format='PNG', bits=8)
+            progress(i+1, self.total_files_to_generate, "Generating PNG Data")
+            prev_out_spec = out_path_spec
+            img.save(out_path_spec, format='PNG', bits=8)

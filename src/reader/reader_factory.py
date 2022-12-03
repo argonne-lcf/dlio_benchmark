@@ -1,5 +1,6 @@
 """
-   Copyright 2021 UChicago Argonne, LLC
+   Copyright © 2022, UChicago Argonne, LLC
+   All Rights Reserved
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -27,7 +28,7 @@ class ReaderFactory(object):
         """
         This function set the data reader based on the data format and the data loader specified. 
         """
-        if data_loader==None:
+        if data_loader==DataLoaderType.NONE:
             if type == FormatType.HDF5:
                 from src.reader.hdf5_reader import HDF5Reader
                 return HDF5Reader(dataset_type)
