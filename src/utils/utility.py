@@ -18,9 +18,17 @@ import os
 from datetime import datetime
 
 from src.utils.config import ConfigArguments
-
+from time import time
 # UTC timestamp format with microsecond precision
 LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
+
+def timeit(func):
+    def wrapper(*args, **kwargs):
+        begin = time()
+        x = func(*args, **kwargs)
+        end = time()
+        return x, "%10.10f"%begin, "%10.10f"%end, os.getpid()
+    return wrapper
 
 # Where does this print? I don't see it in the terminal
 def progress(count, total, status=''):

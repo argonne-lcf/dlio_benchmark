@@ -18,7 +18,7 @@ import math
 import logging
 from time import time
 
-from src.utils.utility import utcnow
+from src.utils.utility import utcnow, timeit
 from src.common.enumerations import Shuffle
 from src.reader.reader_handler import FormatReader
 import tensorflow as tf
@@ -37,7 +37,7 @@ class TFReader(FormatReader):
 
     # TODO: DLIO assumes the tfrecord files to contain image/label pairs.
     # This is not always the case, e.g. in BERT, each record is more complex,
-    # consisting of 6 lists and a label. Same for DLRM. 
+    # consisting of 6 lists and a label. Same for DLRM.
     def _tf_parse_function(self, serialized):
         """
         performs deserialization of the tfrecord.

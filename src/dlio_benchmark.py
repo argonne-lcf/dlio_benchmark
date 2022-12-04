@@ -224,6 +224,7 @@ class DLIOBenchmark(object):
         self.stats.start_block(epoch, block)
         t0 = time()
         for batch in self.framework.get_reader(dataset_type=DatasetType.TRAIN).next():
+            logging.debug(f"{utcnow()} Rank {self.my_rank} batch: {batch[:][1:]}")
             self.stats.batch_loaded(epoch, overall_step, block, t0)
             self.framework.barrier()
             # Log a new block, unless it's the first one which we've already logged before the loop
@@ -278,6 +279,7 @@ class DLIOBenchmark(object):
         On each epoch, it prepares dataset for reading, it trains, and finalizes the dataset.
         If evaluation is enabled, it reads the eval dataset, performs evaluation and finalizes.
         """
+        self.start_timestamp=time()
         if not self.generate_only:
             # Print out the expected number of steps for each epoch and evaluation
             if self.my_rank == 0:

@@ -19,6 +19,7 @@ from src.common.enumerations import FormatType, Shuffle, ReadType, FileAccess, C
 from dataclasses import dataclass, field
 import hydra
 import os
+import logging
 
 @dataclass
 class ConfigArguments:
@@ -142,29 +143,34 @@ def LoadConfig(args, config):
             args.keep_files = config['dataset']['keep_files']
 
     # data loader
+    reader=None
     if 'data_reader' in config:
-        if 'data_loader' in config['data_reader']:
-            args.data_loader = DataLoaderType(config['data_reader']['data_loader'])
-        if 'read_threads' in config['data_reader']:
-            args.read_threads = config['data_reader']['read_threads']
-        if 'computatation_threads' in config['data_reader']:
-            args.computatation_threads = config['data_reader']['computatation_threads']
-        if 'prefetch' in config['data_reader']:
-            args.prefetch = config['data_reader']['prefetch']
-        if 'prefetch_size' in config['data_reader']:
-            args.prefetch_size = config['data_reader']['prefetch_size']
-        if 'read_shuffle' in config['data_reader']:
-            args.read_shuffle = config['data_reader']['read_shuffle']
-        if 'shuffle_size' in config['data_reader']:
-            args.shuffle_size = config['data_reader']['shuffle_size']
-        if 'memory_shuffle' in config['data_reader']:
-            args.memory_shuffle = config['data_reader']['memory_shuffle']
-        if 'read_type' in config['data_reader']:
-            args.read_type = config['data_reader']['read_type']
-        if 'file_access' in config['data_reader']:
-            args.file_access = config['data_reader']['file_access']
-        if 'transfer_size' in config['data_reader']:
-            args.transfer_size = config['data_reader']['transfer_size']
+        reader = config['data_reader']
+    elif 'data_reader' in config:
+        reader = config['reader']
+    if reader is not None:
+        if 'data_loader' in reader:
+            args.data_loader = DataLoaderType(reader['data_loader'])
+        if 'read_threads' in reader:
+            args.read_threads = reader['read_threads']
+        if 'computatation_threads' in reader:
+            args.computatation_threads = reader['computatation_threads']
+        if 'prefetch' in reader:
+            args.prefetch = reader['prefetch']
+        if 'prefetch_size' in reader:
+            args.prefetch_size = reader['prefetch_size']
+        if 'read_shuffle' in reader:
+            args.read_shuffle = reader['read_shuffle']
+        if 'shuffle_size' in reader:
+            args.shuffle_size = reader['shuffle_size']
+        if 'memory_shuffle' in reader:
+            args.memory_shuffle = reader['memory_shuffle']
+        if 'read_type' in reader:
+            args.read_type = reader['read_type']
+        if 'file_access' in reader:
+            args.file_access = reader['file_access']
+        if 'transfer_size' in reader:
+            args.transfer_size = reader['transfer_size']
 
     # training relevant setting
     if 'train' in config:

@@ -18,11 +18,61 @@ import math
 import logging
 from time import time
 
-from src.utils.utility import utcnow
+from src.utils.utility import utcnow, timeit
 from src.common.enumerations import Shuffle, FormatType
 from src.reader.reader_handler import FormatReader
 import tensorflow as tf
 import numpy as np
+import os
+from functools import wraps 
+
+def timeit(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        begin = tf.timestamp()
+        x = func(*args, **kwargs)
+        end = tf.timestamp()
+        return x, start, end, os.getpid()
+    return wrapper
+
+@tf.function    
+@timeit
+def read_jpeg(filename):
+    img = tf.io.read_file(filename)
+    img = tf.image.decode_jpeg(img, channels=3)
+    return img
+
+
+@tf.function
+@timeit
+def read_png(filename):
+    img = tf.io.read_file(filename)
+    img = tf.image.decode_jpeg(img, channels=3)
+    return img
+
+@tf.function
+@timeit
+def read_npz(filename):
+    img = tf.io.read_file(filename)
+    return img
+
+@tf.function
+@timeit
+def read_hdf5(filename):
+    img = tf.io.read_file(filename)
+    return img
+@tf.function
+@timeit
+def read_file(filename):
+    img = tf.io.read_file(filename)
+    return img
+
+filereader={
+    FormatType.JPEG: read_jpeg, 
+    FormatType.PNG: read_png, 
+    FormatType.NPZ: read_npz, 
+    FormatType.HDF5: read_hdf5, 
+}
 
 class TFDataLoaderReader(FormatReader):
     """
@@ -33,32 +83,14 @@ class TFDataLoaderReader(FormatReader):
         self.read_threads = self._args.read_threads
         self.computation_threads = self._args.computation_threads
         self.format = self._args.format
-
-    # TODO: DLIO assumes the tfrecord files to contain image/label pairs.
-    # This is not always the case, e.g. in BERT, each record is more complex,
-    # consisting of 6 lists and a label. Same for DLRM. 
-    @tf.function
-    def _tf_parse_function(self, filename):
-        """
-        performs deserialization of the tfrecord.
-        :param serialized: is the serialized version using protobuf
-        :return: deserialized image and label.
-        """
-        if self.format==FormatType.NPZ:
-            x = tf.io.read_file(filename)
-            return x
-        elif self.format==FormatType.JPEG:
-            img = tf.io.read_file(filename)
-            img = tf.image.decode_jpeg(img, channels=3)
-            return img
-        elif self.format==FormatType.PNG:
-            img = tf.io.read_file(filename)
-            img = tf.image.decode_png(img, channels=3)
-            return img
-        else:
-            logging.warning(f"{utcnow()} Reading {self.format} format using Tensorflow Data Loader is not implemented, reading as bytes contents directly")
-            return tf.io.read_file(filename)
-        
+        try:
+            self._tf_parse_function=filereader[self.format]
+        except:
+            logging.warning(f"{utcnow()} Unsupported file format {self.format} for data loader, reading as binary files")
+            self._tf_parse_function = read_file
+        # TODO: DLIO assumes the tfrecord files to contain image/label pairs.
+        # This is not always the case, e.g. in BERT, each record is more complex,
+        # consisting of 6 lists and a label. Same for DLRM.
 
     def read(self, epoch_number):
         """
@@ -69,7 +101,7 @@ class TFDataLoaderReader(FormatReader):
         """
         # superclass function initializes the file list
         super().read(epoch_number)
-
+        
         dataset = tf.data.Dataset.from_tensor_slices(self._file_list)
         dataset = dataset.shard(num_shards=self.comm_size, index=self.my_rank)
         dataset = dataset.map(self._tf_parse_function, num_parallel_calls=self.read_threads)
