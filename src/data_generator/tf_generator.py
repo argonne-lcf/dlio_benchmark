@@ -43,7 +43,6 @@ class TFRecordGenerator(DataGenerator):
         for i in range(self.my_rank, self.total_files_to_generate, self.comm_size):
             progress(i+1, self.total_files_to_generate, "Generating TFRecord Data")
             out_path_spec = self._file_list[i]
-            logging.info(f"{utcnow()} Generating TFRecord {out_path_spec}")
             # Open a TFRecordWriter for the output-file.
             with tf.io.TFRecordWriter(out_path_spec) as writer:
                 for i in range(0, self.num_samples):

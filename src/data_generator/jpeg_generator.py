@@ -39,8 +39,8 @@ class JPEGGenerator(DataGenerator):
         super().generate()
         dim = int(np.sqrt(self.record_size/3.0))
         record_labels = [0] 
-        logging.info(f"dimension of images: {dim} x {dim} x 3")
-
+        if self.my_rank==0:
+            logging.info(f"{utcnow()} Dimension of images: {dim} x {dim} x 3")
         for i in range(self.my_rank, int(self.total_files_to_generate), self.comm_size):
             records = random.randint(255, size=(dim, dim, 3), dtype=np.uint8)
             img = im.fromarray(records)

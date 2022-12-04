@@ -33,7 +33,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 from dataclasses import dataclass
-from src.utils.utility import utcnow
+from src.utils.utility import utcnow, measure_performance
 from omegaconf import DictConfig, OmegaConf
 from src.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
@@ -353,7 +353,7 @@ class DLIOBenchmark(object):
             logging.info(f"{utcnow()} Saved outputs in {self.output_folder}")
         self.framework.barrier()
 
-
+@measure_performance
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg : DictConfig) -> None:
     """
