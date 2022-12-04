@@ -19,7 +19,7 @@ dataset:
   record_length: 147000000
   keep_files: True
   
-data_reader: 
+reader: 
   data_loader: pytorch
 
 train:

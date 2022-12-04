@@ -27,6 +27,7 @@ class ConfigArguments:
 
     # command line argument
     # Framework to use
+    model: str = "default"
     framework: FrameworkType = FrameworkType.TENSORFLOW
     # Dataset format, such as PNG, JPEG
     format: FormatType = FormatType.TFRECORD
@@ -107,6 +108,12 @@ def LoadConfig(args, config):
     '''
     if 'framework' in config:
         args.framework = FrameworkType(config['framework'])
+    if 'model' in config:
+        ''' 
+        most of the time, this won't change the benchmark. But in future we might use 
+        as a way to do model specific setting. 
+        '''
+        args.model = config['model']
     # dataset related settings
     if 'dataset' in config:
         if 'record_length' in config['dataset']:
@@ -146,7 +153,7 @@ def LoadConfig(args, config):
     reader=None
     if 'data_reader' in config:
         reader = config['data_reader']
-    elif 'data_reader' in config:
+    elif 'reader' in config:
         reader = config['reader']
     if reader is not None:
         if 'data_loader' in reader:

@@ -21,6 +21,13 @@ from src.utils.config import ConfigArguments
 from time import time
 # UTC timestamp format with microsecond precision
 LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
+from mpi4py import MPI
+
+def get_rank():
+    return MPI.COMM_WORLD.rank
+
+def get_size():
+    return MPI.COMM_WORLD.size
 
 def timeit(func):
     def wrapper(*args, **kwargs):
@@ -30,17 +37,19 @@ def timeit(func):
         return x, "%10.10f"%begin, "%10.10f"%end, os.getpid()
     return wrapper
 
-# Where does this print? I don't see it in the terminal
 def progress(count, total, status=''):
+    """
+    Printing a progress bar. Will be in the stdout when debug mode is turned on
+    """
     _args = ConfigArguments.get_instance()
     bar_len = 60
     filled_len = int(round(bar_len * count / float(total)))
     percents = round(100.0 * count / float(total), 1)
-    bar = '=' * filled_len + '-' * (bar_len - filled_len)
-    if _args.debug:
+    bar = '=' * filled_len + ">"+'-' * (bar_len - filled_len)
+    if get_rank()==0:
         if count == 1:
             print("")
-        print("\r[{}] {}% {} of {} {} ".format(bar, percents, count, total, status), end='')
+        print("\r{}: [{}] {}% {} of {} ".format(status, bar, percents, count, total), end='')
         if count == total:
             print("")
         os.sys.stdout.flush()

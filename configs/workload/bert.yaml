@@ -20,7 +20,7 @@ train:
  computation_time: 0.968
  total_training_steps: 5000
  
-data_reader:
+reader:
  data_loader: tensorflow
  read_threads: 1
  computation_threads: 8

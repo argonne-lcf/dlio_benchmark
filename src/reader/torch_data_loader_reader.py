@@ -97,9 +97,10 @@ class TorchDataLoaderReader(FormatReader):
         # superclass function shuffle the file list 
         super().read(epoch_number)
         do_shuffle = True if self.memory_shuffle != Shuffle.OFF else False
-        
-        dataset = TorchDataset(self._file_list, self.my_rank, self.format)
-        
+        if self._args.num_samples_per_file == 1:
+            dataset = TorchDataset(self._file_list, self.my_rank, self.format)
+        else:
+            raise Exception(f"Multiple sample per file is currently unsupported in PyTorch reader")
         # TODO: In image segmentation, the distributed sampler is not used during eval, we could parametrize this away if needed
         # This handles the partitioning between ranks
         sampler = DistributedSampler(dataset, 
