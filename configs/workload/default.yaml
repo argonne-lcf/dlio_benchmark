@@ -9,7 +9,7 @@ workflow:
   profiling: False
 
 dataset: 
-  data_folder: ./data/default/
+  data_folder: data/default
   format: npz
   num_files_train: 64
   num_files_eval: 8

@@ -28,6 +28,7 @@ from src.utils.utility import utcnow
 from time import sleep
 
 from src.reader.reader_factory import ReaderFactory
+from src.storage.storage_factory import StorageFactory
 
 HANDLED_FUNCTIONS = {}
 
@@ -57,6 +58,7 @@ class TorchFramework(Framework):
     def init_reader(self, format_type, data_loader=None):
         self.reader_train = ReaderFactory.get_reader(format_type, data_loader=data_loader, dataset_type=DatasetType.TRAIN)
         self.reader_valid = ReaderFactory.get_reader(format_type, data_loader=data_loader, dataset_type=DatasetType.VALID)
+        self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
 
     def get_type(self):
         return FrameworkType.PYTORCH
@@ -100,3 +102,6 @@ class TorchFramework(Framework):
             return self.reader_train
         else:
             return self.reader_valid
+
+    def is_nativeio_available(self):
+        return False

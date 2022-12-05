@@ -9,7 +9,7 @@ workflow:
  checkpoint: True
  
 dataset: 
- data_folder: ./data/bert/
+ data_folder: data/bert
  format: tfrecord
  num_files_train: 500
  num_samples_per_file: 313532

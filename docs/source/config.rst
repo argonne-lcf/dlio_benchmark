@@ -16,7 +16,7 @@ The characteristics of a workload is specified through a YAML file. This file wi
     evaluation: True
 
   dataset: 
-    data_folder: ./data/unet3d/
+    data_folder: data/unet3d
     format: npz
     num_files_train: 3620
     num_files_eval: 42

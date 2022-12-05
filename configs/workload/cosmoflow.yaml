@@ -7,7 +7,7 @@ workflow:
  train: True
 
 dataset:
- data_folder: ./data/cosmoflow
+ data_folder: data/cosmoflow
  num_files_train: 1024
  num_samples_per_file: 512
  record_length: 131072

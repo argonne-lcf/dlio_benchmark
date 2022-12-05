@@ -27,12 +27,21 @@ jobs:
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
         RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_gen_data
-
+    - name: test_custom_storage_root_gen_data
+      run: |
+        touch __init__.py
+        export PYTHONPATH=./:$PYTHONPATH
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_storage_root_gen_data
     - name: test_train
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
         RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_train
+    - name: test_custom_storage_root_train
+      run: |
+        touch __init__.py
+        export PYTHONPATH=./:$PYTHONPATH
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_custom_storage_root_train
     - name: test_checkpoint_epoch
       run: |
         touch __init__.py

@@ -24,7 +24,7 @@ UNET3D: 3D Medical Image Segmentation
         evaluation: True
 
     dataset: 
-        data_folder: ./data/unet3d/
+        data_folder: data/unet3d
         format: npz
         num_files_train: 3620
         num_files_eval: 42

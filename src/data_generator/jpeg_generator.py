@@ -46,6 +46,6 @@ class JPEGGenerator(DataGenerator):
             img = im.fromarray(records)
             if self.my_rank == 0 and i % 100 == 0:
                 logging.info(f"Generated file {i}/{self.total_files_to_generate}")
-            out_path_spec = self._file_list[i]
+            out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating JPEG Data")
             img.save(out_path_spec, format='JPEG', bits=8)
