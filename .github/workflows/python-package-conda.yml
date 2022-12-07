@@ -45,7 +45,7 @@ jobs:
         mpirun -np 2 python3 -m pytest -v -k test_checkpoint_step
         mpirun -np 2 python3 -m pytest -v -k test_multi_threads    - name: test-tf-loader-tfrecord
         mpirun -np 2 python3 -m pytest -v -k test_iostat_profiling
-
+    - name: test-tf-loader-npz
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
