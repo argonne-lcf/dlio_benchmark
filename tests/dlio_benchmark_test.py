@@ -29,6 +29,7 @@ from mpi4py import MPI
 comm = MPI.COMM_WORLD
 import pytest
 import time
+import subprocess
 
 import os
 
@@ -59,6 +60,7 @@ class TestDLIOBenchmark(unittest.TestCase):
         if (verify):
             self.assertEqual(len(glob.glob(benchmark.output_folder+"./*_load_and_proc_times.json")), benchmark.comm_size)
         return benchmark
+    @pytest.mark.timeout(60, method="thread")        
     def test_gen_data(self) -> None:
         for fmt in "tfrecord", "jpeg", "png", "hdf5", "npz":
             with self.subTest(f"Testing data generator for format: {fmt}", fmt=fmt):
@@ -79,7 +81,7 @@ class TestDLIOBenchmark(unittest.TestCase):
                     else:
                         self.assertEqual(len(glob.glob(cfg.workload.dataset.data_folder + f"train/*/*.{fmt}")), cfg.workload.dataset.num_files_train)
                         self.assertEqual(len(glob.glob(cfg.workload.dataset.data_folder + f"valid/*/*.{fmt}")), cfg.workload.dataset.num_files_eval)
-   
+    @pytest.mark.timeout(60, method="thread")
     def test_iostat_profiling(self) -> None:
         self.clean()
         if (comm.rank==0):
@@ -109,7 +111,12 @@ class TestDLIOBenchmark(unittest.TestCase):
                     OmegaConf.save(cfg, f)
                 with open(benchmark.output_folder+"./.hydra/overrides.yaml", "w") as f:
                     f.write('[]')
-                os.system(f"python src/dlio_postprocessor.py --output-folder={benchmark.output_folder}")
+                subprocess.run(["ls", "-l", "/dev/null"], capture_output=True)
+                cmd=f"python src/dlio_postprocessor.py --output-folder={benchmark.output_folder}"
+                cmd=cmd.split()
+                subprocess.run(cmd, capture_output=True, timeout=4)
+
+    @pytest.mark.timeout(60, method="thread")
     def test_checkpoint_epoch(self) -> None:
         self.clean()
         if (comm.rank==0):
@@ -131,6 +138,8 @@ class TestDLIOBenchmark(unittest.TestCase):
             comm.Barrier()
             benchmark=self.run_benchmark(cfg)            
             self.assertEqual(len(glob.glob("./checkpoints/*.bin")), 4)
+
+    @pytest.mark.timeout(60, method="thread")
     def test_checkpoint_step(self) -> None:
         self.clean()        
         if (comm.rank==0):
@@ -155,6 +164,8 @@ class TestDLIOBenchmark(unittest.TestCase):
             nstep = dataset.num_files_train * dataset.num_samples_per_file // dataset.batch_size//benchmark.comm_size
             ncheckpoints=nstep//2*8
             self.assertEqual(len(glob.glob("./checkpoints/*.bin")), ncheckpoints)
+
+    @pytest.mark.timeout(60, method="thread")
     def test_eval(self) -> None:
         self.clean()
         if (comm.rank==0):
@@ -170,6 +181,8 @@ class TestDLIOBenchmark(unittest.TestCase):
                                      'workload.evaluation.eval_time=0.005', \
                                      '++workload.train.epochs=4', '++workload.workflow.evaluation=True'])
             benchmark=self.run_benchmark(cfg)      
+
+    @pytest.mark.timeout(60, method="thread")
     def test_multi_threads(self) -> None:
         self.clean()
         for framework in "tensorflow", "pytorch":
@@ -191,6 +204,8 @@ class TestDLIOBenchmark(unittest.TestCase):
                                                                        '++workload.train.epochs=1', \
                                                                        '++workload.dataset.num_files_train=16'])
                         benchmark = self.run_benchmark(cfg)
+
+    @pytest.mark.timeout(60, method="thread")
     def test_train(self) -> None:
         for fmt in "npz","jpeg", "png", "tfrecord", "hdf5":
                 for framework in "tensorflow", "pytorch":

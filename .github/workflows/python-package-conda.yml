@@ -21,30 +21,18 @@ jobs:
         sudo apt-get install mpich
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest pytest-mpi pytest-subtests 
+        pip install pytest pytest-mpi pytest-subtests pytest-timeout
     - name: pytest-seq
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        python3 -m pytest -v -k test_gen_data
-        python3 -m pytest -v -k test_train
-        python3 -m pytest -v -k test_eval
-        python3 -m pytest -v -k test_checkpoint_epoch
-        python3 -m pytest -v -k test_checkpoint_step
-        python3 -m pytest -v -k test_multi_threads
-        python3 -m pytest -v -k test_iostat_profiling
+        python3 -m pytest -v 
 
     - name: pytest-mpi
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -np 2 python3 -m pytest -v -k test_gen_data
-        mpirun -np 2 python3 -m pytest -v -k test_train
-        mpirun -np 2 python3 -m pytest -v -k test_eval
-        mpirun -np 2 python3 -m pytest -v -k test_checkpoint_epoch
-        mpirun -np 2 python3 -m pytest -v -k test_checkpoint_step
-        mpirun -np 2 python3 -m pytest -v -k test_multi_threads    - name: test-tf-loader-tfrecord
-        mpirun -np 2 python3 -m pytest -v -k test_iostat_profiling
+        mpirun -np 2 python3 -m pytest -v --with-mpi
     - name: test-tf-loader-npz
       run: |
         touch __init__.py
