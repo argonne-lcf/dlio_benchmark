@@ -29,7 +29,7 @@ docker build -t dlio .
 docker run -t dlio python ./src/dlio_benchmark.py ++workload.workflow.generate_data=True
 ``` 
 
-You can also pull rebuilt container from docker hub: 
+You can also pull rebuilt container from docker hub (might not reflect the most recent change of the code): 
 ```bash
 docker docker.io/zhenghh04/dlio:latest
 docker run -t docker.io/zhenghh04/dlio:latest python ./src/dlio_benchmark.py ++workload.workflow.generate_data=True
