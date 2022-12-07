@@ -149,8 +149,6 @@ def LoadConfig(args, config):
             args.read_threads = config['data_reader']['read_threads']
         if 'computatation_threads' in config['data_reader']:
             args.computatation_threads = config['data_reader']['computatation_threads']
-        if 'prefetch' in config['data_reader']:
-            args.prefetch = config['data_reader']['prefetch']
         if 'prefetch_size' in config['data_reader']:
             args.prefetch_size = config['data_reader']['prefetch_size']
         if 'read_shuffle' in config['data_reader']:

@@ -107,7 +107,7 @@ class HDF5StimulateReader(FormatReader):
                                           seed=self.seed)
             else:
                 dataset = dataset.shuffle(buffer_size=self.shuffle_size)
-        if self.prefetch:
+        if self.prefetch_size > 0:
             dataset = dataset.prefetch(buffer_size=self.prefetch_size)
 
         dataset = dataset.map(self.resize, num_parallel_calls=self.computation_threads)

@@ -1,6 +1,7 @@
 # Benchmark generated data
 data/
 output/
+checkpoints/
 notes/
 stuff/
 *.un~
