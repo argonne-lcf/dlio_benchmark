@@ -23,7 +23,6 @@ The characteristics of a workload is specified through a YAML file. This file wi
     num_samples_per_file: 1
     batch_size: 4
     batch_size_eval: 1
-    file_access: multi
     record_length: 1145359
     keep_files: True
   
@@ -191,9 +190,6 @@ data_reader
    * - read_shuffle
      - off
      - [seed|random|off] whether and how to shuffle the dataset
-   * - file_access
-     - multi
-     - multi - file per process; shared - independent access to a single shared file; collective - collective I/O access to a single shared file
    * - transfer_size
      - 1048576
      - transfer size in byte for tensorflow data loader. 

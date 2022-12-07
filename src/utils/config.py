@@ -36,7 +36,6 @@ class ConfigArguments:
     shuffle_size: int = 1024
     memory_shuffle: Shuffle =Shuffle.OFF
     read_type: ReadType = ReadType.ON_DEMAND
-    file_access: FileAccess = FileAccess.MULTI
     record_length: int = 64 * 1024
     num_files_train: int = 8 
     num_samples_per_file: int = 1
@@ -174,8 +173,6 @@ def LoadConfig(args, config):
             args.memory_shuffle = reader['memory_shuffle']
         if 'read_type' in reader:
             args.read_type = reader['read_type']
-        if 'file_access' in reader:
-            args.file_access = reader['file_access']
         if 'transfer_size' in reader:
             args.transfer_size = reader['transfer_size']
 

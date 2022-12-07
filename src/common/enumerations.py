@@ -118,6 +118,7 @@ class FileAccess(Enum):
     """
     MULTI = 'multi'
     SHARED = 'shared'
+    # TO(HZ): I see currently, this collective mode is not used. It might be good to separate it out
     COLLECTIVE = 'collective'
 
     def __str__(self):

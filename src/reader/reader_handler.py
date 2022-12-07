@@ -40,7 +40,7 @@ class FormatReader(ABC):
         self.record_size = self._args.record_length
         self.prefetch_size = self._args.prefetch_size
         self.transfer_size = self._args.transfer_size
-        self.file_access = self._args.file_access
+        
         self.my_rank = self._args.my_rank
         self.comm_size = self._args.comm_size
         self.eval_enabled = self._args.do_eval
@@ -65,7 +65,10 @@ class FormatReader(ABC):
                                                           self._args.do_profiling)
 
         # We do this here so we keep the same evaluation files every epoch
-
+        if self.num_files_train > 1 or self.num_samples == 1:
+            self.file_acess = FileAccess.MULTI
+        else:
+            self.file_acess = FileAccess.SHARED
         if self.dataset_type == DatasetType.TRAIN:
             filenames = os.listdir(self.data_dir + "/train/")
             if not os.path.isfile(self.data_dir + "/train/" + filenames[0]):
