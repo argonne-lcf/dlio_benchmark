@@ -175,7 +175,7 @@ class TestDLIOBenchmark(unittest.TestCase):
     def test_multi_threads(self) -> None:
         self.clean()
         for framework in "tensorflow", "pytorch":
-            for nt in 0, 1, 2, 4:
+            for nt in 0, 1, 2:
                 if (comm.rank==0):
                     print()
                     print("="*80)
