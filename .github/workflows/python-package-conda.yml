@@ -26,13 +26,26 @@ jobs:
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        python3 -m pytest -v
+        python3 -m pytest -v -k test_gen_data
+        python3 -m pytest -v -k test_train
+        python3 -m pytest -v -k test_eval
+        python3 -m pytest -v -k test_checkpoint_epoch
+        python3 -m pytest -v -k test_checkpoint_step
+        python3 -m pytest -v -k test_multi_threads
+        python3 -m pytest -v -k test_iostat_profiling
+
     - name: pytest-mpi
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -np 2 python3 -m pytest  --with-mpi
-    - name: test-tf-loader-tfrecord
+        mpirun -np 2 python3 -m pytest -v -k test_gen_data
+        mpirun -np 2 python3 -m pytest -v -k test_train
+        mpirun -np 2 python3 -m pytest -v -k test_eval
+        mpirun -np 2 python3 -m pytest -v -k test_checkpoint_epoch
+        mpirun -np 2 python3 -m pytest -v -k test_checkpoint_step
+        mpirun -np 2 python3 -m pytest -v -k test_multi_threads    - name: test-tf-loader-tfrecord
+        mpirun -np 2 python3 -m pytest -v -k test_iostat_profiling
+
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH

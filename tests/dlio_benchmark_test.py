@@ -80,7 +80,6 @@ class TestDLIOBenchmark(unittest.TestCase):
                         self.assertEqual(len(glob.glob(cfg.workload.dataset.data_folder + f"train/*/*.{fmt}")), cfg.workload.dataset.num_files_train)
                         self.assertEqual(len(glob.glob(cfg.workload.dataset.data_folder + f"valid/*/*.{fmt}")), cfg.workload.dataset.num_files_eval)
    
-    """ We are experiencing some hanging issue in this test. Will turn off the test for now. 
     def test_iostat_profiling(self) -> None:
         self.clean()
         if (comm.rank==0):
@@ -111,7 +110,6 @@ class TestDLIOBenchmark(unittest.TestCase):
                 with open(benchmark.output_folder+"./.hydra/overrides.yaml", "w") as f:
                     f.write('[]')
                 os.system(f"python src/dlio_postprocessor.py --output-folder={benchmark.output_folder}")
-    """
     def test_checkpoint_epoch(self) -> None:
         self.clean()
         if (comm.rank==0):
