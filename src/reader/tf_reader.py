@@ -71,6 +71,10 @@ class TFReader(FormatReader):
         """
         # superclass function initializes the file list
         super().read(epoch_number)
+        if self.read_threads==0:
+            if self._args.my_rank==0:
+                logging.warning(f"{utcnow()} `read_threads` is set to be 0 for tf.data loader. We change it to tf.data.AUTOTUNE")
+            self.read_threads=tf.data.AUTOTUNE
         dataset = tf.data.TFRecordDataset(filenames=self._file_list,
                                           buffer_size=self.transfer_size,
                                           num_parallel_reads=self.read_threads)

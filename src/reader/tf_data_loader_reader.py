@@ -104,7 +104,12 @@ class TFDataLoaderReader(FormatReader):
         
         dataset = tf.data.Dataset.from_tensor_slices(self._file_list)
         dataset = dataset.shard(num_shards=self.comm_size, index=self.my_rank)
+        if self.read_threads==0:
+            if self._args.my_rank==0:
+                logging.warning(f"{utcnow()} `read_threads` is set to be 0 for tf.data loader. We change it to tf.data.AUTOTUNE")
+            self.read_threads=tf.data.AUTOTUNE
         dataset = dataset.map(self._tf_parse_function, num_parallel_calls=self.read_threads)
+        #dataset = dataset.interleave(self._tf_parse_function, num_parallel_calls=self.read_threads)
 
         if self.memory_shuffle != Shuffle.OFF:
             if self.memory_shuffle == Shuffle.SEED:
