@@ -30,9 +30,16 @@ comm = MPI.COMM_WORLD
 import pytest
 import time
 import subprocess
-
+import logging
 import os
-
+logging.basicConfig(
+    level=logging.INFO,
+    handlers=[
+        logging.FileHandler("dlio_benchmark_test.log", mode = "a", encoding='utf-8'),
+        logging.StreamHandler()
+    ],format='[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'  # logging's max timestamp resolution is msecs, we will pass in usecs in the message
+)
+ 
 from src.dlio_benchmark import DLIOBenchmark
 import glob
 class TestDLIOBenchmark(unittest.TestCase):
@@ -56,7 +63,7 @@ class TestDLIOBenchmark(unittest.TestCase):
         benchmark.finalize()
         t1=time.time()
         if (comm.rank==0):
-            print("Time for the benchmark: %.10f" %(t1-t0)) 
+            logging.info("Time for the benchmark: %.10f" %(t1-t0)) 
         if (verify):
             self.assertEqual(len(glob.glob(benchmark.output_folder+"./*_load_and_proc_times.json")), benchmark.comm_size)
         return benchmark
@@ -66,10 +73,10 @@ class TestDLIOBenchmark(unittest.TestCase):
             with self.subTest(f"Testing data generator for format: {fmt}", fmt=fmt):
                 self.clean()
                 if (comm.rank==0):
-                    print()
-                    print("="*80)
-                    print(f" DLIO test for generating {fmt} dataset")
-                    print("="*80)
+                    logging.info("")
+                    logging.info("="*80)
+                    logging.info(f" DLIO test for generating {fmt} dataset")
+                    logging.info("="*80)
                 with initialize(version_base=None, config_path="../configs"):
                     cfg = compose(config_name='config', overrides=['++workload.workflow.train=False', \
                                                                    '++workload.workflow.generate_data=True',
@@ -85,10 +92,10 @@ class TestDLIOBenchmark(unittest.TestCase):
     def test_iostat_profiling(self) -> None:
         self.clean()
         if (comm.rank==0):
-            print()
-            print("="*80)
-            print(f" DLIO test for iostat profiling")
-            print("="*80)
+            logging.info("")
+            logging.info("="*80)
+            logging.info(f" DLIO test for iostat profiling")
+            logging.info("="*80)
         with initialize(version_base=None, config_path="../configs"):
             cfg = compose(config_name='config', overrides=['++workload.workflow.train=False',
                                                            '++workload.workflow.generate_data=True'])
@@ -104,7 +111,7 @@ class TestDLIOBenchmark(unittest.TestCase):
             benchmark=self.run_benchmark(cfg)
             assert(os.path.isfile(benchmark.output_folder+"/iostat.json"))
             if (comm.rank==0):
-                print("generating output data")
+                logging.info("generating output data")
                 os.makedirs(benchmark.output_folder+"/.hydra/", exist_ok=True)
                 yl: str = OmegaConf.to_yaml(cfg)
                 with open(benchmark.output_folder+"./.hydra/config.yaml", "w") as f:
@@ -120,10 +127,10 @@ class TestDLIOBenchmark(unittest.TestCase):
     def test_checkpoint_epoch(self) -> None:
         self.clean()
         if (comm.rank==0):
-                print()
-                print("="*80)
-                print(f" DLIO test for checkpointing at the end of epochs")
-                print("="*80)
+                logging.info("")
+                logging.info("="*80)
+                logging.info(f" DLIO test for checkpointing at the end of epochs")
+                logging.info("="*80)
         with initialize(version_base=None, config_path="../configs"):
             cfg = compose(config_name='config',
                           overrides=['++workload.workflow.train=True',\
@@ -143,10 +150,10 @@ class TestDLIOBenchmark(unittest.TestCase):
     def test_checkpoint_step(self) -> None:
         self.clean()        
         if (comm.rank==0):
-            print()
-            print("="*80)
-            print(f" DLIO test for checkpointing at the end of steps")
-            print("="*80)
+            logging.info("")
+            logging.info("="*80)
+            logging.info(f" DLIO test for checkpointing at the end of steps")
+            logging.info("="*80)
         with initialize(version_base=None, config_path="../configs"):
             cfg = compose(config_name='config',
                           overrides=['++workload.workflow.train=True',\
@@ -169,10 +176,10 @@ class TestDLIOBenchmark(unittest.TestCase):
     def test_eval(self) -> None:
         self.clean()
         if (comm.rank==0):
-            print()
-            print("="*80)
-            print(f" DLIO test for evaluation")
-            print("="*80)        
+            logging.info("")
+            logging.info("="*80)
+            logging.info(f" DLIO test for evaluation")
+            logging.info("="*80)        
         with initialize(version_base=None, config_path="../configs"):
             cfg = compose(config_name='config',
                           overrides=['++workload.workflow.train=True',\
@@ -188,10 +195,10 @@ class TestDLIOBenchmark(unittest.TestCase):
         for framework in "tensorflow", "pytorch":
             for nt in 0, 1, 2:
                 if (comm.rank==0):
-                    print()
-                    print("="*80)
-                    print(f" DLIO test for generating multithreading read_threads={nt} {framework} framework")
-                    print("="*80)
+                    logging.info("")
+                    logging.info("="*80)
+                    logging.info(f" DLIO test for generating multithreading read_threads={nt} {framework} framework")
+                    logging.info("="*80)
                 with self.subTest(f"Testing full benchmark for format: {framework}-NT{nt}", nt=nt, framework=framework):
                     with initialize(version_base=None, config_path="../configs"):
                         cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', \
@@ -214,10 +221,10 @@ class TestDLIOBenchmark(unittest.TestCase):
                             continue
                         self.clean()
                         if (comm.rank==0):
-                            print()
-                            print("="*80)
-                            print(f" DLIO training test for {fmt} format in {framework} framework")
-                            print("="*80)                        
+                            logging.info("")
+                            logging.info("="*80)
+                            logging.info(f" DLIO training test for {fmt} format in {framework} framework")
+                            logging.info("="*80)                        
                         with initialize(version_base=None, config_path="../configs"):
                             cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', \
                                                                            '++workload.workflow.generate_data=True',\

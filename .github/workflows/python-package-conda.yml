@@ -22,17 +22,37 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pytest pytest-mpi pytest-subtests pytest-timeout
-    - name: pytest-seq
+    - name: test_gen_data
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        python3 -m pytest -v 
+        mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_gen_data
 
-    - name: pytest-mpi
+    - name: test_train
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -np 2 python3 -m pytest -v --with-mpi
+        mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_train
+    - name: test_checkpoint_epoch
+      run: |
+        touch __init__.py
+        export PYTHONPATH=./:$PYTHONPATH
+        mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_checkpoint_epoch              
+    - name: test_checkpoint_step
+      run: |
+        touch __init__.py
+        export PYTHONPATH=./:$PYTHONPATH
+        mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_checkpoint_step
+    - name: test_eval
+      run: |
+        touch __init__.py
+        export PYTHONPATH=./:$PYTHONPATH
+        mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_eval
+    - name: test_multi_threads
+      run: |
+        touch __init__.py
+        export PYTHONPATH=./:$PYTHONPATH
+        mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_multi_threads
     - name: test-tf-loader-npz
       run: |
         touch __init__.py
