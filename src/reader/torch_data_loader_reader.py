@@ -1,5 +1,5 @@
 """
-   Copyright © 2022, UChicago Argonne, LLC
+   Copyright (c) 2022, UChicago Argonne, LLC
    All Rights Reserved
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@ import numpy as np
 from time import time
 import os
 
-from src.utils.utility import utcnow
+from src.utils.utility import utcnow, timeit
 
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.distributed import DistributedSampler
@@ -51,8 +51,7 @@ def read_hdf5(f):
 
 def read_file(f):
     with open(f, mode='rb') as file: # b is important -> binary
-        fileContent = file.read()
-    return fileContent
+        return file.read()
 
 filereader={
     FormatType.JPEG: read_jpeg, 
@@ -77,7 +76,8 @@ class TorchDataset(Dataset):
             
         def __len__(self):
             return len(self.samples)
-        
+
+        @timeit
         def __getitem__(self, idx):
             logging.debug(f"{utcnow()} Rank {self.my_rank} reading {self.samples[idx]}")
             return self.read(self.samples[idx])
@@ -97,9 +97,10 @@ class TorchDataLoaderReader(FormatReader):
         # superclass function shuffle the file list 
         super().read(epoch_number)
         do_shuffle = True if self.memory_shuffle != Shuffle.OFF else False
-        
-        dataset = TorchDataset(self._file_list, self.my_rank, self.format)
-        
+        if self._args.num_samples_per_file == 1:
+            dataset = TorchDataset(self._file_list, self.my_rank, self.format)
+        else:
+            raise Exception(f"Multiple sample per file is currently unsupported in PyTorch reader")
         # TODO: In image segmentation, the distributed sampler is not used during eval, we could parametrize this away if needed
         # This handles the partitioning between ranks
         sampler = DistributedSampler(dataset, 

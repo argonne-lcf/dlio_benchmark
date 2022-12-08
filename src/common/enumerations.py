@@ -1,5 +1,5 @@
 """
-   Copyright © 2022, UChicago Argonne, LLC
+   Copyright (c) 2022, UChicago Argonne, LLC
    All Rights Reserved
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -118,6 +118,7 @@ class FileAccess(Enum):
     """
     MULTI = 'multi'
     SHARED = 'shared'
+    # TO(HZ): I see currently, this collective mode is not used. It might be good to separate it out
     COLLECTIVE = 'collective'
 
     def __str__(self):

@@ -1,5 +1,6 @@
 """
-   Copyright 2021 UChicago Argonne, LLC
+   Copyright (c) 2022, UChicago Argonne, LLC
+   All Rights Reserved
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -19,6 +20,7 @@ from src.common.enumerations import FormatType, Shuffle, ReadType, FileAccess, C
 from dataclasses import dataclass, field
 import hydra
 import os
+import logging
 
 @dataclass
 class ConfigArguments:
@@ -26,6 +28,7 @@ class ConfigArguments:
 
     # command line argument
     # Framework to use
+    model: str = "default"
     framework: FrameworkType = FrameworkType.TENSORFLOW
     # Dataset format, such as PNG, JPEG
     format: FormatType = FormatType.TFRECORD
@@ -34,7 +37,6 @@ class ConfigArguments:
     shuffle_size: int = 1024
     memory_shuffle: Shuffle =Shuffle.OFF
     read_type: ReadType = ReadType.ON_DEMAND
-    file_access: FileAccess = FileAccess.MULTI
     record_length: int = 64 * 1024
     num_files_train: int = 8 
     num_samples_per_file: int = 1
@@ -106,6 +108,12 @@ def LoadConfig(args, config):
     '''
     if 'framework' in config:
         args.framework = FrameworkType(config['framework'])
+    if 'model' in config:
+        ''' 
+        most of the time, this won't change the benchmark. But in future we might use 
+        as a way to do model specific setting. 
+        '''
+        args.model = config['model']
     # dataset related settings
     if 'dataset' in config:
         if 'record_length' in config['dataset']:
@@ -142,29 +150,32 @@ def LoadConfig(args, config):
             args.keep_files = config['dataset']['keep_files']
 
     # data loader
+    reader=None
     if 'data_reader' in config:
-        if 'data_loader' in config['data_reader']:
-            args.data_loader = DataLoaderType(config['data_reader']['data_loader'])
-        if 'read_threads' in config['data_reader']:
-            args.read_threads = config['data_reader']['read_threads']
-        if 'computatation_threads' in config['data_reader']:
-            args.computatation_threads = config['data_reader']['computatation_threads']
-        if 'prefetch' in config['data_reader']:
-            args.prefetch = config['data_reader']['prefetch']
-        if 'prefetch_size' in config['data_reader']:
-            args.prefetch_size = config['data_reader']['prefetch_size']
-        if 'read_shuffle' in config['data_reader']:
-            args.read_shuffle = config['data_reader']['read_shuffle']
-        if 'shuffle_size' in config['data_reader']:
-            args.shuffle_size = config['data_reader']['shuffle_size']
-        if 'memory_shuffle' in config['data_reader']:
-            args.memory_shuffle = config['data_reader']['memory_shuffle']
-        if 'read_type' in config['data_reader']:
-            args.read_type = config['data_reader']['read_type']
-        if 'file_access' in config['data_reader']:
-            args.file_access = config['data_reader']['file_access']
-        if 'transfer_size' in config['data_reader']:
-            args.transfer_size = config['data_reader']['transfer_size']
+        reader = config['data_reader']
+    elif 'reader' in config:
+        reader = config['reader']
+    if reader is not None:
+        if 'data_loader' in reader:
+            args.data_loader = DataLoaderType(reader['data_loader'])
+        if 'read_threads' in reader:
+            args.read_threads = reader['read_threads']
+        if 'computatation_threads' in reader:
+            args.computatation_threads = reader['computatation_threads']
+        if 'prefetch' in reader:
+            args.prefetch = reader['prefetch']
+        if 'prefetch_size' in reader:
+            args.prefetch_size = reader['prefetch_size']
+        if 'read_shuffle' in reader:
+            args.read_shuffle = reader['read_shuffle']
+        if 'shuffle_size' in reader:
+            args.shuffle_size = reader['shuffle_size']
+        if 'memory_shuffle' in reader:
+            args.memory_shuffle = reader['memory_shuffle']
+        if 'read_type' in reader:
+            args.read_type = reader['read_type']
+        if 'transfer_size' in reader:
+            args.transfer_size = reader['transfer_size']
 
     # training relevant setting
     if 'train' in config:

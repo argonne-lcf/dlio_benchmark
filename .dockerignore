@@ -4,3 +4,5 @@ output/
 data/
 logs/
 data*/
+Dockerfile*
+hydra_log

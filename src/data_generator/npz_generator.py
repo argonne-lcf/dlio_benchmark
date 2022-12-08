@@ -1,5 +1,5 @@
 """
-   Copyright © 2022, UChicago Argonne, LLC
+   Copyright (c) 2022, UChicago Argonne, LLC
    All Rights Reserved
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,7 @@ import logging
 import numpy as np
 from numpy import random
 
-from src.utils.utility import progress
+from src.utils.utility import progress, utcnow
 from shutil import copyfile
 
 """
@@ -40,8 +40,6 @@ class NPZGenerator(DataGenerator):
         records = random.random((self._dimension, self._dimension, self.num_samples))
         record_labels = [0] * self.num_samples
         for i in range(self.my_rank, int(self.total_files_to_generate), self.comm_size):
-            if self.my_rank == 0 and i % 100 == 0:
-                logging.info(f"Generated file {i}/{self.total_files_to_generate}")
             out_path_spec = self._file_list[i]
             progress(i+1, self.total_files_to_generate, "Generating NPZ Data")
             prev_out_spec = out_path_spec

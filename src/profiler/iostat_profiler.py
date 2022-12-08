@@ -1,5 +1,5 @@
 """
-   Copyright © 2022, UChicago Argonne, LLC
+   Copyright (c) 2022, UChicago Argonne, LLC
    All Rights Reserved
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,13 @@
 from src.profiler.io_profiler import IOProfiler
 import os
 import signal
-import subprocess as sp
+import subprocess as sp 
+
+def kill(proc_pid):
+    process = psutil.Process(proc_pid)
+    for proc in process.children(recursive=True):
+        proc.kill()
+    process.kill()
 
 class IostatProfiler(IOProfiler):
     __instance = None
@@ -67,3 +73,4 @@ class IostatProfiler(IOProfiler):
             self.process.send_signal(signal.SIGINT) 
             # Might need a timeout here in case it hangs forever
             self.process.wait()
+

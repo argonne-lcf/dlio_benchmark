@@ -1,5 +1,5 @@
 """
-   Copyright © 2022, UChicago Argonne, LLC
+   Copyright (c) 2022, UChicago Argonne, LLC
    All Rights Reserved
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,7 +33,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 from dataclasses import dataclass
-from src.utils.utility import utcnow
+from src.utils.utility import utcnow, measure_performance
 from omegaconf import DictConfig, OmegaConf
 from src.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
@@ -224,6 +224,7 @@ class DLIOBenchmark(object):
         self.stats.start_block(epoch, block)
         t0 = time()
         for batch in self.framework.get_reader(dataset_type=DatasetType.TRAIN).next():
+            logging.debug(f"{utcnow()} Rank {self.my_rank} batch: {batch[:][1:]}")
             self.stats.batch_loaded(epoch, overall_step, block, t0)
             self.framework.barrier()
             # Log a new block, unless it's the first one which we've already logged before the loop
@@ -278,6 +279,7 @@ class DLIOBenchmark(object):
         On each epoch, it prepares dataset for reading, it trains, and finalizes the dataset.
         If evaluation is enabled, it reads the eval dataset, performs evaluation and finalizes.
         """
+        self.start_timestamp=time()
         if not self.generate_only:
             # Print out the expected number of steps for each epoch and evaluation
             if self.my_rank == 0:
@@ -347,11 +349,11 @@ class DLIOBenchmark(object):
             
             # Save collected stats to disk
             self.stats.save_data()
-        if self.my_rank==0:
-            logging.info(f"{utcnow()} Saved outputs in {self.output_folder}")
         self.framework.barrier()
+        if self.my_rank==0:
+            logging.info(f"{utcnow()} Saved outputs in {self.output_folder}")        
 
-
+@measure_performance
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg : DictConfig) -> None:
     """

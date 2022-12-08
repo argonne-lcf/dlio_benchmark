@@ -13,7 +13,7 @@ dataset:
  data_folder: data/resnet50
  format: tfrecord
  
-data_loader:
+reader:
  data_loader: tensorflow
  read_threads: 8
  computation_threads: 8

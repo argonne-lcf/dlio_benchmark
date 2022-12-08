@@ -13,7 +13,7 @@ dataset:
  record_length: 131072
  batch_size: 1
 
-data_reader:
+reader:
  data_loader: tensorflow
  computation_threads: 8
  read_threads: 8
