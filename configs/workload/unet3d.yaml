@@ -6,6 +6,7 @@ workflow:
   generate_data: False
   train: True
   evaluation: True
+  checkpoint: True
 
 dataset: 
   data_folder: ./data/unet3d/
@@ -28,4 +29,10 @@ train:
 
 evaluation: 
   eval_time: 11.572
+  eval_after_epoch: 5
   epochs_between_evals: 2
+
+checkpoint:
+  checkpoint_after_epoch: 5
+  epochs_between_checkpoints: 2
+  model_size: 499153191

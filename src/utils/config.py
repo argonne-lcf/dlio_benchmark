@@ -149,7 +149,7 @@ def LoadConfig(args, config):
         if 'keep_files' in config['dataset']:
             args.keep_files = config['dataset']['keep_files']
 
-    # data loader
+    # data reader
     reader=None
     if 'data_reader' in config:
         reader = config['data_reader']
