@@ -26,39 +26,39 @@ jobs:
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_gen_data
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_gen_data
 
     - name: test_train
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_train
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_train
     - name: test_checkpoint_epoch
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_checkpoint_epoch              
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_checkpoint_epoch              
     - name: test_checkpoint_step
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_checkpoint_step
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_checkpoint_step
     - name: test_eval
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_eval
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_eval
     - name: test_multi_threads
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_multi_threads
-    - name: test-tf-loader-npz
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_multi_threads
+    - name: test-tf-loader-tfrecord
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -n 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=False ++workload.workflow.generate_data=True  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
-        mpirun -n 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=True ++workload.workflow.generate_data=False  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
+        RDMAV_FORK_SAFE=1 mpirun -n 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=False ++workload.workflow.generate_data=True  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
+        RDMAV_FORK_SAFE=1 mpirun -n 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=True ++workload.workflow.generate_data=False  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
         output=`ls -d ./hydra_log/resnet50/* | tail -1`
         python ./src/dlio_postprocessor.py --output-folder=${output}
         cat ${output}/*.txt
@@ -66,8 +66,8 @@ jobs:
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -n 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=4
-        mpirun -n 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=4
+        RDMAV_FORK_SAFE=1 mpirun -n 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=4
+        RDMAV_FORK_SAFE=1 mpirun -n 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=4
         output=`ls -d ./hydra_log/unet3d/* | tail -1`
         python ./src/dlio_postprocessor.py --output-folder=${output}
         cat ${output}/*.txt
@@ -75,8 +75,8 @@ jobs:
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        mpirun -n 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=4
-        mpirun -n 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=4
+        RDMAV_FORK_SAFE=1 mpirun -n 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=4
+        RDMAV_FORK_SAFE=1 mpirun -n 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=4
         output=`ls -d ./hydra_log/unet3d/* | tail -1`
         python ./src/dlio_postprocessor.py --output-folder=${output}
         cat ${output}/*.txt
