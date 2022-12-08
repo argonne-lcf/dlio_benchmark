@@ -26,7 +26,7 @@ The characteristics of a workload is specified through a YAML file. This file wi
     record_length: 1145359
     keep_files: True
   
-  data_reader: 
+  reader: 
     data_loader: pytorch
     read_threads: 4
     prefetch_size: 2
@@ -45,7 +45,7 @@ A `DLIO` YAML configuration file contains following sections:
 * **framework** - specifying the framework to use for the benchmark, options: tensorflow, pytorch
 * **workflow** - specifying what workflow operations to perform. Workflow operations include: dataset generation (``generate_data``), training (``train``), evaluation (``evaluation``), checkpointing (``checkpoint``), debugging (``debug``), etc. 
 * **dataset** - specifying all the information related to the dataset. 
-* **data_reader** - specifying the data loading options 
+* **reader** - specifying the data loading options 
 * **train** - specifying the setup for training
 * **evaluation** - specifying the setup for evaluation. 
 * **checkpoint** - specifying the setup for checkpointing. 
@@ -166,7 +166,7 @@ dataset
   The training and validation datasets will be put in ```${data_folder}/train``` and ```${data_folder}/valid``` respectively. If ``num_subfolders_train`` and ``num_subfolders_eval`` are larger than one, the datasets will be split into multiple subfolders within ```${data_folder}/train``` and ```${data_folder}/valid```. 
 
 
-data_reader 
+reader 
 ------------------
 .. list-table:: 
    :widths: 15 10 30
