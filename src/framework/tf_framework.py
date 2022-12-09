@@ -36,8 +36,12 @@ class TFFramework(Framework):
         super().__init__()
         self.profiling = profiling
         # TODO: Temporary fix, need to separate the iostat profiler (needed for report gen) and the others
-        if profiling and (self.args.profiler!=Profiler.IOSTAT):
-            self.tensorboard = ProfilerFactory.get_profiler(Profiler.TENSORBOARD)
+        if profiling:
+            if self.args.profiler!=Profiler.IOSTAT:
+                self.tensorboard = ProfilerFactory.get_profiler(Profiler.NONE)
+            else:
+                self.tensorboard = ProfilerFactory.get_profiler(Profiler.TENSORBOARD)
+
 
         self.reader_handler = None
 
