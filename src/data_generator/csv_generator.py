@@ -45,7 +45,7 @@ class CSVGenerator(DataGenerator):
         for i in range(0, int(self.total_files_to_generate)):
             if i % self.comm_size == self.my_rank:
                 progress(i+1, self.total_files_to_generate, "Generating CSV Data")
-                out_path_spec = self._file_list[i]
+                out_path_spec = self.storage.get_uri(self._file_list[i])
                 df = pd.DataFrame(data=records)
                 compression = None
                 if self.compression != Compression.NONE:

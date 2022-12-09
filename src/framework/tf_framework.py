@@ -23,9 +23,11 @@ from src.common.error_code import ErrorCodes
 from src.framework.framework import Framework
 from src.reader.reader_factory import ReaderFactory
 from src.profiler.profiler_factory import ProfilerFactory
-from src.common.enumerations import FrameworkType, Profiler, FormatType, DatasetType
+from src.storage.storage_factory import StorageFactory
+from src.common.enumerations import FrameworkType, Profiler, FormatType, DatasetType, MetadataType
 
 import tensorflow as tf
+from tensorflow.python.framework import errors
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
@@ -48,6 +50,7 @@ class TFFramework(Framework):
     def init_reader(self, format_type, data_loader=None):
         self.reader_train = ReaderFactory.get_reader(format_type, data_loader=data_loader, dataset_type=DatasetType.TRAIN)
         self.reader_valid = ReaderFactory.get_reader(format_type, data_loader=data_loader, dataset_type=DatasetType.VALID)
+        self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
 
     def get_type(self):
         return FrameworkType.TENSORFLOW
@@ -76,26 +79,22 @@ class TFFramework(Framework):
         """
         if self.rank() == 0:
             my_rank = self.rank()
-            if not os.path.exists(self.checkpoint_folder):
-                os.makedirs(self.checkpoint_folder)
+            if not self.storage.get_node(self.checkpoint_folder):
+                self.storage.create_node(self.checkpoint_folder)
 
             model_file = os.path.join(self.checkpoint_folder, f"model-{epoch}-{step_number}.bin")
             meta_file = os.path.join(self.checkpoint_folder, f"meta-{epoch}-{step_number}.bin")
             index_file = os.path.join(self.checkpoint_folder, f"index-{epoch}-{step_number}.bin")
 
-            f = open(model_file, "w")
             string_val = "x" * self.args.model_size 
-            f.write(string_val)
-            f.close()
-            # Should these scale with the model size?
-            f = open(index_file, "w")
+            self.storage.put_data(model_file, string_val)
+            # TODO Should these scale with the model size?
             string_val = "x" * (17371)
-            f.write(string_val)
-            f.close()
-            f = open(meta_file, "w")
+            self.storage.put_data(index_file, string_val)
+            
             string_val = "x" * (24740228)
-            f.write(string_val)
-            f.close()
+            self.storage.put_data(meta_file, string_val)
+
     def compute(self, epoch_number, step, computation_time):
         tf.function(self.model)(epoch_number, step, computation_time)
 
@@ -104,4 +103,41 @@ class TFFramework(Framework):
             return self.reader_train
         else:
             return self.reader_valid
-        
+     
+    def is_nativeio_available(self):
+        return True
+
+    def create_node(self, id, exist_ok=False):
+        tf.io.gfile.mkdir(id)
+        return True
+
+    def get_node(self, id):
+        if tf.io.gfile.exists(id):
+            if tf.io.gfile.isdir(id):
+                return MetadataType.DIRECTORY
+            else:
+                return MetadataType.FILE
+        else:
+            return None
+
+    def walk_node(self, id, use_pattern=False):
+        try:
+            if not use_pattern:
+                return tf.io.gfile.listdir(id)
+            else:
+                return tf.io.gfile.glob(id)
+        except errors.NotFoundError:
+            return []
+
+    def delete_node(self, id):
+        tf.io.gfile.rmtree(id)
+        return True
+
+    def put_data(self, id, data, offset=None, length=None):
+        with tf.io.gfile.GFile(id, "w") as fd:
+            fd.write(data)
+
+    def get_data(self, id, data, offset=None, length=None):
+        with tf.io.gfile.GFile(id, "r") as fd:
+            data = fd.read()
+        return data

@@ -16,7 +16,7 @@
 """
 
 from typing import List, ClassVar
-from src.common.enumerations import FormatType, Shuffle, ReadType, FileAccess, Compression, FrameworkType, DataLoaderType, Profiler
+from src.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, FrameworkType, DataLoaderType, Profiler
 from dataclasses import dataclass, field
 import hydra
 import os
@@ -37,6 +37,10 @@ class ConfigArguments:
     shuffle_size: int = 1024
     sample_shuffle: Shuffle =Shuffle.OFF
     read_type: ReadType = ReadType.ON_DEMAND
+    file_access: FileAccess = FileAccess.MULTI
+    # Set root as the current directory by default
+    storage_root: str = "./"
+    storage_type: StorageType = StorageType.LOCAL_FS
     record_length: int = 64 * 1024
     num_files_train: int = 8 
     num_samples_per_file: int = 1
@@ -114,6 +118,13 @@ def LoadConfig(args, config):
         as a way to do model specific setting. 
         '''
         args.model = config['model']
+
+    if 'storage' in config:
+        if 'storage_type' in config['storage']:
+            args.storage_type = StorageType(config['storage']['storage_type'])
+        if 'storage_root' in config['storage']:
+            args.storage_root = config['storage']['storage_root']
+
     # dataset related settings
     if 'dataset' in config:
         if 'record_length' in config['dataset']:
@@ -126,6 +137,7 @@ def LoadConfig(args, config):
             args.num_samples_per_file = config['dataset']['num_samples_per_file']
         if 'data_folder' in config['dataset']:
             args.data_folder = config['dataset']['data_folder']
+            args.data_folder = args.data_folder.rstrip('/')
         if 'num_subfolders_train' in config['dataset']:
             args.num_subfolders_train = config['dataset']['num_subfolders_train']
         if 'num_subfolders_eval' in config['dataset']:
@@ -201,6 +213,7 @@ def LoadConfig(args, config):
     if 'checkpoint' in config:
         if 'checkpoint_folder' in config['checkpoint']:
             args.checkpoint_folder = config['checkpoint']['checkpoint_folder']
+            args.checkpoint_folder = args.checkpoint_folder.rstrip('/')
         if 'checkpoint_after_epoch' in config['checkpoint']:
             args.checkpoint_after_epoch = config['checkpoint']['checkpoint_after_epoch']
         if 'epochs_between_checkpoints' in config['checkpoint']:

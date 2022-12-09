@@ -16,8 +16,9 @@
 """
 from abc import ABC, abstractmethod
 
-from src.common.enumerations import FrameworkType, Shuffle, FileAccess, DatasetType
+from src.common.enumerations import FrameworkType, Shuffle, FileAccess, DatasetType, MetadataType
 from src.framework.framework_factory import FrameworkFactory
+from src.storage.storage_factory import StorageFactory
 from src.utils.utility import utcnow
 from src.utils.config import ConfigArguments
 
@@ -63,29 +64,29 @@ class FormatReader(ABC):
         self.dataset_type = dataset_type
         self.framework = FrameworkFactory().get_framework(self._args.framework,
                                                           self._args.do_profiling)
-
+        self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root, self._args.framework)
         # We do this here so we keep the same evaluation files every epoch
         if self.num_files_train > 1 or self.num_samples == 1:
             self.file_acess = FileAccess.MULTI
         else:
             self.file_acess = FileAccess.SHARED
         if self.dataset_type == DatasetType.TRAIN:
-            filenames = os.listdir(self.data_dir + "/train/")
-            if not os.path.isfile(self.data_dir + "/train/" + filenames[0]):
-                fullpaths=glob.glob(self.data_dir + "/train/*/*")
+            filenames = self.storage.walk_node(os.path.join(self.data_dir,  "train"))
+            if self.storage.get_node(os.path.join(self.data_dir, "train", filenames[0])) == MetadataType.DIRECTORY:
+                fullpaths=self.storage.walk_node(os.path.join(self.data_dir, "train/*/*"), use_pattern=True)
             else:
-                fullpaths = [os.path.join(self.data_dir+"/train/", entry) for entry in filenames]
+                fullpaths = [self.storage.get_uri(os.path.join(self.data_dir, "train", entry)) for entry in filenames]
 
             num_files = self.num_files_train
             self.batch_size = self.batch_size_train
             assert len(fullpaths) == num_files, f"Expected {num_files} training files but {len(fullpaths)} found. Ensure data was generated correctly."            
         elif self.dataset_type == DatasetType.VALID:
-            filenames = os.listdir(self.data_dir + "/valid/")
+            filenames = self.storage.walk_node(os.path.join(self.data_dir, "valid/"))
             if (len(filenames)>0):
-                if not os.path.isfile(self.data_dir + "/valid/" + filenames[0]):
-                    fullpaths=glob.glob(self.data_dir + "/valid/*/*")
+                if self.storage.get_node(os.path.join(self.data_dir, "valid", filenames[0])) == MetadataType.DIRECTORY:
+                    fullpaths=self.storage.walk_node(os.path.join(self.data_dir, "valid/*/*"), use_pattern=True)
                 else:
-                    fullpaths = [os.path.join(self.data_dir+"/valid/", entry) for entry in filenames]
+                    fullpaths = [self.storage.get_uri(os.path.join(self.data_dir, "valid", entry)) for entry in filenames]
                 num_files = self.num_files_eval
                 self.batch_size = self.batch_size_eval
                 assert len(fullpaths) == num_files, f"Expected {num_files} validation files but {len(fullpaths)} found. Ensure data was generated correctly."
@@ -95,7 +96,7 @@ class FormatReader(ABC):
         self._file_list = fullpaths
         self._local_file_list = self._file_list[self.my_rank::self.comm_size]
 
-        
+
     @abstractmethod
     def read(self, epoch_number):
         """

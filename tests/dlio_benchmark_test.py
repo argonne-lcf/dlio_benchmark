@@ -43,12 +43,12 @@ logging.basicConfig(
 from src.dlio_benchmark import DLIOBenchmark
 import glob
 class TestDLIOBenchmark(unittest.TestCase):
-    def clean(self) -> None:
+    def clean(self, storage_root= "./") -> None:
         comm.Barrier()
         if (comm.rank==0):
-            shutil.rmtree("./checkpoints", ignore_errors=True)
-            shutil.rmtree("./data/", ignore_errors=True)
-            shutil.rmtree("./output", ignore_errors=True)
+            shutil.rmtree(os.path.join(storage_root, "checkpoints"), ignore_errors=True)
+            shutil.rmtree(os.path.join(storage_root, "data/"), ignore_errors=True)
+            shutil.rmtree(os.path.join(storage_root, "output"), ignore_errors=True)
         comm.Barrier()
       
     def run_benchmark(self, cfg, verify=True):
@@ -83,11 +83,38 @@ class TestDLIOBenchmark(unittest.TestCase):
                                                                    f"++workload.dataset.format={fmt}"])
                     benchmark=self.run_benchmark(cfg, verify=False)
                     if benchmark.args.num_subfolders_train<=1:
-                        self.assertEqual(len(glob.glob(cfg.workload.dataset.data_folder + f"train/*.{fmt}")), cfg.workload.dataset.num_files_train)
-                        self.assertEqual(len(glob.glob(cfg.workload.dataset.data_folder + f"valid/*.{fmt}")), cfg.workload.dataset.num_files_eval)
+                        self.assertEqual(len(glob.glob(os.path.join(cfg.workload.dataset.data_folder, f"train/*.{fmt}"))), cfg.workload.dataset.num_files_train)
+                        self.assertEqual(len(glob.glob(os.path.join(cfg.workload.dataset.data_folder,  f"valid/*.{fmt}"))), cfg.workload.dataset.num_files_eval)
                     else:
-                        self.assertEqual(len(glob.glob(cfg.workload.dataset.data_folder + f"train/*/*.{fmt}")), cfg.workload.dataset.num_files_train)
-                        self.assertEqual(len(glob.glob(cfg.workload.dataset.data_folder + f"valid/*/*.{fmt}")), cfg.workload.dataset.num_files_eval)
+                        self.assertEqual(len(glob.glob(os.path.join(cfg.workload.dataset.data_folder, f"train/*/*.{fmt}"))), cfg.workload.dataset.num_files_train)
+                        self.assertEqual(len(glob.glob(os.path.join(cfg.workload.dataset.data_folder, f"valid/*/*.{fmt}"))), cfg.workload.dataset.num_files_eval)
+
+    @pytest.mark.timeout(60, method="thread")
+    def test_storage_root_gen_data(self) -> None:
+        storage_root="runs"
+        for fmt in "tfrecord", "jpeg", "png", "hdf5", "npz":
+            with self.subTest(f"Testing data generator for format: {fmt}", fmt=fmt):
+                self.clean(storage_root)
+                if (comm.rank==0):
+                    logging.info("")
+                    logging.info("="*80)
+                    logging.info(f" DLIO test for generating {fmt} dataset")
+                    logging.info("="*80)
+                with initialize(version_base=None, config_path="../configs"):
+                    cfg = compose(config_name='config', overrides=['++workload.workflow.train=False', \
+                                                                   '++workload.workflow.generate_data=True',
+                                                                   f"++workload.storage.storage_root={storage_root}",
+                                                                   f"++workload.dataset.format={fmt}"])
+                    benchmark=self.run_benchmark(cfg, verify=False)
+                    if benchmark.args.num_subfolders_train<=1:
+                        self.assertEqual(len(glob.glob(os.path.join(storage_root, cfg.workload.dataset.data_folder, f"train/*.{fmt}"))), cfg.workload.dataset.num_files_train)
+                        self.assertEqual(len(glob.glob(os.path.join(storage_root, cfg.workload.dataset.data_folder,  f"valid/*.{fmt}"))), cfg.workload.dataset.num_files_eval)
+                    else:
+                        logging.info(os.path.join(storage_root, cfg.workload.dataset.data_folder, f"train/*/*.{fmt}"))
+                        self.assertEqual(len(glob.glob(os.path.join(storage_root, cfg.workload.dataset.data_folder, f"train/*/*.{fmt}"))), cfg.workload.dataset.num_files_train)
+                        self.assertEqual(len(glob.glob(os.path.join(storage_root, cfg.workload.dataset.data_folder, f"valid/*/*.{fmt}"))), cfg.workload.dataset.num_files_eval)
+ 
+
     @pytest.mark.timeout(60, method="thread")
     def test_iostat_profiling(self) -> None:
         self.clean()
@@ -237,5 +264,34 @@ class TestDLIOBenchmark(unittest.TestCase):
                                                                            '++workload.dataset.num_files_train=16',\
                                                                            '++workload.data_reader.read_threads=1'])
                             benchmark=self.run_benchmark(cfg)                          
+
+    @pytest.mark.timeout(60, method="thread")
+    def test_custom_storage_root_train(self) -> None:
+        storage_root="root_dir"
+        for fmt in "npz","jpeg", "png", "tfrecord", "hdf5":
+                for framework in "tensorflow", "pytorch":
+                    with self.subTest(f"Testing full benchmark for format: {fmt}-{framework}", fmt=fmt, framework=framework):
+                        if fmt=="tfrecord" and framework=="pytorch":
+                            continue
+                        self.clean(storage_root)
+                        if (comm.rank==0):
+                            logging.info("")
+                            logging.info("="*80)
+                            logging.info(f" DLIO training test for {fmt} format in {framework} framework")
+                            logging.info("="*80)                        
+                        with initialize(version_base=None, config_path="../configs"):
+                            cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', \
+                                                                           '++workload.workflow.generate_data=True',\
+                                                                           f"++workload.framework={framework}", \
+                                                                           f"++workload.data_reader.data_loader={framework}", \
+                                                                           f"++workload.dataset.format={fmt}",
+                                                                           f"++workload.storage.storage_root={storage_root}", \
+                                                                           'workload.train.computation_time=0.01', \
+                                                                           'workload.evaluation.eval_time=0.005', \
+                                                                           '++workload.train.epochs=1', \
+                                                                           '++workload.dataset.num_files_train=16',\
+                                                                           '++workload.data_reader.read_threads=1'])
+                            benchmark=self.run_benchmark(cfg)                          
+
 if __name__ == '__main__':
     unittest.main()

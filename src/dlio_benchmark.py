@@ -17,7 +17,6 @@
 import os
 import math
 import hydra
-import shutil
 import logging
 import pandas as pd
 from time import time
@@ -38,10 +37,11 @@ from omegaconf import DictConfig, OmegaConf
 from src.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
 from src.utils.config import LoadConfig, ConfigArguments
-from src.common.enumerations import Profiler, DatasetType
+from src.common.enumerations import Profiler, DatasetType, StorageType
 from src.profiler.profiler_factory import ProfilerFactory
 from src.framework.framework_factory import FrameworkFactory
 from src.data_generator.generator_factory import GeneratorFactory
+from src.storage.storage_factory import StorageFactory
 
 
 class DLIOBenchmark(object):
@@ -77,7 +77,10 @@ class DLIOBenchmark(object):
         self.data_folder = self.args.data_folder
         self.output_folder = self.args.output_folder
         os.makedirs(self.output_folder, exist_ok=True)
-        os.makedirs(self.data_folder, exist_ok=True)
+        self.storage_root = self.args.storage_root
+        self.storage = StorageFactory().get_storage(self.args.storage_type, self.storage_root, self.args.framework)
+        if self.args.storage_root:
+            self.storage.create_namespace(exist_ok=True)
 
         self.framework = FrameworkFactory().get_framework(self.args.framework,
                                                           self.args.do_profiling)
@@ -344,8 +347,8 @@ class DLIOBenchmark(object):
                 logging.info(f"{utcnow()} Keep files set to False. Deleting dataset")
                 self.framework.barrier()
                 if self.my_rank == 0:
-                    if os.path.exists(self.args.data_folder):
-                        shutil.rmtree(self.args.data_folder)
+                    if self.storage.get_node(self.args.data_folder):
+                        self.storage.delete_node(self.args.data_folder)
                         logging.info(f"{utcnow()} Deleted data files")
             
             # Save collected stats to disk

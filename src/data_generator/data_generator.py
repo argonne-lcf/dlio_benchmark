@@ -18,8 +18,8 @@
 from abc import ABC, abstractmethod
 
 from src.utils.config import ConfigArguments
+from src.storage.storage_factory import StorageFactory
 import math
-import os
 from mpi4py import MPI
 from shutil import copyfile
 import numpy as np
@@ -48,19 +48,21 @@ class DataGenerator(ABC):
         self.num_subfolders_train = self._args.num_subfolders_train
         self.num_subfolders_eval = self._args.num_subfolders_eval
         self.format = self._args.format
+        self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root,
+                                                                        self._args.framework)
 
     @abstractmethod
     def generate(self):
         if self.my_rank == 0:
-            os.makedirs(self.data_dir, exist_ok=True)
-            os.makedirs(self.data_dir + "/train/", exist_ok=True)
-            os.makedirs(self.data_dir + "/valid/", exist_ok=True)
+            self.storage.create_node(self.data_dir, exist_ok=True)
+            self.storage.create_node(self.data_dir + "/train/", exist_ok=True)
+            self.storage.create_node(self.data_dir + "/valid/", exist_ok=True)
             if self.num_subfolders_train > 1: 
                 for i in range(self.num_subfolders_train):
-                    os.makedirs(self.data_dir + "/train/%d"%i, exist_ok=True)
+                    self.storage.create_node(self.data_dir + "/train/%d"%i, exist_ok=True)
             if self.num_subfolders_eval > 1: 
                 for i in range(self.num_subfolders_eval):
-                    os.makedirs(self.data_dir + "/valid/%d"%i, exist_ok=True)
+                    self.storage.create_node(self.data_dir + "/valid/%d"%i, exist_ok=True)
             logging.info(f"{utcnow()} Generating dataset in {self.data_dir}/train and {self.data_dir}/valid")
             logging.info(f"{utcnow()} Number of files for training dataset: {self.num_files_train}")
             logging.info(f"{utcnow()} Number of files for validation dataset: {self.num_files_eval}")

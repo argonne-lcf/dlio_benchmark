@@ -17,6 +17,38 @@
 
 from enum import Enum
 
+class StorageType(Enum):
+    """
+    Different types of underlying storage
+    """
+    LOCAL_FS = 'local_fs'
+    PARALLEL_FS = 'parallel_fs'
+    S3 = 's3'
+
+    def __str__(self):
+        return self.value
+
+class MetadataType(Enum):
+    """
+    Different types of storage metadata
+    """
+    FILE = 'file'
+    DIRECTORY = 'directory'
+    S3_OBJECT = 's3_object'
+
+    def __str__(self):
+        return self.value
+
+class NamespaceType(Enum):
+    """
+    Different types of Storage Namespace
+    """
+    FLAT = 'flat'
+    HIERARCHICAL = 'Hierarchical'
+
+    def __str__(self):
+        return self.value
+
 class DatasetType(Enum):
     """
     Training and Validation

@@ -40,7 +40,7 @@ class NPZGenerator(DataGenerator):
         records = random.random((self._dimension, self._dimension, self.num_samples))
         record_labels = [0] * self.num_samples
         for i in range(self.my_rank, int(self.total_files_to_generate), self.comm_size):
-            out_path_spec = self._file_list[i]
+            out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating NPZ Data")
             prev_out_spec = out_path_spec
             if self.compression != Compression.ZIP:
