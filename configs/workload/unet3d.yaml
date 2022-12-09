@@ -14,15 +14,15 @@ dataset:
   num_files_train: 3620
   num_files_eval: 42
   num_samples_per_file: 1
-  batch_size: 4
-  batch_size_eval: 1
   file_access: multi
   record_length: 147000000
   keep_files: True
   
 reader: 
   data_loader: pytorch
-
+  batch_size: 4
+  batch_size_eval: 1
+  
 train:
   epochs: 10
   computation_time: 4.59

@@ -27,7 +27,6 @@ from src.common.enumerations import FrameworkType, Profiler, FormatType, Dataset
 
 import tensorflow as tf
 
-
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 class TFFramework(Framework):
@@ -37,8 +36,9 @@ class TFFramework(Framework):
         super().__init__()
         self.profiling = profiling
         # TODO: Temporary fix, need to separate the iostat profiler (needed for report gen) and the others
-        if profiling:
-            self.tensorboard = ProfilerFactory.get_profiler(Profiler.NONE)
+        if profiling and (self.args.profiler!=Profiler.IOSTAT):
+            self.tensorboard = ProfilerFactory.get_profiler(Profiler.TENSORBOARD)
+
         self.reader_handler = None
 
     def init_reader(self, format_type, data_loader=None):
@@ -92,7 +92,6 @@ class TFFramework(Framework):
             string_val = "x" * (24740228)
             f.write(string_val)
             f.close()
-
     def compute(self, epoch_number, step, computation_time):
         tf.function(self.model)(epoch_number, step, computation_time)
 

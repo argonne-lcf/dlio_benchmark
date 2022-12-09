@@ -33,9 +33,9 @@ class ConfigArguments:
     # Dataset format, such as PNG, JPEG
     format: FormatType = FormatType.TFRECORD
     # Shuffle type
-    read_shuffle: Shuffle = Shuffle.OFF
+    file_shuffle: Shuffle = Shuffle.OFF
     shuffle_size: int = 1024
-    memory_shuffle: Shuffle =Shuffle.OFF
+    sample_shuffle: Shuffle =Shuffle.OFF
     read_type: ReadType = ReadType.ON_DEMAND
     record_length: int = 64 * 1024
     num_files_train: int = 8 
@@ -130,10 +130,6 @@ def LoadConfig(args, config):
             args.num_subfolders_train = config['dataset']['num_subfolders_train']
         if 'num_subfolders_eval' in config['dataset']:
             args.num_subfolders_eval = config['dataset']['num_subfolders_eval']
-        if 'batch_size' in config['dataset']:
-            args.batch_size = config['dataset']['batch_size']
-        if 'batch_size_eval' in config['dataset']:
-            args.batch_size_eval = config['dataset']['batch_size_eval']
         if 'enable_chunking' in config['dataset']:
             args.enable_chunking = config['dataset']['enable_chunking']
         if 'chunk_size' in config['dataset']:
@@ -162,16 +158,20 @@ def LoadConfig(args, config):
             args.read_threads = reader['read_threads']
         if 'computatation_threads' in reader:
             args.computatation_threads = reader['computatation_threads']
+        if 'batch_size' in reader:
+            args.batch_size = reader['batch_size']
+        if 'batch_size_eval' in reader:
+            args.batch_size_eval = reader['batch_size_eval']            
         if 'prefetch' in reader:
             args.prefetch = reader['prefetch']
         if 'prefetch_size' in reader:
             args.prefetch_size = reader['prefetch_size']
-        if 'read_shuffle' in reader:
-            args.read_shuffle = reader['read_shuffle']
+        if 'file_shuffle' in reader:
+            args.read_shuffle = reader['file_shuffle']
         if 'shuffle_size' in reader:
             args.shuffle_size = reader['shuffle_size']
-        if 'memory_shuffle' in reader:
-            args.memory_shuffle = reader['memory_shuffle']
+        if 'sample_shuffle' in reader:
+            args.memory_shuffle = reader['sample_shuffle']
         if 'read_type' in reader:
             args.read_type = reader['read_type']
         if 'transfer_size' in reader:

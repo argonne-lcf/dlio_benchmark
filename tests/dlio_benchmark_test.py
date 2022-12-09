@@ -168,7 +168,7 @@ class TestDLIOBenchmark(unittest.TestCase):
             comm.Barrier()
             benchmark=self.run_benchmark(cfg)                        
             dataset = cfg['workload']['dataset']
-            nstep = dataset.num_files_train * dataset.num_samples_per_file // dataset.batch_size//benchmark.comm_size
+            nstep = dataset.num_files_train * dataset.num_samples_per_file // cfg['workload']['reader'].batch_size//benchmark.comm_size
             ncheckpoints=nstep//2*8
             self.assertEqual(len(glob.glob("./checkpoints/*.bin")), ncheckpoints)
 
@@ -204,8 +204,8 @@ class TestDLIOBenchmark(unittest.TestCase):
                         cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', \
                                                                        '++workload.workflow.generate_data=True',\
                                                                        f"++workload.framework={framework}", \
-                                                                       f"++workload.data_reader.data_loader={framework}", \
-                                                                       f"++workload.data_reader.read_threads={nt}", \
+                                                                       f"++workload.reader.data_loader={framework}", \
+                                                                       f"++workload.reader.read_threads={nt}", \
                                                                        'workload.train.computation_time=0.01', \
                                                                        'workload.evaluation.eval_time=0.005', \
                                                                        '++workload.train.epochs=1', \

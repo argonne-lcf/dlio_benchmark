@@ -33,6 +33,7 @@ import torchvision.transforms as transforms
 import h5py
 
 totensor=transforms.ToTensor()
+
 ### reading file of different formats. 
 def read_jpeg(filename):
     return totensor(Image.open(filename))
@@ -96,7 +97,7 @@ class TorchDataLoaderReader(FormatReader):
     def read(self, epoch_number):
         # superclass function shuffle the file list 
         super().read(epoch_number)
-        do_shuffle = True if self.memory_shuffle != Shuffle.OFF else False
+        do_shuffle = True if self.sample_shuffle != Shuffle.OFF else False
         if self._args.num_samples_per_file == 1:
             dataset = TorchDataset(self._file_list, self.my_rank, self.format)
         else:

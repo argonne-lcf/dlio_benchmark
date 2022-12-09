@@ -21,8 +21,6 @@ The characteristics of a workload is specified through a YAML file. This file wi
     num_files_train: 3620
     num_files_eval: 42
     num_samples_per_file: 1
-    batch_size: 4
-    batch_size_eval: 1
     record_length: 1145359
     keep_files: True
   
@@ -30,6 +28,8 @@ The characteristics of a workload is specified through a YAML file. This file wi
     data_loader: pytorch
     read_threads: 4
     prefetch_size: 2
+    batch_size: 4
+    batch_size_eval: 1
 
   train:
     epochs: 10
@@ -187,11 +187,14 @@ reader
    * - prefetch_size
      - 0
      - number of batch to prefetch (0 - no prefetch at all)
-   * - read_shuffle
+   * - sample_shuffle
      - off
-     - [seed|random|off] whether and how to shuffle the dataset
+     - [seed|random|off] whether and how to shuffle the dataset samples
+   * - file_shuffle
+     - off
+     - [seed|random|off] whether and how to shuffle the dataset file list
    * - transfer_size
-     - 1048576
+     - 262144
      - transfer size in byte for tensorflow data loader. 
 
 .. note:: 

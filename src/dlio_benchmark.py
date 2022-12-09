@@ -232,6 +232,7 @@ class DLIOBenchmark(object):
                 self.stats.start_block(epoch, block)
             
             if self.computation_time > 0:
+                self.framework.trace_object("Train", overall_step, 1)
                 self.framework.compute(epoch, block_step, self.computation_time)
             self.framework.barrier()
 
