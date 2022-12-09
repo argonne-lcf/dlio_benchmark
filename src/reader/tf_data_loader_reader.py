@@ -111,8 +111,8 @@ class TFDataLoaderReader(FormatReader):
         dataset = dataset.map(self._tf_parse_function, num_parallel_calls=self.read_threads)
         #dataset = dataset.interleave(self._tf_parse_function, num_parallel_calls=self.read_threads)
 
-        if self.memory_shuffle != Shuffle.OFF:
-            if self.memory_shuffle == Shuffle.SEED:
+        if self.sample_shuffle != Shuffle.OFF:
+            if self.sample_shuffle == Shuffle.SEED:
                 dataset = dataset.shuffle(buffer_size=self.shuffle_size,
                                           seed=self.seed)
             else:
@@ -121,7 +121,6 @@ class TFDataLoaderReader(FormatReader):
         
         if self.prefetch_size > 0:
             self._dataset = self._dataset.prefetch(buffer_size=self.prefetch_size)
-
     def next(self):
         """
         Provides the iterator over tfrecord data pipeline.

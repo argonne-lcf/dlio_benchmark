@@ -1,7 +1,7 @@
 # Deep Learning I/O (DLIO) Benchmark
 ![test status](https://github.com/argonne-lcf/dlio_benchmark/actions/workflows/python-package-conda.yml/badge.svg)
 
-This README provides a abbreviated documentation of the DLIO code. Please refer to https://argonne-lcf.github.io/dlio_benchmark/ for full user documentation. 
+This README provides an abbreviated documentation of the DLIO code. Please refer to https://argonne-lcf.github.io/dlio_benchmark/ for full user documentation. 
 
 ## Overview
 
@@ -16,10 +16,9 @@ cd dlio_benchmark/
 pip install -r requirements.txt
 export PYTHONPATH=$PWD/:$PYTHONPATH
 python ./src/dlio_benchmark.py ++workload.workflow.generate_data=True
-
+```
 Additionally, to generate the report `iostat` is needed and can be installed from the `sysstat` package using your package manager.
 
-```
 ## Container
 
 ```bash
@@ -35,12 +34,11 @@ docker docker.io/zhenghh04/dlio:latest
 docker run -t docker.io/zhenghh04/dlio:latest python ./src/dlio_benchmark.py ++workload.workflow.generate_data=True
 ```
 
-One can also run interactively 
+One can also run interactively inside the container
 ```bash
 docker run -t docker.io/zhenghh04/dlio:latest /bin/bash
 root@30358dd47935:/workspace/dlio# python ./src/dlio_benchmark.py ++workload.workflow.generate_data=True
 ```
-
 
 ## Running the benchmark
 
@@ -98,7 +96,7 @@ Workload characteristics are specified by a YAML configuration file. Below is an
     record_length: 1145359
     keep_files: True
   
-  data_reader: 
+  reader: 
     data_loader: pytorch
     read_threads: 4
     prefetch: True
@@ -129,7 +127,7 @@ The YAML file is loaded through hydra (https://hydra.cc/). The default setting a
   - For npz, jpg, jpeg, hdf5, we currently only support one sample per file case. In other words, each sample is stored in an independent file. Multiple samples per file case will be supported in future. 
 
 ## How to contribute 
-We are open to the contribution from the community for the development of the benchmark. Specifically, we welcome contribution in the following aspects:
+We welcome contributions from the community to the benchmark code. Specifically, we welcome contribution in the following aspects:
 General new features needed including: 
 
 * support for new workloads: if you think that your workload(s) would be interested to the public, and would like to provide the yaml file to be included in the repo, please submit an issue.  
@@ -138,10 +136,10 @@ General new features needed including:
 * support for noval file systems or storage, such as AWS S3. 
 * support for loading new data formats. 
 
-If you would like to contribute, please submit issue to https://github.com/argonne-lcf/dlio_benchmark/issues, and contact ALCF DLIO team, Huihuo Zheng at huihuo.zheng@anl.gov
+If you would like to contribute, please submit an issue to https://github.com/argonne-lcf/dlio_benchmark/issues, and contact ALCF DLIO team, Huihuo Zheng at huihuo.zheng@anl.gov
 
 ## Citation and Reference
-The original paper describe the design and implementation of DLIO code is as follows: 
+The original CCGrid'21 paper describes the design and implementation of DLIO code. Please cite this paper if you use DLIO for your research. 
 
 ```
 @article{devarajan2021dlio,
@@ -156,8 +154,9 @@ The original paper describe the design and implementation of DLIO code is as fol
 }
 ```
 
-We also encourage people to take a look at a relevant work from MLPerf Storage working group. 
 
+
+We also encourage people to take a look at a relevant work from MLPerf Storage working group. 
 ```
 @article{balmau2022mlperfstorage,
   title={Characterizing I/O in Machine Learning with MLPerf Storage},
@@ -179,7 +178,7 @@ This work used resources of the Argonne Leadership Computing Facility, which is 
 Apache 2.0 [LICENSE](./LICENSE)
 
 ---------------------------------------
-Copyright © 2022, UChicago Argonne, LLC
+Copyright (c) 2022, UChicago Argonne, LLC
 All Rights Reserved
 
 If you have questions about your rights to use or distribute this software, please contact Argonne Intellectual Property Office at partners@anl.gov

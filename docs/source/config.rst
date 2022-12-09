@@ -21,15 +21,15 @@ The characteristics of a workload is specified through a YAML file. This file wi
     num_files_train: 3620
     num_files_eval: 42
     num_samples_per_file: 1
-    batch_size: 4
-    batch_size_eval: 1
     record_length: 1145359
     keep_files: True
   
-  data_reader: 
+  reader: 
     data_loader: pytorch
     read_threads: 4
     prefetch_size: 2
+    batch_size: 4
+    batch_size_eval: 1
 
   train:
     epochs: 10
@@ -45,7 +45,7 @@ A `DLIO` YAML configuration file contains following sections:
 * **framework** - specifying the framework to use for the benchmark, options: tensorflow, pytorch
 * **workflow** - specifying what workflow operations to perform. Workflow operations include: dataset generation (``generate_data``), training (``train``), evaluation (``evaluation``), checkpointing (``checkpoint``), debugging (``debug``), etc. 
 * **dataset** - specifying all the information related to the dataset. 
-* **data_reader** - specifying the data loading options 
+* **reader** - specifying the data loading options 
 * **train** - specifying the setup for training
 * **evaluation** - specifying the setup for evaluation. 
 * **checkpoint** - specifying the setup for checkpointing. 
@@ -166,7 +166,7 @@ dataset
   The training and validation datasets will be put in ```${data_folder}/train``` and ```${data_folder}/valid``` respectively. If ``num_subfolders_train`` and ``num_subfolders_eval`` are larger than one, the datasets will be split into multiple subfolders within ```${data_folder}/train``` and ```${data_folder}/valid```. 
 
 
-data_reader 
+reader 
 ------------------
 .. list-table:: 
    :widths: 15 10 30
@@ -187,11 +187,14 @@ data_reader
    * - prefetch_size
      - 0
      - number of batch to prefetch (0 - no prefetch at all)
-   * - read_shuffle
+   * - sample_shuffle
      - off
-     - [seed|random|off] whether and how to shuffle the dataset
+     - [seed|random|off] whether and how to shuffle the dataset samples
+   * - file_shuffle
+     - off
+     - [seed|random|off] whether and how to shuffle the dataset file list
    * - transfer_size
-     - 1048576
+     - 262144
      - transfer size in byte for tensorflow data loader. 
 
 .. note:: 

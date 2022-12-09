@@ -31,10 +31,10 @@ import glob
 class FormatReader(ABC):
     def __init__(self, dataset_type):
         self._args = ConfigArguments.get_instance()
-        self.read_shuffle = self._args.read_shuffle
+        self.file_shuffle = self._args.file_shuffle
         self.seed = self._args.seed
         self.seed_change_epoch = self._args.seed_change_epoch
-        self.memory_shuffle = self._args.memory_shuffle
+        self.sample_shuffle = self._args.sample_shuffle
         self.shuffle_size = self._args.shuffle_size
         self.data_dir = self._args.data_folder
         self.record_size = self._args.record_length
@@ -104,12 +104,12 @@ class FormatReader(ABC):
             For PT, this is done by the DistributedSampler in data_loader_reader.py.
             We also split files depending on if we are in an evaluation phase or not.
         """
-        read_shuffle = True
-        if self.read_shuffle == Shuffle.OFF:
+        file_shuffle = True
+        if self.file_shuffle == Shuffle.OFF:
             read_shuffle = False
 
         seed = None
-        if read_shuffle:
+        if file_shuffle:
             seed = self.seed
             if self.seed_change_epoch:
                 seed = self.seed + epoch_number
@@ -117,7 +117,7 @@ class FormatReader(ABC):
         if seed is not None:
             random.seed(seed)
 
-        if read_shuffle:
+        if file_shuffle:
             random.shuffle(self._file_list)
         self._local_file_list = self._file_list[self.my_rank::self.comm_size]
         

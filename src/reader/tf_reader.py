@@ -23,7 +23,6 @@ from src.common.enumerations import Shuffle
 from src.reader.reader_handler import FormatReader
 import tensorflow as tf
 
-
 class TFReader(FormatReader):
     """
     Reader for TFRecord files.
@@ -81,8 +80,8 @@ class TFReader(FormatReader):
         dataset = dataset.shard(num_shards=self.comm_size, index=self.my_rank)
         dataset = dataset.map(self._tf_parse_function, num_parallel_calls=self.computation_threads)
 
-        if self.memory_shuffle != Shuffle.OFF:
-            if self.memory_shuffle == Shuffle.SEED:
+        if self.sample_shuffle != Shuffle.OFF:
+            if self.sample_shuffle == Shuffle.SEED:
                 dataset = dataset.shuffle(buffer_size=self.shuffle_size,
                                           seed=self.seed)
             else:
@@ -92,7 +91,6 @@ class TFReader(FormatReader):
         if self.prefetch_size>0:
             self._dataset = dataset.prefetch(buffer_size=self.prefetch_size)
             
-
     def next(self):
         """
         Provides the iterator over tfrecord data pipeline.

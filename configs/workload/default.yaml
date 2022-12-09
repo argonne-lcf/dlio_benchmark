@@ -3,7 +3,7 @@ model: default
 framework: pytorch
 
 workflow:
-  generate_data: True
+  generate_data: False
   train: True
   evaluation: True
   profiling: False
@@ -14,16 +14,15 @@ dataset:
   num_files_train: 64
   num_files_eval: 8
   num_samples_per_file: 1
-  batch_size: 4
-  batch_size_eval: 1
-  file_access: multi
   record_length: 1145359
   keep_files: True
   num_subfolders_train: 2
   num_subfolders_eval: 2
   
-data_reader: 
+reader: 
   data_loader: pytorch
+  batch_size: 4
+  batch_size_eval: 1
 
 train:
   epochs: 10

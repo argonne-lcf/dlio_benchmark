@@ -15,6 +15,6 @@ Limitations and future works
 
 * Data Loader support: we support reading datasets using TensorFlow tf.data data loader, PyTorch DataLoader, and a set of custom data readers implemented in ```./reader```. For TensorFlow tf.data data loader, PyTorch DataLoader, the specific support are as follows: 
   - We have complete support for tfrecord format in TensorFlow data loader. 
-  - For npz, jpg, jpeg, we currently only support one sample per file case. Multiple samples per file case will be supported in future. We have limited support for hdf5 format for multiple samples per file cases. 
+  - For npz, png, jpeg, we currently only support one sample per file case. Multiple samples per file case will be supported in future. We have limited support for hdf5 format for multiple samples per file cases. 
 
 * Profiler support: Darshan is only supported in LINUX system, and might not work well within container. 

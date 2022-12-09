@@ -29,14 +29,14 @@ UNET3D: 3D Medical Image Segmentation
         num_files_train: 3620
         num_files_eval: 42
         num_samples_per_file: 1
-        batch_size: 4
-        batch_size_eval: 1
         file_access: multi
         record_length: 147000000
         keep_files: True
     
-    data_reader: 
+    reader: 
         data_loader: pytorch
+        batch_size: 4
+        batch_size_eval: 1
 
     train:
         epochs: 10
@@ -327,13 +327,13 @@ CosmoFlow: 3D CNN to Learn the Universe at Scale
         num_files_train: 1024
         num_samples_per_file: 512
         record_length: 131072
-        batch_size: 1
 
-    data_reader:
+    reader:
         data_loader: tensorflow
         computation_threads: 8
         read_threads: 8
-
+        batch_size: 1
+    
     train: 
         epochs: 4
 
@@ -361,7 +361,7 @@ ResNet50: 3D Image classification
         record_length: 150528
         data_folder: data/resnet50
         format: tfrecord
-    
+        
     data_loader:
         data_loader: tensorflow
         read_threads: 8

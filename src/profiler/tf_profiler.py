@@ -31,14 +31,17 @@ class TFProfiler(IOProfiler):
 
     def __init__(self):
         super().__init__()
+        self.options = tf.profiler.experimental.ProfilerOptions(host_tracer_level = 3,
+                                                   python_tracer_level = 1,
+                                                   device_tracer_level = 1)
         """ Virtually private constructor. """
         if TFProfiler.__instance is not None:
             raise Exception("This class is a singleton!")
         else:
             TFProfiler.__instance = self
-        self.logdir = os.path.join(self.output_folder, "tf_logdir/")
+        self.logdir = os.path.join(self._args.output_folder, "tf_logdir/")
     def start(self):
-        tf.profiler.experimental.start(self.logdir)
+        tf.profiler.experimental.start(self.logdir, options=self.options)
 
     def stop(self):
         tf.profiler.experimental.stop()
