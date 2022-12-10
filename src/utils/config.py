@@ -105,6 +105,8 @@ class ConfigArguments:
                 raise Exception("Please set darshan runtime library in LD_PRELOAD")
         if (self.framework==FrameworkType.TENSORFLOW and self.data_loader == DataLoaderType.PYTORCH) or (self.framework==FrameworkType.PYTORCH and self.data_loader == DataLoaderType.TENSORFLOW):
             raise Exception("Imcompatible between framework and data_loader setup.")
+    def reset(self):
+        ConfigArguments.__instance = None
 
 def LoadConfig(args, config):
     '''

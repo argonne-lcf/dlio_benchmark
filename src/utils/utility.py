@@ -17,10 +17,18 @@
 
 import os
 from datetime import datetime
-
+import logging
 from src.utils.config import ConfigArguments
 from time import time
 from functools import wraps
+logging.basicConfig(
+    level=logging.INFO,
+    handlers=[
+        logging.FileHandler("dlio_benchmark_test.log", mode = "a", encoding='utf-8'),
+        logging.StreamHandler()
+    ],format='[%(levelname)s] %(message)s'  # logging's max timestamp resolution is msecs, we will pass in usecs in the message
+)
+
 # UTC timestamp format with microsecond precision
 LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 from mpi4py import MPI
@@ -58,15 +66,17 @@ def measure_performance(func):
         func(*args, **kwargs)
         current, peak = tracemalloc.get_traced_memory()
         finish_time = perf_counter()
+        logging.basicConfig(format='%(asctime)s %(message)s')
+
         if get_rank()==0:
-            print(f'[PERFORMANCE] {"="*60}')
-            print(f'[PERFORMANCE] Memory usage:\t\t {current / 10**6:.6f} MB \n'
-                f'[PERFORMANCE] Peak memory usage:\t {peak / 10**6:.6f} MB ')
-            print(f'[PERFORMANCE] Time elapsed:\t\t {finish_time - start_time:.6f} s')
-            print(f'[PERFORMANCE] {"-"*40}')
+            s = f'Resource usage information \n[PERFORMANCE] {"="*50}\n'
+            s += f'[PERFORMANCE] Memory usage:\t\t {current / 10**6:.6f} MB \n'
+            s += f'[PERFORMANCE] Peak memory usage:\t {peak / 10**6:.6f} MB \n'
+            s += f'[PERFORMANCE] Time elapsed:\t\t {finish_time - start_time:.6f} s\n'
+            s += f'[PERFORMANCE] {"="*50}\n'
+            logging.info(s)
         tracemalloc.stop()
     return wrapper
-
 
 def progress(count, total, status=''):
     """
@@ -78,9 +88,9 @@ def progress(count, total, status=''):
     percents = round(100.0 * count / float(total), 1)
     bar = '=' * filled_len + ">"+'-' * (bar_len - filled_len)
     if get_rank()==0:
-        print("\r[INFO] {} {}: [{}] {}% {} of {} ".format(utcnow(), status, bar, percents, count, total), end='')
+        logging.info("\r[INFO] {} {}: [{}] {}% {} of {} ".format(utcnow(), status, bar, percents, count, total))
         if count == total:
-            print("")
+            logging.info("")
         os.sys.stdout.flush()
 
 

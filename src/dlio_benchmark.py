@@ -60,8 +60,6 @@ class DLIOBenchmark(object):
         </ul>
         """
         self.args = ConfigArguments.get_instance()
-        
-
         LoadConfig(self.args, cfg)
         self.args.validate()
         try:
