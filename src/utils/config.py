@@ -77,7 +77,7 @@ class ConfigArguments:
     batch_size_eval: int = 1
     num_files_eval: int = 0
     eval_time: float = 0.0
-    eval_after_epoch: int = 0
+    eval_after_epoch: int = 1
     epochs_between_evals: int = 1
     model_size: int = 10240
     data_loader: DataLoaderType = DataLoaderType.TENSORFLOW
@@ -174,16 +174,14 @@ def LoadConfig(args, config):
             args.batch_size = reader['batch_size']
         if 'batch_size_eval' in reader:
             args.batch_size_eval = reader['batch_size_eval']            
-        if 'prefetch' in reader:
-            args.prefetch = reader['prefetch']
         if 'prefetch_size' in reader:
             args.prefetch_size = reader['prefetch_size']
         if 'file_shuffle' in reader:
-            args.read_shuffle = reader['file_shuffle']
+            args.file_shuffle = reader['file_shuffle']
         if 'shuffle_size' in reader:
             args.shuffle_size = reader['shuffle_size']
         if 'sample_shuffle' in reader:
-            args.memory_shuffle = reader['sample_shuffle']
+            args.sample_shuffle = reader['sample_shuffle']
         if 'read_type' in reader:
             args.read_type = reader['read_type']
         if 'transfer_size' in reader:

@@ -107,7 +107,7 @@ class FormatReader(ABC):
         """
         file_shuffle = True
         if self.file_shuffle == Shuffle.OFF:
-            read_shuffle = False
+            file_shuffle = False
 
         seed = None
         if file_shuffle:
