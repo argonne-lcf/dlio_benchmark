@@ -22,7 +22,7 @@ import logging
 import numpy as np
 from numpy import random
 
-from src.utils.utility import progress, utcnow
+from src.utils.utility import progress, utcnow, perftrace
 from shutil import copyfile
 import PIL.Image as im
 """
@@ -31,7 +31,7 @@ Generator for creating data in JPEG format.
 class JPEGGenerator(DataGenerator):
     def __init__(self):
         super().__init__()
-
+    @perftrace.event_logging
     def generate(self):
         """
         Generator for creating data in JPEG format of 3d dataset.

@@ -22,7 +22,6 @@ from src.profiler.no_profiler import NoProfiler
 from src.common.enumerations import Profiler
 from src.profiler.tf_profiler import TFProfiler
 
-
 class ProfilerFactory(object):
     def __init__(self):
         pass

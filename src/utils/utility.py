@@ -21,6 +21,10 @@ import logging
 from src.utils.config import ConfigArguments
 from time import time
 from functools import wraps
+import perfflowaspect
+import perfflowaspect.aspect as aspect
+import threading
+
 logging.basicConfig(
     level=logging.INFO,
     handlers=[
@@ -52,13 +56,47 @@ def timeit(func):
     return wrapper
 
 
+class PerfTrace:
+    __instance = None
+    def __init___(self):
+        if PerfTrace.__instance is not None:
+            raise Exception("This class is a singleton!")
+        else:
+            PerfTrace.__instance = self
+    @staticmethod
+    def get_instance():
+        """ Static access method. """
+        if PerfTrace.__instance is None:
+            PerfTrace()
+        return PerfTrace.__instance
+    def set_logdir(self, logdir = "trace"):
+        self.log_file = logdir+f"/trace-{get_rank()}-of-{get_size()}"+".pfw"
+        self.handler = open(self.log_file, "w")
+        self.handler.write("[\n")
+    def event_logging(self, func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            self.handler.write(f"{{\"name\": \"{func.__qualname__}\", \"cat\": \"{func.__module__}\", \"pid\":{os.getpid()}, \"tid\":{threading.get_ident()}, \"ts\": {time()*1000000}, \"ph\": \"B\"}},\n")
+            x = func(*args, **kwargs)
+            end = time()
+            self.handler.write(f"{{\"name\": \"{func.__qualname__}\", \"cat\": \"{func.__module__}\",  \"pid\":{os.getpid()}, \"tid\":{threading.get_ident()}, \"ts\": {time()*1000000}, \"ph\": \"E\"}},\n")
+            return x
+        return wrapper
+    def event_start(self, name, cat='default'):
+        self.handler.write(f"{{\"name\": \"{name}\", \"cat\": \"{cat}\", \"pid\":{os.getpid()}, \"tid\":{threading.get_ident()}, \"ts\": {time()*1000000}, \"ph\": \"B\"}},\n")
+    def event_stop(self, name, cat='default'):
+        self.handler.write(f"{{\"name\": \"{name}\", \"cat\": \"{cat}\", \"pid\":{os.getpid()}, \"tid\":{threading.get_ident()}, \"ts\": {time()*1000000}, \"ph\": \"E\"}},\n")
+    def __del__(self):
+        self.handler.close()
+
+perftrace = PerfTrace()
+
 import tracemalloc
 from time import perf_counter 
 
 
 def measure_performance(func):
     '''Measure performance of a function'''
-
     @wraps(func)
     def wrapper(*args, **kwargs):
         tracemalloc.start()
@@ -77,6 +115,7 @@ def measure_performance(func):
             logging.info(s)
         tracemalloc.stop()
     return wrapper
+
 
 def progress(count, total, status=''):
     """

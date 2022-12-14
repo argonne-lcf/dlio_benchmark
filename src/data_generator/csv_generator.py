@@ -24,7 +24,7 @@ from numpy import random
 import csv
 
 from shutil import copyfile
-from src.utils.utility import progress
+from src.utils.utility import progress, perftrace
 import pandas as pd
 
 """
@@ -33,7 +33,7 @@ Generator for creating data in CSV format.
 class CSVGenerator(DataGenerator):
     def __init__(self):
         super().__init__()
-
+    @perftrace.event_logging
     def generate(self):
         """
         Generate csv data for training. It generates a 2d dataset and writes it to file.

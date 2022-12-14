@@ -32,7 +32,7 @@ def timeit(func):
         begin = tf.timestamp()
         x = func(*args, **kwargs)
         end = tf.timestamp()
-        return x, begin, end, os.getpid()
+        return x, begin*1000000, end*1000000, os.getpid()
     return wrapper
 
 @tf.function    

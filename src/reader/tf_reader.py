@@ -18,7 +18,7 @@ import math
 import logging
 from time import time
 
-from src.utils.utility import utcnow, timeit
+from src.utils.utility import utcnow, timeit, perftrace
 from src.common.enumerations import Shuffle
 from src.reader.reader_handler import FormatReader
 import tensorflow as tf
@@ -94,7 +94,7 @@ class TFReader(FormatReader):
         
         if self.prefetch_size>0:
             self._dataset = dataset.prefetch(buffer_size=self.prefetch_size)
-            
+
     def next(self):
         """
         Provides the iterator over tfrecord data pipeline.
