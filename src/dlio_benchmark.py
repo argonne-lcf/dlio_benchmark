@@ -81,7 +81,6 @@ class DLIOBenchmark(object):
 
         self.my_rank = self.args.my_rank = self.framework.rank()
         self.comm_size = self.args.comm_size = self.framework.size()
-
         perftrace.set_logdir(self.output_folder)
         # Delete previous logfile
         if self.my_rank == 0:

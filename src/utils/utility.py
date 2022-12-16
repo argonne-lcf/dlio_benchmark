@@ -22,6 +22,7 @@ from src.utils.config import ConfigArguments
 from time import time
 from functools import wraps
 import threading
+import json
 
 logging.basicConfig(
     level=logging.INFO,
@@ -53,9 +54,9 @@ def timeit(func):
         return x, "%10.10f"%begin, "%10.10f"%end, os.getpid()
     return wrapper
 
-
 class PerfTrace:
     __instance = None
+    logger = None
     def __init___(self):
         if PerfTrace.__instance is not None:
             raise Exception("This class is a singleton!")
@@ -67,25 +68,50 @@ class PerfTrace:
         if PerfTrace.__instance is None:
             PerfTrace()
         return PerfTrace.__instance
-    def set_logdir(self, logdir = "trace"):
-        self.log_file = logdir+f"/trace-{get_rank()}-of-{get_size()}"+".pfw"
-        self.handler = open(self.log_file, "w")
-        self.handler.write("[\n")
-    def event_logging(self, func):
+    def set_logdir(cls, logdir):
+        pass
+    def event_logging(cls, func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            self.handler.write(f"{{\"name\": \"{func.__qualname__}\", \"cat\": \"{func.__module__}\", \"pid\":{os.getpid()}, \"tid\":{threading.get_ident()}, \"ts\": {time()*1000000}, \"ph\": \"B\"}},\n")
+            event = cls.__create_event(func.__qualname__, func.__module__, "B")
+            cls.__flush_log(json.dumps(event))
             x = func(*args, **kwargs)
             end = time()
-            self.handler.write(f"{{\"name\": \"{func.__qualname__}\", \"cat\": \"{func.__module__}\",  \"pid\":{os.getpid()}, \"tid\":{threading.get_ident()}, \"ts\": {time()*1000000}, \"ph\": \"E\"}},\n")
+            event = cls.__create_event(func.__qualname__, func.__module__, "E")
+            cls.__flush_log(json.dumps(event))            
             return x
         return wrapper
-    def event_start(self, name, cat='default'):
-        self.handler.write(f"{{\"name\": \"{name}\", \"cat\": \"{cat}\", \"pid\":{os.getpid()}, \"tid\":{threading.get_ident()}, \"ts\": {time()*1000000}, \"ph\": \"B\"}},\n")
-    def event_stop(self, name, cat='default'):
-        self.handler.write(f"{{\"name\": \"{name}\", \"cat\": \"{cat}\", \"pid\":{os.getpid()}, \"tid\":{threading.get_ident()}, \"ts\": {time()*1000000}, \"ph\": \"E\"}},\n")
-    def __del__(self):
-        self.handler.close()
+    @staticmethod
+    def __create_event(name, cat, ph):
+        return {
+            "name": name,
+            "cat": cat,
+            "pid": os.getpid(),
+            "tid": threading.get_ident(),
+            "ts": time() * 1000000,
+            "ph": ph
+        }
+    
+    def event_start(cls, name, cat='default'):
+        event = cls.__create_event(name, cat, 'B')
+        cls.__flush_log(json.dumps(event))
+    def event_stop(cls, name, cat='default'):
+        event = cls.__create_event(name, cat, "E")
+        cls.__flush_log(json.dumps(event))
+    @staticmethod
+    def __flush_log(s):
+        if PerfTrace.logger == None:
+            log_file = f"./trace-{get_rank()}-of-{get_size()}"+".pfw"
+            PerfTrace.logger = logging.getLogger("perftrace")
+            PerfTrace.logger.setLevel(logging.DEBUG)
+            PerfTrace.logger.propagate = False
+            fh = logging.FileHandler(log_file)
+            fh.setLevel(logging.DEBUG)
+            formatter = logging.Formatter("%(message)s")
+            fh.setFormatter(formatter)
+            PerfTrace.logger.addHandler(fh)
+            PerfTrace.logger.debug("[")
+        PerfTrace.logger.debug(s)
 
 perftrace = PerfTrace()
 
