@@ -6,34 +6,26 @@ workflow:
   generate_data: False
   train: True
   evaluation: True
-  checkpoint: True
 
 dataset: 
-  data_folder: data/unet3d
+  data_folder: ./data/unet3d/
   format: npz
-  num_files_train: 168
+  num_files_train: 3620
   num_files_eval: 42
   num_samples_per_file: 1
-  record_length: 234560851
-  record_length_stdev: 50000000
+  batch_size: 4
+  batch_size_eval: 1
+  file_access: multi
+  record_length: 147000000
   keep_files: True
   
-reader: 
+data_reader: 
   data_loader: pytorch
-  batch_size: 2
-  batch_size_eval: 1
-  read_threads: 1
-  
+
 train:
   epochs: 10
-  computation_time: 0.753
+  computation_time: 4.59
 
 evaluation: 
-  eval_time: 5.8
-  eval_after_epoch: 5
+  eval_time: 11.572
   epochs_between_evals: 2
-
-checkpoint:
-  checkpoint_after_epoch: 5
-  epochs_between_checkpoints: 2
-  model_size: 499153191
