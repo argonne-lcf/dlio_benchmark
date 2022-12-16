@@ -101,7 +101,7 @@ class PerfTrace:
     @staticmethod
     def __flush_log(s):
         if PerfTrace.logger == None:
-            log_file = f"./trace-{get_rank()}-of-{get_size()}"+".pfw"
+            log_file = f"./.trace-{get_rank()}-of-{get_size()}"+".pfw"
             if os.path.isfile(log_file):
                 os.remove(log_file)
             PerfTrace.logger = logging.getLogger("perftrace")
