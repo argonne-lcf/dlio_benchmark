@@ -32,6 +32,8 @@ import time
 import subprocess
 import logging
 import os
+from src.utils.utility import ConfigArguments
+
 logging.basicConfig(
     level=logging.INFO,
     handlers=[
@@ -51,12 +53,14 @@ class TestDLIOBenchmark(unittest.TestCase):
             shutil.rmtree(os.path.join(storage_root, "output"), ignore_errors=True)
         comm.Barrier()
       
-    def run_benchmark(self, cfg, verify=True):
+    def run_benchmark(self, cfg, storage_root="./", verify=True):
         comm.Barrier()
         if (comm.rank==0):
-            shutil.rmtree("./output", ignore_errors=True)
+            shutil.rmtree(os.path.join(storage_root, "output"), ignore_errors=True)
         comm.Barrier()     
-        t0=time.time()       
+        t0=time.time()
+        args = ConfigArguments.get_instance()
+        args.reset()
         benchmark = DLIOBenchmark(cfg['workload'])
         benchmark.initialize()
         benchmark.run()
@@ -71,7 +75,6 @@ class TestDLIOBenchmark(unittest.TestCase):
     def test_gen_data(self) -> None:
         for fmt in "tfrecord", "jpeg", "png", "hdf5", "npz":
             with self.subTest(f"Testing data generator for format: {fmt}", fmt=fmt):
-                self.clean()
                 if (comm.rank==0):
                     logging.info("")
                     logging.info("="*80)
@@ -88,6 +91,7 @@ class TestDLIOBenchmark(unittest.TestCase):
                     else:
                         self.assertEqual(len(glob.glob(os.path.join(cfg.workload.dataset.data_folder, f"train/*/*.{fmt}"))), cfg.workload.dataset.num_files_train)
                         self.assertEqual(len(glob.glob(os.path.join(cfg.workload.dataset.data_folder, f"valid/*/*.{fmt}"))), cfg.workload.dataset.num_files_eval)
+                    self.clean()
 
     @pytest.mark.timeout(60, method="thread")
     def test_storage_root_gen_data(self) -> None:
@@ -113,7 +117,8 @@ class TestDLIOBenchmark(unittest.TestCase):
                         logging.info(os.path.join(storage_root, cfg.workload.dataset.data_folder, f"train/*/*.{fmt}"))
                         self.assertEqual(len(glob.glob(os.path.join(storage_root, cfg.workload.dataset.data_folder, f"train/*/*.{fmt}"))), cfg.workload.dataset.num_files_train)
                         self.assertEqual(len(glob.glob(os.path.join(storage_root, cfg.workload.dataset.data_folder, f"valid/*/*.{fmt}"))), cfg.workload.dataset.num_files_eval)
- 
+                    self.clean(storage_root)
+
 
     @pytest.mark.timeout(60, method="thread")
     def test_iostat_profiling(self) -> None:
@@ -149,6 +154,7 @@ class TestDLIOBenchmark(unittest.TestCase):
                 cmd=f"python src/dlio_postprocessor.py --output-folder={benchmark.output_folder}"
                 cmd=cmd.split()
                 subprocess.run(cmd, capture_output=True, timeout=4)
+            self.clean()
 
     @pytest.mark.timeout(60, method="thread")
     def test_checkpoint_epoch(self) -> None:
@@ -172,6 +178,7 @@ class TestDLIOBenchmark(unittest.TestCase):
             comm.Barrier()
             benchmark=self.run_benchmark(cfg)            
             self.assertEqual(len(glob.glob("./checkpoints/*.bin")), 4)
+            self.clean()
 
     @pytest.mark.timeout(60, method="thread")
     def test_checkpoint_step(self) -> None:
@@ -198,6 +205,7 @@ class TestDLIOBenchmark(unittest.TestCase):
             nstep = dataset.num_files_train * dataset.num_samples_per_file // cfg['workload']['reader'].batch_size//benchmark.comm_size
             ncheckpoints=nstep//2*8
             self.assertEqual(len(glob.glob("./checkpoints/*.bin")), ncheckpoints)
+            self.clean()
 
     @pytest.mark.timeout(60, method="thread")
     def test_eval(self) -> None:
@@ -215,6 +223,7 @@ class TestDLIOBenchmark(unittest.TestCase):
                                      'workload.evaluation.eval_time=0.005', \
                                      '++workload.train.epochs=4', '++workload.workflow.evaluation=True'])
             benchmark=self.run_benchmark(cfg)      
+            self.clean()
 
     @pytest.mark.timeout(60, method="thread")
     def test_multi_threads(self) -> None:
@@ -238,6 +247,7 @@ class TestDLIOBenchmark(unittest.TestCase):
                                                                        '++workload.train.epochs=1', \
                                                                        '++workload.dataset.num_files_train=16'])
                         benchmark = self.run_benchmark(cfg)
+        self.clean()
 
     @pytest.mark.timeout(60, method="thread")
     def test_train(self) -> None:
@@ -256,14 +266,15 @@ class TestDLIOBenchmark(unittest.TestCase):
                             cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', \
                                                                            '++workload.workflow.generate_data=True',\
                                                                            f"++workload.framework={framework}", \
-                                                                           f"++workload.data_reader.data_loader={framework}", \
+                                                                           f"++workload.reader.data_loader={framework}", \
                                                                            f"++workload.dataset.format={fmt}", 
                                                                            'workload.train.computation_time=0.01', \
                                                                            'workload.evaluation.eval_time=0.005', \
                                                                            '++workload.train.epochs=1', \
                                                                            '++workload.dataset.num_files_train=16',\
-                                                                           '++workload.data_reader.read_threads=1'])
+                                                                           '++workload.reader.read_threads=1'])
                             benchmark=self.run_benchmark(cfg)                          
+                        self.clean()
 
     @pytest.mark.timeout(60, method="thread")
     def test_custom_storage_root_train(self) -> None:
@@ -283,15 +294,16 @@ class TestDLIOBenchmark(unittest.TestCase):
                             cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', \
                                                                            '++workload.workflow.generate_data=True',\
                                                                            f"++workload.framework={framework}", \
-                                                                           f"++workload.data_reader.data_loader={framework}", \
+                                                                           f"++workload.reader.data_loader={framework}", \
                                                                            f"++workload.dataset.format={fmt}",
                                                                            f"++workload.storage.storage_root={storage_root}", \
                                                                            'workload.train.computation_time=0.01', \
                                                                            'workload.evaluation.eval_time=0.005', \
                                                                            '++workload.train.epochs=1', \
                                                                            '++workload.dataset.num_files_train=16',\
-                                                                           '++workload.data_reader.read_threads=1'])
+                                                                           '++workload.reader.read_threads=1'])
                             benchmark=self.run_benchmark(cfg)                          
+                        self.clean(storage_root)
 
 if __name__ == '__main__':
     unittest.main()

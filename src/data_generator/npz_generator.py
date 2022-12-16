@@ -22,7 +22,7 @@ import logging
 import numpy as np
 from numpy import random
 
-from src.utils.utility import progress, utcnow
+from src.utils.utility import progress, utcnow, perftrace
 from shutil import copyfile
 
 """
@@ -32,14 +32,19 @@ class NPZGenerator(DataGenerator):
     def __init__(self):
         super().__init__()
 
+    @perftrace.event_logging
     def generate(self):
         """
         Generator for creating data in NPZ format of 3d dataset.
         """
         super().generate()
-        records = random.random((self._dimension, self._dimension, self.num_samples))
         record_labels = [0] * self.num_samples
         for i in range(self.my_rank, int(self.total_files_to_generate), self.comm_size):
+            if (self._dimension_stdev>0):
+                dim1, dim2 = [max(int(d), 0) for d in random.normal( self._dimension, self._dimension_stdev, 2)]
+            else:
+                dim1 = dim2 = self._dimension
+            records = random.random((dim1, dim2, self.num_samples))
             out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating NPZ Data")
             prev_out_spec = out_path_spec

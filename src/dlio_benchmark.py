@@ -32,7 +32,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 from dataclasses import dataclass
-from src.utils.utility import utcnow, measure_performance
+from src.utils.utility import utcnow, measure_performance, perftrace
 from omegaconf import DictConfig, OmegaConf
 from src.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
@@ -60,8 +60,6 @@ class DLIOBenchmark(object):
         </ul>
         """
         self.args = ConfigArguments.get_instance()
-        
-
         LoadConfig(self.args, cfg)
         self.args.validate()
         try:
@@ -69,13 +67,9 @@ class DLIOBenchmark(object):
             self.args.output_folder = hydra_cfg['runtime']['output_dir']
         except:
             self.args.output_folder = 'output/'
-
         self.output_folder = self.args.output_folder
-        
         self.logfile = os.path.join(self.output_folder, self.args.log_file)
-
         self.data_folder = self.args.data_folder
-        self.output_folder = self.args.output_folder
         os.makedirs(self.output_folder, exist_ok=True)
         self.storage_root = self.args.storage_root
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.storage_root, self.args.framework)
@@ -87,8 +81,7 @@ class DLIOBenchmark(object):
 
         self.my_rank = self.args.my_rank = self.framework.rank()
         self.comm_size = self.args.comm_size = self.framework.size()
-
-
+        perftrace.set_logdir(self.output_folder)
         # Delete previous logfile
         if self.my_rank == 0:
             if os.path.isfile(self.logfile):
@@ -189,7 +182,8 @@ class DLIOBenchmark(object):
                 logging.info(f"{utcnow()} Profiling Started with {self.args.profiler}")
         self.framework.init_reader(self.args.format, self.args.data_loader)
         self.framework.barrier()
-
+    
+    @perftrace.event_logging
     def _eval(self, epoch):
         """
         Evaluation loop will read a separate dataset and has its own own computation time.
@@ -197,7 +191,10 @@ class DLIOBenchmark(object):
         step = 1
         total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         t0 = time() 
-        for batch in self.framework.get_reader(DatasetType.VALID).next():
+        reader = self.framework.get_reader(DatasetType.VALID)
+        perftrace.event_start(f"loading_batch: {self.batch_size_eval}", "reader")
+        for batch in reader.next():
+            perftrace.event_stop(f"loading_batch: {self.batch_size_eval}", "reader")
             self.stats.eval_batch_loaded(epoch, step, t0)
 
             if self.eval_time > 0:
@@ -211,9 +208,9 @@ class DLIOBenchmark(object):
                 
             self.framework.barrier()
             t0 = time()
-
+            perftrace.event_start(f"loading_batch: {self.batch_size_eval}", "reader")
         return step - 1
-
+    @perftrace.event_logging
     def _train(self, epoch):
         """
         Training loop for reading the dataset and performing training computations.
@@ -226,8 +223,11 @@ class DLIOBenchmark(object):
         # Start the very first block
         self.stats.start_block(epoch, block)
         t0 = time()
-        for batch in self.framework.get_reader(dataset_type=DatasetType.TRAIN).next():
+        reader = self.framework.get_reader(dataset_type=DatasetType.TRAIN)
+        perftrace.event_start(f"loading_batch: {self.batch_size}", "reader")
+        for batch in reader.next():
             logging.debug(f"{utcnow()} Rank {self.my_rank} batch: {batch[:][1:]}")
+            perftrace.event_stop(f"loading_batch: {self.batch_size}", "reader")
             self.stats.batch_loaded(epoch, overall_step, block, t0)
             self.framework.barrier()
             # Log a new block, unless it's the first one which we've already logged before the loop
@@ -265,7 +265,7 @@ class DLIOBenchmark(object):
                 
             overall_step += 1
             t0 = time()
-
+            perftrace.event_start(f"loading_batch: {self.batch_size}", "reader")
 
         if self.do_checkpoint and (self.steps_between_checkpoints < 0) and (epoch == self.next_checkpoint_epoch):
             self.stats.end_block(epoch, block, block_step)
@@ -274,6 +274,7 @@ class DLIOBenchmark(object):
             self.stats.end_ckpt(epoch, block)
             self.framework.barrier()
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
+        
         return overall_step
 
     

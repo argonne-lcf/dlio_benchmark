@@ -19,7 +19,7 @@ from src.data_generator.data_generator import DataGenerator
 from numpy import random
 import tensorflow as tf
 
-from src.utils.utility import progress, utcnow
+from src.utils.utility import progress, utcnow, perftrace
 from shutil import copyfile
 
 import logging
@@ -29,7 +29,7 @@ class TFRecordGenerator(DataGenerator):
     """
     def __init__(self):
         super().__init__()
-
+    @perftrace.event_logging
     def generate(self):
         """
         Generator for creating data in TFRecord format of 3d dataset.
@@ -37,10 +37,16 @@ class TFRecordGenerator(DataGenerator):
         TODO: Extend this to create accurate records for BERT, which does not use image/label pairs.
         """
         super().generate()
+        # This creates a 2D image representing a single record
         record_label = 0
         for i in range(self.my_rank, self.total_files_to_generate, self.comm_size):
             progress(i+1, self.total_files_to_generate, "Generating TFRecord Data")
             out_path_spec = self.storage.get_uri(self._file_list[i])
+            if (self._dimension_stdev>0):
+                dim1, dim2 = [max(int(d), 0) for d in random.normal( self._dimension, self._dimension_stdev, 2)]
+            else:
+                dim1 = dim2 = self._dimension
+            record = random.random((dim1, dim2))
             # Open a TFRecordWriter for the output-file.
             with tf.io.TFRecordWriter(out_path_spec) as writer:
                 for i in range(0, self.num_samples):

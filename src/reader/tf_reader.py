@@ -18,7 +18,7 @@ import math
 import logging
 from time import time
 
-from src.utils.utility import utcnow, timeit
+from src.utils.utility import utcnow, timeit, perftrace
 from src.common.enumerations import Shuffle
 from src.reader.reader_handler import FormatReader
 import tensorflow as tf
@@ -74,9 +74,13 @@ class TFReader(FormatReader):
             if self._args.my_rank==0:
                 logging.warning(f"{utcnow()} `read_threads` is set to be 0 for tf.data loader. We change it to tf.data.AUTOTUNE")
             self.read_threads=tf.data.AUTOTUNE
-        dataset = tf.data.TFRecordDataset(filenames=self._file_list,
-                                          buffer_size=self.transfer_size,
-                                          num_parallel_reads=self.read_threads)
+        if (self.transfer_size !=None):
+            dataset = tf.data.TFRecordDataset(filenames=self._file_list,
+                                            buffer_size=self.transfer_size,
+                                            num_parallel_reads=self.read_threads)
+        else:
+            dataset = tf.data.TFRecordDataset(filenames=self._file_list,
+                                            num_parallel_reads=self.read_threads)            
         dataset = dataset.shard(num_shards=self.comm_size, index=self.my_rank)
         dataset = dataset.map(self._tf_parse_function, num_parallel_calls=self.computation_threads)
 
@@ -90,7 +94,7 @@ class TFReader(FormatReader):
         
         if self.prefetch_size>0:
             self._dataset = dataset.prefetch(buffer_size=self.prefetch_size)
-            
+
     def next(self):
         """
         Provides the iterator over tfrecord data pipeline.
