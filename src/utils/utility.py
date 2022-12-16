@@ -21,8 +21,6 @@ import logging
 from src.utils.config import ConfigArguments
 from time import time
 from functools import wraps
-import perfflowaspect
-import perfflowaspect.aspect as aspect
 import threading
 
 logging.basicConfig(
