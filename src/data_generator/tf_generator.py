@@ -50,6 +50,8 @@ class TFRecordGenerator(DataGenerator):
             # Open a TFRecordWriter for the output-file.
             with tf.io.TFRecordWriter(out_path_spec) as writer:
                 for i in range(0, self.num_samples):
+                    # This creates a 2D image representing a single record
+                    record = random.random((self._dimension, self._dimension))
                     img_bytes = record.tobytes()
                     data = {
                         'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img_bytes])),

@@ -70,8 +70,8 @@ class CSVReader(FormatReader):
                                         int(total_samples_per_rank * (self.my_rank + 1) / self.batch_size))
                 num_sets = list(range(part_start, part_end))
             total += len(num_sets)
-            if self.memory_shuffle != Shuffle.OFF:
-                if self.memory_shuffle == Shuffle.SEED:
+            if self.sample_shuffle != Shuffle.OFF:
+                if self.sample_shuffle == Shuffle.SEED:
                     random.seed(self.seed)
                 random.shuffle(num_sets)
             for num_set in num_sets:
