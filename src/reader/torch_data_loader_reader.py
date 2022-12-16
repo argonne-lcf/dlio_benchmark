@@ -34,16 +34,20 @@ import h5py
 
 totensor=transforms.ToTensor()
 
-### reading file of different formats. 
+### reading file of different formats.  resize is simple to keep the data uniform
 @perftrace.event_logging
 def read_jpeg(filename):
-    return totensor(Image.open(filename))
+    return totensor(Image.open(filename).resize((224, 224)))
 @perftrace.event_logging
 def read_png(filename):
-    return totensor(Image.open(filename))
+    return totensor(Image.open(filename).resize((224, 224)))
 @perftrace.event_logging
 def read_npz(filename):
-    return np.load(filename)
+    data = np.load(filename)
+    x = data['x']
+    y = data['y'] 
+    x.resize((224, 224), refcheck=False)
+    return x, y
 @perftrace.event_logging
 def read_hdf5(f):
     file_h5 = h5py.File(f, 'r')

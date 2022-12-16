@@ -39,10 +39,14 @@ class CSVGenerator(DataGenerator):
         Generate csv data for training. It generates a 2d dataset and writes it to file.
         """
         super().generate()
-        record = random.random((self._dimension * self._dimension))
         records = [record]*self.num_samples
         record_label = 0
         for i in range(0, int(self.total_files_to_generate)):
+            if (self._dimension_stdev>0):
+                dim1, dim2 = [max(int(d), 0) for d in random.normal( self._dimension, self._dimension_stdev, 2)]
+            else:
+                dim1 = dim2 = self._dimension
+            record = random.random(dim1*dim2)
             if i % self.comm_size == self.my_rank:
                 progress(i+1, self.total_files_to_generate, "Generating CSV Data")
                 out_path_spec = self.storage.get_uri(self._file_list[i])

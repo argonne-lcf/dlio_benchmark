@@ -33,6 +33,7 @@ class DataGenerator(ABC):
         self._args = ConfigArguments.get_instance()
         self.data_dir = self._args.data_folder
         self.record_size = self._args.record_length
+        self.record_size_stdev = self._args.record_length_stdev
         self.file_prefix = self._args.file_prefix
         self.num_files_train = self._args.num_files_train
         self.do_eval = self._args.do_eval
@@ -72,7 +73,7 @@ class DataGenerator(ABC):
         # What is the logic behind this formula? 
         # Will probably have to adapt to generate non-images
         self._dimension = int(math.sqrt(self.record_size/8))
-
+        self._dimension_stdev = math.sqrt(self.record_size_stdev/8)
         self.total_files_to_generate = self.num_files_train
 
         if self.num_files_eval > 0:

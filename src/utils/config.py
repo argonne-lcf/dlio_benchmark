@@ -42,6 +42,7 @@ class ConfigArguments:
     storage_root: str = "./"
     storage_type: StorageType = StorageType.LOCAL_FS
     record_length: int = 64 * 1024
+    record_length_stdev: int = 0
     num_files_train: int = 8 
     num_samples_per_file: int = 1
     batch_size: int = 1 
@@ -131,6 +132,8 @@ def LoadConfig(args, config):
     if 'dataset' in config:
         if 'record_length' in config['dataset']:
             args.record_length = config['dataset']['record_length']
+        if 'record_length_stdev' in config['dataset']:
+            args.record_length_stdev = config['dataset']['record_length_stdev']
         if 'num_files_train' in config['dataset']:
             args.num_files_train = config['dataset']['num_files_train']
         if 'num_files_eval' in config['dataset']:

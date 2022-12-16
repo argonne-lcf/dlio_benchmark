@@ -14,7 +14,8 @@ dataset:
   num_files_train: 168
   num_files_eval: 42
   num_samples_per_file: 1
-  record_length: 147000000
+  record_length: 234560851
+  record_length_stdev: 50000000
   keep_files: True
   
 reader: 

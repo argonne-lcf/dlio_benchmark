@@ -39,6 +39,7 @@ class FormatReader(ABC):
         self.shuffle_size = self._args.shuffle_size
         self.data_dir = self._args.data_folder
         self.record_size = self._args.record_length
+        self.record_size_stdev = self._args.record_length_stdev
         self.prefetch_size = self._args.prefetch_size
         self.transfer_size = self._args.transfer_size
         
@@ -50,6 +51,7 @@ class FormatReader(ABC):
         self.total_files = self.num_files_train + self.num_files_eval 
         self.num_samples = self._args.num_samples_per_file
         self._dimension = int(math.sqrt(self.record_size / 8))
+
         # Batch sizes
         self.batch_size_train = self._args.batch_size
         self.batch_size_eval = self._args.batch_size_eval

@@ -39,7 +39,7 @@ def timeit(func):
 @timeit
 def read_jpeg(filename):
     img = tf.io.read_file(filename)
-    img = tf.image.decode_jpeg(img, channels=3)
+    img = tf.image.resize(tf.image.decode_jpeg(img, channels=3), [224, 224])
     return img
 
 
@@ -47,7 +47,7 @@ def read_jpeg(filename):
 @timeit
 def read_png(filename):
     img = tf.io.read_file(filename)
-    img = tf.image.decode_jpeg(img, channels=3)
+    img = tf.image.resize(tf.image.decode_jpeg(img, channels=3), [224, 224])
     return img
 
 @tf.function
