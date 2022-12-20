@@ -36,7 +36,7 @@ class PNGGenerator(DataGenerator):
         """
         super().generate()
         dim = int(np.sqrt(self.record_size/3.0))
-        dim_stdev = np.sqrt(self.record_size_stdev/3.0)
+        dim_stdev = 0.5*self.record_size_stdev/np.sqrt(self.record_size*3.0)
         record_labels = [0] 
         if self.my_rank==0:
             logging.info(f"{utcnow()} Dimension of images: {dim} x {dim} x 3")

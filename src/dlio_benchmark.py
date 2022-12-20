@@ -192,9 +192,8 @@ class DLIOBenchmark(object):
         total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         t0 = time() 
         reader = self.framework.get_reader(DatasetType.VALID)
-        perftrace.event_start(f"loading_batch: {self.batch_size_eval}", "reader")
         for batch in reader.next():
-            perftrace.event_stop(f"loading_batch: {self.batch_size_eval}", "reader")
+            perftrace.event_complete(f"loading_batch: {self.batch_size_eval}", "reader", t0, time() - t0)
             self.stats.eval_batch_loaded(epoch, step, t0)
 
             if self.eval_time > 0:
@@ -208,7 +207,6 @@ class DLIOBenchmark(object):
                 
             self.framework.barrier()
             t0 = time()
-            perftrace.event_start(f"loading_batch: {self.batch_size_eval}", "reader")
         return step - 1
     @perftrace.event_logging
     def _train(self, epoch):
@@ -224,10 +222,9 @@ class DLIOBenchmark(object):
         self.stats.start_block(epoch, block)
         t0 = time()
         reader = self.framework.get_reader(dataset_type=DatasetType.TRAIN)
-        perftrace.event_start(f"loading_batch: {self.batch_size}", "reader")
         for batch in reader.next():
             logging.debug(f"{utcnow()} Rank {self.my_rank} batch: {batch[:][1:]}")
-            perftrace.event_stop(f"loading_batch: {self.batch_size}", "reader")
+            perftrace.event_complete(f"loading_batch: {self.batch_size}", "reader", t0, time() - t0)
             self.stats.batch_loaded(epoch, overall_step, block, t0)
             self.framework.barrier()
             # Log a new block, unless it's the first one which we've already logged before the loop
@@ -265,7 +262,6 @@ class DLIOBenchmark(object):
                 
             overall_step += 1
             t0 = time()
-            perftrace.event_start(f"loading_batch: {self.batch_size}", "reader")
 
         if self.do_checkpoint and (self.steps_between_checkpoints < 0) and (epoch == self.next_checkpoint_epoch):
             self.stats.end_block(epoch, block, block_step)

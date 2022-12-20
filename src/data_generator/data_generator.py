@@ -73,7 +73,7 @@ class DataGenerator(ABC):
         # What is the logic behind this formula? 
         # Will probably have to adapt to generate non-images
         self._dimension = int(math.sqrt(self.record_size/8))
-        self._dimension_stdev = math.sqrt(self.record_size_stdev/8)
+        self._dimension_stdev = 0.5*self.record_size_stdev/math.sqrt(self.record_size*8)
         self.total_files_to_generate = self.num_files_train
 
         if self.num_files_eval > 0:

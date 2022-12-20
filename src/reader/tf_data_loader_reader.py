@@ -18,7 +18,7 @@ import math
 import logging
 from time import time
 
-from src.utils.utility import utcnow, timeit
+from src.utils.utility import utcnow, timeit, perftrace
 from src.common.enumerations import Shuffle, FormatType
 from src.reader.reader_handler import FormatReader
 import tensorflow as tf
@@ -51,7 +51,15 @@ def read_png(filename):
     return img
 
 @tf.function
-@timeit
+@perftrace.event_logging
+def _read_npz(filename):
+    data = np.load(filename)
+    x = data['x']
+    y = data['y'] 
+    x.resize((224, 224), refcheck=False)
+    return x, y
+
+@perftrace.event_logging
 def read_npz(filename):
     img = tf.io.read_file(filename)
     return img

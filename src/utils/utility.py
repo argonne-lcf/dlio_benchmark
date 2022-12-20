@@ -73,11 +73,10 @@ class PerfTrace:
     def event_logging(cls, func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            event = cls.__create_event(func.__qualname__, func.__module__, "B")
-            cls.__flush_log(json.dumps(event))
+            start = time()
             x = func(*args, **kwargs)
             end = time()
-            event = cls.__create_event(func.__qualname__, func.__module__, "E")
+            event = cls.__create_dur_event(func.__qualname__, func.__module__, start, dur=end-start)
             cls.__flush_log(json.dumps(event))            
             return x
         return wrapper
@@ -86,12 +85,25 @@ class PerfTrace:
         return {
             "name": name,
             "cat": cat,
-            "pid": os.getpid(),
-            "tid": threading.get_ident(),
+            "pid": get_rank(),
+            "tid": os.getpid(),
             "ts": time() * 1000000,
             "ph": ph
         }
-    
+    @staticmethod 
+    def __create_dur_event(name, cat, ts, dur):
+        return {
+            "name": name,
+            "cat": cat,
+            "pid": get_rank(),
+            "tid": os.getpid(),
+            "ts": ts * 1000000, 
+            "dur": dur * 1000000,
+            "ph": "X"
+        }
+    def event_complete(cls, name, cat, ts, dur):
+        event = cls.__create_dur_event(name, cat, ts, dur)
+        cls.__flush_log(json.dumps(event))
     def event_start(cls, name, cat='default'):
         event = cls.__create_event(name, cat, 'B')
         cls.__flush_log(json.dumps(event))
