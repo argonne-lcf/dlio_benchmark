@@ -154,7 +154,6 @@ class DLIOBenchmark(object):
         # Indexed by epoch number, contains start-end timestamps and other information
         self.per_epoch_stats = {}
         self.stats = StatsCounter()
-
     def initialize(self):
         """
         Initializes the benchmark runtime.
@@ -273,7 +272,6 @@ class DLIOBenchmark(object):
         
         return overall_step
 
-    
     def run(self):
         """
         Run the total epochs for training. 
