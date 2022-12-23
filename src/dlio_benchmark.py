@@ -222,7 +222,6 @@ class DLIOBenchmark(object):
         t0 = time()
         reader = self.framework.get_reader(dataset_type=DatasetType.TRAIN)
         for batch in reader.next():
-            logging.debug(f"{utcnow()} Rank {self.my_rank} batch: {batch[:][1:]}")
             perftrace.event_complete(f"loading_batch: {self.batch_size}", "reader", t0, time() - t0)
             self.stats.batch_loaded(epoch, overall_step, block, t0)
             self.framework.barrier()

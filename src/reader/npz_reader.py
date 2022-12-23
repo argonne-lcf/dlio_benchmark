@@ -77,10 +77,10 @@ class NPZReader(FormatReader):
                 random.shuffle(num_sets)
             for num_set in num_sets:
                 # Should we check if profiling is enabled and if we're using PT?
-                with tf.profiler.experimental.Trace('HDF5 Input', step_num=num_set / self.batch_size, _r=1):
+                with tf.profiler.experimental.Trace('NPZ Input', step_num=num_set / self.batch_size, _r=1):
                     progress(count, total, "Reading NPZ Data")
                     count += 1
-                    images = element['dataset'][:][:][num_set * self.batch_size:(num_set + 1) * self.batch_size - 1]
+                    images = element['dataset'][num_set * self.batch_size:(num_set + 1) * self.batch_size - 1][:][:]
                 yield images
 
     def finalize(self):

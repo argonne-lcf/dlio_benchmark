@@ -16,7 +16,7 @@
 """
 import math
 import logging
-from time import time
+from time import time, sleep
 
 from src.utils.utility import utcnow, timeit, perftrace
 from src.common.enumerations import Shuffle, FormatType
@@ -25,55 +25,41 @@ import tensorflow as tf
 import numpy as np
 import os
 from functools import wraps 
+import threading
+from PIL import Image
+import h5py
+
 
 def timeit(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        begin = tf.timestamp()
+        begin = time()
         x = func(*args, **kwargs)
-        end = tf.timestamp()
-        return x, begin*1000000, end*1000000, os.getpid()
+        end = time()
+        print(f"loadding: {end - begin}")
+        return x
     return wrapper
 
-@tf.function    
-@timeit
 def read_jpeg(filename):
-    img = tf.io.read_file(filename)
-    img = tf.image.resize(tf.image.decode_jpeg(img, channels=3), [224, 224])
-    return img
+    return Image.open(filename).resize((224, 224))
 
-
-@tf.function
-@timeit
 def read_png(filename):
-    img = tf.io.read_file(filename)
-    img = tf.image.resize(tf.image.decode_jpeg(img, channels=3), [224, 224])
-    return img
+    return Image.open(filename).resize((224, 224))
 
-@tf.function
-@perftrace.event_logging
-def _read_npz(filename):
-    data = np.load(filename)
-    x = data['x']
-    y = data['y'] 
-    x.resize((224, 224), refcheck=False)
-    return x, y
-
-@perftrace.event_logging
 def read_npz(filename):
-    img = tf.io.read_file(filename)
-    return img
+    data = np.load(filename)
+    x = data['x']; y=data['y']
+    return np.zeros((224, 224), dtype=np.uint8)
 
-@tf.function
-@timeit
-def read_hdf5(filename):
-    img = tf.io.read_file(filename)
-    return img
-@tf.function
-@timeit
-def read_file(filename):
-    img = tf.io.read_file(filename)
-    return img
+def read_hdf5(f):
+    file_h5 = h5py.File(f, 'r')
+    d = file_h5['records'][:,:,:]
+    l = file_h5['labels'][:]
+    return d, l
+
+def read_file(f):
+    with open(f, mode='rb') as file: # b is important -> binary
+        return file.read()
 
 filereader={
     FormatType.JPEG: read_jpeg, 
@@ -81,6 +67,28 @@ filereader={
     FormatType.NPZ: read_npz, 
     FormatType.HDF5: read_hdf5, 
 }
+
+reader = {'func': None, 'format': None}
+
+class CustomDataset(tf.data.Dataset):
+    def _generator(file_name):
+        """
+        make a generator function that we can query for batches
+        """
+        t0 = time()
+        data = reader['func'](file_name) 
+        t1 = time()
+        perftrace.event_complete(f"{reader['func'].__name__}", "reader", t0, t1-t0)
+        yield np.zeros((224, 224), dtype=np.uint8)
+
+    def __new__(cls, file_name):
+        dataset = tf.data.Dataset.from_generator(
+            cls._generator,
+            output_types=tf.uint8,
+            output_shapes=(224, 224),
+            args=(file_name,), 
+        )
+        return dataset
 
 class TFDataLoaderReader(FormatReader):
     """
@@ -91,11 +99,15 @@ class TFDataLoaderReader(FormatReader):
         self.read_threads = self._args.read_threads
         self.computation_threads = self._args.computation_threads
         self.format = self._args.format
+        global reader
         try:
-            self._tf_parse_function=filereader[self.format]
+            reader['func'] = filereader[self.format]
+            reader['format'] = self.format
         except:
             logging.warning(f"{utcnow()} Unsupported file format {self.format} for data loader, reading as binary files")
-            self._tf_parse_function = read_file
+            reader['func'] = read_file
+            reader['format'] = self.format
+
         # TODO: DLIO assumes the tfrecord files to contain image/label pairs.
         # This is not always the case, e.g. in BERT, each record is more complex,
         # consisting of 6 lists and a label. Same for DLRM.
@@ -109,15 +121,18 @@ class TFDataLoaderReader(FormatReader):
         """
         # superclass function initializes the file list
         super().read(epoch_number)
-        
-        dataset = tf.data.Dataset.from_tensor_slices(self._file_list)
-        dataset = dataset.shard(num_shards=self.comm_size, index=self.my_rank)
         if self.read_threads==0:
             if self._args.my_rank==0:
                 logging.warning(f"{utcnow()} `read_threads` is set to be 0 for tf.data loader. We change it to tf.data.AUTOTUNE")
             self.read_threads=tf.data.AUTOTUNE
-        dataset = dataset.map(self._tf_parse_function, num_parallel_calls=self.read_threads)
-        #dataset = dataset.interleave(self._tf_parse_function, num_parallel_calls=self.read_threads)
+
+        options = tf.data.Options()
+        options.threading.private_threadpool_size = self.read_threads
+        options.threading.max_intra_op_parallelism = self.read_threads
+        
+        dataset = tf.data.Dataset.from_tensor_slices(self._file_list).with_options(options)
+        dataset = dataset.interleave(lambda x: CustomDataset(x), cycle_length=self.read_threads, num_parallel_calls=self.read_threads)
+        dataset = dataset.shard(num_shards=self.comm_size, index=self.my_rank)
 
         if self.sample_shuffle != Shuffle.OFF:
             if self.sample_shuffle == Shuffle.SEED:

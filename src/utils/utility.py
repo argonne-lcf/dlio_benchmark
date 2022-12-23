@@ -96,7 +96,7 @@ class PerfTrace:
             "name": name,
             "cat": cat,
             "pid": get_rank(),
-            "tid": os.getpid(),
+            "tid": threading.get_native_id(),
             "ts": time() * 1000000,
             "ph": ph
         }
@@ -106,7 +106,7 @@ class PerfTrace:
             "name": name,
             "cat": cat,
             "pid": get_rank(),
-            "tid": os.getpid(),
+            "tid": threading.get_native_id(),
             "ts": ts * 1000000, 
             "dur": dur * 1000000,
             "ph": "X"

@@ -81,8 +81,8 @@ class HDF5StimulateReader(FormatReader):
                 for i in range(parallel_threads):
                     local_file_list.append((file,str(i*part_size),str(part_size)))
         options = tf.data.Options()
-        options.experimental_threading.private_threadpool_size = 32
-        options.experimental_threading.max_intra_op_parallelism = 32
+        options.threading.private_threadpool_size = 32
+        options.threading.max_intra_op_parallelism = 32
         Dataset = tf.data.Dataset
         #print(local_file_list)
         dataset = Dataset.from_tensor_slices(local_file_list).with_options(options)

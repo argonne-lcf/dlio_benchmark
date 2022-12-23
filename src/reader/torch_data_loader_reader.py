@@ -32,15 +32,18 @@ from PIL import Image
 import torchvision.transforms as transforms
 import h5py
 
+
 totensor=transforms.ToTensor()
 
 ### reading file of different formats.  resize is simple to keep the data uniform
 @perftrace.event_logging
 def read_jpeg(filename):
     return totensor(Image.open(filename).resize((224, 224)))
+
 @perftrace.event_logging
 def read_png(filename):
     return totensor(Image.open(filename).resize((224, 224)))
+
 @perftrace.event_logging
 def read_npz(filename):
     data = np.load(filename)
@@ -48,12 +51,14 @@ def read_npz(filename):
     y = data['y'] 
     x.resize((224, 224), refcheck=False)
     return x, y
+
 @perftrace.event_logging
 def read_hdf5(f):
     file_h5 = h5py.File(f, 'r')
     d = file_h5['records'][:,:,:]
     l = file_h5['labels'][:]
     return d, l
+
 @perftrace.event_logging
 def read_file(f):
     with open(f, mode='rb') as file: # b is important -> binary
