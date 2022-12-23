@@ -29,6 +29,8 @@ import PIL.Image as im
 class PNGGenerator(DataGenerator):
     def __init__(self):
         super().__init__()
+        if (self.num_samples > 1):
+            raise Exception("PNG only support 1 sample per file")
     @perftrace.event_logging
     def generate(self):
         """

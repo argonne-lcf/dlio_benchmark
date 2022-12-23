@@ -31,6 +31,8 @@ Generator for creating data in JPEG format.
 class JPEGGenerator(DataGenerator):
     def __init__(self):
         super().__init__()
+        if (self.num_samples > 1):
+            raise Exception("JPEG only support 1 sample per file")
     @perftrace.event_logging
     def generate(self):
         """
