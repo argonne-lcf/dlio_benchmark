@@ -48,7 +48,7 @@ def read_png(filename):
 
 def read_npz(filename):
     data = np.load(filename)
-    x = data['x']; y=data['y']
+    x = data['records']; y=data['labels']
     return np.zeros((224, 224), dtype=np.uint8)
 
 def read_hdf5(f):

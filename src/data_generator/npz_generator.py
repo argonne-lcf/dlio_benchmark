@@ -49,6 +49,6 @@ class NPZGenerator(DataGenerator):
             progress(i+1, self.total_files_to_generate, "Generating NPZ Data")
             prev_out_spec = out_path_spec
             if self.compression != Compression.ZIP:
-                np.savez(out_path_spec, x=records, y=record_labels)
+                np.savez(out_path_spec, records=records, labels=record_labels)
             else:
-                np.savez_compressed(out_path_spec, x=records, y=record_labels)
+                np.savez_compressed(out_path_spec, records=records, labels=record_labels)

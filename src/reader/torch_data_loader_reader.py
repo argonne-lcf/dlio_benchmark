@@ -47,8 +47,8 @@ def read_png(filename):
 @perftrace.event_logging
 def read_npz(filename):
     data = np.load(filename)
-    x = data['x']
-    y = data['y'] 
+    x = data['records']
+    y = data['labels'] 
     x.resize((224, 224), refcheck=False)
     return x, y
 

@@ -43,7 +43,7 @@ class NPZReader(FormatReader):
         packed_array = []
         for file in self._local_file_list:
             with np.load(file, allow_pickle=True) as data:
-                rows = data['x']
+                rows = data['records']
                 logging.info(f"{utcnow()} loading numpy array of shape {rows.shape}")
                 packed_array.append({
                     'dataset': rows,
