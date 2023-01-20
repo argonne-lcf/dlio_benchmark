@@ -116,6 +116,9 @@ class DLIOBenchmark(object):
         self.epochs = self.args.epochs
         self.batch_size = self.args.batch_size
         self.computation_time = self.args.computation_time
+        self.computation_time_stdev = self.args.computation_time_stdev
+
+
 
         if self.do_profiling:
             self.profiler = ProfilerFactory().get_profiler(self.args.profiler)
@@ -135,6 +138,7 @@ class DLIOBenchmark(object):
 
         self.batch_size_eval = self.args.batch_size_eval
         self.eval_time = self.args.eval_time
+        self.eval_time_stdev = self.args.eval_time_stdev        
         self.eval_after_epoch = self.args.eval_after_epoch
         self.epochs_between_evals = self.args.epochs_between_evals
 
