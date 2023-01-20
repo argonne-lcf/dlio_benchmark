@@ -67,6 +67,7 @@ class ConfigArguments:
     read_threads: int = 1
     computation_threads: int = 1
     computation_time: float = 0.
+    computation_time_stdev: float = 0.
     prefetch_size: int = 0 
     enable_chunking: bool = False
     chunk_size: int = 0
@@ -78,6 +79,7 @@ class ConfigArguments:
     batch_size_eval: int = 1
     num_files_eval: int = 0
     eval_time: float = 0.0
+    eval_time_stdev: float = 0.0
     eval_after_epoch: int = 1
     epochs_between_evals: int = 1
     model_size: int = 10240
@@ -202,12 +204,16 @@ def LoadConfig(args, config):
             args.seed_change_epoch = config['train']['seed_change_epoch']
         if 'computation_time' in config['train']:
             args.computation_time = config['train']['computation_time']
+        if 'computation_time_stdev' in config['train']:
+            args.computation_time_stdev = config['train']['computation_time_stdev']
         if 'seed' in config['train']:
             args.seed = config['train']['seed']
         
     if 'evaluation' in config:
         if 'eval_time' in config['evaluation']:
             args.eval_time = config['evaluation']['eval_time']
+        if 'eval_time_stdev' in config['evaluation']:
+            args.eval_time_stdev = config['evaluation']['eval_time_stdev']
         if 'eval_after_epoch' in config['evaluation']:
             args.eval_after_epoch = config['evaluation']['eval_after_epoch']
         if 'epochs_between_evals' in config['evaluation']:

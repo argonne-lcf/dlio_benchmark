@@ -194,7 +194,11 @@ class DLIOBenchmark(object):
             self.stats.eval_batch_loaded(epoch, step, t0)
 
             if self.eval_time > 0:
-                self.framework.compute(epoch, step, self.eval_time)
+                if self.eval_time_stdev > 0:
+                    eval_time = random.normal(self.eval_time, self.eval_time_stdev)
+                else:
+                    eval_time = self.eval_time
+                self.framework.compute(epoch, step, eval_time)
 
             self.stats.eval_batch_processed(epoch, step, t0)
 
@@ -228,7 +232,11 @@ class DLIOBenchmark(object):
             
             if self.computation_time > 0:
                 self.framework.trace_object("Train", overall_step, 1)
-                self.framework.compute(epoch, block_step, self.computation_time)
+                if self.computation_time_stdev > 0:
+                    computation_time = random.normal(self.computation_time, self.computation_time_stdev)
+                else:
+                    computation_time = self.computation_time
+                self.framework.compute(epoch, block_step, computation_time)
             self.framework.barrier()
 
             self.stats.batch_processed(epoch, overall_step, block, t0)
