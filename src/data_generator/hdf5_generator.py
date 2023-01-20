@@ -21,7 +21,7 @@ import math
 
 from src.common.enumerations import Compression
 from src.data_generator.data_generator import DataGenerator
-from src.utils.utility import progress, perftrace
+from src.utils.utility import progress
 from shutil import copyfile
 
 """
@@ -32,7 +32,6 @@ class HDF5Generator(DataGenerator):
         super().__init__()
         self.chunk_size = self._args.chunk_size
         self.enable_chunking = self._args.enable_chunking
-    @perftrace.event_logging
     def generate(self):
         """
         Generate hdf5 data for training. It generates a 3d dataset and writes it to file.
