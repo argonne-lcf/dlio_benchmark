@@ -54,69 +54,6 @@ def timeit(func):
         return x, "%10.10f"%begin, "%10.10f"%end, os.getpid()
     return wrapper
 
-class PerfTrace:
-    __instance = None
-    logger = None
-    def __init___(self):
-        if PerfTrace.__instance is not None:
-            raise Exception("This class is a singleton!")
-        else:
-            PerfTrace.__instance = self
-    @staticmethod
-    def get_instance():
-        """ Static access method. """
-        if PerfTrace.__instance is None:
-            PerfTrace()
-        return PerfTrace.__instance
-    def set_logdir(cls, logdir):
-        pass
-    def event_logging(cls, func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            event = cls.__create_event(func.__qualname__, func.__module__, "B")
-            cls.__flush_log(json.dumps(event))
-            x = func(*args, **kwargs)
-            end = time()
-            event = cls.__create_event(func.__qualname__, func.__module__, "E")
-            cls.__flush_log(json.dumps(event))            
-            return x
-        return wrapper
-    @staticmethod
-    def __create_event(name, cat, ph):
-        return {
-            "name": name,
-            "cat": cat,
-            "pid": os.getpid(),
-            "tid": threading.get_ident(),
-            "ts": time() * 1000000,
-            "ph": ph
-        }
-    
-    def event_start(cls, name, cat='default'):
-        event = cls.__create_event(name, cat, 'B')
-        cls.__flush_log(json.dumps(event))
-    def event_stop(cls, name, cat='default'):
-        event = cls.__create_event(name, cat, "E")
-        cls.__flush_log(json.dumps(event))
-    @staticmethod
-    def __flush_log(s):
-        if PerfTrace.logger == None:
-            log_file = f"./.trace-{get_rank()}-of-{get_size()}"+".pfw"
-            if os.path.isfile(log_file):
-                os.remove(log_file)
-            PerfTrace.logger = logging.getLogger("perftrace")
-            PerfTrace.logger.setLevel(logging.DEBUG)
-            PerfTrace.logger.propagate = False
-            fh = logging.FileHandler(log_file)
-            fh.setLevel(logging.DEBUG)
-            formatter = logging.Formatter("%(message)s")
-            fh.setFormatter(formatter)
-            PerfTrace.logger.addHandler(fh)
-            PerfTrace.logger.debug("[")
-        PerfTrace.logger.debug(s)
-
-perftrace = PerfTrace()
-
 import tracemalloc
 from time import perf_counter 
 

@@ -23,7 +23,7 @@ train:
 reader:
   data_loader: tensorflow
   read_threads: 1
-  computation_threads: 8
+  computation_threads: 1
   transfer_size: 262144
   batch_size: 48
   file_shuffle: seed

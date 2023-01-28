@@ -21,6 +21,7 @@ reader:
   data_loader: pytorch
   batch_size: 2
   batch_size_eval: 1
+  read_threads: 4
   file_shuffle: seed
   sample_shuffle: seed
 
