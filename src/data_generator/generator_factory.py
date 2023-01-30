@@ -23,6 +23,7 @@ from src.data_generator.hdf5_generator import HDF5Generator
 from src.data_generator.npz_generator import NPZGenerator
 from src.data_generator.jpeg_generator import JPEGGenerator
 from src.data_generator.png_generator import PNGGenerator
+from src.data_generator.bin_generator import BINGenerator
 
 
 
@@ -39,10 +40,12 @@ class GeneratorFactory(object):
         elif type == FormatType.CSV:
             return CSVGenerator()
         elif type == FormatType.NPZ:
-            return NPZGenerator()
+            return NPZGenexxrator()
         elif type == FormatType.JPEG:
             return JPEGGenerator()
         elif type == FormatType.PNG:
             return PNGGenerator()
+        elif type == FormatType.BIN:
+            return BINGenerator()
         else:
             raise Exception(str(ErrorCodes.EC1001))

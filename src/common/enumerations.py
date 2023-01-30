@@ -90,6 +90,7 @@ class FormatType(Enum):
     HDF5_OPT = 'hdf5_opt'
     JPEG = 'jpeg'
     PNG = 'png'
+    BIN = 'bin'
 
     def __str__(self):
         return self.value

@@ -1,0 +1,28 @@
+model: dlrm
+
+framework: pytorch
+
+workflow:
+  generate_data: False
+  train: True
+
+dataset: 
+  data_folder: /data/dlrm
+  format: bin
+  num_files_train: 1
+  num_files_eval: 1
+  num_samples_per_file: 4195198976
+  record_length: 327680
+  keep_files: True
+  
+reader: 
+  data_loader: pytorch
+  batch_size: 2048
+  batch_size_eval: 16384
+
+train:
+  epochs: 1
+  computation_time: 0.064296
+
+evaluation: 
+  eval_time: 0.5
