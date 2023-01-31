@@ -21,7 +21,7 @@ import math
 
 from src.common.enumerations import Compression
 from src.data_generator.data_generator import DataGenerator
-from src.utils.utility import progress, perftrace
+from src.utils.utility import progress
 from shutil import copyfile
 
 """

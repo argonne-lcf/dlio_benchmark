@@ -18,7 +18,7 @@
 import os
 import logging
 
-from src.utils.utility import utcnow, perftrace
+from src.utils.utility import utcnow
 from src.common.error_code import ErrorCodes
 from src.framework.framework import Framework
 from src.reader.reader_factory import ReaderFactory
@@ -73,7 +73,6 @@ class TFFramework(Framework):
     def trace_object(self, string, step, r):
         return tf.profiler.experimental.Trace(string, step_num=step, _r=r)
     
-    @perftrace.event_logging
     def checkpoint(self, epoch, step_number):
         """
         Performs Checkpointing for a specific step number. It writes different file of different sizes.
@@ -95,7 +94,6 @@ class TFFramework(Framework):
             
             string_val = "x" * (24740228)
             self.storage.put_data(meta_file, string_val)
-
     @perftrace.event_logging
     def compute(self, epoch_number, step, computation_time):
         tf.function(self.model)(epoch_number, step, computation_time)

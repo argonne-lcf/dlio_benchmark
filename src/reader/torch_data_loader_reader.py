@@ -20,7 +20,7 @@ import numpy as np
 from time import time
 import os
 
-from src.utils.utility import utcnow, timeit, perftrace
+from src.utils.utility import utcnow, timeit
 
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.distributed import DistributedSampler
@@ -127,7 +127,7 @@ class TorchDataLoaderReader(FormatReader):
             prefetch_factor = self.prefetch_size
         if prefetch_factor>0:
             if self.my_rank==0:
-                logging.info(f"{utcnow()} Prefetch size is {prefetch_size}; prefetch factor of {prefetch_factor} will be set to Torch DataLoader.")
+                logging.info(f"{utcnow()} Prefetch size is {self.prefetch_size}; prefetch factor of {prefetch_factor} will be set to Torch DataLoader.")
         else:
             if self.my_rank==0:
                 logging.info(f"{utcnow()} Prefetch size is 0; a default prefetch factor of 2 will be set to Torch DataLoader.")

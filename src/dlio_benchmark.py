@@ -32,7 +32,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 from dataclasses import dataclass
-from src.utils.utility import utcnow, measure_performance, perftrace
+from src.utils.utility import utcnow, measure_performance
 from omegaconf import DictConfig, OmegaConf
 from src.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
@@ -81,7 +81,6 @@ class DLIOBenchmark(object):
 
         self.my_rank = self.args.my_rank = self.framework.rank()
         self.comm_size = self.args.comm_size = self.framework.size()
-        perftrace.set_logdir(self.output_folder)
         # Delete previous logfile
         if self.my_rank == 0:
             if os.path.isfile(self.logfile):
@@ -117,6 +116,9 @@ class DLIOBenchmark(object):
         self.epochs = self.args.epochs
         self.batch_size = self.args.batch_size
         self.computation_time = self.args.computation_time
+        self.computation_time_stdev = self.args.computation_time_stdev
+
+
 
         if self.do_profiling:
             self.profiler = ProfilerFactory().get_profiler(self.args.profiler)
@@ -136,6 +138,7 @@ class DLIOBenchmark(object):
 
         self.batch_size_eval = self.args.batch_size_eval
         self.eval_time = self.args.eval_time
+        self.eval_time_stdev = self.args.eval_time_stdev        
         self.eval_after_epoch = self.args.eval_after_epoch
         self.epochs_between_evals = self.args.epochs_between_evals
 
@@ -181,7 +184,7 @@ class DLIOBenchmark(object):
                 logging.info(f"{utcnow()} Profiling Started with {self.args.profiler}")
         self.framework.init_reader(self.args.format, self.args.data_loader)
         self.framework.barrier()
-    
+
     @perftrace.event_logging
     def _eval(self, epoch):
         """
@@ -196,7 +199,11 @@ class DLIOBenchmark(object):
             self.stats.eval_batch_loaded(epoch, step, t0)
 
             if self.eval_time > 0:
-                self.framework.compute(epoch, step, self.eval_time)
+                if self.eval_time_stdev > 0:
+                    eval_time = random.normal(self.eval_time, self.eval_time_stdev)
+                else:
+                    eval_time = self.eval_time
+                self.framework.compute(epoch, step, eval_time)
 
             self.stats.eval_batch_processed(epoch, step, t0)
 
@@ -231,7 +238,11 @@ class DLIOBenchmark(object):
             
             if self.computation_time > 0:
                 self.framework.trace_object("Train", overall_step, 1)
-                self.framework.compute(epoch, block_step, self.computation_time)
+                if self.computation_time_stdev > 0:
+                    computation_time = random.normal(self.computation_time, self.computation_time_stdev)
+                else:
+                    computation_time = self.computation_time
+                self.framework.compute(epoch, block_step, computation_time)
             self.framework.barrier()
 
             self.stats.batch_processed(epoch, overall_step, block, t0)

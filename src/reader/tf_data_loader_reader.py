@@ -40,23 +40,28 @@ def timeit(func):
         return x
     return wrapper
 
+@perftrace.event_logging
 def read_jpeg(filename):
     return Image.open(filename).resize((224, 224))
 
+@perftrace.event_logging
 def read_png(filename):
     return Image.open(filename).resize((224, 224))
 
+@perftrace.event_logging
 def read_npz(filename):
     data = np.load(filename)
     x = data['records']; y=data['labels']
     return np.zeros((224, 224), dtype=np.uint8)
 
+@perftrace.event_logging
 def read_hdf5(f):
     file_h5 = h5py.File(f, 'r')
     d = file_h5['records'][:,:,:]
     l = file_h5['labels'][:]
     return d, l
 
+@perftrace.event_logging
 def read_file(f):
     with open(f, mode='rb') as file: # b is important -> binary
         return file.read()

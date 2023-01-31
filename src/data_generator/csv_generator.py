@@ -24,7 +24,7 @@ from numpy import random
 import csv
 
 from shutil import copyfile
-from src.utils.utility import progress, perftrace
+from src.utils.utility import progress
 import pandas as pd
 
 """
