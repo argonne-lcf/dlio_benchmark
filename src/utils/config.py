@@ -167,6 +167,8 @@ def LoadConfig(args, config):
             args.format = FormatType(config['dataset']['format'])
         if 'keep_files' in config['dataset']:
             args.keep_files = config['dataset']['keep_files']
+        if 'eval_num_samples_per_file' in config['dataset']:
+            args.eval_num_samples_per_file = config['dataset']['eval_num_samples_per_file']
 
     # data reader
     reader=None
@@ -224,8 +226,6 @@ def LoadConfig(args, config):
             args.epochs_between_evals = config['evaluation']['epochs_between_evals']
         if 'steps_between_evals' in config['evaluation']:
             args.steps_between_evals = config['evaluation']['steps_between_evals']
-        if 'eval_num_samples_per_file' in config['evaluation']:
-            args.eval_num_samples_per_file = config['evaluation']['eval_num_samples_per_file']
 
     if 'checkpoint' in config:
         if 'checkpoint_folder' in config['checkpoint']:

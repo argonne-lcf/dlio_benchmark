@@ -43,7 +43,7 @@ class BINGenerator(DataGenerator):
                         output_file.write(np_data.tobytes())
             else:
                 # Generating Evaluation files
-                num_instance = 6548660*14 # Hardcoded for now since DLIO assumes training and testing file has the same size
+                num_instance = self.eval_num_samples_per_file # estimated as 6548660*14
                 X_int = np.random.randint(2557264, size = (num_instance, 13))
                 X_cat = np.random.randint(8831335, size = (num_instance, 26))
                 y = np.random.randint(2, size=num_instance)

@@ -52,6 +52,8 @@ class DataGenerator(ABC):
         self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root,
                                                                         self._args.framework)
 
+        self.eval_num_samples_per_file = self._args.eval_num_samples_per_file
+
     @abstractmethod
     def generate(self):
         if self.my_rank == 0:
