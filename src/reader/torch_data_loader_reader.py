@@ -20,7 +20,7 @@ import numpy as np
 from time import time
 import os
 
-from src.utils.utility import utcnow, timeit, perftrace
+from src.utils.utility import utcnow, timeit
 
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.distributed import DistributedSampler
@@ -35,26 +35,21 @@ import h5py
 totensor=transforms.ToTensor()
 
 ### reading file of different formats.  resize is simple to keep the data uniform
-@perftrace.event_logging
 def read_jpeg(filename):
     return totensor(Image.open(filename).resize((224, 224)))
-@perftrace.event_logging
 def read_png(filename):
     return totensor(Image.open(filename).resize((224, 224)))
-@perftrace.event_logging
 def read_npz(filename):
     data = np.load(filename)
     x = data['x']
     y = data['y'] 
     x.resize((224, 224), refcheck=False)
     return x, y
-@perftrace.event_logging
 def read_hdf5(f):
     file_h5 = h5py.File(f, 'r')
     d = file_h5['records'][:,:,:]
     l = file_h5['labels'][:]
     return d, l
-@perftrace.event_logging
 def read_file(f):
     with open(f, mode='rb') as file: # b is important -> binary
         return file.read()
@@ -122,7 +117,7 @@ class TorchDataLoaderReader(FormatReader):
             prefetch_factor = self.prefetch_size
         if prefetch_factor>0:
             if self.my_rank==0:
-                logging.info(f"{utcnow()} Prefetch size is {prefetch_size}; prefetch factor of {prefetch_factor} will be set to Torch DataLoader.")
+                logging.info(f"{utcnow()} Prefetch size is {self.prefetch_size}; prefetch factor of {prefetch_factor} will be set to Torch DataLoader.")
         else:
             if self.my_rank==0:
                 logging.info(f"{utcnow()} Prefetch size is 0; a default prefetch factor of 2 will be set to Torch DataLoader.")

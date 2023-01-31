@@ -18,7 +18,7 @@ import math
 import logging
 from time import time
 
-from src.utils.utility import utcnow, timeit, perftrace
+from src.utils.utility import utcnow, timeit
 from src.common.enumerations import Shuffle
 from src.reader.reader_handler import FormatReader
 import tensorflow as tf

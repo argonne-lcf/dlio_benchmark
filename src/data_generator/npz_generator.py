@@ -22,7 +22,7 @@ import logging
 import numpy as np
 from numpy import random
 
-from src.utils.utility import progress, utcnow, perftrace
+from src.utils.utility import progress, utcnow
 from shutil import copyfile
 
 """
@@ -32,7 +32,6 @@ class NPZGenerator(DataGenerator):
     def __init__(self):
         super().__init__()
 
-    @perftrace.event_logging
     def generate(self):
         """
         Generator for creating data in NPZ format of 3d dataset.
