@@ -92,6 +92,7 @@ class StatsCounter(object):
         self.load_and_proc_times[epoch]['load']['eval'] = []
         self.load_and_proc_times[epoch]['proc']['eval'] = []
 
+    # Solution: add one more key such as the step to avoid overlap
     def end_eval(self, epoch):
         if self.my_rank == 0:
             ts = utcnow()

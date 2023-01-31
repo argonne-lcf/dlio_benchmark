@@ -89,7 +89,7 @@ class ConfigArguments:
     iostat_devices: ClassVar[List[str]] = []
 
     # Added for supporting evaluation every few steps during one epoch
-    eval_every_step: int = 0
+    steps_between_evals: int = -1 # steps between eval renaming
     eval_num_samples_per_file: int = 1
 
     def __init__(self):
@@ -222,8 +222,8 @@ def LoadConfig(args, config):
             args.eval_after_epoch = config['evaluation']['eval_after_epoch']
         if 'epochs_between_evals' in config['evaluation']:
             args.epochs_between_evals = config['evaluation']['epochs_between_evals']
-        if 'eval_every_step' in config['evaluation']:
-            args.eval_every_step = config['evaluation']['eval_every_step']
+        if 'steps_between_evals' in config['evaluation']:
+            args.steps_between_evals = config['evaluation']['steps_between_evals']
         if 'eval_num_samples_per_file' in config['evaluation']:
             args.eval_num_samples_per_file = config['evaluation']['eval_num_samples_per_file']
 

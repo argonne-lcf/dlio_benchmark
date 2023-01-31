@@ -19,7 +19,7 @@ reader:
   data_loader: terabyte
   batch_size: 2048
   batch_size_eval: 16384
-  eval_every_step: 10240
+  steps_between_evals: 10240
   eval_num_samples_per_file: 89145344
 
 train:

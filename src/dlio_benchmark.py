@@ -142,7 +142,7 @@ class DLIOBenchmark(object):
         self.eval_after_epoch = self.args.eval_after_epoch
         self.epochs_between_evals = self.args.epochs_between_evals
 
-        self.eval_every_step = self.args.eval_every_step
+        self.steps_between_evals = self.args.steps_between_evals
         self.eval_num_samples = self.args.eval_num_samples_per_file
 
         # Hold various lists/dicts for statistics
@@ -196,7 +196,13 @@ class DLIOBenchmark(object):
         step = 1
         total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         t0 = time() 
-        reader = self.framework.get_reader(DatasetType.VALID)
+
+        # Reset the dataloader if this evaluation is performed during an epoch
+        if self.steps_between_evals <= 0:
+            reader = self.framework.get_reader(DatasetType.VALID)
+        else:
+            reader = self.framework.get_reader(DatasetType.VALID).read()
+
         for batch in reader.next():
             self.stats.eval_batch_loaded(epoch, step, t0)
 
@@ -215,6 +221,12 @@ class DLIOBenchmark(object):
                 
             self.framework.barrier()
             t0 = time()
+
+        # metric computation time hardcoded for now since we don't know how to simulate CPU compute time
+        metric_computation_time = 120
+        if metric_computation_time > 0 and self.steps_between_evals > 0:
+            self.framework.compute(epoch, step, metric_computation_time)
+
         return step - 1
 
     def _eval_during_epoch(self, epoch):
@@ -227,7 +239,8 @@ class DLIOBenchmark(object):
         # eval_num_samples = 5441*16384 = 89145344
         total = math.floor(self.eval_num_samples * self.num_files_eval / self.batch_size_eval) # Need to decide if keep comm_size
         t0 = time()
-        reader = self.framework.get_reader(DatasetType.VALID)
+        reader = self.framework.get_reader(DatasetType.VALID).read(epoch)
+        self.framework.barrier()
 
         for batch in reader.next():
             self.stats.eval_batch_loaded(epoch, step, t0)
@@ -259,7 +272,7 @@ class DLIOBenchmark(object):
         Training loop for reading the dataset and performing training computations.
         :return: returns total steps.
         """
-        block = 1   # A continuous period of training steps, ended by checkpointing
+        block = 1   # A continuous period of training steps, ended by checkpointing (and evluation???)
         block_step = overall_step = 1   # Steps are taken within blocks
         max_steps = math.floor(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
 
@@ -299,11 +312,6 @@ class DLIOBenchmark(object):
                 self.next_checkpoint_step += self.steps_between_checkpoints
             else:
                 block_step += 1
-
-            # Perform evaluation during epochs if required
-            # Assume that evaluation happens on all GPU
-            if overall_step % self.eval_every_step == 0:
-                self._eval_during_epoch()
         
             if overall_step >= max_steps or overall_step == self.total_training_steps:
                 self.framework.barrier()
@@ -312,6 +320,13 @@ class DLIOBenchmark(object):
                 if (block_step!=1 and self.do_checkpoint) or (not self.do_checkpoint):
                     self.stats.end_block(epoch, block, block_step-1)
                 break
+
+            # Perform evaluation during epochs if required
+            # Assume that evaluation happens on all GPU
+            if overall_step % self.steps_between_evals == 0:
+                self.stats.end_block(epoch, block, block_step)
+                self._eval()
+                self.stats.start_block(epoch, block)
                 
             overall_step += 1
             t0 = time()
