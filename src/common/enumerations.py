@@ -101,6 +101,7 @@ class DataLoaderType(Enum):
     """
     TENSORFLOW='tensorflow'
     PYTORCH='pytorch'
+    TERABYTE='terabyte'
     NONE='none'
     
     def __str__(self):

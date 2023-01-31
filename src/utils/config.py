@@ -88,6 +88,10 @@ class ConfigArguments:
     num_subfolders_eval: int = 0
     iostat_devices: ClassVar[List[str]] = []
 
+    # Added for supporting evaluation every few steps during one epoch
+    eval_every_step: int = 0
+    eval_num_samples_per_file: int = 1
+
     def __init__(self):
         """ Virtually private constructor. """
         if ConfigArguments.__instance is not None:
@@ -218,6 +222,10 @@ def LoadConfig(args, config):
             args.eval_after_epoch = config['evaluation']['eval_after_epoch']
         if 'epochs_between_evals' in config['evaluation']:
             args.epochs_between_evals = config['evaluation']['epochs_between_evals']
+        if 'eval_every_step' in config['evaluation']:
+            args.eval_every_step = config['evaluation']['eval_every_step']
+        if 'eval_num_samples_per_file' in config['evaluation']:
+            args.eval_num_samples_per_file = config['evaluation']['eval_num_samples_per_file']
 
     if 'checkpoint' in config:
         if 'checkpoint_folder' in config['checkpoint']:

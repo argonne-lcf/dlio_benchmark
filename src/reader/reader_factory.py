@@ -54,6 +54,10 @@ class ReaderFactory(object):
             from src.reader.torch_data_loader_reader import TorchDataLoaderReader
             return TorchDataLoaderReader(dataset_type)
         # Implement other data loader here
+        # Terabyte Dataloader added for supporting DLRM simulation
+        elif data_loader == DataLoaderType.TERABYTE:
+            from src.reader.terabyte_data_loader_reader import TeraBinLoaderReader
+            return TeraBinLoaderReader(dataset_type)
         else:
             print("Data Loader %s is not implemented" %data_loader)
             raise Exception(str(ErrorCodes.EC1004))

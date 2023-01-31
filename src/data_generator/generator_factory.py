@@ -40,7 +40,7 @@ class GeneratorFactory(object):
         elif type == FormatType.CSV:
             return CSVGenerator()
         elif type == FormatType.NPZ:
-            return NPZGenexxrator()
+            return NPZGenerator()
         elif type == FormatType.JPEG:
             return JPEGGenerator()
         elif type == FormatType.PNG:

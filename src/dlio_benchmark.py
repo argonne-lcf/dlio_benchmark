@@ -142,6 +142,9 @@ class DLIOBenchmark(object):
         self.eval_after_epoch = self.args.eval_after_epoch
         self.epochs_between_evals = self.args.epochs_between_evals
 
+        self.eval_every_step = self.args.eval_every_step
+        self.eval_num_samples = self.args.eval_num_samples_per_file
+
         # Hold various lists/dicts for statistics
         self.time_to_load_train_batch = []
         self.time_to_process_train_batch = []
@@ -213,6 +216,44 @@ class DLIOBenchmark(object):
             self.framework.barrier()
             t0 = time()
         return step - 1
+
+    def _eval_during_epoch(self, epoch):
+        """
+        Allows perform evaluation within a single epoch
+        Evaluation loop will read a separate dataset and has its own own computation time.
+        """
+
+        step = 1
+        # eval_num_samples = 5441*16384 = 89145344
+        total = math.floor(self.eval_num_samples * self.num_files_eval / self.batch_size_eval) # Need to decide if keep comm_size
+        t0 = time()
+        reader = self.framework.get_reader(DatasetType.VALID)
+
+        for batch in reader.next():
+            self.stats.eval_batch_loaded(epoch, step, t0)
+
+            if self.eval_time > 0:
+                if self.eval_time_stdev > 0:
+                    eval_time = random.normal(self.eval_time, self.eval_time_stdev)
+                else:
+                    eval_time = self.eval_time
+                self.framework.compute(epoch, step, eval_time)
+
+            self.stats.eval_batch_processed(epoch, step, t0)
+
+            step += 1
+            if step > total:
+                return step - 1
+                
+            self.framework.barrier()
+            t0 = time()
+
+        # metric computation time hardcoded for now since we don't know how to simulate CPU compute time
+        metric_computation_time = 120
+        if metric_computation_time > 0:
+            self.framework.compute(epoch, step, metric_computation_time)
+        return step - 1
+
     def _train(self, epoch):
         """
         Training loop for reading the dataset and performing training computations.
@@ -259,6 +300,11 @@ class DLIOBenchmark(object):
             else:
                 block_step += 1
 
+            # Perform evaluation during epochs if required
+            # Assume that evaluation happens on all GPU
+            if overall_step % self.eval_every_step == 0:
+                self._eval_during_epoch()
+        
             if overall_step >= max_steps or overall_step == self.total_training_steps:
                 self.framework.barrier()
                 if self.args.my_rank==0:
@@ -313,8 +359,6 @@ class DLIOBenchmark(object):
                 steps = self._train(epoch)
                 self.stats.end_epoch(epoch, steps)
                 logging.debug(f"{utcnow()} Rank {self.my_rank} returned after {steps} steps.")
-
-
 
                 self.framework.barrier()
                 self.framework.get_reader(DatasetType.TRAIN).finalize()

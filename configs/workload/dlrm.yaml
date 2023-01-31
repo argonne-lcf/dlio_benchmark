@@ -16,9 +16,11 @@ dataset:
   keep_files: True
   
 reader: 
-  data_loader: pytorch
+  data_loader: terabyte
   batch_size: 2048
   batch_size_eval: 16384
+  eval_every_step: 10240
+  eval_num_samples_per_file: 89145344
 
 train:
   epochs: 1
