@@ -73,6 +73,7 @@ class TFFramework(Framework):
     def trace_object(self, string, step, r):
         return tf.profiler.experimental.Trace(string, step_num=step, _r=r)
     
+    @perftrace.event_logging
     def checkpoint(self, epoch, step_number):
         """
         Performs Checkpointing for a specific step number. It writes different file of different sizes.

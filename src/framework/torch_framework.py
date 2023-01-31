@@ -78,6 +78,8 @@ class TorchFramework(Framework):
 
     def trace_object(self, string, step, r):
         return DummyTraceObject(string, step, r)
+
+    @perftrace.event_logging
     def checkpoint(self, epoch, step_number):
         if self.rank() == 0:
             """
