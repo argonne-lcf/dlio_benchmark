@@ -565,6 +565,8 @@ def main():
 
     parser.add_argument("-of", "--output-folder", default="./output", type=str,
                         help="Folder containing the output of a benchmark run.")
+    parser.add_argument("-hf", "--hydra-folder", default="./.hydra", type=str,
+                        help="Hydra folder containing configs")
     parser.add_argument("-np", "--num-proc", default=1, type=int,
                         help="Number of processes that were ran.")
     parser.add_argument("-e", "--epochs", default=1, type=int,
@@ -588,8 +590,8 @@ def main():
     args.num_proc = len(glob.glob(args.output_folder + "/*_load_and_proc_times.json"))
 
     # load the yaml file and override the command line argument
-    base_config = os.path.join(args.output_folder, "./.hydra/config.yaml")
-    override_config = os.path.join(args.output_folder, "./.hydra/overrides.yaml")
+    base_config = os.path.join(args.output_folder, args.hydra_folder, "config.yaml")
+    override_config = os.path.join(args.output_folder, args.hydra_folder, "overrides.yaml")
     with open(base_config) as f:
         hydra_config  = yaml.load(f, Loader=SafeLoader)
     LoadConfig(args, hydra_config['workload'])
