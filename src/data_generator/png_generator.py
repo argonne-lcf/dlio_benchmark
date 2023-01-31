@@ -22,7 +22,7 @@ import logging
 import numpy as np
 from numpy import random
 
-from src.utils.utility import progress, utcnow
+from src.utils.utility import progress, utcnow, perftrace
 from shutil import copyfile
 import PIL.Image as im
 

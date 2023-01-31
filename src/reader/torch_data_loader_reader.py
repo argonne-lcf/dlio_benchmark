@@ -20,7 +20,7 @@ import numpy as np
 from time import time
 import os
 
-from src.utils.utility import utcnow, timeit
+from src.utils.utility import utcnow, timeit, perftrace
 
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.distributed import DistributedSampler

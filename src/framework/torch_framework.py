@@ -23,7 +23,7 @@ import os
 import torch
 import functools
 import logging
-from src.utils.utility import utcnow
+from src.utils.utility import utcnow, perftrace
 
 from time import sleep
 
