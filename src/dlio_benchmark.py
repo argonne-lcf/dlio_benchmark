@@ -185,6 +185,7 @@ class DLIOBenchmark(object):
                 logging.info(f"{utcnow()} Profiling Started with {self.args.profiler}")
         self.framework.init_reader(self.args.format, self.args.data_loader)
         self.framework.barrier()
+        self.total_compute_time = 0.0
 
     @perftrace.event_logging
     def _eval(self, epoch):
@@ -195,6 +196,8 @@ class DLIOBenchmark(object):
         total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         t0 = time() 
         reader = self.framework.get_reader(DatasetType.VALID)
+        total_compute_time = 0.0
+        start_time = time()
         for batch in reader.next():
             perftrace.event_complete(f"loading_batch: {self.batch_size_eval}", "reader", t0, time() - t0)
             self.stats.eval_batch_loaded(epoch, step, t0)
@@ -204,16 +207,21 @@ class DLIOBenchmark(object):
                     eval_time = random.normal(self.eval_time, self.eval_time_stdev)
                 else:
                     eval_time = self.eval_time
+                total_compute_time += eval_time
                 self.framework.compute(epoch, step, eval_time)
 
             self.stats.eval_batch_processed(epoch, step, t0)
 
             step += 1
             if step > total:
-                return step - 1
+                break
                 
             self.framework.barrier()
             t0 = time()
+        end_time = time()
+        self.total_compute_time += total_compute_time
+        if self.my_rank == 0:            
+            logging.info(f"{utcnow()} Epoch {epoch} [evaluation] accelerator_under_utilization: {(end_time - start_time - total_compute_time) / total_compute_time}")
         return step - 1
     @perftrace.event_logging
     def _train(self, epoch):
@@ -224,11 +232,13 @@ class DLIOBenchmark(object):
         block = 1   # A continuous period of training steps, ended by checkpointing
         block_step = overall_step = 1   # Steps are taken within blocks
         max_steps = math.floor(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
-
         # Start the very first block
         self.stats.start_block(epoch, block)
         t0 = time()
         reader = self.framework.get_reader(dataset_type=DatasetType.TRAIN)
+
+        total_compute_time = 0.0
+        start_time = time()
         for batch in reader.next():
             perftrace.event_complete(f"loading_batch: {self.batch_size}", "reader", t0, time() - t0)
             self.stats.batch_loaded(epoch, overall_step, block, t0)
@@ -243,6 +253,7 @@ class DLIOBenchmark(object):
                     computation_time = random.normal(self.computation_time, self.computation_time_stdev)
                 else:
                     computation_time = self.computation_time
+                total_compute_time += computation_time
                 self.framework.compute(epoch, block_step, computation_time)
             self.framework.barrier()
 
@@ -280,7 +291,10 @@ class DLIOBenchmark(object):
             self.stats.end_ckpt(epoch, block)
             self.framework.barrier()
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
-        
+        end_time = time()
+        self.total_compute_time += total_compute_time
+        if self.my_rank == 0:            
+            logging.info(f"{utcnow()} Epoch {epoch} [training] accelerator_under_utilization: {(end_time - start_time - total_compute_time) / total_compute_time}")
         return overall_step
 
     def run(self):
@@ -336,7 +350,7 @@ class DLIOBenchmark(object):
 
                     self.framework.barrier()
                     self.framework.get_reader(DatasetType.VALID).finalize()
-
+        self.stop_timestamp=time()
     def finalize(self):
         """
         It finalizes the dataset once training is completed.
@@ -360,6 +374,11 @@ class DLIOBenchmark(object):
             # Save collected stats to disk
             self.stats.save_data()
         self.framework.barrier()
+        total_elapsed_time = self.stop_timestamp - self.start_timestamp
+
+        if self.my_rank == 0:            
+            logging.info(f"{utcnow()} Overall accelerator_under_utilization: {(total_elapsed_time - self.total_compute_time) / self.total_compute_time}")
+ 
         if self.my_rank==0:
             logging.info(f"{utcnow()} Saved outputs in {self.output_folder}")        
 
