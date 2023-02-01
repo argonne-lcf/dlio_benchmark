@@ -158,6 +158,8 @@ class DLIOBenchmark(object):
         # Indexed by epoch number, contains start-end timestamps and other information
         self.per_epoch_stats = {}
         self.stats = StatsCounter()
+        self.total_compute_time = 0.0
+
     def initialize(self):
         """
         Initializes the benchmark runtime.
@@ -376,7 +378,7 @@ class DLIOBenchmark(object):
         self.framework.barrier()
         total_elapsed_time = self.stop_timestamp - self.start_timestamp
 
-        if self.my_rank == 0:            
+        if self.my_rank == 0 and self.total_compute_time >0.:            
             logging.info(f"{utcnow()} Overall accelerator_under_utilization: {(total_elapsed_time - self.total_compute_time) / self.total_compute_time}")
  
         if self.my_rank==0:
