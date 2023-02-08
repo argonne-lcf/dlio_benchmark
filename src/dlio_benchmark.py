@@ -222,7 +222,7 @@ class DLIOBenchmark(object):
             t0 = time()
         end_time = time()
         self.total_compute_time += total_compute_time
-        if self.my_rank == 0:            
+        if self.my_rank == 0 and total_compute_time >0.:            
             logging.info(f"{utcnow()} Epoch {epoch} [evaluation] accelerator_under_utilization: {(end_time - start_time - total_compute_time) / total_compute_time}")
         return step - 1
     @perftrace.event_logging
@@ -295,7 +295,7 @@ class DLIOBenchmark(object):
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
         end_time = time()
         self.total_compute_time += total_compute_time
-        if self.my_rank == 0:            
+        if self.my_rank == 0 and total_compute_time >0.0:            
             logging.info(f"{utcnow()} Epoch {epoch} [training] accelerator_under_utilization: {(end_time - start_time - total_compute_time) / total_compute_time}")
         return overall_step
 
