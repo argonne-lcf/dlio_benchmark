@@ -69,8 +69,8 @@ class TeraBinLoaderReader(FormatReader):
 
     def __init__(self, dataset_type):
         super().__init__(dataset_type)
-        self.read_threads = self._arg_parser.args.read_threads
-        self.computation_threads = self._arg_parser.args.computation_threads
+        # self.read_threads = self._arg_parser.args.read_threads
+        # self.computation_threads = self._arg_parser.args.computation_threads
 
     def read(self, epoch_number):
         # superclass function initializes the file list

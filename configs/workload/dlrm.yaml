@@ -7,7 +7,7 @@ workflow:
   train: True
 
 dataset: 
-  data_folder: /data/dlrm
+  data_folder: data/dlrm
   format: bin
   num_files_train: 1
   num_files_eval: 1
