@@ -54,7 +54,7 @@ class TFRecordGenerator(DataGenerator):
                     img_bytes = record.tobytes()
                     data = {
                         'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img_bytes])),
-                        'label': tf.train.Feature(int64_list=tf.train.Int64List(value=[record_label]))
+                        'size': tf.train.Feature(int64_list=tf.train.Int64List(value=[self._dimension]))
                     }
                     # Wrap the data as TensorFlow Features.
                     feature = tf.train.Features(feature=data)

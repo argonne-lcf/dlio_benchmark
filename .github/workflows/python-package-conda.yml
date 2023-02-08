@@ -26,48 +26,58 @@ jobs:
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_gen_data
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_gen_data -v
     - name: test_custom_storage_root_gen_data
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_storage_root_gen_data
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_storage_root_gen_data  -v
     - name: test_train
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_train
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[png-tensorflow] -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[npz-tensorflow] -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[jpeg-tensorflow] -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[tfrecord-tensorflow] -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[hdf5-tensorflow] -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[csv-tensorflow] -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[png-pytorch] -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[npz-pytorch] -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[jpeg-pytorch] -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[hdf5-pytorch] -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[csv-pytorch] -v
     - name: test_custom_storage_root_train
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_custom_storage_root_train
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_custom_storage_root_train -v
     - name: test_checkpoint_epoch
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_checkpoint_epoch              
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_checkpoint_epoch -v
     - name: test_checkpoint_step
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_checkpoint_step
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_checkpoint_step -v
     - name: test_eval
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_eval
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_eval -v
     - name: test_multi_threads
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_multi_threads
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads -v
     - name: test-tf-loader-tfrecord
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        RDMAV_FORK_SAFE=1 mpirun -n 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=False ++workload.workflow.generate_data=True  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
-        RDMAV_FORK_SAFE=1 mpirun -n 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=True ++workload.workflow.generate_data=False  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=False ++workload.workflow.generate_data=True  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=True ++workload.workflow.generate_data=False  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
         output=`ls -d ./hydra_log/resnet50/* | tail -1`
         python ./src/dlio_postprocessor.py --output-folder=${output}
         cat ${output}/*.txt
@@ -75,17 +85,11 @@ jobs:
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        RDMAV_FORK_SAFE=1 mpirun -n 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=4
-        RDMAV_FORK_SAFE=1 mpirun -n 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=4
-        output=`ls -d ./hydra_log/unet3d/* | tail -1`
-        python ./src/dlio_postprocessor.py --output-folder=${output}
-        cat ${output}/*.txt
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=4 ++workload.dataset.num_files_eval=4
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=4 ++workload.dataset.num_files_eval=4
     - name: test-tf-loader-npz
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        RDMAV_FORK_SAFE=1 mpirun -n 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=4
-        RDMAV_FORK_SAFE=1 mpirun -n 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=4
-        output=`ls -d ./hydra_log/unet3d/* | tail -1`
-        python ./src/dlio_postprocessor.py --output-folder=${output}
-        cat ${output}/*.txt
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=4 ++workload.dataset.num_files_eval=4
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=4 ++workload.dataset.num_files_eval=4

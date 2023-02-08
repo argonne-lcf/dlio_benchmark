@@ -34,8 +34,8 @@ class PNGGenerator(DataGenerator):
         Generator for creating data in PNG format of 3d dataset.
         """
         super().generate()
-        dim = int(np.sqrt(self.record_size/3.0))
-        dim_stdev = np.sqrt(self.record_size_stdev/3.0)
+        dim = int(np.sqrt(self.record_size))
+        dim_stdev = np.sqrt(self.record_size_stdev)
         record_labels = [0] 
         if self.my_rank==0:
             logging.info(f"{utcnow()} Dimension of images: {dim} x {dim} x 3")
@@ -45,7 +45,7 @@ class PNGGenerator(DataGenerator):
             else:
                 dim1 = dim2 = dim
             out_path_spec = self.storage.get_uri(self._file_list[i])
-            records = random.randint(255, size=(dim1, dim2, 3), dtype=np.uint8)
+            records = random.randint(255, size=(dim1, dim2), dtype=np.uint8)
             img = im.fromarray(records)
             if self.my_rank == 0 and i % 100 == 0:
                 logging.info(f"Generated file {i}/{self.total_files_to_generate}")
