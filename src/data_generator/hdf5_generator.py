@@ -17,7 +17,6 @@
 
 import h5py
 from numpy import random
-import math
 
 from src.common.enumerations import Compression
 from src.data_generator.data_generator import DataGenerator

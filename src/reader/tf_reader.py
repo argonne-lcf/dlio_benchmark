@@ -18,8 +18,10 @@ import math
 import logging
 from time import time
 
+import numpy as np
+
 from src.utils.utility import utcnow, timeit
-from src.common.enumerations import Shuffle
+from src.common.enumerations import Shuffle, DatasetType
 from src.reader.reader_handler import FormatReader
 import tensorflow as tf
 
@@ -27,6 +29,7 @@ class TFReader(FormatReader):
     """
     Reader for TFRecord files.
     """
+
     def __init__(self, dataset_type):
         super().__init__(dataset_type)
         self.read_threads = self._args.read_threads
@@ -34,7 +37,7 @@ class TFReader(FormatReader):
         # We read the full _file_list here instead of _local_file_list
         # because we will shard the data using the tf.data function
 
-    # TODO: DLIO assumes the tfrecord files to contain image/label pairs.
+        # TODO: DLIO assumes the tfrecord files to contain image/label pairs.
     # This is not always the case, e.g. in BERT, each record is more complex,
     # consisting of 6 lists and a label. Same for DLRM.
     def _tf_parse_function(self, serialized):
@@ -46,20 +49,22 @@ class TFReader(FormatReader):
         features = \
             {
                 'image': tf.io.FixedLenFeature([], tf.string),
-                'label': tf.io.FixedLenFeature([], tf.int64)
+                'size': tf.io.FixedLenFeature([], tf.int64)
             }
         # Parse the serialized data so we get a dict with our data.
         parsed_example = tf.io.parse_single_example(serialized=serialized,
                                                     features=features)
         # Get the image as raw bytes.
-        dimention = int(math.sqrt(self.record_size))
-        image_shape = tf.stack([dimention, dimention, 1])
         image_raw = parsed_example['image']
-        label = tf.cast(parsed_example['label'], tf.float32)
+        dimension = parsed_example['size']
         # Decode the raw bytes so it becomes a tensor with type.
-        image = tf.io.decode_raw(image_raw, tf.uint8)
-        d = image, label
-        return d
+        image_tensor = tf.io.decode_raw(image_raw, tf.float64)
+        #image_tensor = tf.io.decode_image(image_raw)
+        resized_image = tf.reshape(image_tensor, [dimension , dimension])
+        pad_image = tf.pad(resized_image, ((0, self.max_dimension-dimension),(0, self.max_dimension-dimension)))
+        #resized_image = tf.image.resize_with_pad(image_tensor, self.max_dimension, self.max_dimension)
+
+        return pad_image
 
     def read(self, epoch_number):
         """
@@ -70,30 +75,15 @@ class TFReader(FormatReader):
         """
         # superclass function initializes the file list
         super().read(epoch_number)
-        if self.read_threads==0:
-            if self._args.my_rank==0:
-                logging.warning(f"{utcnow()} `read_threads` is set to be 0 for tf.data loader. We change it to tf.data.AUTOTUNE")
-            self.read_threads=tf.data.AUTOTUNE
-        if (self.transfer_size !=None):
-            dataset = tf.data.TFRecordDataset(filenames=self._file_list,
-                                            buffer_size=self.transfer_size,
-                                            num_parallel_reads=self.read_threads)
+        if self.transfer_size is not None:
+            self._dataset = tf.data.TFRecordDataset(filenames=self._file_list,
+                                                    buffer_size=self.transfer_size)
         else:
-            dataset = tf.data.TFRecordDataset(filenames=self._file_list,
-                                            num_parallel_reads=self.read_threads)            
-        dataset = dataset.shard(num_shards=self.comm_size, index=self.my_rank)
-        dataset = dataset.map(self._tf_parse_function, num_parallel_calls=self.computation_threads)
+            self._dataset = tf.data.TFRecordDataset(filenames=self._file_list)
 
-        if self.sample_shuffle != Shuffle.OFF:
-            if self.sample_shuffle == Shuffle.SEED:
-                dataset = dataset.shuffle(buffer_size=self.shuffle_size,
-                                          seed=self.seed)
-            else:
-                dataset = dataset.shuffle(buffer_size=self.shuffle_size)
-        self._dataset = dataset.batch(self.batch_size, drop_remainder=True)
-        
-        if self.prefetch_size>0:
-            self._dataset = dataset.prefetch(buffer_size=self.prefetch_size)
+        self._dataset = self._dataset.map(self._tf_parse_function, num_parallel_calls=self.computation_threads)
+        self._dataset = self._dataset.batch(self.batch_size, drop_remainder=True)
+        self.after_read()
 
     def next(self):
         """
@@ -104,13 +94,20 @@ class TFReader(FormatReader):
 
         # In tf, we can't get the length of the dataset easily so we calculate it
         if self._debug:
-            total = math.floor(self.num_samples*len(self._file_list)/self.batch_size/self.comm_size)
+            total = math.floor(self.num_samples * len(self._file_list) / self.batch_size / self.comm_size)
             logging.debug(f"{utcnow()} Rank {self.my_rank} should read {total} batches")
 
         # The previous version crashed when all workers could not generate the same amount of batches
         # Using the inbuilt tensorflow dataset iteration seems to work fine, was there an advantage of doing it the old way?
         for batch in self._dataset:
-            yield batch
+            yield 0, batch
 
-    def finalize(self):
+    def read_index(self, index):
         pass
+
+    def get_sample_len(self):
+        if self.dataset_type is DatasetType.TRAIN:
+            return self.num_samples * self.num_files_train
+        elif self.dataset_type is DatasetType.VALID:
+            return self.num_samples * self.num_files_eval
+        return 1

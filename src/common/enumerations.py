@@ -59,6 +59,19 @@ class DatasetType(Enum):
     def __str__(self):
         return self.value
 
+    @staticmethod
+    def get_enum(value):
+        if DatasetType.TRAIN.value == value:
+            return DatasetType.TRAIN
+        elif DatasetType.VALID.value == value:
+            return DatasetType.VALID
+
+    @staticmethod
+    def get_enum(value):
+        if DatasetType.TRAIN.value == value:
+            return DatasetType.TRAIN
+        elif DatasetType.VALID.value == value:
+            return DatasetType.VALID
 
 class FrameworkType(Enum):
     """
@@ -93,6 +106,58 @@ class FormatType(Enum):
 
     def __str__(self):
         return self.value
+
+    @ staticmethod
+    def get_enum(value):
+        if FormatType.TFRECORD.value == value:
+            return FormatType.TFRECORD
+        elif FormatType.HDF5.value == value:
+            return FormatType.HDF5
+        elif FormatType.CSV.value == value:
+            return FormatType.CSV
+        elif FormatType.NPZ.value == value:
+            return FormatType.NPZ
+        elif FormatType.HDF5_OPT.value == value:
+            return FormatType.HDF5_OPT
+        elif FormatType.JPEG.value == value:
+            return FormatType.JPEG
+        elif FormatType.PNG.value == value:
+            return FormatType.PNG
+
+
+    @staticmethod
+    def get_enum(value):
+        if FormatType.TFRECORD.value == value:
+            return FormatType.TFRECORD
+        elif FormatType.HDF5.value == value:
+            return FormatType.HDF5
+        elif FormatType.CSV.value == value:
+            return FormatType.CSV
+        elif FormatType.NPZ.value == value:
+            return FormatType.NPZ
+        elif FormatType.HDF5_OPT.value == value:
+            return FormatType.HDF5_OPT
+        elif FormatType.JPEG.value == value:
+            return FormatType.JPEG
+        elif FormatType.PNG.value == value:
+            return FormatType.PNG
+
+    @staticmethod
+    def get_enum(value):
+        if FormatType.TFRECORD.value == value:
+            return FormatType.TFRECORD
+        elif FormatType.HDF5.value == value:
+            return FormatType.HDF5
+        elif FormatType.CSV.value == value:
+            return FormatType.CSV
+        elif FormatType.NPZ.value == value:
+            return FormatType.NPZ
+        elif FormatType.HDF5_OPT.value == value:
+            return FormatType.HDF5_OPT
+        elif FormatType.JPEG.value == value:
+            return FormatType.JPEG
+        elif FormatType.PNG.value == value:
+            return FormatType.PNG
 
 class DataLoaderType(Enum):
     """
@@ -156,6 +221,12 @@ class FileAccess(Enum):
     def __str__(self):
         return self.value
 
+    @staticmethod
+    def get_enum(value):
+        if DatasetType.TRAIN.value == value:
+            return DatasetType.TRAIN
+        elif DatasetType.VALID.value == value:
+            return DatasetType.VALID
 
 class Compression(Enum):
     """

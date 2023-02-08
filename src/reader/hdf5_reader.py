@@ -14,8 +14,9 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+import logging
 
-from src.common.enumerations import Shuffle, FileAccess
+from src.common.enumerations import Shuffle, FileAccess, ReadType
 from src.reader.reader_handler import FormatReader
 import h5py
 import math
@@ -23,11 +24,13 @@ from numpy import random
 import numpy as np
 from time import sleep
 
-from src.utils.utility import progress
+from src.utils.utility import progress, utcnow
 
 """
 Reader for HDF5 files for training file.
 """
+
+
 class HDF5Reader(FormatReader):
     def __init__(self, dataset_type):
         super().__init__(dataset_type)
@@ -38,23 +41,20 @@ class HDF5Reader(FormatReader):
         :param epoch_number: epoch number for training loop
         """
         super().read(epoch_number)
-        packed_array = []
-        count = 1
+        self._dataset = []
         for file in self._local_file_list:
-            progress(count, len(self._local_file_list), "Opening HDF5 Data")
-            count += 1
-            file_h5 = h5py.File(file, 'r')
-            dimention = int(math.sqrt(self.record_size))
-            sample = (dimention, dimention)
-            dataset_h = file_h5['records']
-            current_sample = 0
-            packed_array.append({
+            val = {
                 'file': file,
-                'sample': sample,
-                'current_sample': current_sample
-            })
-            file_h5.close()
-        self._dataset = packed_array
+                'data': None,
+                'fp': None
+            }
+            if self.read_type == ReadType.IN_MEMORY:
+                file_h5 = h5py.File(file, 'r')
+                dataset = file_h5['records']
+                val['fp'] = file_h5
+                val['data'] = dataset[:]
+            self._dataset.append(val)
+        self.after_read()
 
     def next(self):
         """
@@ -63,36 +63,61 @@ class HDF5Reader(FormatReader):
         :return: portion of dataset to be used in step.
         """
         super().next()
-        total = 0
-        count = 1
-        for element in self._dataset:
-            file_h5 = h5py.File(element['file'], 'r')
-            dataset = file_h5['records']
-            total_samples = dataset.shape[0]
+        total = int(math.ceil(self.get_sample_len() / self.batch_size))
+        count = 0
+        batch = []
+        for index in range(len(self._dataset)):
+            if self._dataset[index]["data"] is None:
+                file_h5 = h5py.File(self._dataset[index]["file"], 'r')
+                self._dataset[index]["fp"] = file_h5
+                self._dataset[index]["data"] = file_h5['records']
+            total_samples = self._dataset[index]["data"].shape[0]
             if FileAccess.MULTI == self.file_access:
                 # for multiple file access the whole file would read by each process.
-                num_sets = list(range(0, int(math.ceil(total_samples/self.batch_size))))
+                total_samples_per_rank = total_samples
+                sample_index_list = list(range(0, total_samples))
             else:
-                # for shared file access a part of file would be read by each process.
                 total_samples_per_rank = int(total_samples / self.comm_size)
-                part_start, part_end = (int(total_samples_per_rank*self.my_rank/self.batch_size), int(total_samples_per_rank*(self.my_rank+1)/self.batch_size))
-                num_sets = list(range(part_start, part_end))
-            total += len(num_sets)
-            if self.sample_shuffle != Shuffle.OFF:
-                if self.sample_shuffle == Shuffle.SEED:
-                    random.seed(self.seed)
-                random.shuffle(num_sets)
-            for num_set in num_sets:
-                with self.framework.trace_object('Read', num_set / self.batch_size, 1):
-                    progress(count, total, "Reading HDF5 Data")
-                    count += 1
-                    images = dataset[num_set * self.batch_size:(num_set + 1) * self.batch_size]
-                resized_images = []
-                with self.framework.trace_object('Resize', num_set / self.batch_size, 1):
-                    for image in images:
-                        resized_images.append(np.resize(image,(self._dimension,self._dimension)))
-                    sleep(.001)
-                yield resized_images
+                part_start, part_end = (int(total_samples_per_rank * self.my_rank),
+                                        int(total_samples_per_rank * (self.my_rank + 1)))
+                sample_index_list = list(range(part_start, part_end))
+            for sample_index in sample_index_list:
+                count += 1
+                logging.info(f"{utcnow()} num_set {sample_index} current batch_size {len(batch)}")
+                my_image = self._dataset[index]["data"][sample_index]
+                logging.debug(f"{utcnow()} shape of image {my_image.shape} self.max_dimension {self.max_dimension}")
+                my_image_resized = np.resize(my_image, (self.max_dimension, self.max_dimension))
+                logging.debug(f"{utcnow()} new shape of image {my_image_resized.shape}")
+                batch.append(my_image_resized)
+                is_last = 0 if count < total else 1
+                if is_last:
+                    self._dataset[index]["fp"].close()
+                    while len(batch) is not self.batch_size:
+                        batch.append(np.random.rand(self.max_dimension, self.max_dimension))
+                if len(batch) == self.batch_size:
+                    batch = np.array(batch)
+                    yield is_last, batch
+                    batch = []
+            self._dataset[index]["fp"].close()
+
+    def read_index(self, index):
+        file_index = math.floor(index / self.num_samples)
+        element_index = index % self.num_samples
+        if self._dataset[file_index]["data"] is None:
+            file_h5 = h5py.File(self._dataset[file_index]["file"], 'r')
+            self._dataset[file_index]["fp"] = file_h5
+            self._dataset[file_index]["data"] = file_h5['records']
+        my_image = self._dataset[file_index]["data"][:][:][element_index:element_index + 1]
+        my_image_resized = np.resize(my_image, (self.max_dimension, self.max_dimension))
+        logging.debug(f"{utcnow()} new shape of image {my_image_resized.shape}")
+        self._dataset[file_index]["fp"].close()
+        return my_image
+
+    def get_sample_len(self):
+        total_samples = 0
+        for element in self._dataset:
+            file_h5 = h5py.File(element["file"], 'r')
+            dataset = file_h5['records']
+            total_samples = total_samples + dataset.shape[0]
             file_h5.close()
-    def finalize(self):
-        pass
+        return total_samples
