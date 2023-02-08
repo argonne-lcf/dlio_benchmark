@@ -24,36 +24,29 @@ class ReaderFactory(object):
         pass
 
     @staticmethod
-    def get_reader(type, data_loader, dataset_type):
+    def get_reader(type, dataset_type):
         """
         This function set the data reader based on the data format and the data loader specified. 
         """
-        if data_loader==DataLoaderType.NONE:
-            if type == FormatType.HDF5:
-                from src.reader.hdf5_reader import HDF5Reader
-                return HDF5Reader(dataset_type)
-            elif type == FormatType.HDF5_OPT:
-                from src.reader.hdf5_stimulate import HDF5StimulateReader
-                return HDF5StimulateReader(dataset_type)
-            elif type == FormatType.CSV:
-                from src.reader.csv_reader import CSVReader
-                return CSVReader(dataset_type)
-            elif type == FormatType.NPZ:
-                from src.reader.npz_reader import NPZReader
-                return NPZReader(dataset_type)
-            else:
-                print("Loading data of %s format is not supported without framework data loader" %type)
-                raise Exception(str(ErrorCodes.EC1004))
-        elif data_loader == DataLoaderType.TENSORFLOW:
-            if type == FormatType.TFRECORD:
-                from src.reader.tf_reader import TFReader
-                return TFReader(dataset_type)
-            from src.reader.tf_data_loader_reader import TFDataLoaderReader
-            return TFDataLoaderReader(dataset_type)
-        elif data_loader == DataLoaderType.PYTORCH:
-            from src.reader.torch_data_loader_reader import TorchDataLoaderReader
-            return TorchDataLoaderReader(dataset_type)
-        # Implement other data loader here
+
+        if type == FormatType.HDF5:
+            from src.reader.hdf5_reader import HDF5Reader
+            return HDF5Reader(dataset_type)
+        elif type == FormatType.CSV:
+            from src.reader.csv_reader import CSVReader
+            return CSVReader(dataset_type)
+        elif type == FormatType.JPEG:
+            from src.reader.jpeg_reader import JPEGReader
+            return JPEGReader(dataset_type)
+        elif type == FormatType.PNG:
+            from src.reader.png_reader import PNGReader
+            return PNGReader(dataset_type)
+        elif type == FormatType.NPZ:
+            from src.reader.npz_reader import NPZReader
+            return NPZReader(dataset_type)
+        elif type == FormatType.TFRECORD:
+            from src.reader.tf_reader import TFReader
+            return TFReader(dataset_type)
         else:
-            print("Data Loader %s is not implemented" %data_loader)
-            raise Exception(str(ErrorCodes.EC1004))
+            print("Loading data of %s format is not supported without framework data loader" %type)
+            raise Exception(type)

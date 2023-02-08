@@ -81,7 +81,9 @@ class TestDLIOBenchmark(unittest.TestCase):
                     logging.info(f" DLIO test for generating {fmt} dataset")
                     logging.info("="*80)
                 with initialize(version_base=None, config_path="../configs"):
-                    cfg = compose(config_name='config', overrides=['++workload.workflow.train=False', \
+                    cfg = compose(config_name='config', overrides=['++workload.framework=tensorflow',
+                                                                   '++workload.reader.data_loader=tensorflow',
+                                                                   '++workload.workflow.train=False',
                                                                    '++workload.workflow.generate_data=True',
                                                                    f"++workload.dataset.format={fmt}"])
                     benchmark=self.run_benchmark(cfg, verify=False)
@@ -105,7 +107,9 @@ class TestDLIOBenchmark(unittest.TestCase):
                     logging.info(f" DLIO test for generating {fmt} dataset")
                     logging.info("="*80)
                 with initialize(version_base=None, config_path="../configs"):
-                    cfg = compose(config_name='config', overrides=['++workload.workflow.train=False', \
+                    cfg = compose(config_name='config', overrides=['++workload.framework=tensorflow',
+                                                                   '++workload.reader.data_loader=tensorflow',
+                                                                   '++workload.workflow.train=False',
                                                                    '++workload.workflow.generate_data=True',
                                                                    f"++workload.storage.storage_root={storage_root}",
                                                                    f"++workload.dataset.format={fmt}"])

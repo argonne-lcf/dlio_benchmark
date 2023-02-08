@@ -183,7 +183,7 @@ class DLIOBenchmark(object):
             self.framework.barrier()
             if self.args.my_rank == 0:
                 logging.info(f"{utcnow()} Profiling Started with {self.args.profiler}")
-        self.framework.init_reader(self.args.format, self.args.data_loader)
+        self.framework.init_loader(self.args.format, self.args.data_loader)
         self.framework.barrier()
         self.total_compute_time = 0.0
     
@@ -194,10 +194,10 @@ class DLIOBenchmark(object):
         step = 1
         total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         t0 = time() 
-        reader = self.framework.get_reader(DatasetType.VALID)
+        loader = self.framework.get_loader(DatasetType.VALID)
         total_compute_time = 0.0
         start_time = time()
-        for batch in reader.next():
+        for batch in loader.next():
             self.stats.eval_batch_loaded(epoch, step, t0)
 
             if self.eval_time > 0:
@@ -232,11 +232,12 @@ class DLIOBenchmark(object):
         # Start the very first block
         self.stats.start_block(epoch, block)
         t0 = time()
-        reader = self.framework.get_reader(dataset_type=DatasetType.TRAIN)
+        loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
+        loader.read(epoch_number=epoch)
 
         total_compute_time = 0.0
         start_time = time()
-        for batch in reader.next():
+        for batch in loader.next():
             logging.debug(f"{utcnow()} Rank {self.my_rank} batch: {batch[:][1:]}")
             self.stats.batch_loaded(epoch, overall_step, block, t0)
             self.framework.barrier()
@@ -320,7 +321,7 @@ class DLIOBenchmark(object):
                 self.stats.start_epoch(epoch)
 
                 # Initialize the dataset
-                self.framework.get_reader(dataset_type=DatasetType.TRAIN).read(epoch)
+                self.framework.get_loader(dataset_type=DatasetType.TRAIN)
                 self.framework.barrier()
 
                 steps = self._train(epoch)
@@ -330,7 +331,7 @@ class DLIOBenchmark(object):
 
 
                 self.framework.barrier()
-                self.framework.get_reader(DatasetType.TRAIN).finalize()
+                self.framework.get_loader(DatasetType.TRAIN).finalize()
 
                 # Perform evaluation if enabled
                 if self.do_eval and epoch >= next_eval_epoch:
@@ -339,14 +340,14 @@ class DLIOBenchmark(object):
                     self.stats.start_eval(epoch)
                 
                     # Initialize the eval dataset
-                    self.framework.get_reader(DatasetType.VALID).read(epoch)
+                    self.framework.get_loader(DatasetType.VALID).read(epoch)
                     self.framework.barrier()
                     
                     self._eval(epoch)
                     self.stats.end_eval(epoch)
 
                     self.framework.barrier()
-                    self.framework.get_reader(DatasetType.VALID).finalize()
+                    self.framework.get_loader(DatasetType.VALID).finalize()
         self.stop_timestamp=time()
     def finalize(self):
         """

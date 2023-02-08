@@ -46,7 +46,7 @@ class Framework(ABC):
         pass
 
     @abstractmethod
-    def init_reader(self, format_type, data_loader=None):
+    def init_loader(self, format_type, data_loader=None):
         pass
 
     @abstractmethod 
@@ -85,7 +85,7 @@ class Framework(ABC):
         pass
 
     @abstractmethod
-    def get_reader(self, dataset_type):
+    def get_loader(self, dataset_type):
         pass
 
     @abstractmethod

@@ -16,7 +16,8 @@
 """
 
 from src.common.error_code import ErrorCodes
-from src.common.enumerations import FormatType, FrameworkType, DatasetType
+from src.common.enumerations import FormatType, FrameworkType, DatasetType, DataLoaderType
+from src.data_loader.data_loader_factory import DataLoaderFactory
 from src.framework.framework import Framework, DummyTraceObject
 
 import os
@@ -55,9 +56,9 @@ class TorchFramework(Framework):
         self.profiling = profiling
         self.reader_handler = None
 
-    def init_reader(self, format_type, data_loader=None):
-        self.reader_train = ReaderFactory.get_reader(format_type, data_loader=data_loader, dataset_type=DatasetType.TRAIN)
-        self.reader_valid = ReaderFactory.get_reader(format_type, data_loader=data_loader, dataset_type=DatasetType.VALID)
+    def init_loader(self, format_type, data_loader=None):
+        self.reader_train = DataLoaderFactory.get_loader(DataLoaderType.PYTORCH, format_type, dataset_type=DatasetType.TRAIN)
+        self.reader_valid = DataLoaderFactory.get_loader(DataLoaderType.PYTORCH, format_type, dataset_type=DatasetType.VALID)
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
 
     def get_type(self):
@@ -95,7 +96,7 @@ class TorchFramework(Framework):
     def compute(self, epoch_number, step, computation_time):
         torch_sleep(computation_time)
 
-    def get_reader(self, dataset_type=DatasetType.TRAIN):
+    def get_loader(self, dataset_type=DatasetType.TRAIN):
         if dataset_type == DatasetType.TRAIN:
             return self.reader_train
         else:

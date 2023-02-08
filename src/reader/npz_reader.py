@@ -58,30 +58,55 @@ class NPZReader(FormatReader):
         :return: piece of data for training.
         """
         super().next()
-        total = 0
-        count = 1
+        total = int(math.ceil(self.get_sample_len() / self.batch_size))
+        count = 0
+        batch = []
         for element in self._dataset:
             current_index = element['current_sample']
             total_samples = element['total_samples']
             if FileAccess.MULTI == self.file_access:
-                num_sets = list(range(0, int(math.ceil(total_samples / self.batch_size))))
+                # for multiple file access the whole file would read by each process.
+                total_samples_per_rank = total_samples
+                sample_index_list = list(range(0, total_samples))
             else:
                 total_samples_per_rank = int(total_samples / self.comm_size)
-                part_start, part_end = (int(total_samples_per_rank * self.my_rank / self.batch_size),
-                                        int(total_samples_per_rank * (self.my_rank + 1) / self.batch_size))
-                num_sets = list(range(part_start, part_end))
-            total += len(num_sets)
+                part_start, part_end = (int(total_samples_per_rank * self.my_rank),
+                                        int(total_samples_per_rank * (self.my_rank + 1)))
+                sample_index_list = list(range(part_start, part_end))
+
             if self.sample_shuffle != Shuffle.OFF:
                 if self.sample_shuffle == Shuffle.SEED:
                     random.seed(self.seed)
-                random.shuffle(num_sets)
-            for num_set in num_sets:
-                # Should we check if profiling is enabled and if we're using PT?
-                with tf.profiler.experimental.Trace('HDF5 Input', step_num=num_set / self.batch_size, _r=1):
-                    progress(count, total, "Reading NPZ Data")
-                    count += 1
-                    images = element['dataset'][:][:][num_set * self.batch_size:(num_set + 1) * self.batch_size - 1]
-                yield images
+                random.shuffle(sample_index_list)
+            for sample_index in sample_index_list:
+                count += 1
+                logging.info(f"{utcnow()} num_set {sample_index} current batch_size {len(batch)}")
+                my_image = element['dataset'][...,sample_index]
+                logging.debug(f"{utcnow()} shape of image {my_image.shape} self.max_dimension {self.max_dimension}")
 
-    def finalize(self):
-        pass
+                my_image_resized = np.resize(my_image, (self.max_dimension, self.max_dimension))
+                logging.debug(f"{utcnow()} new shape of image {my_image_resized.shape}")
+                batch.append(my_image_resized)
+                is_last = 0 if count < total else 1
+                if is_last:
+                    while len(batch) is not self.batch_size:
+                        batch.append(np.random.rand(self.max_dimension, self.max_dimension))
+                if len(batch) == self.batch_size:
+                    batch = np.array(batch)
+                    yield is_last, batch
+                    batch = []
+
+    def read_index(self, index):
+        file_index = math.floor(index / self.num_samples)
+        element_index = index % self.num_samples
+        my_image = self._dataset[file_index]['dataset'][..., element_index]
+        logging.info(f"{utcnow()} shape of image {my_image.shape} self.max_dimension {self.max_dimension}")
+        my_image_resized = np.resize(my_image, (self.max_dimension, self.max_dimension))
+        logging.info(f"{utcnow()} new shape of image {my_image_resized.shape}")
+        return my_image_resized
+
+    def get_sample_len(self):
+        total_samples = 0
+        for element in self._dataset:
+            total_samples = total_samples + element['total_samples']
+        return total_samples
