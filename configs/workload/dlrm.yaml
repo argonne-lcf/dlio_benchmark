@@ -14,17 +14,17 @@ dataset:
   num_samples_per_file: 4195198976
   record_length: 327680
   keep_files: True
-  eval_num_samples_per_file: 89145344
+  eval_num_samples_per_file: 91681240
   
 reader: 
   data_loader: terabyte
   batch_size: 2048
   batch_size_eval: 16384
-  steps_between_evals: 10240
 
 train:
   epochs: 1
   computation_time: 0.064296
 
 evaluation: 
-  eval_time: 0.5
+  eval_time: 0.0843
+  steps_between_evals: 10240

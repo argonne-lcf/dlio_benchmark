@@ -76,7 +76,7 @@ class TeraBinLoaderReader(FormatReader):
         # superclass function initializes the file list
         super().read(epoch_number)
 
-        do_shuffle = True if self.memory_shuffle != Shuffle.OFF else False
+        do_shuffle = True if self.sample_shuffle != Shuffle.OFF else False
 
         # There's only one training and valid file with shared file access.
         if self.dataset_type == DatasetType.TRAIN:
@@ -106,6 +106,8 @@ class TeraBinLoaderReader(FormatReader):
                 pin_memory=False,
                 drop_last=False,
             ) 
+        else:
+            print("ERROR: UNKNOWN DatasetType")
 
         # Must set the epoch in DistributedSampler to ensure proper shuffling
         # https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler
@@ -116,10 +118,10 @@ class TeraBinLoaderReader(FormatReader):
     def next(self):
         super().next()
 
-        dataset = self._dataset
-        logging.debug(f"{utcnow()} Rank {self.my_rank} should read {len(dataset)} batches")
+        # dataset = self._dataset
+        logging.debug(f"{utcnow()} Rank {self.my_rank} should read {len(self._dataset)} batches")
 
-        for batch in dataset:
+        for batch in self._dataset:
             yield batch
 
     def finalize(self):

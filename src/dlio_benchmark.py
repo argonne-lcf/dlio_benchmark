@@ -198,12 +198,14 @@ class DLIOBenchmark(object):
         t0 = time() 
 
         # Reset the dataloader if this evaluation is performed during an epoch
-        if self.steps_between_evals <= 0:
-            reader = self.framework.get_reader(DatasetType.VALID)
-        else:
-            reader = self.framework.get_reader(DatasetType.VALID).read()
+        # if self.steps_between_evals <= 0:
+        #     reader = self.framework.get_reader(DatasetType.VALID)
+        # else:
+        #     self.framework.get_reader(DatasetType.VALID).read(epoch)
+        #     self.framework.barrier()
+        #     reader = self.framework.get_reader(DatasetType.VALID)
 
-        for batch in reader.next():
+        for batch in self.framework.get_reader(DatasetType.VALID):
             self.stats.eval_batch_loaded(epoch, step, t0)
 
             if self.eval_time > 0:
@@ -223,49 +225,49 @@ class DLIOBenchmark(object):
             t0 = time()
 
         # metric computation time hardcoded for now since we don't know how to simulate CPU compute time
-        metric_computation_time = 120
-        if metric_computation_time > 0 and self.steps_between_evals > 0:
-            self.framework.compute(epoch, step, metric_computation_time)
+        # metric_computation_time = 120
+        # if metric_computation_time > 0 and self.steps_between_evals > 0:
+        #     self.framework.compute(epoch, step, metric_computation_time)
 
         return step - 1
 
-    def _eval_during_epoch(self, epoch):
-        """
-        Allows perform evaluation within a single epoch
-        Evaluation loop will read a separate dataset and has its own own computation time.
-        """
+    # def _eval_during_epoch(self, epoch):
+    #     """
+    #     Allows perform evaluation within a single epoch
+    #     Evaluation loop will read a separate dataset and has its own own computation time.
+    #     """
 
-        step = 1
-        # eval_num_samples = 5441*16384 = 89145344
-        total = math.floor(self.eval_num_samples * self.num_files_eval / self.batch_size_eval) # Need to decide if keep comm_size
-        t0 = time()
-        reader = self.framework.get_reader(DatasetType.VALID).read(epoch)
-        self.framework.barrier()
+    #     step = 1
+    #     # eval_num_samples = 5441*16384 = 89145344
+    #     total = math.floor(self.eval_num_samples * self.num_files_eval / self.batch_size_eval) # Need to decide if keep comm_size
+    #     t0 = time()
+    #     reader = self.framework.get_reader(DatasetType.VALID).read(epoch)
+    #     self.framework.barrier()
 
-        for batch in reader.next():
-            self.stats.eval_batch_loaded(epoch, step, t0)
+    #     for batch in reader.next():
+    #         self.stats.eval_batch_loaded(epoch, step, t0)
 
-            if self.eval_time > 0:
-                if self.eval_time_stdev > 0:
-                    eval_time = random.normal(self.eval_time, self.eval_time_stdev)
-                else:
-                    eval_time = self.eval_time
-                self.framework.compute(epoch, step, eval_time)
+    #         if self.eval_time > 0:
+    #             if self.eval_time_stdev > 0:
+    #                 eval_time = random.normal(self.eval_time, self.eval_time_stdev)
+    #             else:
+    #                 eval_time = self.eval_time
+    #             self.framework.compute(epoch, step, eval_time)
 
-            self.stats.eval_batch_processed(epoch, step, t0)
+    #         self.stats.eval_batch_processed(epoch, step, t0)
 
-            step += 1
-            if step > total:
-                return step - 1
+    #         step += 1
+    #         if step > total:
+    #             return step - 1
                 
-            self.framework.barrier()
-            t0 = time()
+    #         self.framework.barrier()
+    #         t0 = time()
 
-        # metric computation time hardcoded for now since we don't know how to simulate CPU compute time
-        metric_computation_time = 120
-        if metric_computation_time > 0:
-            self.framework.compute(epoch, step, metric_computation_time)
-        return step - 1
+    #     # metric computation time hardcoded for now since we don't know how to simulate CPU compute time
+    #     # metric_computation_time = 120
+    #     # if metric_computation_time > 0:
+    #     #     self.framework.compute(epoch, step, metric_computation_time)
+    #     return step - 1
 
     def _train(self, epoch):
         """
@@ -323,11 +325,23 @@ class DLIOBenchmark(object):
 
             # Perform evaluation during epochs if required
             # Assume that evaluation happens on all GPU
-            if overall_step % self.steps_between_evals == 0:
+            if overall_step > 0 and overall_step % self.steps_between_evals == 0:
+                # Before starting the evaluation, terminating the current block
                 self.stats.end_block(epoch, block, block_step)
-                self._eval()
+
+                # Initialize the eval data loader & perform evaluation
+                self.stats.start_eval(epoch)
+                self.framework.get_reader(DatasetType.VALID).read(epoch)
+                self.framework.barrier()
+                self._eval(epoch)
+                self.stats.end_eval(epoch)
+                self.framework.barrier()
+                self.framework.get_reader(DatasetType.VALID).finalize()
+
+                # Start recording the next block
                 self.stats.start_block(epoch, block)
-                
+
+
             overall_step += 1
             t0 = time()
 
