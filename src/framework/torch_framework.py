@@ -24,7 +24,7 @@ import os
 import torch
 import functools
 import logging
-from src.utils.utility import utcnow
+from src.utils.utility import utcnow, perftrace
 
 from time import sleep
 
@@ -79,6 +79,8 @@ class TorchFramework(Framework):
 
     def trace_object(self, string, step, r):
         return DummyTraceObject(string, step, r)
+
+    @perftrace.event_logging
     def checkpoint(self, epoch, step_number):
         if self.rank() == 0:
             """
@@ -93,6 +95,8 @@ class TorchFramework(Framework):
             string_val = "x" * self.args.model_size 
             f.write(string_val)
             f.close()
+
+    @perftrace.event_logging
     def compute(self, epoch_number, step, computation_time):
         torch_sleep(computation_time)
 

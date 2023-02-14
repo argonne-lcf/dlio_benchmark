@@ -1,3 +1,5 @@
+from time import time
+
 import logging
 import math
 
@@ -6,7 +8,7 @@ import tensorflow as tf
 from src.common.enumerations import DataLoaderType, Shuffle, FormatType, DatasetType
 from src.data_loader.base_data_loader import BaseDataLoader
 from src.reader.reader_factory import ReaderFactory
-from src.utils.utility import utcnow
+from src.utils.utility import utcnow, perftrace
 
 
 class TensorflowDataset(tf.data.Dataset):
@@ -17,11 +19,18 @@ class TensorflowDataset(tf.data.Dataset):
         reader = ReaderFactory.get_reader(FormatType.get_enum(format_type),
                                           dataset_type=DatasetType.get_enum(dataset_type))
         reader.read(epoch_number)
+        count = 1
+        t0 = time()
         for is_last, batch in reader.next():
+            t1 = time()
+            perftrace.event_complete(f"TFLoader_{format_type}_{dataset_type}_epoch_{epoch_number}_step_{count}", "TFLoader._generator.next", t0, t1 - t0)
             yield batch
             if is_last == 1:
-                logging.info(f"{utcnow()} is_last {is_last} returning")
+                logging.debug(f"{utcnow()} is_last {is_last} returning")
                 return
+            count += 1
+            t0 = time()
+
 
 
     def __new__(cls, format_type, dataset_type, epoch_number, shape):
@@ -42,6 +51,7 @@ class TFDataLoader(BaseDataLoader):
         self.computation_threads = self._args.computation_threads
         self.format = self._args.format
 
+    @perftrace.event_logging
     def read(self, epoch_number):
         if self.read_threads == 0:
             if self._args.my_rank == 0:
@@ -69,6 +79,7 @@ class TFDataLoader(BaseDataLoader):
         if self.prefetch_size > 0:
             self._dataset = self._dataset.prefetch(buffer_size=self.prefetch_size)
 
+    @perftrace.event_logging
     def next(self):
         super().next()
 

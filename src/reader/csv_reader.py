@@ -16,17 +16,14 @@
 """
 import logging
 import numpy as np
-
-from src.common.enumerations import Shuffle, FileAccess, ReadType
-from src.reader.reader_handler import FormatReader
-import csv
 import math
-
 from numpy import random
-
-from src.utils.utility import progress, utcnow
+from time import time
 import pandas as pd
-import tensorflow as tf
+
+from src.utils.utility import progress, utcnow, perftrace
+from src.common.enumerations import Shuffle, FileAccess, ReadType, DatasetType
+from src.reader.reader_handler import FormatReader
 
 """
 CSV Reader reader and iterator logic.
@@ -37,6 +34,7 @@ class CSVReader(FormatReader):
     def __init__(self, dataset_type):
         super().__init__(dataset_type)
 
+    @perftrace.event_logging
     def read(self, epoch_number):
         """
         Opens the CSV dataset and reads the rows in memory.
@@ -54,6 +52,7 @@ class CSVReader(FormatReader):
             self._dataset.append(val)
         self.after_read()
 
+    @perftrace.event_logging
     def next(self):
         """
         Iterator for the CSV dataset. In this case, we used the in-memory dataset by sub-setting.
@@ -61,57 +60,60 @@ class CSVReader(FormatReader):
         super().next()
         total = int(math.ceil(self.get_sample_len() / self.batch_size))
         count = 0
+        batch = []
         for index in range(len(self._dataset)):
-            if self._dataset[index]["data"] is None:
-                self._dataset[index]['data'] = pd.read_csv(self._dataset[index]["file"], compression="infer").to_numpy()
+            self._dataset[index]['data'] = pd.read_csv(self._dataset[index]["file"], compression="infer").to_numpy()
             total_samples = len(self._dataset[index]['data'])
             if FileAccess.MULTI == self.file_access:
-                num_sets = list(range(0, int(math.ceil(total_samples / self.batch_size))))
+                # for multiple file access the whole file would read by each process.
+                total_samples_per_rank = total_samples
+                sample_index_list = list(range(0, total_samples))
             else:
                 total_samples_per_rank = int(total_samples / self.comm_size)
-                part_start, part_end = (int(total_samples_per_rank * self.my_rank / self.batch_size),
-                                        int(total_samples_per_rank * (self.my_rank + 1) / self.batch_size))
-                num_sets = list(range(part_start, part_end))
+                part_start, part_end = (int(total_samples_per_rank * self.my_rank),
+                                        int(total_samples_per_rank * (self.my_rank + 1)))
+                sample_index_list = list(range(part_start, part_end))
 
             if self.sample_shuffle != Shuffle.OFF:
                 if self.sample_shuffle == Shuffle.SEED:
                     random.seed(self.seed)
-                random.shuffle(num_sets)
-            for num_set in num_sets:
-                count += 1
-                images = []
-                for i in range(num_set * self.batch_size, (num_set + 1) * self.batch_size):
-                    my_image = self._dataset[index]['data'][i]
-                    logging.debug(f"{utcnow()} shape of image {my_image.shape} self.max_dimension {self.max_dimension}")
-                    my_image = np.pad(my_image, ((0, self.max_dimension - my_image.shape[0]),
-                                                 (0, self.max_dimension - my_image.shape[1])),
-                                      mode='constant', constant_values=0)
-                    logging.debug(f"{utcnow()} new shape of image {my_image.shape}")
-                    images.append(my_image)
-                images = np.array(images)
+                random.shuffle(sample_index_list)
+            for sample_index in sample_index_list:
+                logging.info(f"{utcnow()} num_set {sample_index} current batch_size {len(batch)}")
+                t0 = time()
+                my_image = self._dataset[index]['data'][sample_index]
+                my_image_resized = np.resize(my_image, (self.max_dimension, self.max_dimension))
+                t1 = time()
+                perftrace.event_complete(f"CSV_{self.dataset_type}_image_{sample_index}_step_{count}",
+                                         "csv_reader..next", t0, t1 - t0)
+                logging.debug(f"{utcnow()} new shape of image {my_image_resized.shape}")
+                batch.append(my_image_resized)
                 is_last = 0 if count < total else 1
-                logging.debug(
-                    f"{utcnow()} loading numpy array for step {num_set} is_last {is_last} shape {images.shape}")
-                logging.debug(f"{utcnow()} completed {count} of {total} is_last {is_last} {len(self._dataset)}")
-                yield is_last, images
+                if is_last:
+                    while len(batch) is not self.batch_size:
+                        batch.append(np.random.rand(self.max_dimension, self.max_dimension))
+                if len(batch) == self.batch_size:
+                    count += 1
+                    batch = np.array(batch)
+                    yield is_last, batch
+                    batch = []
+                t0 = time()
+            self._dataset[index]['data'] = None
 
+    @perftrace.event_logging
     def read_index(self, index):
         file_index = math.floor(index / self.num_samples)
         element_index = index % self.num_samples
-        if self._dataset[file_index]["data"] is None:
+        if self.read_type is ReadType.ON_DEMAND or self._dataset[file_index]["data"] is None:
             self._dataset[file_index]['data'] = pd.read_csv(self._dataset[file_index]["file"], compression="infer").to_numpy()
         my_image = self._dataset[file_index]['data'][..., element_index]
         logging.info(f"{utcnow()} shape of image {my_image.shape} self.max_dimension {self.max_dimension}")
-        my_image = np.pad(my_image, ((0, self.max_dimension - my_image.shape[0]),
-                                     (0, self.max_dimension - my_image.shape[1])),
-                          mode='constant', constant_values=0)
+        my_image_resized = np.resize(my_image, (self.max_dimension, self.max_dimension))
         logging.info(f"{utcnow()} new shape of image {my_image.shape}")
-        return my_image
+        if self.read_type is ReadType.ON_DEMAND:
+            self._dataset[index]['data'] = None
+        return my_image_resized
 
+    @perftrace.event_logging
     def get_sample_len(self):
-        total_samples = 0
-        for index in range(len(self._dataset)):
-            if self._dataset[index]["data"] is None:
-                self._dataset[index]['data'] = pd.read_csv(self._dataset[index]["file"], compression="infer").to_numpy()
-            total_samples = total_samples + len(self._dataset[index]['data'])
-        return total_samples
+        return self.num_samples * len(self._local_file_list)

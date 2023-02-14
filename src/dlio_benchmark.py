@@ -36,7 +36,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 from dataclasses import dataclass
-from src.utils.utility import utcnow, measure_performance
+from src.utils.utility import utcnow, measure_performance, perftrace
 from omegaconf import DictConfig, OmegaConf
 from src.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
@@ -85,6 +85,7 @@ class DLIOBenchmark(object):
 
         self.my_rank = self.args.my_rank = self.framework.rank()
         self.comm_size = self.args.comm_size = self.framework.size()
+        perftrace.set_logdir(self.output_folder)
         # Delete previous logfile
         if self.my_rank == 0:
             if os.path.isfile(self.logfile):
@@ -189,6 +190,7 @@ class DLIOBenchmark(object):
         self.framework.init_loader(self.args.format, self.args.data_loader)
         self.framework.barrier()
 
+    @perftrace.event_logging
     def _eval(self, epoch):
         """
         Evaluation loop will read a separate dataset and has its own own computation time.
@@ -198,7 +200,11 @@ class DLIOBenchmark(object):
         t0 = time()
         loader = self.framework.get_loader(DatasetType.VALID)
         loader.read(epoch_number=epoch)
+        start_time = time()
         for batch in loader.next():
+            end_time = time()
+            perftrace.event_complete(f"eval_epoch_{epoch}_step_{step}", "DLIO_BENCHMARK", start_time,
+                                     end_time - start_time)
             self.stats.eval_batch_loaded(epoch, step, t0)
 
             if self.eval_time > 0:
@@ -215,8 +221,10 @@ class DLIOBenchmark(object):
                 return step - 1
 
             t0 = time()
+            start_time = time()
         return step - 1
 
+    @perftrace.event_logging
     def _train(self, epoch):
         """
         Training loop for reading the dataset and performing training computations.
@@ -231,7 +239,13 @@ class DLIOBenchmark(object):
         t0 = time()
         loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
         loader.read(epoch_number=epoch)
+        start_time = time()
         for batch in loader.next():
+            end_time = time()
+            perftrace.event_complete(f"train_epoch_{epoch}_step_{block_step}", "DLIO_BENCHMARK", start_time,
+                                     end_time - start_time)
+
+
             self.framework.barrier()
             self.stats.batch_loaded(epoch, overall_step, block, t0)
 
@@ -270,6 +284,7 @@ class DLIOBenchmark(object):
 
             overall_step += 1
             t0 = time()
+            start_time = time()
 
         self.framework.barrier()
         if self.do_checkpoint and (self.steps_between_checkpoints < 0) and (epoch == self.next_checkpoint_epoch):
@@ -281,6 +296,8 @@ class DLIOBenchmark(object):
 
         return overall_step
 
+
+    @perftrace.event_logging
     def run(self):
         """
         Run the total epochs for training. 

@@ -19,6 +19,7 @@ from src.common.enumerations import Compression
 from src.data_generator.data_generator import DataGenerator
 import math
 import os
+from mpi4py import MPI
 
 from numpy import random
 import csv
@@ -38,29 +39,33 @@ class CSVGenerator(DataGenerator):
         Generate csv data for training. It generates a 2d dataset and writes it to file.
         """
         super().generate()
-        records = []*self.num_samples
-        record_label = 0
-        for i in range(0, int(self.total_files_to_generate)):
-            if (self._dimension_stdev>0):
+        if self.my_rank == 0:
+            if self._dimension_stdev>0:
                 dim1, dim2 = [max(int(d), 0) for d in random.normal( self._dimension, self._dimension_stdev, 2)]
             else:
                 dim1 = dim2 = self._dimension
             record = random.random(dim1*dim2)
+            records = [record]*self.num_samples
+            df = pd.DataFrame(data=records)
+            out_path_spec = self.storage.get_uri(self._file_list[0])
+            compression = None
+            if self.compression != Compression.NONE:
+                compression = {
+                    "method": str(self.compression)
+                }
+                if self.compression == Compression.GZIP:
+                    out_path_spec = out_path_spec + ".gz"
+                elif self.compression == Compression.BZIP2:
+                    out_path_spec = out_path_spec + ".bz2"
+                elif self.compression == Compression.ZIP:
+                    out_path_spec = out_path_spec + ".zip"
+                elif self.compression == Compression.XZ:
+                    out_path_spec = out_path_spec + ".xz"
+            df.to_csv(out_path_spec, compression=compression)
+        MPI.COMM_WORLD.Barrier()
+        source_out_path_spec = self.storage.get_uri(self._file_list[0])
+        for i in range(1, int(self.total_files_to_generate)):
             if i % self.comm_size == self.my_rank:
                 progress(i+1, self.total_files_to_generate, "Generating CSV Data")
                 out_path_spec = self.storage.get_uri(self._file_list[i])
-                df = pd.DataFrame(data=records)
-                compression = None
-                if self.compression != Compression.NONE:
-                    compression = {
-                        "method": str(self.compression)
-                    }
-                    if self.compression == Compression.GZIP:
-                        out_path_spec = out_path_spec + ".gz"
-                    elif self.compression == Compression.BZIP2:
-                        out_path_spec = out_path_spec + ".bz2"
-                    elif self.compression == Compression.ZIP:
-                        out_path_spec = out_path_spec + ".zip"
-                    elif self.compression == Compression.XZ:
-                        out_path_spec = out_path_spec + ".xz"
-                df.to_csv(out_path_spec, compression=compression)
+                copyfile(source_out_path_spec, out_path_spec)

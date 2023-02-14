@@ -110,12 +110,6 @@ class FormatReader(ABC):
             For PT, this is done by the DistributedSampler in data_loader_reader.py.
             We also split files depending on if we are in an evaluation phase or not.
         """
-        """
-            This method creates and stores the lists of files to be read.
-            If using TF, it will partition files between ranks.
-            For PT, this is done by the DistributedSampler in data_loader_reader.py.
-            We also split files depending on if we are in an evaluation phase or not.
-        """
         file_shuffle = True
         if self.file_shuffle == Shuffle.OFF:
             file_shuffle = False
