@@ -86,13 +86,12 @@ class TeraBinLoaderReader(FormatReader):
                 dataset,
                 batch_size=None,
                 batch_sampler=None,
-                shuffle=do_shuffle,
                 num_workers=0,
                 collate_fn=None,
                 pin_memory=False,
                 drop_last=False,
                 sampler=RandomSampler(dataset)
-            ) 
+            ) # shuffle=do_shuffle removed since 'sampler option is mutually exclusive with shuffle',
         elif self.dataset_type == DatasetType.VALID:
             dataset = self.TerabyteBinDataset(self._file_list[0], batch_size=self.batch_size, max_ind_range=10000000)
 

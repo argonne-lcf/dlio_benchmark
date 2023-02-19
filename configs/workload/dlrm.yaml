@@ -5,6 +5,7 @@ framework: pytorch
 workflow:
   generate_data: False
   train: True
+  do_eval: True
 
 dataset: 
   data_folder: data/dlrm
@@ -20,11 +21,14 @@ reader:
   data_loader: terabyte
   batch_size: 2048
   batch_size_eval: 16384
+  sample_shuffle: random
 
 train:
   epochs: 1
   computation_time: 0.064296
+  total_training_steps: 32768
+  total_eval_steps: 2048
 
 evaluation: 
   eval_time: 0.0843
-  steps_between_evals: 10240
+  steps_between_evals: 16384

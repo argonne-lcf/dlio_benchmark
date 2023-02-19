@@ -8,4 +8,12 @@ then
 	docker rm $container_name
 fi
 
-docker run -it --rm --name=$container_name --gpus all -v /raid/data/dlrm_dlio2/dlio2:/workspace/dlio/data/dlrm dlio:latest /bin/bash
+# docker run -it --rm --name=$container_name --gpus all -v /raid/data/dlrm_dlio2/dlio2:/workspace/dlio/data/dlrm dlio:latest /bin/bash exec.sh
+sudo docker run -it \
+--rm \
+--name=$container_name \
+--gpus all \
+-v /raid/data/dlrm_dlio2/dlio2:/workspace/dlio/data/dlrm \
+-v /raid/data/dlrm_dlio2/dlio2_log:/workspace/dlio/save_spot \
+dlio:latest \
+/bin/bash exec.sh

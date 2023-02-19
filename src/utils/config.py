@@ -91,6 +91,7 @@ class ConfigArguments:
     # Added for supporting evaluation every few steps during one epoch
     steps_between_evals: int = -1 # steps between eval renaming
     eval_num_samples_per_file: int = 1
+    total_eval_steps: int = -1
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -214,6 +215,8 @@ def LoadConfig(args, config):
             args.computation_time_stdev = config['train']['computation_time_stdev']
         if 'seed' in config['train']:
             args.seed = config['train']['seed']
+        if 'total_eval_steps' in config['train']:
+            args.total_eval_steps = config['train']['total_eval_steps']
         
     if 'evaluation' in config:
         if 'eval_time' in config['evaluation']:

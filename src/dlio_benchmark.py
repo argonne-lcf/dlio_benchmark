@@ -112,6 +112,7 @@ class DLIOBenchmark(object):
         self.num_files_train = self.args.num_files_train
         self.num_samples = self.args.num_samples_per_file
         self.total_training_steps = self.args.total_training_steps
+        self.total_eval_steps = self.args.total_eval_steps
         
         self.epochs = self.args.epochs
         self.batch_size = self.args.batch_size
@@ -197,7 +198,7 @@ class DLIOBenchmark(object):
         total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         t0 = time() 
 
-        for batch in self.framework.get_reader(DatasetType.VALID):
+        for batch in self.framework.get_reader(DatasetType.VALID).next():
             self.stats.eval_batch_loaded(epoch, step, t0)
 
             if self.eval_time > 0:
@@ -210,7 +211,11 @@ class DLIOBenchmark(object):
             self.stats.eval_batch_processed(epoch, step, t0)
 
             step += 1
-            if step > total:
+
+            # if step >= self.total_eval_steps:
+            #     return
+
+            if step > total or step >= self.total_eval_steps:
                 return step - 1
                 
             self.framework.barrier()
@@ -250,6 +255,31 @@ class DLIOBenchmark(object):
 
             self.stats.batch_processed(epoch, overall_step, block, t0)
 
+            # Perform evaluation during epochs if required
+            # Assume that evaluation happens on all GPU
+            if overall_step > 0 and overall_step % self.steps_between_evals == 0:
+                # Before starting the evaluation, terminating the current block
+                self.stats.end_block(epoch, block, block_step)
+        
+                # Initialize the eval data loader & perform evaluation
+                self.stats.start_eval(epoch)
+                self.framework.get_reader(DatasetType.VALID).read(epoch)
+                self.framework.barrier()
+                self._eval(epoch)
+                self.stats.end_eval(epoch)
+                self.framework.barrier()
+                self.framework.get_reader(DatasetType.VALID).finalize()
+
+                ##### checkpoint after evaluation
+                self.stats.start_ckpt(epoch, block, overall_step)
+                self.framework.checkpoint(epoch, overall_step)
+                self.stats.end_ckpt(epoch, block)
+                self.framework.barrier()
+                ##### checkpoint end
+
+                # Start recording the next block
+                self.stats.start_block(epoch, block)
+
 
             if self.do_checkpoint and (self.steps_between_checkpoints>=0) and overall_step == self.next_checkpoint_step:
                 self.stats.end_block(epoch, block, block_step)
@@ -263,7 +293,7 @@ class DLIOBenchmark(object):
                 self.next_checkpoint_step += self.steps_between_checkpoints
             else:
                 block_step += 1
-        
+
             if overall_step >= max_steps or overall_step == self.total_training_steps:
                 self.framework.barrier()
                 if self.args.my_rank==0:
@@ -271,25 +301,6 @@ class DLIOBenchmark(object):
                 if (block_step!=1 and self.do_checkpoint) or (not self.do_checkpoint):
                     self.stats.end_block(epoch, block, block_step-1)
                 break
-
-            # Perform evaluation during epochs if required
-            # Assume that evaluation happens on all GPU
-            if overall_step > 0 and overall_step % self.steps_between_evals == 0:
-                # Before starting the evaluation, terminating the current block
-                self.stats.end_block(epoch, block, block_step)
-
-                # Initialize the eval data loader & perform evaluation
-                self.stats.start_eval(epoch)
-                self.framework.get_reader(DatasetType.VALID).read(epoch)
-                self.framework.barrier()
-                self._eval(epoch)
-                self.stats.end_eval(epoch)
-                self.framework.barrier()
-                self.framework.get_reader(DatasetType.VALID).finalize()
-
-                # Start recording the next block
-                self.stats.start_block(epoch, block)
-
 
             overall_step += 1
             t0 = time()
