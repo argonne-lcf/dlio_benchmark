@@ -38,7 +38,7 @@ class PNGGenerator(DataGenerator):
         dim_stdev = np.sqrt(self.record_size_stdev/3.0)
         record_labels = [0] 
         if self.my_rank==0:
-            logging.info(f"{utcnow()} Dimension of images: {dim} x {dim} x 3")
+            logging.info(f"{utcnow()} Dimension of images: {dim} x {dim}")
         for i in range(self.my_rank, int(self.total_files_to_generate), self.comm_size):
             if (dim_stdev>0):
                 dim1, dim2 = [max(int(d), 0) for d in random.normal(dim, dim_stdev, 2)]
