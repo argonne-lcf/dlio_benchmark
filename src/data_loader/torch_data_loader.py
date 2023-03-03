@@ -1,7 +1,7 @@
 import logging
 import math
 
-from torch.utils.data import Dataset, DistributedSampler, DataLoader
+from torch.utils.data import Dataset, DistributedSampler, DataLoader, RandomSampler, SequentialSampler
 
 from src.common.enumerations import Shuffle, DataLoaderType
 from src.data_loader.base_data_loader import BaseDataLoader
@@ -42,12 +42,16 @@ class TorchDataLoader(BaseDataLoader):
         dataset = TorchDataset(self.format, self.dataset_type, epoch_number)
         # TODO: In image segmentation, the distributed sampler is not used during eval, we could parametrize this away if needed
         # This handles the partitioning between ranks
-        sampler = DistributedSampler(dataset,
-                                     num_replicas=self.comm_size,
-                                     rank=self.my_rank,
-                                     shuffle=do_shuffle,
-                                     seed=self.seed)
-        logging.debug(f"{utcnow()} Rank {self.my_rank} length of distributed sampler {len(sampler)} ")
+        if do_shuffle: 
+            sampler = RandomSampler(dataset)
+        else:
+            sampler = SequentialSampler(dataset)
+        #sampler = DistributedSampler(dataset,
+        #                             num_replicas=self.comm_size,
+        #                             rank=self.my_rank,
+        #                             shuffle=do_shuffle,
+        #                             seed=self.seed)
+        #logging.debug(f"{utcnow()} Rank {self.my_rank} length of distributed sampler {len(sampler)} ")
 
         if self.read_threads > 1:
             prefetch_factor = math.ceil(self.prefetch_size / self.read_threads)
@@ -70,7 +74,7 @@ class TorchDataLoader(BaseDataLoader):
                                    prefetch_factor=prefetch_factor if prefetch_factor > 0 else 2)  # 2 is the default value
         logging.debug(f"{utcnow()} Rank {self.my_rank} will read {len(self._dataset) * self.batch_size} files")
 
-        self._dataset.sampler.set_epoch(epoch_number)
+        #self._dataset.sampler.set_epoch(epoch_number)
 
     def next(self):
         super().next()

@@ -106,9 +106,9 @@ class NPZReader(FormatReader):
                 self._dataset[file_index]['data'] = data["x"]
         element_index = index % self.num_samples
         my_image = self._dataset[file_index]['data'][..., element_index]
-        logging.info(f"{utcnow()} shape of image {my_image.shape} self.max_dimension {self.max_dimension}")
+        logging.debug(f"{utcnow()} shape of image {my_image.shape} self.max_dimension {self.max_dimension}")
         my_image_resized = np.resize(my_image, (self.max_dimension, self.max_dimension))
-        logging.info(f"{utcnow()} new shape of image {my_image_resized.shape}")
+        logging.debug(f"{utcnow()} new shape of image {my_image_resized.shape}")
         return my_image_resized
 
     def get_sample_len(self):
