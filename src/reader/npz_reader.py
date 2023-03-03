@@ -109,6 +109,8 @@ class NPZReader(FormatReader):
         logging.debug(f"{utcnow()} shape of image {my_image.shape} self.max_dimension {self.max_dimension}")
         my_image_resized = np.resize(my_image, (self.max_dimension, self.max_dimension))
         logging.debug(f"{utcnow()} new shape of image {my_image_resized.shape}")
+        if (self.read_type is ReadType.ON_DEMAND):
+            self._dataset[file_index]["data"]=None
         return my_image_resized
 
     def get_sample_len(self):
