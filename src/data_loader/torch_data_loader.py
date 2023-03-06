@@ -26,7 +26,7 @@ class TorchDataset(Dataset):
     def __len__(self):
         return self.reader.get_sample_len()
 
-    @timeit
+    @perftrace.event_logging
     def __getitem__(self, idx):
         logging.debug(f"{utcnow()} Rank {get_rank()} reading {idx} sample")
         return self.reader.read_index(idx)
