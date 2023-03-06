@@ -237,7 +237,7 @@ def test_checkpoint_step() -> None:
         dataset = cfg['workload']['dataset']
         nstep = dataset.num_files_train * dataset.num_samples_per_file // cfg['workload'][
             'reader'].batch_size // benchmark.comm_size
-        ncheckpoints = nstep // 2 * 4
+        ncheckpoints = nstep // 2 * 8
         assert (len(glob.glob("./checkpoints/*.bin")) == ncheckpoints)
         clean()
 
