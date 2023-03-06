@@ -120,4 +120,4 @@ class TFReader(FormatReader):
 
     @perftrace.event_logging
     def get_sample_len(self):
-        return self.num_samples * len(self._file_list)
+        return self.num_samples * len(self._local_file_list)

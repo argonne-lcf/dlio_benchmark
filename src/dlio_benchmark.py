@@ -250,7 +250,6 @@ class DLIOBenchmark(object):
                                      end_time - start_time)
 
 
-            self.framework.barrier()
             self.stats.batch_loaded(epoch, overall_step, block, t0)
 
             # Log a new block, unless it's the first one which we've already logged before the loop
@@ -264,7 +263,7 @@ class DLIOBenchmark(object):
                 else:
                     computation_time = self.computation_time
                 self.framework.compute(epoch, block_step, computation_time)
-
+            self.framework.barrier()
             self.stats.batch_processed(epoch, overall_step, block, t0)
 
             if self.do_checkpoint and (self.steps_between_checkpoints >= 0) and overall_step == self.next_checkpoint_step:
