@@ -24,13 +24,13 @@ from PIL import Image
 from src.reader.reader_handler import FormatReader
 from src.utils.utility import utcnow, perftrace
 
-
 class PNGReader(FormatReader):
     """
     Reader for PNG files
     """
     def __init__(self, dataset_type):
         super().__init__(dataset_type)
+
 
     @perftrace.event_logging
     def read(self, epoch_number):
@@ -41,6 +41,7 @@ class PNGReader(FormatReader):
         super().read(epoch_number)
         self._dataset = self._local_file_list
         self.after_read()
+
 
     @perftrace.event_logging
     def next(self):

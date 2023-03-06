@@ -18,12 +18,12 @@
 import math
 import logging
 import numpy as np
-
 from numpy import random
+
 from src.reader.reader_handler import FormatReader
 from src.common.enumerations import Shuffle, FileAccess, ReadType, DatasetType
-
 from src.utils.utility import progress, utcnow, perftrace
+
 
 
 class NPZReader(FormatReader):
@@ -52,7 +52,7 @@ class NPZReader(FormatReader):
                     val['data'] = data["x"]
             self._dataset.append(val)
         self.after_read()
-
+        
     @perftrace.event_logging
     def _yield_image(self, file_index, sample_index):
         my_image = self._dataset[file_index]['data'][..., sample_index]
@@ -114,6 +114,7 @@ class NPZReader(FormatReader):
         my_image_resized = np.resize(my_image, (self.max_dimension, self.max_dimension))
         logging.debug(f"{utcnow()} new shape of image {my_image_resized.shape}")
         return my_image_resized
+
 
     @perftrace.event_logging
     def get_sample_len(self):

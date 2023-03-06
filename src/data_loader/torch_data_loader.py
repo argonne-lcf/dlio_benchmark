@@ -1,5 +1,5 @@
-from time import time
 
+from time import time
 import logging
 import math
 
@@ -9,6 +9,7 @@ from src.common.enumerations import Shuffle, DataLoaderType
 from src.data_loader.base_data_loader import BaseDataLoader
 from src.reader.reader_factory import ReaderFactory
 from src.utils.utility import utcnow, get_rank, timeit, perftrace
+
 
 
 class TorchDataset(Dataset):
@@ -35,10 +36,11 @@ class TorchDataLoader(BaseDataLoader):
 
     def __init__(self, format_type, dataset_type):
         super().__init__(format_type, dataset_type)
-        self.epoch_number = None
+        self.epoch_number = 
         self.read_threads = self._args.read_threads
         self.computation_threads = self._args.computation_threads
         self.format = self._args.format
+
 
     @perftrace.event_logging
     def read(self, epoch_number):
@@ -81,6 +83,7 @@ class TorchDataLoader(BaseDataLoader):
 
         #self._dataset.sampler.set_epoch(epoch_number)
 
+
     @perftrace.event_logging
     def next(self):
         super().next()
@@ -95,5 +98,6 @@ class TorchDataLoader(BaseDataLoader):
             count += 1
             t0 = time()
 
+    @perftrace.event_logging
     def finalize(self):
         pass

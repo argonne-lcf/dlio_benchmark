@@ -16,8 +16,6 @@
 """
 import logging
 
-from src.common.enumerations import Shuffle, FileAccess, ReadType, DatasetType
-from src.reader.reader_handler import FormatReader
 import h5py
 import math
 from numpy import random
@@ -25,6 +23,8 @@ import numpy as np
 from time import sleep, time
 
 from src.utils.utility import progress, utcnow, perftrace
+from src.common.enumerations import Shuffle, FileAccess, ReadType, DatasetType
+from src.reader.reader_handler import FormatReader
 
 """
 Reader for HDF5 files for training file.

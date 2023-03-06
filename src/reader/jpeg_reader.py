@@ -14,6 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+
 from time import time
 import math
 import logging
@@ -22,13 +23,13 @@ from PIL import Image
 from src.reader.reader_handler import FormatReader
 from src.utils.utility import progress, utcnow, timeit, perftrace
 
-
 class JPEGReader(FormatReader):
     """
     Reader for JPEG files
     """
     def __init__(self, dataset_type):
         super().__init__(dataset_type)
+
 
     @perftrace.event_logging
     def read(self, epoch_number):

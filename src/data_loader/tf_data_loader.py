@@ -1,5 +1,4 @@
 from time import time
-
 import logging
 import math
 
@@ -9,6 +8,7 @@ from src.common.enumerations import DataLoaderType, Shuffle, FormatType, Dataset
 from src.data_loader.base_data_loader import BaseDataLoader
 from src.reader.reader_factory import ReaderFactory
 from src.utils.utility import utcnow, perftrace
+
 
 
 class TensorflowDataset(tf.data.Dataset):
@@ -30,7 +30,6 @@ class TensorflowDataset(tf.data.Dataset):
                 return
             count += 1
             t0 = time()
-
 
 
     def __new__(cls, format_type, dataset_type, epoch_number, shape):
@@ -78,6 +77,7 @@ class TFDataLoader(BaseDataLoader):
 
         if self.prefetch_size > 0:
             self._dataset = self._dataset.prefetch(buffer_size=self.prefetch_size)
+
 
     @perftrace.event_logging
     def next(self):

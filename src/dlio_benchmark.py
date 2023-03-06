@@ -190,6 +190,7 @@ class DLIOBenchmark(object):
         self.framework.init_loader(self.args.format, self.args.data_loader)
         self.framework.barrier()
 
+
     @perftrace.event_logging
     def _eval(self, epoch):
         """
@@ -200,11 +201,13 @@ class DLIOBenchmark(object):
         t0 = time()
         loader = self.framework.get_loader(DatasetType.VALID)
         loader.read(epoch_number=epoch)
+
         start_time = time()
         for batch in loader.next():
             end_time = time()
             perftrace.event_complete(f"eval_epoch_{epoch}_step_{step}", "DLIO_BENCHMARK", start_time,
                                      end_time - start_time)
+
             self.stats.eval_batch_loaded(epoch, step, t0)
 
             if self.eval_time > 0:
@@ -223,6 +226,7 @@ class DLIOBenchmark(object):
             t0 = time()
             start_time = time()
         return step - 1
+
 
     @perftrace.event_logging
     def _train(self, epoch):
@@ -295,7 +299,6 @@ class DLIOBenchmark(object):
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
 
         return overall_step
-
 
     @perftrace.event_logging
     def run(self):
