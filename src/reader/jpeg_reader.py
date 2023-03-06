@@ -15,17 +15,13 @@
    limitations under the License.
 """
 
+from time import time
 import math
 import logging
 import numpy as np
-import tensorflow as tf
 from PIL import Image
-
-from numpy import random
 from src.reader.reader_handler import FormatReader
-from src.common.enumerations import Shuffle, FileAccess, DatasetType
-
-from src.utils.utility import progress, utcnow
+from src.utils.utility import progress, utcnow, timeit, perftrace
 
 class JPEGReader(FormatReader):
     """
@@ -34,6 +30,8 @@ class JPEGReader(FormatReader):
     def __init__(self, dataset_type):
         super().__init__(dataset_type)
 
+
+    @perftrace.event_logging
     def read(self, epoch_number):
         """
         for each epoch it opens the npz files and reads the data into memory
@@ -43,6 +41,7 @@ class JPEGReader(FormatReader):
         self._dataset = self._local_file_list
         self.after_read()
 
+    @perftrace.event_logging
     def next(self):
         """
         The iterator of the dataset just performs memory sub-setting for each portion of the data.
@@ -54,18 +53,27 @@ class JPEGReader(FormatReader):
         batches_images = [self._dataset[n:n + self.batch_size] for n in range(0, len(self._dataset), self.batch_size)]
         total = len(batches_images)
         count = 0
+        image_index = 0
         for batch in batches_images:
-            count += 1
             images = []
             for filename in batch:
+                t0 = time()
                 images.append(np.asarray(Image.open(filename).resize((self.max_dimension, self.max_dimension))))
+                t1 = time()
+                perftrace.event_complete(f"JPEG_{self.dataset_type}_image_{image_index}_step_{count}",
+                                         "csv_reader..next", t0, t1 - t0)
+                t0 = time()
+                image_index += 1
             images = np.array(images)
             is_last = 0 if count < total else 1
+            count += 1
             logging.info(f"{utcnow()} completed {count} of {total} is_last {is_last} {len(self._dataset)}")
             yield is_last, images
 
+    @perftrace.event_logging
     def read_index(self, index):
         return np.asarray(Image.open(self._dataset[index]).resize((self.max_dimension, self.max_dimension)))
 
+    @perftrace.event_logging
     def get_sample_len(self):
         return self.num_samples * len(self._local_file_list)

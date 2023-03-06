@@ -16,17 +16,14 @@
 """
 import logging
 import numpy as np
+import math
+from numpy import random
+from time import time
+import pandas as pd
 
+from src.utils.utility import progress, utcnow, perftrace
 from src.common.enumerations import Shuffle, FileAccess, ReadType, DatasetType
 from src.reader.reader_handler import FormatReader
-import csv
-import math
-
-from numpy import random
-
-from src.utils.utility import progress, utcnow
-import pandas as pd
-import tensorflow as tf
 
 """
 CSV Reader reader and iterator logic.
@@ -37,6 +34,7 @@ class CSVReader(FormatReader):
     def __init__(self, dataset_type):
         super().__init__(dataset_type)
 
+    @perftrace.event_logging
     def read(self, epoch_number):
         """
         Opens the CSV dataset and reads the rows in memory.
@@ -54,6 +52,7 @@ class CSVReader(FormatReader):
             self._dataset.append(val)
         self.after_read()
 
+    @perftrace.event_logging
     def next(self):
         """
         Iterator for the CSV dataset. In this case, we used the in-memory dataset by sub-setting.
@@ -80,12 +79,13 @@ class CSVReader(FormatReader):
                     random.seed(self.seed)
                 random.shuffle(sample_index_list)
             for sample_index in sample_index_list:
-                count += 1
                 logging.info(f"{utcnow()} num_set {sample_index} current batch_size {len(batch)}")
+                t0 = time()
                 my_image = self._dataset[index]['data'][sample_index]
-                logging.debug(f"{utcnow()} shape of image {my_image.shape} self.max_dimension {self.max_dimension}")
-
                 my_image_resized = np.resize(my_image, (self.max_dimension, self.max_dimension))
+                t1 = time()
+                perftrace.event_complete(f"CSV_{self.dataset_type}_image_{sample_index}_step_{count}",
+                                         "csv_reader..next", t0, t1 - t0)
                 logging.debug(f"{utcnow()} new shape of image {my_image_resized.shape}")
                 batch.append(my_image_resized)
                 is_last = 0 if count < total else 1
@@ -93,10 +93,14 @@ class CSVReader(FormatReader):
                     while len(batch) is not self.batch_size:
                         batch.append(np.random.rand(self.max_dimension, self.max_dimension))
                 if len(batch) == self.batch_size:
+                    count += 1
                     batch = np.array(batch)
                     yield is_last, batch
                     batch = []
+                t0 = time()
             self._dataset[index]['data'] = None
+
+    @perftrace.event_logging
     def read_index(self, index):
         file_index = math.floor(index / self.num_samples)
         element_index = index % self.num_samples
@@ -110,5 +114,6 @@ class CSVReader(FormatReader):
             self._dataset[index]['data'] = None
         return my_image_resized
 
+    @perftrace.event_logging
     def get_sample_len(self):
         return self.num_samples * len(self._local_file_list)
