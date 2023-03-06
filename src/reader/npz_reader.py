@@ -18,13 +18,12 @@
 import math
 import logging
 import numpy as np
-import tensorflow as tf
-
 from numpy import random
+
 from src.reader.reader_handler import FormatReader
 from src.common.enumerations import Shuffle, FileAccess, ReadType, DatasetType
+from src.utils.utility import progress, utcnow, perftrace
 
-from src.utils.utility import progress, utcnow
 
 
 class NPZReader(FormatReader):
@@ -35,6 +34,7 @@ class NPZReader(FormatReader):
     def __init__(self, dataset_type):
         super().__init__(dataset_type)
 
+    @perftrace.event_logging
     def read(self, epoch_number):
         """
         for each epoch it opens the npz files and reads the data into memory
@@ -52,7 +52,15 @@ class NPZReader(FormatReader):
                     val['data'] = data["x"]
             self._dataset.append(val)
         self.after_read()
+        
+    @perftrace.event_logging
+    def _yield_image(self, file_index, sample_index):
+        my_image = self._dataset[file_index]['data'][..., sample_index]
+        my_image_resized = np.resize(my_image, (self.max_dimension, self.max_dimension))
+        logging.debug(f"{utcnow()} new shape of image {my_image_resized.shape}")
+        return my_image_resized
 
+    @perftrace.event_logging
     def next(self):
         """
         The iterator of the dataset just performs memory sub-setting for each portion of the data.
@@ -82,13 +90,8 @@ class NPZReader(FormatReader):
                     random.seed(self.seed)
                 random.shuffle(sample_index_list)
             for sample_index in sample_index_list:
-                count += 1
                 logging.info(f"{utcnow()} num_set {sample_index} current batch_size {len(batch)}")
-                my_image = self._dataset[index]['data'][..., sample_index]
-                logging.debug(f"{utcnow()} shape of image {my_image.shape} self.max_dimension {self.max_dimension}")
-
-                my_image_resized = np.resize(my_image, (self.max_dimension, self.max_dimension))
-                logging.debug(f"{utcnow()} new shape of image {my_image_resized.shape}")
+                my_image_resized = self._yield_image(index, sample_index)
                 batch.append(my_image_resized)
                 is_last = 0 if count < total else 1
                 if is_last:
@@ -99,6 +102,7 @@ class NPZReader(FormatReader):
                     yield is_last, batch
                     batch = []
 
+    @perftrace.event_logging
     def read_index(self, index):
         file_index = math.floor(index / self.num_samples)
         if self.read_type is ReadType.ON_DEMAND or self._dataset[file_index]["data"] is None:
@@ -113,5 +117,7 @@ class NPZReader(FormatReader):
             self._dataset[file_index]["data"]=None
         return my_image_resized
 
+
+    @perftrace.event_logging
     def get_sample_len(self):
         return self.num_samples * len(self._local_file_list)
