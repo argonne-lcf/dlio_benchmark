@@ -36,7 +36,7 @@ class TorchDataLoader(BaseDataLoader):
 
     def __init__(self, format_type, dataset_type):
         super().__init__(format_type, dataset_type)
-        self.epoch_number = 
+        self.epoch_number = None
         self.read_threads = self._args.read_threads
         self.computation_threads = self._args.computation_threads
         self.format = self._args.format
