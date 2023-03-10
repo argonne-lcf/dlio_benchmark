@@ -19,8 +19,9 @@ class TorchDataset(Dataset):
     """
 
     def __init__(self, format_type, dataset_type, epoch_number):
-        self.reader = ReaderFactory.get_reader(format_type,
-                                               dataset_type=dataset_type)
+        self.reader = ReaderFactory.get_reader(type=format_type,
+                                               dataset_type=dataset_type,
+                                               thread_index=-1)
         self.reader.read(epoch_number)
 
     def __len__(self):

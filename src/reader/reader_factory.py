@@ -24,29 +24,29 @@ class ReaderFactory(object):
         pass
 
     @staticmethod
-    def get_reader(type, dataset_type):
+    def get_reader(type, dataset_type, thread_index):
         """
         This function set the data reader based on the data format and the data loader specified. 
         """
 
         if type == FormatType.HDF5:
             from src.reader.hdf5_reader import HDF5Reader
-            return HDF5Reader(dataset_type)
+            return HDF5Reader(dataset_type, thread_index)
         elif type == FormatType.CSV:
             from src.reader.csv_reader import CSVReader
-            return CSVReader(dataset_type)
+            return CSVReader(dataset_type, thread_index)
         elif type == FormatType.JPEG:
             from src.reader.jpeg_reader import JPEGReader
-            return JPEGReader(dataset_type)
+            return JPEGReader(dataset_type, thread_index)
         elif type == FormatType.PNG:
             from src.reader.png_reader import PNGReader
-            return PNGReader(dataset_type)
+            return PNGReader(dataset_type, thread_index)
         elif type == FormatType.NPZ:
             from src.reader.npz_reader import NPZReader
-            return NPZReader(dataset_type)
+            return NPZReader(dataset_type, thread_index)
         elif type == FormatType.TFRECORD:
             from src.reader.tf_reader import TFReader
-            return TFReader(dataset_type)
+            return TFReader(dataset_type, thread_index)
         else:
             print("Loading data of %s format is not supported without framework data loader" %type)
             raise Exception(type)

@@ -28,8 +28,8 @@ class TFReader(FormatReader):
     Reader for TFRecord files.
     """
 
-    def __init__(self, dataset_type):
-        super().__init__(dataset_type)
+    def __init__(self, dataset_type, thread_index):
+        super().__init__(dataset_type, thread_index)
         self.read_threads = self._args.read_threads
         self.computation_threads = self._args.computation_threads
         self.count = 0

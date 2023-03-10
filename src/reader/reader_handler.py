@@ -30,8 +30,9 @@ import glob
 
 
 class FormatReader(ABC):
-    def __init__(self, dataset_type):
+    def __init__(self, dataset_type, thread_index):
         self.total = None
+        self.thread_index = thread_index
         self._args = ConfigArguments.get_instance()
         self.file_shuffle = self._args.file_shuffle
         self.seed = self._args.seed
@@ -54,6 +55,7 @@ class FormatReader(ABC):
         self.total_files = self.num_files_train + self.num_files_eval 
         self.num_samples = self._args.num_samples_per_file
         self.read_type = self._args.read_type
+        self.read_threads = self._args.read_threads
 
         # Batch sizes
         self.batch_size_train = self._args.batch_size

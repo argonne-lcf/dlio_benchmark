@@ -31,8 +31,8 @@ CSV Reader reader and iterator logic.
 
 
 class CSVReader(FormatReader):
-    def __init__(self, dataset_type):
-        super().__init__(dataset_type)
+    def __init__(self, dataset_type, thread_index):
+        super().__init__(dataset_type, thread_index)
 
     @perftrace.event_logging
     def read(self, epoch_number):

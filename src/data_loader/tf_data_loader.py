@@ -12,12 +12,13 @@ from src.utils.utility import utcnow, perftrace
 
 
 class TensorflowDataset(tf.data.Dataset):
-    def _generator(format_type, dataset_type, epoch_number):
+    def _generator(format_type, dataset_type, epoch_number, thread_index):
         format_type = format_type.decode('ascii')
         dataset_type = dataset_type.decode('ascii')
         logging.debug(f"{utcnow()} format_type {format_type} dataset_type {dataset_type} tensors")
-        reader = ReaderFactory.get_reader(FormatType.get_enum(format_type),
-                                          dataset_type=DatasetType.get_enum(dataset_type))
+        reader = ReaderFactory.get_reader(type=FormatType.get_enum(format_type),
+                                          dataset_type=DatasetType.get_enum(dataset_type),
+                                          thread_index=thread_index)
         reader.read(epoch_number)
         count = 1
         t0 = time()
@@ -26,18 +27,18 @@ class TensorflowDataset(tf.data.Dataset):
             perftrace.event_complete(f"TFLoader_{format_type}_{dataset_type}_epoch_{epoch_number}_step_{count}", "TFLoader._generator.next", t0, t1 - t0)
             yield batch
             if is_last == 1:
-                logging.debug(f"{utcnow()} is_last {is_last} returning")
+                logging.debug(f"{utcnow()} reader thread {thread_index} processed {count} batches")
                 return
             count += 1
             t0 = time()
 
 
-    def __new__(cls, format_type, dataset_type, epoch_number, shape):
+    def __new__(cls, format_type, dataset_type, epoch_number, shape, thread_index):
         dataset = tf.data.Dataset.from_generator(
             cls._generator,
             output_types=tf.uint8,
             output_shapes=shape,
-            args=(format_type.value, dataset_type.value, epoch_number,),
+            args=(format_type.value, dataset_type.value, epoch_number, thread_index,),
         )
         return dataset
 
@@ -61,10 +62,9 @@ class TFDataLoader(BaseDataLoader):
         options = tf.data.Options()
         options.threading.private_threadpool_size = self.read_threads
         options.threading.max_intra_op_parallelism = self.read_threads
-
-        dataset = tf.data.Dataset.from_tensor_slices([0]).with_options(options)
-        dataset = dataset.interleave(lambda x: TensorflowDataset(self.format_type, self.dataset_type,
-                                                                 epoch_number, (self.batch_size, self.max_dimension, self.max_dimension)),
+        self._dataset = tf.data.Dataset.from_tensor_slices(range(self.read_threads)).with_options(options)
+        self._dataset = self._dataset.interleave(lambda x: TensorflowDataset(self.format_type, self.dataset_type,
+                                                                 epoch_number, (self.batch_size, self.max_dimension, self.max_dimension), x),
                                      cycle_length=self.read_threads,
                                      num_parallel_calls=self.read_threads)
         if self.sample_shuffle != Shuffle.OFF:
