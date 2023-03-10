@@ -63,7 +63,8 @@ class CSVReader(FormatReader):
         batch = []
         samples_yielded = 0
         for index in range(len(self._dataset)):
-            self._dataset[index]['data'] = pd.read_csv(self._dataset[index]["file"], compression="infer").to_numpy()
+            if self.read_type is ReadType.ON_DEMAND or self._dataset[index]["data"] is None:
+                self._dataset[index]['data'] = pd.read_csv(self._dataset[index]["file"], compression="infer").to_numpy()
             total_samples = len(self._dataset[index]['data'])
             if FileAccess.MULTI == self.file_access:
                 # for multiple file access the whole file would read by each process.
@@ -104,7 +105,8 @@ class CSVReader(FormatReader):
                 t0 = time()
                 if self.samples_per_reader == samples_yielded:
                     break
-            self._dataset[index]['data'] = None
+            if self.read_type is ReadType.ON_DEMAND:
+                self._dataset[index]['data'] = None
 
     @perftrace.event_logging
     def read_index(self, index):

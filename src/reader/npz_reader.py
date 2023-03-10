@@ -25,7 +25,6 @@ from src.common.enumerations import Shuffle, FileAccess, ReadType, DatasetType
 from src.utils.utility import progress, utcnow, perftrace
 
 
-
 class NPZReader(FormatReader):
     """
     Reader for NPZ files
@@ -52,7 +51,7 @@ class NPZReader(FormatReader):
                     val['data'] = data["x"]
             self._dataset.append(val)
         self.after_read()
-        
+
     @perftrace.event_logging
     def _yield_image(self, file_index, sample_index):
         my_image = self._dataset[file_index]['data'][..., sample_index]
@@ -72,7 +71,7 @@ class NPZReader(FormatReader):
         batch = []
         samples_yielded = 0
         for index in range(len(self._dataset)):
-            if self._dataset[index]["data"] is None:
+            if self.read_type is ReadType.ON_DEMAND or self._dataset[index]["data"] is None:
                 with np.load(self._dataset[index]["file"], allow_pickle=True) as data:
                     self._dataset[index]['data'] = data["x"]
             total_samples = self._dataset[index]['data'].shape[2]
@@ -108,6 +107,8 @@ class NPZReader(FormatReader):
                     batch = []
                 if self.samples_per_reader == samples_yielded:
                     break
+            if self.read_type is ReadType.ON_DEMAND:
+                self._dataset[index]["data"] = None
 
     @perftrace.event_logging
     def read_index(self, index):
@@ -120,10 +121,9 @@ class NPZReader(FormatReader):
         logging.debug(f"{utcnow()} shape of image {my_image.shape} self.max_dimension {self.max_dimension}")
         my_image_resized = np.resize(my_image, (self.max_dimension, self.max_dimension))
         logging.debug(f"{utcnow()} new shape of image {my_image_resized.shape}")
-        if (self.read_type is ReadType.ON_DEMAND):
-            self._dataset[file_index]["data"]=None
+        if self.read_type is ReadType.ON_DEMAND:
+            self._dataset[file_index]["data"] = None
         return my_image_resized
-
 
     @perftrace.event_logging
     def get_sample_len(self):

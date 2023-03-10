@@ -70,7 +70,7 @@ class HDF5Reader(FormatReader):
         batch = []
         samples_yielded = 0
         for index in range(len(self._dataset)):
-            if self._dataset[index]["data"] is None:
+            if self.read_type is ReadType.ON_DEMAND or self._dataset[index]["data"] is None:
                 file_h5 = h5py.File(self._dataset[index]["file"], 'r')
                 self._dataset[index]["fp"] = file_h5
                 self._dataset[index]["data"] = file_h5['records']
@@ -111,7 +111,8 @@ class HDF5Reader(FormatReader):
                 t0 = time()
                 if self.samples_per_reader == samples_yielded:
                     break
-            self._dataset[index]["fp"].close()
+            if self.read_type is ReadType.ON_DEMAND:
+                self._dataset[index]["fp"].close()
 
     @perftrace.event_logging
     def read_index(self, index):
