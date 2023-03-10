@@ -18,13 +18,14 @@
 import os
 import logging
 
-from src.utils.utility import utcnow
+from src.data_loader.data_loader_factory import DataLoaderFactory
+from src.utils.utility import utcnow, perftrace
 from src.common.error_code import ErrorCodes
 from src.framework.framework import Framework
 from src.reader.reader_factory import ReaderFactory
 from src.profiler.profiler_factory import ProfilerFactory
 from src.storage.storage_factory import StorageFactory
-from src.common.enumerations import FrameworkType, Profiler, FormatType, DatasetType, MetadataType
+from src.common.enumerations import FrameworkType, Profiler, FormatType, DatasetType, MetadataType, DataLoaderType
 
 import tensorflow as tf
 from tensorflow.python.framework import errors
@@ -47,9 +48,9 @@ class TFFramework(Framework):
 
         self.reader_handler = None
 
-    def init_reader(self, format_type, data_loader=None):
-        self.reader_train = ReaderFactory.get_reader(format_type, data_loader=data_loader, dataset_type=DatasetType.TRAIN)
-        self.reader_valid = ReaderFactory.get_reader(format_type, data_loader=data_loader, dataset_type=DatasetType.VALID)
+    def init_loader(self, format_type, data_loader=None):
+        self.reader_train = DataLoaderFactory.get_loader(DataLoaderType.TENSORFLOW, format_type, dataset_type=DatasetType.TRAIN)
+        self.reader_valid = DataLoaderFactory.get_loader(DataLoaderType.TENSORFLOW, format_type, dataset_type=DatasetType.VALID)
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
 
     def get_type(self):
@@ -72,7 +73,8 @@ class TFFramework(Framework):
 
     def trace_object(self, string, step, r):
         return tf.profiler.experimental.Trace(string, step_num=step, _r=r)
-    
+
+    @perftrace.event_logging
     def checkpoint(self, epoch, step_number):
         """
         Performs Checkpointing for a specific step number. It writes different file of different sizes.
@@ -95,10 +97,11 @@ class TFFramework(Framework):
             string_val = "x" * (24740228)
             self.storage.put_data(meta_file, string_val)
 
+    @perftrace.event_logging
     def compute(self, epoch_number, step, computation_time):
         tf.function(self.model)(epoch_number, step, computation_time)
 
-    def get_reader(self, dataset_type=DatasetType.TRAIN):
+    def get_loader(self, dataset_type=DatasetType.TRAIN):
         if dataset_type == DatasetType.TRAIN:
             return self.reader_train
         else:

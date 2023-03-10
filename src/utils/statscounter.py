@@ -178,6 +178,9 @@ class StatsCounter(object):
         if self.my_rank == 0:
             with open(os.path.join(self.output_folder, 'per_epoch_stats.json'), 'w') as outfile:
                 json.dump(self.per_epoch_stats, outfile, indent=4)
+                outfile.flush()
 
         with open(os.path.join(self.output_folder, f'{self.my_rank}_load_and_proc_times.json'), 'w') as outfile:
             json.dump(self.load_and_proc_times, outfile, indent=4)
+            outfile.flush()
+            logging.info(f"{utcnow()} Rank {self.my_rank} wrote json output")

@@ -69,7 +69,7 @@ class DataGenerator(ABC):
             logging.info(f"{utcnow()} Number of files for validation dataset: {self.num_files_eval}")
 
 
-        MPI.COMM_WORLD.barrier()
+        MPI.COMM_WORLD.Barrier()
         # What is the logic behind this formula? 
         # Will probably have to adapt to generate non-images
         self._dimension = int(math.sqrt(self.record_size/8))

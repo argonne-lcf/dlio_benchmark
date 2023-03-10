@@ -18,8 +18,8 @@ import math
 import logging
 from time import time
 
-from src.utils.utility import utcnow, timeit
-from src.common.enumerations import Shuffle
+from src.utils.utility import utcnow, perftrace
+from src.common.enumerations import DatasetType
 from src.reader.reader_handler import FormatReader
 import tensorflow as tf
 
@@ -27,16 +27,31 @@ class TFReader(FormatReader):
     """
     Reader for TFRecord files.
     """
+
     def __init__(self, dataset_type):
         super().__init__(dataset_type)
         self.read_threads = self._args.read_threads
         self.computation_threads = self._args.computation_threads
+        self.count = 0
         # We read the full _file_list here instead of _local_file_list
         # because we will shard the data using the tf.data function
 
-    # TODO: DLIO assumes the tfrecord files to contain image/label pairs.
+        # TODO: DLIO assumes the tfrecord files to contain image/label pairs.
+
+    @perftrace.event_logging
+    def _decode_image(self, parsed_example):
+        # Get the image as raw bytes.
+        image_raw = parsed_example['image']
+        dimension = parsed_example['size']
+        # Decode the raw bytes so it becomes a tensor with type.
+        image_tensor = tf.io.decode_raw(image_raw, tf.float64)
+        # image_tensor = tf.io.decode_image(image_raw)
+        resized_image = tf.reshape(image_tensor, [dimension, dimension])
+        return tf.pad(resized_image, ((0, self.max_dimension - dimension), (0, self.max_dimension - dimension)))
+
     # This is not always the case, e.g. in BERT, each record is more complex,
     # consisting of 6 lists and a label. Same for DLRM.
+    @perftrace.event_logging
     def _tf_parse_function(self, serialized):
         """
         performs deserialization of the tfrecord.
@@ -46,21 +61,12 @@ class TFReader(FormatReader):
         features = \
             {
                 'image': tf.io.FixedLenFeature([], tf.string),
-                'label': tf.io.FixedLenFeature([], tf.int64)
+                'size': tf.io.FixedLenFeature([], tf.int64)
             }
-        # Parse the serialized data so we get a dict with our data.
-        parsed_example = tf.io.parse_single_example(serialized=serialized,
+        return tf.io.parse_example(serialized=serialized,
                                                     features=features)
-        # Get the image as raw bytes.
-        dimention = int(math.sqrt(self.record_size))
-        image_shape = tf.stack([dimention, dimention, 1])
-        image_raw = parsed_example['image']
-        label = tf.cast(parsed_example['label'], tf.float32)
-        # Decode the raw bytes so it becomes a tensor with type.
-        image = tf.io.decode_raw(image_raw, tf.uint8)
-        d = image, label
-        return d
 
+    @perftrace.event_logging
     def read(self, epoch_number):
         """
         Sets up the tf data pipeline to read tf record files.
@@ -70,31 +76,18 @@ class TFReader(FormatReader):
         """
         # superclass function initializes the file list
         super().read(epoch_number)
-        if self.read_threads==0:
-            if self._args.my_rank==0:
-                logging.warning(f"{utcnow()} `read_threads` is set to be 0 for tf.data loader. We change it to tf.data.AUTOTUNE")
-            self.read_threads=tf.data.AUTOTUNE
-        if (self.transfer_size !=None):
-            dataset = tf.data.TFRecordDataset(filenames=self._file_list,
-                                            buffer_size=self.transfer_size,
-                                            num_parallel_reads=self.read_threads)
+        if self.transfer_size is not None:
+            self._dataset = tf.data.TFRecordDataset(filenames=self._file_list,
+                                                    buffer_size=self.transfer_size)
         else:
-            dataset = tf.data.TFRecordDataset(filenames=self._file_list,
-                                            num_parallel_reads=self.read_threads)            
-        dataset = dataset.shard(num_shards=self.comm_size, index=self.my_rank)
-        dataset = dataset.map(self._tf_parse_function, num_parallel_calls=self.computation_threads)
+            self._dataset = tf.data.TFRecordDataset(filenames=self._file_list)
+        self._dataset = self._dataset.shard(num_shards=self.comm_size, index=self.my_rank)
+        self._dataset = self._dataset.map(self._tf_parse_function, num_parallel_calls=self.computation_threads)
+        self._dataset = self._dataset.map(self._decode_image, num_parallel_calls=self.computation_threads)
+        self._dataset = self._dataset.batch(self.batch_size, drop_remainder=True)
+        self.after_read()
 
-        if self.sample_shuffle != Shuffle.OFF:
-            if self.sample_shuffle == Shuffle.SEED:
-                dataset = dataset.shuffle(buffer_size=self.shuffle_size,
-                                          seed=self.seed)
-            else:
-                dataset = dataset.shuffle(buffer_size=self.shuffle_size)
-        self._dataset = dataset.batch(self.batch_size, drop_remainder=True)
-        
-        if self.prefetch_size>0:
-            self._dataset = dataset.prefetch(buffer_size=self.prefetch_size)
-
+    @perftrace.event_logging
     def next(self):
         """
         Provides the iterator over tfrecord data pipeline.
@@ -104,13 +97,27 @@ class TFReader(FormatReader):
 
         # In tf, we can't get the length of the dataset easily so we calculate it
         if self._debug:
-            total = math.floor(self.num_samples*len(self._file_list)/self.batch_size/self.comm_size)
+            total = math.floor(self.num_samples * len(self._file_list) / self.batch_size / self.comm_size)
             logging.debug(f"{utcnow()} Rank {self.my_rank} should read {total} batches")
 
         # The previous version crashed when all workers could not generate the same amount of batches
         # Using the inbuilt tensorflow dataset iteration seems to work fine, was there an advantage of doing it the old way?
+        total = int(math.ceil(self.get_sample_len() / self.batch_size))
+        count = 0
+        t0 = time()
         for batch in self._dataset:
-            yield batch
+            t1 = time()
+            perftrace.event_complete(f"TFRecord_{self.dataset_type}_step_{count}",
+                                     "tfrecord_reader..next", t0, t1 - t0)
+            count += 1
+            is_last = 0 if count < total else 1
+            yield is_last, batch
+            t0 = time()
 
-    def finalize(self):
+    @perftrace.event_logging
+    def read_index(self, index):
         pass
+
+    @perftrace.event_logging
+    def get_sample_len(self):
+        return self.num_samples * len(self._local_file_list)

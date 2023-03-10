@@ -18,70 +18,106 @@
 import math
 import logging
 import numpy as np
-import tensorflow as tf
-
 from numpy import random
+
 from src.reader.reader_handler import FormatReader
-from src.common.enumerations import Shuffle, FileAccess
+from src.common.enumerations import Shuffle, FileAccess, ReadType, DatasetType
+from src.utils.utility import progress, utcnow, perftrace
 
 
-from src.utils.utility import progress, utcnow
 
 class NPZReader(FormatReader):
     """
     Reader for NPZ files
     """
+
     def __init__(self, dataset_type):
         super().__init__(dataset_type)
 
+    @perftrace.event_logging
     def read(self, epoch_number):
         """
         for each epoch it opens the npz files and reads the data into memory
         :param epoch_number:
         """
         super().read(epoch_number)
-        packed_array = []
+        self._dataset = []
         for file in self._local_file_list:
-            with np.load(file, allow_pickle=True) as data:
-                rows = data['x']
-                logging.info(f"{utcnow()} loading numpy array of shape {rows.shape}")
-                packed_array.append({
-                    'dataset': rows,
-                    'current_sample': 0,
-                    'total_samples': rows.shape[2]
-                })
-        self._dataset = packed_array
+            val = {
+                'file': file,
+                'data': None
+            }
+            if self.read_type == ReadType.IN_MEMORY:
+                with np.load(file, allow_pickle=True) as data:
+                    val['data'] = data["x"]
+            self._dataset.append(val)
+        self.after_read()
+        
+    @perftrace.event_logging
+    def _yield_image(self, file_index, sample_index):
+        my_image = self._dataset[file_index]['data'][..., sample_index]
+        my_image_resized = np.resize(my_image, (self.max_dimension, self.max_dimension))
+        logging.debug(f"{utcnow()} new shape of image {my_image_resized.shape}")
+        return my_image_resized
 
+    @perftrace.event_logging
     def next(self):
         """
         The iterator of the dataset just performs memory sub-setting for each portion of the data.
         :return: piece of data for training.
         """
         super().next()
-        total = 0
-        count = 1
-        for element in self._dataset:
-            current_index = element['current_sample']
-            total_samples = element['total_samples']
+        total = self.total
+        count = 0
+        batch = []
+        for index in range(len(self._dataset)):
+            if self._dataset[index]["data"] is None:
+                with np.load(self._dataset[index]["file"], allow_pickle=True) as data:
+                    self._dataset[index]['data'] = data["x"]
+            total_samples = self._dataset[index]['data'].shape[2]
             if FileAccess.MULTI == self.file_access:
-                num_sets = list(range(0, int(math.ceil(total_samples / self.batch_size))))
+                # for multiple file access the whole file would read by each process.
+                total_samples_per_rank = total_samples
+                sample_index_list = list(range(0, total_samples))
             else:
                 total_samples_per_rank = int(total_samples / self.comm_size)
-                part_start, part_end = (int(total_samples_per_rank * self.my_rank / self.batch_size),
-                                        int(total_samples_per_rank * (self.my_rank + 1) / self.batch_size))
-                num_sets = list(range(part_start, part_end))
-            total += len(num_sets)
+                part_start, part_end = (int(total_samples_per_rank * self.my_rank),
+                                        int(total_samples_per_rank * (self.my_rank + 1)))
+                sample_index_list = list(range(part_start, part_end))
+
             if self.sample_shuffle != Shuffle.OFF:
                 if self.sample_shuffle == Shuffle.SEED:
                     random.seed(self.seed)
-                random.shuffle(num_sets)
-            for num_set in num_sets:
-                # Should we check if profiling is enabled and if we're using PT?
-                with tf.profiler.experimental.Trace('HDF5 Input', step_num=num_set / self.batch_size, _r=1):
-                    progress(count, total, "Reading NPZ Data")
-                    count += 1
-                    images = element['dataset'][:][:][num_set * self.batch_size:(num_set + 1) * self.batch_size - 1]
-                yield images
+                random.shuffle(sample_index_list)
+            for sample_index in sample_index_list:
+                logging.info(f"{utcnow()} num_set {sample_index} current batch_size {len(batch)}")
+                my_image_resized = self._yield_image(index, sample_index)
+                batch.append(my_image_resized)
+                is_last = 0 if count < total else 1
+                if is_last:
+                    while len(batch) is not self.batch_size:
+                        batch.append(np.random.rand(self.max_dimension, self.max_dimension))
+                if len(batch) == self.batch_size:
+                    batch = np.array(batch)
+                    yield is_last, batch
+                    batch = []
 
-    def finalize(self):
-        pass
+    @perftrace.event_logging
+    def read_index(self, index):
+        file_index = math.floor(index / self.num_samples)
+        if self.read_type is ReadType.ON_DEMAND or self._dataset[file_index]["data"] is None:
+            with np.load(self._dataset[file_index]["file"], allow_pickle=True) as data:
+                self._dataset[file_index]['data'] = data["x"]
+        element_index = index % self.num_samples
+        my_image = self._dataset[file_index]['data'][..., element_index]
+        logging.debug(f"{utcnow()} shape of image {my_image.shape} self.max_dimension {self.max_dimension}")
+        my_image_resized = np.resize(my_image, (self.max_dimension, self.max_dimension))
+        logging.debug(f"{utcnow()} new shape of image {my_image_resized.shape}")
+        if (self.read_type is ReadType.ON_DEMAND):
+            self._dataset[file_index]["data"]=None
+        return my_image_resized
+
+
+    @perftrace.event_logging
+    def get_sample_len(self):
+        return self.num_samples * len(self._local_file_list)
