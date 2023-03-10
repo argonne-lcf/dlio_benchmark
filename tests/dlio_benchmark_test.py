@@ -282,7 +282,8 @@ def test_multi_threads(framework, nt) -> None:
                                                        'workload.train.computation_time=0.01',
                                                        'workload.evaluation.eval_time=0.005',
                                                        '++workload.train.epochs=1',
-                                                       '++workload.dataset.num_files_train=16'])
+                                                       '++workload.dataset.num_files_train=16',
+                                                       '++workload.dataset.num_files_eval=16'])
         benchmark = run_benchmark(cfg)
     clean()
 
