@@ -66,9 +66,13 @@ class JPEGReader(FormatReader):
                 image_index += 1
             images = np.array(images)
             is_last = 0 if count < total else 1
+            if self.samples_per_reader <= image_index:
+                is_last = 1
             count += 1
             logging.info(f"{utcnow()} completed {count} of {total} is_last {is_last} {len(self._dataset)}")
             yield is_last, images
+            if self.samples_per_reader == image_index:
+                break
 
     @perftrace.event_logging
     def read_index(self, index):

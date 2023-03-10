@@ -70,6 +70,7 @@ class NPZReader(FormatReader):
         total = self.total
         count = 0
         batch = []
+        samples_yielded = 0
         for index in range(len(self._dataset)):
             if self._dataset[index]["data"] is None:
                 with np.load(self._dataset[index]["file"], allow_pickle=True) as data:
@@ -93,14 +94,20 @@ class NPZReader(FormatReader):
                 logging.info(f"{utcnow()} num_set {sample_index} current batch_size {len(batch)}")
                 my_image_resized = self._yield_image(index, sample_index)
                 batch.append(my_image_resized)
+                samples_yielded += 1
                 is_last = 0 if count < total else 1
+                if self.samples_per_reader == samples_yielded:
+                    is_last = 1
                 if is_last:
                     while len(batch) is not self.batch_size:
                         batch.append(np.random.rand(self.max_dimension, self.max_dimension))
                 if len(batch) == self.batch_size:
+                    count += 1
                     batch = np.array(batch)
                     yield is_last, batch
                     batch = []
+                if self.samples_per_reader == samples_yielded:
+                    break
 
     @perftrace.event_logging
     def read_index(self, index):

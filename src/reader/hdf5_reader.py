@@ -68,6 +68,7 @@ class HDF5Reader(FormatReader):
         total = int(math.ceil(self.get_sample_len() / self.batch_size))
         count = 0
         batch = []
+        samples_yielded = 0
         for index in range(len(self._dataset)):
             if self._dataset[index]["data"] is None:
                 file_h5 = h5py.File(self._dataset[index]["file"], 'r')
@@ -95,6 +96,9 @@ class HDF5Reader(FormatReader):
                                          "csv_reader..next", t0, t1 - t0)
                 batch.append(my_image_resized)
                 is_last = 0 if count < total else 1
+                samples_yielded += 1
+                if self.samples_per_reader == samples_yielded:
+                    is_last = 1
                 if is_last:
                     self._dataset[index]["fp"].close()
                     while len(batch) is not self.batch_size:
@@ -105,6 +109,8 @@ class HDF5Reader(FormatReader):
                     yield is_last, batch
                     batch = []
                 t0 = time()
+                if self.samples_per_reader == samples_yielded:
+                    break
             self._dataset[index]["fp"].close()
 
     @perftrace.event_logging

@@ -83,12 +83,12 @@ class TFDataLoader(BaseDataLoader):
     def next(self):
         super().next()
 
-        if self._debug:
-            total = math.floor(self.num_samples * len(self._file_list) / self.batch_size / self.comm_size)
-            logging.debug(f"{utcnow()} Rank {self.my_rank} should read {total} batches")
-
+        total = math.floor(self.num_samples * len(self._file_list) / self.batch_size / self.comm_size)
+        read_batches = 0
         for batch in self._dataset:
             yield batch
+            read_batches += 1
+        logging.info(f"{utcnow()} Rank {self.my_rank} read {read_batches} of {total} batches")
 
     def finalize(self):
         pass

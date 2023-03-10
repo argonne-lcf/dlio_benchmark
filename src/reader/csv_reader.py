@@ -61,6 +61,7 @@ class CSVReader(FormatReader):
         total = int(math.ceil(self.get_sample_len() / self.batch_size))
         count = 0
         batch = []
+        samples_yielded = 0
         for index in range(len(self._dataset)):
             self._dataset[index]['data'] = pd.read_csv(self._dataset[index]["file"], compression="infer").to_numpy()
             total_samples = len(self._dataset[index]['data'])
@@ -89,6 +90,9 @@ class CSVReader(FormatReader):
                 logging.debug(f"{utcnow()} new shape of image {my_image_resized.shape}")
                 batch.append(my_image_resized)
                 is_last = 0 if count < total else 1
+                samples_yielded += 1
+                if self.samples_per_reader == samples_yielded:
+                    is_last = 1
                 if is_last:
                     while len(batch) is not self.batch_size:
                         batch.append(np.random.rand(self.max_dimension, self.max_dimension))
@@ -98,6 +102,8 @@ class CSVReader(FormatReader):
                     yield is_last, batch
                     batch = []
                 t0 = time()
+                if self.samples_per_reader == samples_yielded:
+                    break
             self._dataset[index]['data'] = None
 
     @perftrace.event_logging
