@@ -109,8 +109,9 @@ class FormatReader(ABC):
         required_samples = self.comm_size * self.batch_size
         if self.read_threads > 0:
             required_samples *= self.read_threads
-        if total_samples > self.comm_size * self.read_threads * self.batch_size:
-            raise Exception("Total number of samples should be greater than comm_size * read_threads * self.batch_size")
+        if total_samples < required_samples:
+            raise Exception(f"Total samples {total_samples} should be greater than comm_size * read_threads * "
+                            f"self.batch_size {required_samples}")
 
         if thread_index != -1:
             thread_rank = self.my_rank * self.read_threads + thread_index

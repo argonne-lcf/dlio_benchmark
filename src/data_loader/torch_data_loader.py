@@ -16,12 +16,14 @@ class TorchDataset(Dataset):
     TODO: support multiple samples per file
     """
 
-    def __init__(self, format_type, dataset_type, epoch_number, num_samples):
+    def __init__(self, format_type, dataset_type, epoch_number, num_samples, num_workers):
         self.format_type = format_type
         self.dataset_type = dataset_type
         self.epoch_number = epoch_number
         self.num_samples = num_samples
         self.reader = None
+        if num_workers == 0:
+            self.worker_init(-1)
 
     def worker_init(self, worker_id):
         logging.info(f"{utcnow()} worker initialized {worker_id} with format {self.format_type}")
@@ -53,7 +55,7 @@ class TorchDataLoader(BaseDataLoader):
         self.epoch_number = epoch_number
         do_shuffle = True if self.sample_shuffle != Shuffle.OFF else False
         num_samples = self.num_samples * len(self._file_list)
-        dataset = TorchDataset(self.format, self.dataset_type, epoch_number, num_samples)
+        dataset = TorchDataset(self.format, self.dataset_type, epoch_number, num_samples, self.read_threads)
         # TODO: In image segmentation, the distributed sampler is not used during eval, we could parametrize this away if needed
         # This handles the partitioning between ranks
         if do_shuffle:
@@ -66,8 +68,6 @@ class TorchDataLoader(BaseDataLoader):
         #                             shuffle=do_shuffle,
         #                             seed=self.seed)
         # logging.debug(f"{utcnow()} Rank {self.my_rank} length of distributed sampler {len(sampler)} ")
-        import torch
-        torch.set_num_threads(self.read_threads)
         if self.read_threads > 1:
             prefetch_factor = math.ceil(self.prefetch_size / self.read_threads)
         else:
