@@ -296,7 +296,7 @@ class DLIOBenchmark(object):
             self.framework.checkpoint(epoch, overall_step)
             self.stats.end_ckpt(epoch, block)
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
-
+        logging.info(f"{utcnow()} Train on rank {self.my_rank} ran for {overall_step} steps")
         return overall_step
 
     @perftrace.event_logging

@@ -85,7 +85,7 @@ class HDF5Reader(FormatReader):
                                         int(total_samples_per_rank * (self.my_rank + 1)))
                 sample_index_list = list(range(part_start, part_end))
             for sample_index in sample_index_list:
-                logging.info(f"{utcnow()} num_set {sample_index} current batch_size {len(batch)}")
+                logging.debug(f"{utcnow()} num_set {sample_index} current batch_size {len(batch)}")
                 t0 = time()
                 my_image = self._dataset[index]["data"][sample_index]
                 logging.debug(f"{utcnow()} shape of image {my_image.shape} self.max_dimension {self.max_dimension}")

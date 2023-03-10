@@ -71,7 +71,7 @@ class PNGReader(FormatReader):
             if self.samples_per_reader <= image_index:
                 is_last = 1
             count += 1
-            logging.info(f"{utcnow()} completed {count} of {total} is_last {is_last} {len(self._dataset)}")
+            logging.debug(f"{utcnow()} completed {count} of {total} is_last {is_last} {len(self._dataset)}")
             yield is_last, images
             if self.samples_per_reader == image_index:
                 break

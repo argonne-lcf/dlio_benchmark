@@ -80,7 +80,7 @@ class CSVReader(FormatReader):
                     random.seed(self.seed)
                 random.shuffle(sample_index_list)
             for sample_index in sample_index_list:
-                logging.info(f"{utcnow()} num_set {sample_index} current batch_size {len(batch)}")
+                logging.debug(f"{utcnow()} num_set {sample_index} current batch_size {len(batch)}")
                 t0 = time()
                 my_image = self._dataset[index]['data'][sample_index]
                 my_image_resized = np.resize(my_image, (self.max_dimension, self.max_dimension))
@@ -113,9 +113,9 @@ class CSVReader(FormatReader):
         if self.read_type is ReadType.ON_DEMAND or self._dataset[file_index]["data"] is None:
             self._dataset[file_index]['data'] = pd.read_csv(self._dataset[file_index]["file"], compression="infer").to_numpy()
         my_image = self._dataset[file_index]['data'][..., element_index]
-        logging.info(f"{utcnow()} shape of image {my_image.shape} self.max_dimension {self.max_dimension}")
+        logging.debug(f"{utcnow()} shape of image {my_image.shape} self.max_dimension {self.max_dimension}")
         my_image_resized = np.resize(my_image, (self.max_dimension, self.max_dimension))
-        logging.info(f"{utcnow()} new shape of image {my_image.shape}")
+        logging.debug(f"{utcnow()} new shape of image {my_image.shape}")
         if self.read_type is ReadType.ON_DEMAND:
             self._dataset[index]['data'] = None
         return my_image_resized

@@ -91,7 +91,7 @@ class NPZReader(FormatReader):
                     random.seed(self.seed)
                 random.shuffle(sample_index_list)
             for sample_index in sample_index_list:
-                logging.info(f"{utcnow()} num_set {sample_index} current batch_size {len(batch)}")
+                logging.debug(f"{utcnow()} num_set {sample_index} current batch_size {len(batch)}")
                 my_image_resized = self._yield_image(index, sample_index)
                 batch.append(my_image_resized)
                 samples_yielded += 1

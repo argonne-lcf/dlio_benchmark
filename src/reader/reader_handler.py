@@ -158,7 +158,7 @@ class FormatReader(ABC):
 
     def after_read(self):
         self.total = int(math.ceil(self.get_sample_len() / self.batch_size))
-        logging.info(
+        logging.debug(
             f"{utcnow()} number of batches {self.total} on rank {self.my_rank} for dataset {self.dataset_type}")
 
     @abstractmethod
