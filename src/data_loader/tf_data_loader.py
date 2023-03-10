@@ -67,14 +67,6 @@ class TFDataLoader(BaseDataLoader):
                                                                  epoch_number, (self.batch_size, self.max_dimension, self.max_dimension), x),
                                      cycle_length=self.read_threads,
                                      num_parallel_calls=self.read_threads)
-        if self.sample_shuffle != Shuffle.OFF:
-            if self.sample_shuffle == Shuffle.SEED:
-                dataset = dataset.shuffle(buffer_size=self.shuffle_size,
-                                          seed=self.seed)
-            else:
-                dataset = dataset.shuffle(buffer_size=self.shuffle_size)
-        self._dataset = dataset.batch(self.batch_size, drop_remainder=True)
-
         if self.prefetch_size > 0:
             self._dataset = self._dataset.prefetch(buffer_size=self.prefetch_size)
 

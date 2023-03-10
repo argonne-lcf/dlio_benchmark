@@ -76,11 +76,7 @@ class TFReader(FormatReader):
         """
         # superclass function initializes the file list
         super().read(epoch_number)
-        if self.transfer_size is not None:
-            self._dataset = tf.data.TFRecordDataset(filenames=self._file_list,
-                                                    buffer_size=self.transfer_size)
-        else:
-            self._dataset = tf.data.TFRecordDataset(filenames=self._file_list)
+        self._dataset = tf.data.TFRecordDataset(filenames=self._file_list, buffer_size=self.transfer_size)
         self._dataset = self._dataset.shard(num_shards=self.comm_size, index=self.my_rank)
         self._dataset = self._dataset.map(self._tf_parse_function, num_parallel_calls=self.computation_threads)
         self._dataset = self._dataset.map(self._decode_image, num_parallel_calls=self.computation_threads)
