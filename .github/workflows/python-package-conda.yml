@@ -16,12 +16,15 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: 3.10.5
+    - uses: actions/cache@v2
+      with:
+        path: ${{ env.pythonLocation }}
+        key: ${{ env.pythonLocation }}-${{ hashFiles('setup.py') }}-${{ hashFiles('dev-requirements.txt') }}
     - name: Install DLIO
       run: |
         sudo apt-get install mpich
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest pytest-mpi pytest-subtests pytest-timeout
+        pip install --upgrade --upgrade-strategy eager -r dev-requirements.txt
     - name: test_gen_data
       run: |
         touch __init__.py
