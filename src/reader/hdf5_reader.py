@@ -116,7 +116,8 @@ class HDF5Reader(FormatReader):
 
     @perftrace.event_logging
     def read_index(self, index):
-        file_index = math.floor(index / self.num_samples)
+        relative_index = index - self.global_sample_start_index
+        file_index = int(math.floor(relative_index / self.num_samples)) % len(self._dataset)
         element_index = index % self.num_samples
         if self.read_type is ReadType.ON_DEMAND or self._dataset[file_index]["data"] is None:
             file_h5 = h5py.File(self._dataset[file_index]["file"], 'r')
@@ -131,4 +132,4 @@ class HDF5Reader(FormatReader):
 
     @perftrace.event_logging
     def get_sample_len(self):
-        return self.num_samples * len(self._local_file_list)
+        return self.samples_per_reader

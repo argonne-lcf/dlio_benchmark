@@ -55,6 +55,7 @@ class TorchDataLoader(BaseDataLoader):
         self.epoch_number = epoch_number
         do_shuffle = True if self.sample_shuffle != Shuffle.OFF else False
         num_samples = self.num_samples * len(self._file_list)
+        num_samples = int(math.ceil(num_samples))
         dataset = TorchDataset(self.format, self.dataset_type, epoch_number, num_samples, self.read_threads)
         # TODO: In image segmentation, the distributed sampler is not used during eval, we could parametrize this away if needed
         # This handles the partitioning between ranks

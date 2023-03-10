@@ -82,4 +82,4 @@ class PNGReader(FormatReader):
 
     @perftrace.event_logging
     def get_sample_len(self):
-        return self.num_samples * len(self._local_file_list)
+        return self.samples_per_reader

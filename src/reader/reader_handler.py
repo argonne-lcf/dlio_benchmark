@@ -117,14 +117,14 @@ class FormatReader(ABC):
             thread_rank = self.my_rank * self.read_threads + thread_index
             thread_comm_size = self.comm_size * self.read_threads
             self.samples_per_reader = int(math.ceil(total_samples / thread_comm_size))
-            global_sample_start_index = thread_rank * self.samples_per_reader
-            global_sample_end_index = (thread_rank + 1) * self.samples_per_reader - 1
+            self.global_sample_start_index = thread_rank * self.samples_per_reader
+            self.global_sample_end_index = (thread_rank + 1) * self.samples_per_reader - 1
         else:
             self.samples_per_reader = int(math.ceil(total_samples / self.comm_size))
-            global_sample_start_index = self.my_rank * self.samples_per_reader
-            global_sample_end_index = (self.my_rank + 1) * self.samples_per_reader - 1
-        self.file_start_index = int(math.floor(global_sample_start_index / self.num_samples))
-        self.file_end_index = int(math.floor(global_sample_end_index / self.num_samples))
+            self.global_sample_start_index = self.my_rank * self.samples_per_reader
+            self.global_sample_end_index = (self.my_rank + 1) * self.samples_per_reader - 1
+        self.file_start_index = int(math.floor(self.global_sample_start_index / self.num_samples))
+        self.file_end_index = int(math.floor(self.global_sample_end_index / self.num_samples))
         self._local_file_list = self._file_list[self.file_start_index:self.file_end_index]
 
         logging.info(f"{utcnow()} samples_per_reader {self.samples_per_reader} from files {self.file_start_index} to {self.file_end_index} for thread {self.thread_index} on rank {self.my_rank}")

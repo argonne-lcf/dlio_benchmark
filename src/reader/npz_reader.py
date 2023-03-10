@@ -112,7 +112,9 @@ class NPZReader(FormatReader):
 
     @perftrace.event_logging
     def read_index(self, index):
-        file_index = math.floor(index / self.num_samples)
+        logging.info(f"{utcnow()} reading image {index} thread {self.thread_index} rank {self.my_rank}")
+        relative_index = index - self.global_sample_start_index
+        file_index = int(math.floor(relative_index / self.num_samples)) % len(self._dataset)
         if self.read_type is ReadType.ON_DEMAND or self._dataset[file_index]["data"] is None:
             with np.load(self._dataset[file_index]["file"], allow_pickle=True) as data:
                 self._dataset[file_index]['data'] = data["x"]
@@ -127,4 +129,4 @@ class NPZReader(FormatReader):
 
     @perftrace.event_logging
     def get_sample_len(self):
-        return self.num_samples * len(self._local_file_list)
+        return self.samples_per_reader
