@@ -14,13 +14,14 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-
-from typing import List, ClassVar
-from src.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, FrameworkType, DataLoaderType, Profiler
-from dataclasses import dataclass, field
-import hydra
-import os
 import logging
+from typing import List, ClassVar
+from src.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, FrameworkType, \
+    DataLoaderType, Profiler, DatasetType
+from dataclasses import dataclass
+import math
+import os
+
 
 @dataclass
 class ConfigArguments:
@@ -35,7 +36,7 @@ class ConfigArguments:
     # Shuffle type
     file_shuffle: Shuffle = Shuffle.OFF
     shuffle_size: int = 1024
-    sample_shuffle: Shuffle =Shuffle.OFF
+    sample_shuffle: Shuffle = Shuffle.OFF
     read_type: ReadType = ReadType.ON_DEMAND
     file_access: FileAccess = FileAccess.MULTI
     # Set root as the current directory by default
@@ -43,24 +44,24 @@ class ConfigArguments:
     storage_type: StorageType = StorageType.LOCAL_FS
     record_length: int = 64 * 1024
     record_length_stdev: int = 0
-    num_files_train: int = 8 
+    num_files_train: int = 8
     num_samples_per_file: int = 1
-    batch_size: int = 1 
-    epochs: int = 1 
+    batch_size: int = 1
+    epochs: int = 1
     seed_change_epoch: bool = True
     generate_data: bool = False
     generate_only: bool = False
     data_folder: str = "./data/"
     output_folder: str = "./output"
     checkpoint_folder: str = "./checkpoints/"
-    log_file: str  = "dlio.log"
+    log_file: str = "dlio.log"
     file_prefix: str = "img"
     keep_files: bool = True
     do_profiling: bool = True
     profiler: Profiler = Profiler.IOSTAT
     seed: int = 123
     do_checkpoint: bool = False
-    checkpoint_after_epoch: int = 1 
+    checkpoint_after_epoch: int = 1
     epochs_between_checkpoints: int = 1
     steps_between_checkpoints: int = -1
     transfer_size: int = None
@@ -68,7 +69,7 @@ class ConfigArguments:
     computation_threads: int = 1
     computation_time: float = 0.
     computation_time_stdev: float = 0.
-    prefetch_size: int = 0 
+    prefetch_size: int = 0
     enable_chunking: bool = False
     chunk_size: int = 0
     compression: Compression = Compression.NONE
@@ -88,12 +89,30 @@ class ConfigArguments:
     num_subfolders_eval: int = 0
     iostat_devices: ClassVar[List[str]] = []
 
+    # derived fields
+    required_samples: int = 1
+    total_samples_eval: int = 1
+    total_samples_train: int = 1
+    file_list_eval: ClassVar[List[str]] = []
+    file_list_train: ClassVar[List[str]] = []
+    max_dimension: int = 1
+    storage = None
+    dimension_stdev: float = 0.0
+    dimension: int = 1
+    training_steps: int = 0
+    eval_steps: int = 0
+    file_map = None
+    global_index_map = None
+
     def __init__(self):
         """ Virtually private constructor. """
         if ConfigArguments.__instance is not None:
             raise Exception("This class is a singleton!")
         else:
             ConfigArguments.__instance = self
+        from mpi4py import MPI
+        self.comm_size = MPI.COMM_WORLD.size
+        self.my_rank = MPI.COMM_WORLD.rank
 
     @staticmethod
     def get_instance():
@@ -101,19 +120,117 @@ class ConfigArguments:
         if ConfigArguments.__instance is None:
             ConfigArguments()
         return ConfigArguments.__instance
+
     def validate(self):
         """ validate whether the parameters are set correctly"""
         if (self.do_profiling == True) and (self.profiler == Profiler('darshan')):
-            if ('LD_PRELOAD' not in os.environ or os.environ["LD_PRELOAD"].find("libdarshan")==-1):
+            if ('LD_PRELOAD' not in os.environ or os.environ["LD_PRELOAD"].find("libdarshan") == -1):
                 raise Exception("Please set darshan runtime library in LD_PRELOAD")
         if self.format is FormatType.TFRECORD and self.framework is not FrameworkType.TENSORFLOW:
             raise Exception("Imcompatible between format and framework setup.")
         if self.format is FormatType.TFRECORD and self.data_loader is not DataLoaderType.TENSORFLOW:
             raise Exception("Imcompatible between format and data loader setup.")
-        if (self.framework==FrameworkType.TENSORFLOW and self.data_loader == DataLoaderType.PYTORCH) or (self.framework==FrameworkType.PYTORCH and self.data_loader == DataLoaderType.TENSORFLOW):
+        if (self.framework == FrameworkType.TENSORFLOW and self.data_loader == DataLoaderType.PYTORCH) or (
+                self.framework == FrameworkType.PYTORCH and self.data_loader == DataLoaderType.TENSORFLOW):
             raise Exception("Imcompatible between framework and data_loader setup.")
+        if len(self.file_list_train) != self.num_files_train:
+            raise Exception(
+                f"Expected {self.num_files_train} training files but {len(self.file_list_train)} found. Ensure data was generated correctly.")
+        if len(self.file_list_eval) != self.num_files_eval:
+            raise Exception(
+                f"Expected {self.num_files_eval} evaluation files but {len(self.file_list_eval)} found. Ensure data was generated correctly.")
+
     def reset(self):
         ConfigArguments.__instance = None
+
+    def derive_configurations(self, file_list_train, file_list_eval):
+        self.file_list_train = file_list_train
+        self.file_list_eval = file_list_eval
+        self.num_files_eval = len(file_list_eval)
+        self.num_files_train = len(file_list_train)
+        self.dimension = int(math.sqrt(self.record_length / 8))
+        self.dimension_stdev = math.sqrt(self.record_length_stdev / 8)
+        self.max_dimension = int(self.dimension + math.ceil(self.dimension_stdev))
+        self.total_samples_train = self.num_samples_per_file * len(self.file_list_train)
+        self.total_samples_eval = self.num_samples_per_file * len(self.file_list_eval)
+        self.required_samples = self.comm_size * self.batch_size
+        if self.read_threads > 0:
+            self.required_samples *= self.read_threads
+        self.training_steps = int(math.ceil(self.total_samples_train / self.batch_size / self.comm_size))
+        self.eval_steps = int(math.ceil(self.total_samples_eval / self.batch_size_eval / self.comm_size))
+
+    def build_sample_map(self, file_list, total_samples, epoch_number):
+        from numpy import random
+        num_files = len(file_list)
+        num_threads = 1
+        if self.read_threads > 0:
+            num_threads = self.read_threads
+        samples_per_thread = total_samples / self.comm_size / num_threads
+        file_index = 0
+        sample_index = 0
+        sample_global_list = range(total_samples)
+        if self.file_shuffle is not Shuffle.OFF:
+            if self.seed_change_epoch:
+                random.seed(self.seed + epoch_number)
+            else:
+                random.seed(self.seed)
+            random.shuffle(sample_global_list)
+        process_thread_file_map = {}
+        read_threads = self.read_threads
+        if self.read_threads == 0:
+            read_threads = 1
+        logging.debug(f"ranks {self.comm_size} threads {self.read_threads} tensors")
+        for rank in range(self.comm_size):
+            for thread_index in range(read_threads):
+                if rank not in process_thread_file_map:
+                    process_thread_file_map[rank] = {}
+                if thread_index not in process_thread_file_map[rank]:
+                    process_thread_file_map[rank][thread_index] = []
+                selected_samples = 0
+                while selected_samples < samples_per_thread:
+                    process_thread_file_map[rank][thread_index].append((file_list[file_index],
+                                                                        sample_global_list[
+                                                                            sample_index] % self.num_samples_per_file))
+                    sample_index += 1
+                    selected_samples += 1
+                    if sample_index >= self.num_samples_per_file:
+                        sample_index = 0
+                        file_index += 1
+                    if file_index >= num_files:
+                        break
+        return process_thread_file_map
+
+    def get_global_map(self, file_list, total_samples):
+        process_thread_file_map = {}
+        for global_sample_index in range(total_samples):
+            file_index = int(math.floor(global_sample_index / self.num_samples_per_file))
+            sample_index = global_sample_index % self.num_samples_per_file
+            process_thread_file_map[global_sample_index] = (file_list[file_index], sample_index)
+        return process_thread_file_map
+    def reconfigure(self, epoch_number, dataset_type):
+        from numpy import random
+        if self.file_shuffle is not Shuffle.OFF:
+            if self.seed_change_epoch:
+                random.seed(self.seed + epoch_number)
+            else:
+                random.seed(self.seed)
+            random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else random.shuffle(
+                self.file_list_eval)
+
+        if self.data_loader is DataLoaderType.TENSORFLOW:
+            if dataset_type is DatasetType.TRAIN:
+                global_file_map = self.build_sample_map(self.file_list_train, self.total_samples_train,
+                                                      epoch_number)
+            else:
+                global_file_map = self.build_sample_map(self.file_list_eval, self.total_samples_eval, epoch_number)
+            self.file_map = global_file_map[self.my_rank]
+        else:
+            if dataset_type is DatasetType.TRAIN:
+                self.global_index_map = self.get_global_map(self.file_list_train, self.total_samples_train)
+            else:
+                self.global_index_map = self.get_global_map(self.file_list_eval, self.total_samples_eval)
+
+
 
 def LoadConfig(args, config):
     '''
@@ -169,7 +286,7 @@ def LoadConfig(args, config):
             args.keep_files = config['dataset']['keep_files']
 
     # data reader
-    reader=None
+    reader = None
     if 'data_reader' in config:
         reader = config['data_reader']
     elif 'reader' in config:
@@ -184,7 +301,7 @@ def LoadConfig(args, config):
         if 'batch_size' in reader:
             args.batch_size = reader['batch_size']
         if 'batch_size_eval' in reader:
-            args.batch_size_eval = reader['batch_size_eval']            
+            args.batch_size_eval = reader['batch_size_eval']
         if 'prefetch_size' in reader:
             args.prefetch_size = reader['prefetch_size']
         if 'file_shuffle' in reader:
@@ -200,7 +317,7 @@ def LoadConfig(args, config):
 
     # training relevant setting
     if 'train' in config:
-        if 'epochs' in  config['train']:
+        if 'epochs' in config['train']:
             args.epochs = config['train']['epochs']
         if 'total_training_steps' in config['train']:
             args.total_training_steps = config['train']['total_training_steps']
@@ -212,7 +329,7 @@ def LoadConfig(args, config):
             args.computation_time_stdev = config['train']['computation_time_stdev']
         if 'seed' in config['train']:
             args.seed = config['train']['seed']
-        
+
     if 'evaluation' in config:
         if 'eval_time' in config['evaluation']:
             args.eval_time = config['evaluation']['eval_time']
@@ -246,13 +363,13 @@ def LoadConfig(args, config):
         if 'debug' in config['workflow']:
             args.debug = config['workflow']['debug']
         if 'evaluation' in config['workflow']:
-            args.do_eval= config['workflow']['evaluation']
+            args.do_eval = config['workflow']['evaluation']
         if 'checkpoint' in config['workflow']:
-            args.do_checkpoint= config['workflow']['checkpoint']
-        if 'profiling' in config['workflow']: 
+            args.do_checkpoint = config['workflow']['checkpoint']
+        if 'profiling' in config['workflow']:
             args.do_profiling = config['workflow']['profiling']
 
-    if 'profiling' in config: 
+    if 'profiling' in config:
         if 'profiler' in config['profiling']:
             args.profiler = Profiler(config['profiling']['profiler'])
         if 'iostat_devices' in config['profiling']:

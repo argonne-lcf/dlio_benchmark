@@ -16,17 +16,12 @@
 """
 
 # !/usr/bin/env python
-from collections import namedtuple
-from src.utils.utility import timeit
 from hydra import initialize, compose
-from hydra.core.config_store import ConfigStore
-from omegaconf import DictConfig, OmegaConf
-import hydra
+from omegaconf import OmegaConf
 import unittest
-import yaml
 import shutil
 from mpi4py import MPI
-
+import pathlib
 comm = MPI.COMM_WORLD
 import pytest
 import time
@@ -74,7 +69,9 @@ def run_benchmark(cfg, storage_root="./", verify=True):
         logging.info("Time for the benchmark: %.10f" % (t1 - t0))
     if (verify):
         os.system(f"ls {benchmark.output_folder}")
-        assert (len(glob.glob(benchmark.output_folder + "./*_load_and_proc_times.json")) == benchmark.comm_size)
+        output = pathlib.Path(benchmark.output_folder)
+        load_json = list(output.glob("*_load_and_proc_times.json"))
+        assert (len(load_json) == benchmark.comm_size)
     return benchmark
 
 
@@ -96,15 +93,19 @@ def test_gen_data(fmt, framework) -> None:
                                                        f"++workload.dataset.format={fmt}"])
         benchmark = run_benchmark(cfg, verify=False)
         if benchmark.args.num_subfolders_train <= 1:
-            assert (len(glob.glob(os.path.join(cfg.workload.dataset.data_folder, f"train/*.{fmt}"))) ==
-                    cfg.workload.dataset.num_files_train)
-            assert (len(glob.glob(os.path.join(cfg.workload.dataset.data_folder, f"valid/*.{fmt}"))) ==
-                    cfg.workload.dataset.num_files_eval)
+            train = pathlib.Path(f"{cfg.workload.dataset.data_folder}/train")
+            train_files = list(train.glob(f"*.{fmt}"))
+            valid = pathlib.Path(f"{cfg.workload.dataset.data_folder}/valid")
+            valid_files = list(valid.glob(f"*.{fmt}"))
+            assert (len(train_files) == cfg.workload.dataset.num_files_train)
+            assert (len(valid_files) == cfg.workload.dataset.num_files_eval)
         else:
-            assert (len(glob.glob(os.path.join(cfg.workload.dataset.data_folder, f"train/*/*.{fmt}"))) ==
-                    cfg.workload.dataset.num_files_train)
-            assert (len(glob.glob(os.path.join(cfg.workload.dataset.data_folder, f"valid/*/*.{fmt}"))) ==
-                    cfg.workload.dataset.num_files_eval)
+            train = pathlib.Path(f"{cfg.workload.dataset.data_folder}/train")
+            train_files = list(train.rglob(f"**/*.{fmt}"))
+            valid = pathlib.Path(f"{cfg.workload.dataset.data_folder}/valid")
+            valid_files = list(valid.rglob(f"**/*.{fmt}"))
+            assert (len(train_files) == cfg.workload.dataset.num_files_train)
+            assert (len(valid_files) == cfg.workload.dataset.num_files_eval)
         clean()
 
 
@@ -175,11 +176,12 @@ def test_iostat_profiling() -> None:
         assert (os.path.isfile(benchmark.output_folder + "/iostat.json"))
         if (comm.rank == 0):
             logging.info("generating output data")
-            os.makedirs(benchmark.output_folder + "/.hydra/", exist_ok=True)
+            hydra = f"{benchmark.output_folder}/.hydra"
+            os.makedirs(hydra, exist_ok=True)
             yl: str = OmegaConf.to_yaml(cfg)
-            with open(benchmark.output_folder + "./.hydra/config.yaml", "w") as f:
+            with open(f"{hydra}/config.yaml", "w") as f:
                 OmegaConf.save(cfg, f)
-            with open(benchmark.output_folder + "./.hydra/overrides.yaml", "w") as f:
+            with open(f"{hydra}/overrides.yaml", "w") as f:
                 f.write('[]')
             subprocess.run(["ls", "-l", "/dev/null"], capture_output=True)
             cmd = f"python src/dlio_postprocessor.py --output-folder={benchmark.output_folder}"
@@ -209,7 +211,9 @@ def test_checkpoint_epoch() -> None:
             shutil.rmtree("./checkpoints", ignore_errors=True)
         comm.Barrier()
         benchmark = run_benchmark(cfg)
-        assert (len(glob.glob("./checkpoints/*.bin")) == 4)
+        output = pathlib.Path("./checkpoints")
+        load_bin = list(output.glob("*.bin"))
+        assert (len(load_bin) == 4)
         clean()
 
 
@@ -238,7 +242,9 @@ def test_checkpoint_step() -> None:
         nstep = dataset.num_files_train * dataset.num_samples_per_file // cfg['workload'][
             'reader'].batch_size // benchmark.comm_size
         ncheckpoints = nstep // 2 * 8
-        assert (len(glob.glob("./checkpoints/*.bin")) == ncheckpoints)
+        output = pathlib.Path("./checkpoints")
+        load_bin = list(output.glob("*.bin"))
+        assert (len(load_bin) == ncheckpoints)
         clean()
 
 
