@@ -27,57 +27,54 @@ class JPEGReader(FormatReader):
     """
     Reader for JPEG files
     """
-    def __init__(self, dataset_type, thread_index):
-        super().__init__(dataset_type, thread_index)
+    classname = "JPEGReader"
 
+    def __init__(self, dataset_type, thread_index, epoch_number):
+        t0 = time()
+        super().__init__(dataset_type, thread_index, epoch_number)
+        t1 = time()
+        perftrace.event_complete(
+            f"{self.classname}_{self.dataset_type}_init_{self.epoch_number}",
+            f"{self.classname}.init", t0, t1 - t0)
 
-    @perftrace.event_logging
-    def read(self, epoch_number):
-        """
-        for each epoch it opens the npz files and reads the data into memory
-        :param epoch_number:
-        """
-        super().read(epoch_number)
-        self._dataset = self._local_file_list
-        self.after_read()
+    def open(self, filename):
+        t0 = time()
+        data = Image.open(filename)
+        t1 = time()
+        perftrace.event_complete(f"{self.classname}_{self.dataset_type}_open_{filename}_epoch_{self.epoch_number}",
+                                 f"{self.classname}.open", t0, t1 - t0)
+        return data
+
+    def close(self, filename):
+        t0 = time()
+        t1 = time()
+        perftrace.event_complete(f"{self.classname}_{self.dataset_type}_close_{filename}_epoch_{self.epoch_number}",
+                                 f"{self.classname}.close", t0, t1 - t0)
+        pass
+
+    def get_sample(self, filename, sample_index):
+        t0 = time()
+        my_image = self.open_file_map[filename]
+        t1 = time()
+        resized_image = my_image.resize((self._args.max_dimension, self._args.max_dimension))
+        t2 = time()
+        perftrace.event_complete(
+            f"{self.classname}_{self.dataset_type}_get_{filename}_sample_{sample_index}_epoch_{self.epoch_number}",
+            f"{self.classname}.get_sample_read", t0, t1 - t0)
+        perftrace.event_complete(
+            f"{self.classname}_{self.dataset_type}_process_{filename}_sample_{sample_index}_epoch_{self.epoch_number}",
+            f"{self.classname}.get_sample_process", t1, t2 - t1)
+        return np.asarray(resized_image)
 
     @perftrace.event_logging
     def next(self):
-        """
-        The iterator of the dataset just performs memory sub-setting for each portion of the data.
-        :return: piece of data for training.
-        """
-        super().next()
-        total = int(math.ceil(self.get_sample_len() / self.batch_size))
-        count = 0
-        batches_images = [self._dataset[n:n + self.batch_size] for n in range(0, len(self._dataset), self.batch_size)]
-        total = len(batches_images)
-        count = 0
-        image_index = 0
-        for batch in batches_images:
-            images = []
-            for filename in batch:
-                t0 = time()
-                images.append(np.asarray(Image.open(filename).resize((self.max_dimension, self.max_dimension))))
-                t1 = time()
-                perftrace.event_complete(f"JPEG_{self.dataset_type}_image_{image_index}_step_{count}",
-                                         "csv_reader..next", t0, t1 - t0)
-                t0 = time()
-                image_index += 1
-            images = np.array(images)
-            is_last = 0 if count < total else 1
-            if self.samples_per_reader <= image_index:
-                is_last = 1
-            count += 1
-            logging.debug(f"{utcnow()} completed {count} of {total} is_last {is_last} {len(self._dataset)}")
-            yield is_last, images
-            if self.samples_per_reader == image_index:
-                break
+        for is_last, batch in super().next():
+            yield is_last, batch
 
     @perftrace.event_logging
     def read_index(self, index):
-        return np.asarray(Image.open(self._dataset[index]).resize((self.max_dimension, self.max_dimension)))
+        return super().read_index(index)
 
     @perftrace.event_logging
-    def get_sample_len(self):
-        return self.samples_per_reader
+    def finalize(self):
+        return super().finalize()
