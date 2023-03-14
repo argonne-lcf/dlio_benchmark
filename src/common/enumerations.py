@@ -123,6 +123,7 @@ class DataLoaderType(Enum):
     """
     TENSORFLOW='tensorflow'
     PYTORCH='pytorch'
+    DALI='dali'
     NONE='none'
     
     def __str__(self):

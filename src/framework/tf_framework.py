@@ -49,8 +49,10 @@ class TFFramework(Framework):
         self.reader_handler = None
 
     def init_loader(self, format_type, data_loader=None):
-        self.reader_train = DataLoaderFactory.get_loader(DataLoaderType.TENSORFLOW, format_type, dataset_type=DatasetType.TRAIN)
-        self.reader_valid = DataLoaderFactory.get_loader(DataLoaderType.TENSORFLOW, format_type, dataset_type=DatasetType.VALID)
+        if data_loader is None:
+            data_loader = DataLoaderType.TENSORFLOW
+        self.reader_train = DataLoaderFactory.get_loader(data_loader, format_type, dataset_type=DatasetType.TRAIN)
+        self.reader_valid = DataLoaderFactory.get_loader(data_loader, format_type, dataset_type=DatasetType.VALID)
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
 
     def get_type(self):

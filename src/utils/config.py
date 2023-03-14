@@ -65,7 +65,7 @@ class ConfigArguments:
     epochs_between_checkpoints: int = 1
     steps_between_checkpoints: int = -1
     transfer_size: int = None
-    read_threads: int = 1
+    read_threads: int = 4
     computation_threads: int = 1
     computation_time: float = 0.
     computation_time_stdev: float = 0.
@@ -101,6 +101,7 @@ class ConfigArguments:
     dimension: int = 1
     training_steps: int = 0
     eval_steps: int = 0
+    samples_per_thread: int = 1
     file_map = None
     global_index_map = None
 
@@ -160,12 +161,13 @@ class ConfigArguments:
         self.eval_steps = int(math.ceil(self.total_samples_eval / self.batch_size_eval / self.comm_size))
 
     def build_sample_map(self, file_list, total_samples, epoch_number):
+        logging.debug(f"ranks {self.comm_size} threads {self.read_threads} tensors")
         from numpy import random
         num_files = len(file_list)
         num_threads = 1
         if self.read_threads > 0:
             num_threads = self.read_threads
-        samples_per_thread = total_samples / self.comm_size / num_threads
+        self.samples_per_thread = total_samples / self.comm_size / num_threads
         file_index = 0
         sample_index = 0
         sample_global_list = range(total_samples)
@@ -176,18 +178,14 @@ class ConfigArguments:
                 random.seed(self.seed)
             random.shuffle(sample_global_list)
         process_thread_file_map = {}
-        read_threads = self.read_threads
-        if self.read_threads == 0:
-            read_threads = 1
-        logging.debug(f"ranks {self.comm_size} threads {self.read_threads} tensors")
         for rank in range(self.comm_size):
-            for thread_index in range(read_threads):
+            for thread_index in range(num_threads):
                 if rank not in process_thread_file_map:
                     process_thread_file_map[rank] = {}
                 if thread_index not in process_thread_file_map[rank]:
                     process_thread_file_map[rank][thread_index] = []
                 selected_samples = 0
-                while selected_samples < samples_per_thread:
+                while selected_samples < self.samples_per_thread:
                     process_thread_file_map[rank][thread_index].append((file_list[file_index],
                                                                         sample_global_list[
                                                                             sample_index] % self.num_samples_per_file))
@@ -217,7 +215,7 @@ class ConfigArguments:
             random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else random.shuffle(
                 self.file_list_eval)
 
-        if self.data_loader is DataLoaderType.TENSORFLOW:
+        if self.data_loader in [DataLoaderType.TENSORFLOW, DataLoaderType.DALI]:
             if dataset_type is DatasetType.TRAIN:
                 global_file_map = self.build_sample_map(self.file_list_train, self.total_samples_train,
                                                       epoch_number)

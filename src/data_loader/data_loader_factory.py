@@ -35,6 +35,9 @@ class DataLoaderFactory(object):
         elif type == DataLoaderType.TENSORFLOW:
             from src.data_loader.tf_data_loader import TFDataLoader
             return TFDataLoader(format_type, dataset_type)
+        elif type == DataLoaderType.DALI:
+            from src.data_loader.dali_data_loader import DaliDataLoader
+            return DaliDataLoader(format_type, dataset_type)
         else:
             print("Data Loader %s not supported" %type)
             raise Exception(str(ErrorCodes.EC1004))
