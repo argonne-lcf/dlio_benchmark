@@ -91,6 +91,7 @@ class FormatReader(ABC):
         if self._args.read_type is ReadType.ON_DEMAND or filename not in self.open_file_map:
             self.open_file_map[filename] = self.open(filename)
         image = self.get_sample(filename, sample_index)
+        image = image.astype(np.uint8)
         if self._args.read_type is ReadType.ON_DEMAND:
             self.close(filename)
             self.open_file_map[filename] = None

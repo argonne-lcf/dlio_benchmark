@@ -165,7 +165,7 @@ class ConfigArguments:
         from numpy import random
         num_files = len(file_list)
         num_threads = 1
-        if self.read_threads > 0:
+        if self.read_threads > 0 and self.data_loader is not DataLoaderType.DALI:
             num_threads = self.read_threads
         self.samples_per_thread = total_samples / self.comm_size / num_threads
         file_index = 0
