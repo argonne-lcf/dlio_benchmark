@@ -215,7 +215,7 @@ class ConfigArguments:
             random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else random.shuffle(
                 self.file_list_eval)
 
-        if self.data_loader in [DataLoaderType.TENSORFLOW, DataLoaderType.DALI]:
+        if self.data_loader in [DataLoaderType.TENSORFLOW]:
             if dataset_type is DatasetType.TRAIN:
                 global_file_map = self.build_sample_map(self.file_list_train, self.total_samples_train,
                                                       epoch_number)

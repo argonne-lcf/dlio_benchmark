@@ -32,32 +32,18 @@ class DaliDataset(object):
         self.item = self.reader.next()
         self.is_last = 0
 
-    @perftrace.event_logging
-    def __iter__(self):
-        self.i = 0
-        self.n = self.num_samples
-        return self
-
-    @perftrace.event_logging
-    def __next__(self):
-        if self.is_last:
-            self.item = self.reader.next()
+    def __call__(self, sample_info):
+        sample_idx = sample_info.idx_in_epoch
+        if sample_info.iteration >= self.num_samples // self.batch_size:
+            # Indicate end of the epoch
+            raise StopIteration()
         t0 = time()
-        self.is_last, batch = next(self.item)
+        image = self.reader.read_index(sample_idx)
         t1 = time()
         perftrace.event_complete(
-            f"DaliDataset_{self.format_type}_{self.dataset_type}_epoch_{self.epoch_number}_step_{self.i}",
+            f"DaliDataset_{self.format_type}_{self.dataset_type}_epoch_{self.epoch_number}_step_{sample_info.iteration}",
             "DaliDataset.next", t0, t1 - t0)
-        self.i += 1
-        labels = [np.uint8([self.i])]*self.batch_size
-        return batch, labels
-
-    @perftrace.event_logging
-    def __len__(self):
-        return self.num_samples
-
-    next = __next__
-
+        return image, np.uint8([sample_idx])
 
 class DaliDataLoader(BaseDataLoader):
 
@@ -80,7 +66,7 @@ class DaliDataLoader(BaseDataLoader):
         # None executes pipeline on CPU and the reader does the batching
         pipeline = Pipeline(batch_size=batch_size, num_threads=1, device_id=None, py_num_workers=num_threads)
         with pipeline:
-            images, labels = fn.external_source(source=dataset, num_outputs=2, dtype=types.UINT8, parallel=parallel)
+            images, labels = fn.external_source(source=dataset, num_outputs=2, dtype=[types.UINT8, types.UINT8], parallel=parallel, batch=False)
             pipeline.set_outputs(images, labels)
         self.pipelines.append(pipeline)
         logging.info(f"{utcnow()} Creating {num_threads} pipelines by {self._args.my_rank} rank ")
@@ -90,18 +76,23 @@ class DaliDataLoader(BaseDataLoader):
         super().next()
         total = self._args.training_steps if self.dataset_type is DatasetType.TRAIN else self._args.eval_steps
         num_samples = self._args.total_samples_train if self.dataset_type is DatasetType.TRAIN else self._args.total_samples_eval
+        batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
         logging.debug(f"{utcnow()} Rank {self._args.my_rank} should read {total} batches")
-        count = 0
-        _dataset = DALIGenericIterator(self.pipelines, ['data', 'label'], size=num_samples)
-        t0 = time()
-        for batch in _dataset:
+        for step in range(num_samples//batch_size):
+            t0 = time()
+            _dataset = DALIGenericIterator(self.pipelines, ['data', 'label'], size=1)
             t1 = time()
             perftrace.event_complete(
-                f"DaliLoader_{self.format_type}_{self.dataset_type}_epoch_{self.epoch_number}_step_{count}",
-                "DaliLoader.next", t0, t1 - t0)
-            yield batch
-            count += 1
+                f"DaliLoader.next.iter_{self.format_type}_{self.dataset_type}_epoch_{self.epoch_number}_step_{step}",
+                "DaliLoader.next.iter", t0, t1 - t0)
             t0 = time()
+            for batch in _dataset:
+                t1 = time()
+                perftrace.event_complete(
+                    f"DaliLoader_{self.format_type}_{self.dataset_type}_epoch_{self.epoch_number}_step_{step}",
+                    "DaliLoader.next", t0, t1 - t0)
+                yield batch
+                t0 = time()
 
     @perftrace.event_logging
     def finalize(self):
