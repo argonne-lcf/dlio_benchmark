@@ -65,7 +65,7 @@ class DLIOBenchmark(object):
         LoadConfig(self.args, cfg)
         self.args.validate()
         self.json = {}
-        self.json['workload'] = cfg['model']
+
         self.json['train']=[]
         self.json['eval']=[]
         try:
@@ -73,6 +73,7 @@ class DLIOBenchmark(object):
             self.args.output_folder = hydra_cfg['runtime']['output_dir']
         except:
             self.args.output_folder = 'output/'
+        self.json['workload'] = hydra_cfg.runtime.choices.workload            
         self.output_folder = self.args.output_folder
         self.logfile = os.path.join(self.output_folder, self.args.log_file)
         self.data_folder = self.args.data_folder
@@ -231,10 +232,10 @@ class DLIOBenchmark(object):
         self.total_compute_time += total_compute_time
         auu = (end_time - start_time - total_compute_time) / total_compute_time
         time_epoch['auu'] = auu
-        time_epoch['throughput'] = total*self.batch_size_eval*self.comm_size/(end_time - start_time)
+        time_epoch['throughput'] = total*self.batch_size_eval/(end_time - start_time)
         if self.my_rank == 0 and total_compute_time >0.:            
-            logging.info(f"{utcnow()} Epoch {epoch} [eval] accelerator_under_utilization: {auu}")
-            logging.info(f"{utcnow()} Epoch {epoch} [eval] throughput (samples/second): {time_epoch['throughput']}")
+            logging.info(f"{utcnow()} Epoch {epoch} [eval] accelerator_under_utilization (%): {auu*100:.4f}")
+            logging.info(f"{utcnow()} Epoch {epoch} [eval] throughput (samples/second): {time_epoch['throughput']*self.comm_size}")
 
         self.json['eval'].append(time_epoch)
         return step - 1
@@ -314,10 +315,10 @@ class DLIOBenchmark(object):
         self.total_compute_time += total_compute_time
         auu = (end_time - start_time - total_compute_time) / total_compute_time
         time_epoch['auu'] = auu
-        time_epoch['throughput'] = max_steps*self.batch_size*self.comm_size/(end_time - start_time)
+        time_epoch['throughput'] = max_steps*self.batch_size/(end_time - start_time)
         if self.my_rank == 0 and total_compute_time >0.0:            
-            logging.info(f"{utcnow()} Epoch {epoch} [training] accelerator_under_utilization: {auu}")
-            logging.info(f"{utcnow()} Epoch {epoch} [training] throughput (samples/second): {time_epoch['throughput']}")
+            logging.info(f"{utcnow()} Epoch {epoch} [training] accelerator_under_utilization (%): {auu*100:.4f}")
+            logging.info(f"{utcnow()} Epoch {epoch} [training] throughput (samples/second): {time_epoch['throughput']*self.comm_size}")
 
         self.json['train'].append(time_epoch)
         return overall_step
@@ -329,6 +330,7 @@ class DLIOBenchmark(object):
         If evaluation is enabled, it reads the eval dataset, performs evaluation and finalizes.
         """
         self.start_timestamp=time()
+        self.json['start_time'] = self.start_timestamp
         if not self.generate_only:
             # Print out the expected number of steps for each epoch and evaluation
             if self.my_rank == 0:
@@ -372,6 +374,7 @@ class DLIOBenchmark(object):
                     self.framework.barrier()
                     self.framework.get_reader(DatasetType.VALID).finalize()
         self.stop_timestamp=time()
+        self.json['stop_time'] = self.start_timestamp        
     def finalize(self):
         """
         It finalizes the dataset once training is completed.
@@ -408,12 +411,12 @@ class DLIOBenchmark(object):
         if self.my_rank==0:
             logging.info(f"{utcnow()} Saved outputs in {self.output_folder}")   
             metric="Averaged metric over all epochs\n[METRIC] ==================================================\n"
-            metric = metric + f"[METRIC] Training Accelerator Under Utilization: {np.mean(train_auu):.6f}\n"
-            metric = metric + f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput):.6f}\n"
+            metric = metric + f"[METRIC] Training Accelerator Under Utilization (%): {np.mean(train_auu)*100:.4f} ({np.std(train_auu)*100:.4f})\n"
+            metric = metric + f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput)*self.comm_size:.6f} ({np.std(train_throughput)*self.comm_size:.6f})\n"
 
             if len(self.json['eval'])>0:
-                metric = metric + f"[METRIC] Eval Accelerator Under Utilization: {np.mean(eval_auu):.6f}\n"
-                metric = metric + f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput):.6f}\n"
+                metric = metric + f"[METRIC] Eval Accelerator Under Utilization (%): {np.mean(eval_auu)*100:.4f} ({np.std(eval_auu)*100:.4f})\n"
+                metric = metric + f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput)*self.comm_size:.6f} ({np.std(eval_throughput)*self.comm_size:.6f})\n"
             metric+="[METRIC] ==================================================\n"
             logging.info(metric)     
 
