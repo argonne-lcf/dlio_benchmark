@@ -409,13 +409,13 @@ class DLIOBenchmark(object):
         if self.my_rank==0:
             logging.info(f"{utcnow()} Saved outputs in {self.output_folder}")   
             metric="Averaged metric over all epochs\n[METRIC] ==================================================\n"
-            metric += f"[METRIC] Training Accelerator Under Utilization: {np.mean(train_auu)}\n"
-            metric += f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput)}\n"
+            metric = metric + f"[METRIC] Training Accelerator Under Utilization: {np.mean(train_auu):.6f}\n"
+            metric = metric + f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput):.6f}\n"
 
             if len(self.json['eval'])>0:
-                metric += f"[METRIC] Eval Accelerator Under Utilization: {np.mean(eval_auu)}\n"
-                metric += f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput)}\n"
-            metric="[METRIC] ==================================================\n"
+                metric = metric + f"[METRIC] Eval Accelerator Under Utilization: {np.mean(eval_auu):.6f}\n"
+                metric = metric + f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput):.6f}\n"
+            metric+="[METRIC] ==================================================\n"
             logging.info(metric)     
 
 @measure_performance
