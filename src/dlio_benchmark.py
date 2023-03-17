@@ -202,9 +202,9 @@ class DLIOBenchmark(object):
         reader = self.framework.get_reader(DatasetType.VALID)
         total_compute_time = 0.0
         start_time = time()
-        epoch_time = {}
-        epoch_time['epoch'] = epoch
-        epoch_time['time_per_step'] = []
+        time_epoch = {}
+        time_epoch['epoch'] = epoch
+        time_epoch['time_per_step'] = []
         for batch in reader.next():
             self.stats.eval_batch_loaded(epoch, step, t0)
             if step == 2: 
