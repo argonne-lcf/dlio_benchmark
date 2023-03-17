@@ -24,14 +24,6 @@ from functools import wraps
 import threading
 import json
 
-logging.basicConfig(
-    level=logging.INFO,
-    handlers=[
-        logging.FileHandler("dlio_benchmark_test.log", mode = "a", encoding='utf-8'),
-        logging.StreamHandler()
-    ],format='[%(levelname)s] %(message)s'  # logging's max timestamp resolution is msecs, we will pass in usecs in the message
-)
-
 # UTC timestamp format with microsecond precision
 LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 from mpi4py import MPI
