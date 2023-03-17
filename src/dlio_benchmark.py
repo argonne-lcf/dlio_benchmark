@@ -21,6 +21,7 @@ import logging
 import pandas as pd
 from time import time
 import json 
+import numpy as np
 
 # Reduce TF and CUDA logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -162,7 +163,6 @@ class DLIOBenchmark(object):
         # Indexed by epoch number, contains start-end timestamps and other information
         self.per_epoch_stats = {}
         self.stats = StatsCounter()
-
     def initialize(self):
         """
         Initializes the benchmark runtime.
@@ -229,9 +229,15 @@ class DLIOBenchmark(object):
             t0 = time()
         end_time = time()
         self.total_compute_time += total_compute_time
+        auu = (end_time - start_time - total_compute_time) / total_compute_time
+        self.eval_auu.append(auu)
+        time_epoch['auu'] = auu
+        time_epoch['throughput'] = total*self.batch_size_eval*self.comm_size/(end_time - start_time)
         if self.my_rank == 0 and total_compute_time >0.:            
-            logging.info(f"{utcnow()} Epoch {epoch} [evaluation] accelerator_under_utilization: {(end_time - start_time - total_compute_time) / total_compute_time}")
-        
+            logging.info(f"{utcnow()} Epoch {epoch} [eval] accelerator_under_utilization: {auu}")
+            logging.info(f"{utcnow()} Epoch {epoch} [eval] throughput (samples/second): {time_epoch['throughput']}")
+
+        self.json['eval'].append(time_epoch)
         return step - 1
     def _train(self, epoch):
         """
@@ -241,6 +247,7 @@ class DLIOBenchmark(object):
         block = 1   # A continuous period of training steps, ended by checkpointing
         block_step = overall_step = 1   # Steps are taken within blocks
         max_steps = math.floor(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
+        self.steps_per_epoch = max_steps
         # Start the very first block
         self.stats.start_block(epoch, block)
         t0 = time()
@@ -306,8 +313,13 @@ class DLIOBenchmark(object):
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
         end_time = time()
         self.total_compute_time += total_compute_time
+        auu = (end_time - start_time - total_compute_time) / total_compute_time
+        time_epoch['auu'] = auu
+        time_epoch['throughput'] = max_steps*self.batch_size*self.comm_size/(end_time - start_time)
         if self.my_rank == 0 and total_compute_time >0.0:            
-            logging.info(f"{utcnow()} Epoch {epoch} [training] accelerator_under_utilization: {(end_time - start_time - total_compute_time) / total_compute_time}")
+            logging.info(f"{utcnow()} Epoch {epoch} [training] accelerator_under_utilization: {auu}")
+            logging.info(f"{utcnow()} Epoch {epoch} [training] throughput (samples/second): {time_epoch['throughput']}")
+
         self.json['train'].append(time_epoch)
         return overall_step
 
@@ -385,13 +397,26 @@ class DLIOBenchmark(object):
             self.stats.save_data()
         self.framework.barrier()
         total_elapsed_time = self.stop_timestamp - self.start_timestamp
+        train_auu = [a['auu'] for a in self.json['train']]
+        train_throughput = [a['throughput'] for a in self.json['train']]
 
-        #if self.my_rank == 0 and self.total_compute_time >0.:            
-        #    logging.info(f"{utcnow()} Overall accelerator_under_utilization: {(total_elapsed_time - self.total_compute_time) / self.total_compute_time}")
+        if len(self.json['eval'])>0:
+            eval_auu = [a['auu'] for a in self.json['eval']]
+            eval_throughput = [a['throughput'] for a in self.json['eval']]
+
         with open(f'{self.output_folder}/output_{self.my_rank}.json', 'w', encoding='utf-8') as f:
             json.dump(self.json, f, ensure_ascii=False, indent=4) 
         if self.my_rank==0:
-            logging.info(f"{utcnow()} Saved outputs in {self.output_folder}")        
+            logging.info(f"{utcnow()} Saved outputs in {self.output_folder}")   
+            metric="Averaged metric over all epochs\n[METRIC] ==================================================\n"
+            metric += f"[METRIC] Training Accelerator Under Utilization: {np.mean(train_auu)}\n"
+            metric += f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput)}\n"
+
+            if len(self.json['eval'])>0:
+                metric += f"[METRIC] Eval Accelerator Under Utilization: {np.mean(eval_auu)}\n"
+                metric += f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput)}\n"
+            metric="[METRIC] ==================================================\n"
+            logging.info(metric)     
 
 @measure_performance
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
