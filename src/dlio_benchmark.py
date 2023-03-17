@@ -230,7 +230,6 @@ class DLIOBenchmark(object):
         end_time = time()
         self.total_compute_time += total_compute_time
         auu = (end_time - start_time - total_compute_time) / total_compute_time
-        self.eval_auu.append(auu)
         time_epoch['auu'] = auu
         time_epoch['throughput'] = total*self.batch_size_eval*self.comm_size/(end_time - start_time)
         if self.my_rank == 0 and total_compute_time >0.:            
