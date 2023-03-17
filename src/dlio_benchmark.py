@@ -20,6 +20,7 @@ import hydra
 import logging
 import pandas as pd
 from time import time
+import json 
 
 # Reduce TF and CUDA logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -62,6 +63,10 @@ class DLIOBenchmark(object):
         self.args = ConfigArguments.get_instance()
         LoadConfig(self.args, cfg)
         self.args.validate()
+        self.json = {}
+        self.json['workload'] = cfg['model']
+        self.json['train']=[]
+        self.json['eval']=[]
         try:
             hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
             self.args.output_folder = hydra_cfg['runtime']['output_dir']
@@ -197,17 +202,23 @@ class DLIOBenchmark(object):
         reader = self.framework.get_reader(DatasetType.VALID)
         total_compute_time = 0.0
         start_time = time()
+        epoch_time = {}
+        epoch_time['epoch'] = epoch
+        epoch_time['time_per_step'] = []
         for batch in reader.next():
             self.stats.eval_batch_loaded(epoch, step, t0)
-
+            if step == 2: 
+                start_time = time()
             if self.eval_time > 0:
                 if self.eval_time_stdev > 0:
                     eval_time = random.normal(self.eval_time, self.eval_time_stdev)
                 else:
                     eval_time = self.eval_time
-                total_compute_time += eval_time
+                if step > 1:
+                    total_compute_time += eval_time
                 self.framework.compute(epoch, step, eval_time)
-
+            t1 = time()
+            epoch_time['time_per_step'].append(t1 - t0)
             self.stats.eval_batch_processed(epoch, step, t0)
 
             step += 1
@@ -220,6 +231,7 @@ class DLIOBenchmark(object):
         self.total_compute_time += total_compute_time
         if self.my_rank == 0 and total_compute_time >0.:            
             logging.info(f"{utcnow()} Epoch {epoch} [evaluation] accelerator_under_utilization: {(end_time - start_time - total_compute_time) / total_compute_time}")
+        
         return step - 1
     def _train(self, epoch):
         """
@@ -236,10 +248,15 @@ class DLIOBenchmark(object):
 
         total_compute_time = 0.0
         start_time = time()
+
+        time_epoch = {}
+        time_epoch['epoch'] = epoch
+        time_epoch['time_per_step'] = []
         for batch in reader.next():
+            if overall_step == 2:
+                start_time = time()
             logging.debug(f"{utcnow()} Rank {self.my_rank} batch: {batch[:][1:]}")
             self.stats.batch_loaded(epoch, overall_step, block, t0)
-            self.framework.barrier()
             # Log a new block, unless it's the first one which we've already logged before the loop
             if block_step == 1 and block != 1:
                 self.stats.start_block(epoch, block)
@@ -250,12 +267,13 @@ class DLIOBenchmark(object):
                     computation_time = random.normal(self.computation_time, self.computation_time_stdev)
                 else:
                     computation_time = self.computation_time
-                total_compute_time += computation_time
+                if overall_step > 1:
+                    total_compute_time += computation_time
                 self.framework.compute(epoch, block_step, computation_time)
             self.framework.barrier()
-
+            t1 = time()
+            time_epoch['time_per_step'].append(t1 - t0)
             self.stats.batch_processed(epoch, overall_step, block, t0)
-
 
             if self.do_checkpoint and (self.steps_between_checkpoints>=0) and overall_step == self.next_checkpoint_step:
                 self.stats.end_block(epoch, block, block_step)
@@ -271,13 +289,11 @@ class DLIOBenchmark(object):
                 block_step += 1
 
             if overall_step >= max_steps or overall_step == self.total_training_steps:
-                self.framework.barrier()
                 if self.args.my_rank==0:
                     logging.info(f"{utcnow()} Maximum number of steps reached")
                 if (block_step!=1 and self.do_checkpoint) or (not self.do_checkpoint):
                     self.stats.end_block(epoch, block, block_step-1)
-                break
-                
+                break                
             overall_step += 1
             t0 = time()
 
@@ -292,6 +308,7 @@ class DLIOBenchmark(object):
         self.total_compute_time += total_compute_time
         if self.my_rank == 0 and total_compute_time >0.0:            
             logging.info(f"{utcnow()} Epoch {epoch} [training] accelerator_under_utilization: {(end_time - start_time - total_compute_time) / total_compute_time}")
+        self.json['train'].append(time_epoch)
         return overall_step
 
     def run(self):
@@ -326,12 +343,8 @@ class DLIOBenchmark(object):
                 steps = self._train(epoch)
                 self.stats.end_epoch(epoch, steps)
                 logging.debug(f"{utcnow()} Rank {self.my_rank} returned after {steps} steps.")
-
-
-
                 self.framework.barrier()
                 self.framework.get_reader(DatasetType.TRAIN).finalize()
-
                 # Perform evaluation if enabled
                 if self.do_eval and epoch >= next_eval_epoch:
                     next_eval_epoch += self.epochs_between_evals
@@ -373,9 +386,10 @@ class DLIOBenchmark(object):
         self.framework.barrier()
         total_elapsed_time = self.stop_timestamp - self.start_timestamp
 
-        if self.my_rank == 0 and self.total_compute_time >0.:            
-            logging.info(f"{utcnow()} Overall accelerator_under_utilization: {(total_elapsed_time - self.total_compute_time) / self.total_compute_time}")
- 
+        #if self.my_rank == 0 and self.total_compute_time >0.:            
+        #    logging.info(f"{utcnow()} Overall accelerator_under_utilization: {(total_elapsed_time - self.total_compute_time) / self.total_compute_time}")
+        with open(f'{self.output_folder}/output_{self.my_rank}.json', 'w', encoding='utf-8') as f:
+            json.dump(self.json, f, ensure_ascii=False, indent=4) 
         if self.my_rank==0:
             logging.info(f"{utcnow()} Saved outputs in {self.output_folder}")        
 
