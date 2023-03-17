@@ -16,12 +16,13 @@
 """
 from abc import ABC, abstractmethod
 
-from src.common.enumerations import FrameworkType, Shuffle, FileAccess, DatasetType, MetadataType
+from src.common.enumerations import FrameworkType, Shuffle, FileAccess, DatasetType, MetadataType, DataLoaderType, \
+    ReadType
 from src.framework.framework_factory import FrameworkFactory
 from src.storage.storage_factory import StorageFactory
 from src.utils.utility import utcnow
 from src.utils.config import ConfigArguments
-
+import numpy as np
 import os
 import math
 import logging
@@ -30,122 +31,72 @@ import glob
 
 
 class FormatReader(ABC):
-    def __init__(self, dataset_type):
-        self.total = None
+    def __init__(self, dataset_type, thread_index, epoch_number):
+        self.thread_index = thread_index
         self._args = ConfigArguments.get_instance()
-        self.file_shuffle = self._args.file_shuffle
-        self.seed = self._args.seed
-        self.seed_change_epoch = self._args.seed_change_epoch
-        self.sample_shuffle = self._args.sample_shuffle
-        self.shuffle_size = self._args.shuffle_size
-        self.data_dir = self._args.data_folder
-        self.record_size = self._args.record_length
-        self.record_size_stdev = self._args.record_length_stdev
-        self.prefetch_size = self._args.prefetch_size
-        self.transfer_size = self._args.transfer_size
-        self._dimension = int(math.sqrt(self._args.record_length / 8))
-        self._dimension_stdev = math.sqrt(self._args.record_length_stdev / 8)
-        self.max_dimension = int(self._dimension + math.ceil(self._dimension_stdev))
-        self.my_rank = self._args.my_rank
-        self.comm_size = self._args.comm_size
-        self.eval_enabled = self._args.do_eval
-        self.num_files_eval = self._args.num_files_eval
-        self.num_files_train = self._args.num_files_train
-        self.total_files = self.num_files_train + self.num_files_eval 
-        self.num_samples = self._args.num_samples_per_file
-        self.read_type = self._args.read_type
-
-        # Batch sizes
-        self.batch_size_train = self._args.batch_size
-        self.batch_size_eval = self._args.batch_size_eval
-        self.batch_size = None
-        self._local_file_list = None
-        self._local_eval_file_list = None
-        self._file_list_train = None
-        self._file_list_eval = None
-        self._file_list = None
-        self._dataset = None
-        self._debug = self._args.debug
+        logging.debug(f"Loading {self.classname} reader on thread {self.thread_index} from rank {self._args.my_rank}")
         self.dataset_type = dataset_type
-        self.framework = FrameworkFactory().get_framework(self._args.framework,
-                                                          self._args.do_profiling)
-        self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root, self._args.framework)
-        # We do this here so we keep the same evaluation files every epoch
-        if self.num_files_train > 1 or self.num_samples == 1:
-            self.file_access = FileAccess.MULTI
-        else:
-            self.file_access = FileAccess.SHARED
-        if self.dataset_type == DatasetType.TRAIN:
-            filenames = self.storage.walk_node(os.path.join(self.data_dir,  "train"))
-            if self.storage.get_node(os.path.join(self.data_dir, "train", filenames[0])) == MetadataType.DIRECTORY:
-                fullpaths=self.storage.walk_node(os.path.join(self.data_dir, "train/*/*"), use_pattern=True)
-            else:
-                fullpaths = [self.storage.get_uri(os.path.join(self.data_dir, "train", entry)) for entry in filenames]
-
-            num_files = self.num_files_train
-            self.batch_size = self.batch_size_train
-            assert len(fullpaths) == num_files, f"Expected {num_files} training files but {len(fullpaths)} found. Ensure data was generated correctly."            
-        elif self.dataset_type == DatasetType.VALID:
-            filenames = self.storage.walk_node(os.path.join(self.data_dir, "valid/"))
-            if (len(filenames)>0):
-                if self.storage.get_node(os.path.join(self.data_dir, "valid", filenames[0])) == MetadataType.DIRECTORY:
-                    fullpaths=self.storage.walk_node(os.path.join(self.data_dir, "valid/*/*"), use_pattern=True)
-                else:
-                    fullpaths = [self.storage.get_uri(os.path.join(self.data_dir, "valid", entry)) for entry in filenames]
-                num_files = self.num_files_eval
-                self.batch_size = self.batch_size_eval
-                assert len(fullpaths) == num_files, f"Expected {num_files} validation files but {len(fullpaths)} found. Ensure data was generated correctly."
-            else:
-                fullpaths=[]
-
-        self._file_list = fullpaths
-        self._local_file_list = self._file_list[self.my_rank::self.comm_size]
-
+        self.open_file_map = {}
+        self.epoch_number = epoch_number
 
     @abstractmethod
-    def read(self, epoch_number):
-        """
-            This method creates and stores the lists of files to be read.
-            If using TF, it will partition files between ranks.
-            For PT, this is done by the DistributedSampler in data_loader_reader.py.
-            We also split files depending on if we are in an evaluation phase or not.
-        """
-        """
-            This method creates and stores the lists of files to be read.
-            If using TF, it will partition files between ranks.
-            For PT, this is done by the DistributedSampler in data_loader_reader.py.
-            We also split files depending on if we are in an evaluation phase or not.
-        """
-        file_shuffle = True
-        if self.file_shuffle == Shuffle.OFF:
-            file_shuffle = False
+    def open(self, filename):
+        pass
 
-        seed = None
-        if file_shuffle:
-            seed = self.seed
-            if self.seed_change_epoch:
-                seed = self.seed + epoch_number
+    @abstractmethod
+    def close(self, filename):
+        pass
 
-        if seed is not None:
-            random.seed(seed)
-
-        if file_shuffle:
-            random.shuffle(self._file_list)
-        self._local_file_list = self._file_list[self.my_rank::self.comm_size]
-
-    def after_read(self):
-        self.total = int(math.ceil(self.get_sample_len() / self.batch_size))
-        logging.info(
-            f"{utcnow()} number of batches {self.total} on rank {self.my_rank} for dataset {self.dataset_type}")
+    @abstractmethod
+    def get_sample(self, filename, sample_index):
+        pass
 
     @abstractmethod
     def next(self):
-        pass
+        random_image = np.random.rand(self._args.max_dimension, self._args.max_dimension)
+        batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
+        batch = []
+        image_processed = 0
+        batches_processed = 0
+        total_images = len(self._args.file_map[self.thread_index])
+        logging.debug(f"{utcnow()} Reading {total_images} images thread {self.thread_index} rank {self._args.my_rank}")
+
+        for filename, sample_index in self._args.file_map[self.thread_index]:
+            if filename not in self.open_file_map:
+                self.open_file_map[filename] = self.open(filename)
+            image = self.get_sample(filename, sample_index)
+            batch.append(image)
+            image_processed += 1
+            is_last = 0 if image_processed < total_images else 1
+            if is_last:
+                while len(batch) is not batch_size:
+                    batch.append(random_image)
+            if len(batch) == batch_size:
+                batches_processed += 1
+                batch = np.array(batch)
+                yield is_last, batch
+                batch = []
+        for filename, sample_index in self._args.file_map:
+            if filename in self.open_file_map:
+                self.close(filename)
+                self.open_file_map[filename] = None
 
     @abstractmethod
     def read_index(self, index):
-        pass
+        filename, sample_index = self._args.global_index_map[index]
+        logging.debug(f"{utcnow()} read_index {filename}, {sample_index}")
+
+        if self._args.read_type is ReadType.ON_DEMAND or filename not in self.open_file_map:
+            self.open_file_map[filename] = self.open(filename)
+        image = self.get_sample(filename, sample_index)
+        if self._args.read_type is ReadType.ON_DEMAND:
+            self.close(filename)
+            self.open_file_map[filename] = None
+        return image
 
     @abstractmethod
-    def get_sample_len(self):
-        return 1
+    def finalize(self):
+        for filename, sample_index in self._args.file_map:
+            if filename in self.open_file_map:
+                self.close(filename)
+                self.open_file_map[filename] = None

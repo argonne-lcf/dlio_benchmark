@@ -16,12 +16,15 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: 3.10.5
+    - uses: actions/cache@v2
+      with:
+        path: ${{ env.pythonLocation }}
+        key: ${{ env.pythonLocation }}-${{ hashFiles('setup.py') }}-${{ hashFiles('dev-requirements.txt') }}
     - name: Install DLIO
       run: |
         sudo apt-get install mpich
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest pytest-mpi pytest-subtests pytest-timeout
+        pip install --upgrade --upgrade-strategy eager -r dev-requirements.txt
     - name: test_gen_data
       run: |
         touch __init__.py
@@ -85,11 +88,11 @@ jobs:
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=4 ++workload.dataset.num_files_eval=4
-        RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=4 ++workload.dataset.num_files_eval=4
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2 ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
     - name: test-tf-loader-npz
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=4 ++workload.dataset.num_files_eval=4
-        RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=4 ++workload.dataset.num_files_eval=4
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0

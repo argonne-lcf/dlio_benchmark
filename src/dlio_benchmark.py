@@ -19,7 +19,7 @@ import math
 import hydra
 import logging
 import pandas as pd
-from time import time
+from time import time, sleep
 
 # Reduce TF and CUDA logging
 from numpy import random
@@ -41,7 +41,7 @@ from omegaconf import DictConfig, OmegaConf
 from src.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
 from src.utils.config import LoadConfig, ConfigArguments
-from src.common.enumerations import Profiler, DatasetType, StorageType
+from src.common.enumerations import Profiler, DatasetType, StorageType, MetadataType
 from src.profiler.profiler_factory import ProfilerFactory
 from src.framework.framework_factory import FrameworkFactory
 from src.data_generator.generator_factory import GeneratorFactory
@@ -65,21 +65,26 @@ class DLIOBenchmark(object):
         """
         self.args = ConfigArguments.get_instance()
         LoadConfig(self.args, cfg)
-        self.args.validate()
-        try:
-            hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
-            self.args.output_folder = hydra_cfg['runtime']['output_dir']
-        except:
-            self.args.output_folder = 'output/'
-        self.output_folder = self.args.output_folder
-        self.logfile = os.path.join(self.output_folder, self.args.log_file)
-        self.data_folder = self.args.data_folder
-        os.makedirs(self.output_folder, exist_ok=True)
+        self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
+
         self.storage_root = self.args.storage_root
-        self.storage = StorageFactory().get_storage(self.args.storage_type, self.storage_root, self.args.framework)
         if self.args.storage_root:
             self.storage.create_namespace(exist_ok=True)
 
+        # Overriding the output folder
+        if self.args.output_folder == None:
+            try:
+                hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
+                self.args.output_folder = hydra_cfg['runtime']['output_dir']
+            except:
+                self.args.output_folder = 'output/'
+
+        self.output_folder = self.args.output_folder
+        os.makedirs(self.output_folder, exist_ok=True)
+        
+        self.logfile = os.path.join(self.output_folder, self.args.log_file)
+
+        self.data_folder = self.args.data_folder
         self.framework = FrameworkFactory().get_framework(self.args.framework,
                                                           self.args.do_profiling)
 
@@ -189,6 +194,26 @@ class DLIOBenchmark(object):
                 logging.info(f"{utcnow()} Profiling Started with {self.args.profiler}")
         self.framework.init_loader(self.args.format, self.args.data_loader)
         self.framework.barrier()
+        file_list_train = []
+        file_list_eval = []
+        for dataset_type in [DatasetType.TRAIN, DatasetType.VALID]:
+            filenames = self.storage.walk_node(os.path.join(self.args.data_folder, f"{DatasetType.TRAIN}"))
+            if self.storage.get_node(
+                    os.path.join(self.args.data_folder, f"{DatasetType.TRAIN}",
+                                 filenames[0])) == MetadataType.DIRECTORY:
+                fullpaths = self.storage.walk_node(os.path.join(self.args.data_folder, f"{DatasetType.TRAIN}/*/*"),
+                                                   use_pattern=True)
+            else:
+                fullpaths = [self.storage.get_uri(os.path.join(self.args.data_folder, f"{DatasetType.TRAIN}", entry))
+                             for entry
+                             in filenames]
+            if dataset_type is DatasetType.TRAIN:
+                file_list_train = fullpaths
+            elif dataset_type is DatasetType.VALID:
+                file_list_eval = fullpaths
+        self.args.derive_configurations(file_list_train, file_list_eval)
+        self.args.validate()
+        self.framework.barrier()
 
 
     @perftrace.event_logging
@@ -196,6 +221,7 @@ class DLIOBenchmark(object):
         """
         Evaluation loop will read a separate dataset and has its own own computation time.
         """
+        self.args.reconfigure(epoch, DatasetType.VALID)
         step = 1
         total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         t0 = time()
@@ -230,6 +256,7 @@ class DLIOBenchmark(object):
 
     @perftrace.event_logging
     def _train(self, epoch):
+        self.args.reconfigure(epoch, DatasetType.TRAIN)
         """
         Training loop for reading the dataset and performing training computations.
         :return: returns total steps.
@@ -296,7 +323,7 @@ class DLIOBenchmark(object):
             self.framework.checkpoint(epoch, overall_step)
             self.stats.end_ckpt(epoch, block)
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
-
+        logging.info(f"{utcnow()} Train on rank {self.my_rank} ran for {overall_step} steps")
         return overall_step
 
     @perftrace.event_logging

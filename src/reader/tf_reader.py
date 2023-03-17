@@ -23,20 +23,30 @@ from src.common.enumerations import DatasetType
 from src.reader.reader_handler import FormatReader
 import tensorflow as tf
 
+
 class TFReader(FormatReader):
     """
     Reader for TFRecord files.
     """
+    classname = "TFReader"
 
-    def __init__(self, dataset_type):
-        super().__init__(dataset_type)
-        self.read_threads = self._args.read_threads
-        self.computation_threads = self._args.computation_threads
-        self.count = 0
-        # We read the full _file_list here instead of _local_file_list
-        # because we will shard the data using the tf.data function
+    def __init__(self, dataset_type, thread_index, epoch_number):
+        t0 = time()
+        super().__init__(dataset_type, thread_index, epoch_number)
+        self._dataset = None
+        t1 = time()
+        perftrace.event_complete(
+            f"{self.classname}_{self.dataset_type}_init_{self.epoch_number}",
+            f"{self.classname}.init", t0, t1 - t0)
 
-        # TODO: DLIO assumes the tfrecord files to contain image/label pairs.
+    def open(self, filename):
+        pass
+
+    def close(self, filename):
+        pass
+
+    def get_sample(self, filename, sample_index):
+        pass
 
     @perftrace.event_logging
     def _decode_image(self, parsed_example):
@@ -47,10 +57,8 @@ class TFReader(FormatReader):
         image_tensor = tf.io.decode_raw(image_raw, tf.float64)
         # image_tensor = tf.io.decode_image(image_raw)
         resized_image = tf.reshape(image_tensor, [dimension, dimension])
-        return tf.pad(resized_image, ((0, self.max_dimension - dimension), (0, self.max_dimension - dimension)))
+        return tf.pad(resized_image, ((0, self._args.max_dimension - dimension), (0, self._args.max_dimension - dimension)))
 
-    # This is not always the case, e.g. in BERT, each record is more complex,
-    # consisting of 6 lists and a label. Same for DLRM.
     @perftrace.event_logging
     def _tf_parse_function(self, serialized):
         """
@@ -63,52 +71,25 @@ class TFReader(FormatReader):
                 'image': tf.io.FixedLenFeature([], tf.string),
                 'size': tf.io.FixedLenFeature([], tf.int64)
             }
-        return tf.io.parse_example(serialized=serialized,
-                                                    features=features)
-
-    @perftrace.event_logging
-    def read(self, epoch_number):
-        """
-        Sets up the tf data pipeline to read tf record files.
-        Called once at the start of every epoch.
-        Does not necessarily read in all the data at the start however.
-        :param epoch_number:
-        """
-        # superclass function initializes the file list
-        super().read(epoch_number)
-        if self.transfer_size is not None:
-            self._dataset = tf.data.TFRecordDataset(filenames=self._file_list,
-                                                    buffer_size=self.transfer_size)
-        else:
-            self._dataset = tf.data.TFRecordDataset(filenames=self._file_list)
-        self._dataset = self._dataset.shard(num_shards=self.comm_size, index=self.my_rank)
-        self._dataset = self._dataset.map(self._tf_parse_function, num_parallel_calls=self.computation_threads)
-        self._dataset = self._dataset.map(self._decode_image, num_parallel_calls=self.computation_threads)
-        self._dataset = self._dataset.batch(self.batch_size, drop_remainder=True)
-        self.after_read()
+        return tf.io.parse_example(serialized=serialized, features=features)
 
     @perftrace.event_logging
     def next(self):
-        """
-        Provides the iterator over tfrecord data pipeline.
-        :return: data to be processed by the training step.
-        """
-        super().next()
-
-        # In tf, we can't get the length of the dataset easily so we calculate it
-        if self._debug:
-            total = math.floor(self.num_samples * len(self._file_list) / self.batch_size / self.comm_size)
-            logging.debug(f"{utcnow()} Rank {self.my_rank} should read {total} batches")
-
-        # The previous version crashed when all workers could not generate the same amount of batches
-        # Using the inbuilt tensorflow dataset iteration seems to work fine, was there an advantage of doing it the old way?
-        total = int(math.ceil(self.get_sample_len() / self.batch_size))
+        _file_list = self._args.file_list_train if self.dataset_type is DatasetType.TRAIN else self._args.file_list_eval
+        batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
+        logging.debug(f"{utcnow()} Reading {len(_file_list)} files thread {self.thread_index} rank {self._args.my_rank}")
+        self._dataset = tf.data.TFRecordDataset(filenames=_file_list, buffer_size=self._args.transfer_size)
+        self._dataset = self._dataset.shard(num_shards=self._args.comm_size, index=self._args.my_rank)
+        self._dataset = self._dataset.map(self._tf_parse_function, num_parallel_calls=self._args.computation_threads)
+        self._dataset = self._dataset.map(self._decode_image, num_parallel_calls=self._args.computation_threads)
+        self._dataset = self._dataset.batch(batch_size, drop_remainder=True)
+        total = math.ceil(len(_file_list) / batch_size)
         count = 0
         t0 = time()
         for batch in self._dataset:
             t1 = time()
-            perftrace.event_complete(f"TFRecord_{self.dataset_type}_step_{count}",
-                                     "tfrecord_reader..next", t0, t1 - t0)
+            perftrace.event_complete(f"{self.classname}_{self.dataset_type}_step_{count}",
+                                     "{self.classname}.next", t0, t1 - t0)
             count += 1
             is_last = 0 if count < total else 1
             yield is_last, batch
@@ -116,8 +97,8 @@ class TFReader(FormatReader):
 
     @perftrace.event_logging
     def read_index(self, index):
-        pass
+        return super().read_index(index)
 
     @perftrace.event_logging
-    def get_sample_len(self):
-        return self.num_samples * len(self._local_file_list)
+    def finalize(self):
+        return super().finalize()

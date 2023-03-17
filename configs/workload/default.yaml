@@ -14,7 +14,7 @@ dataset:
   num_files_train: 64
   num_files_eval: 8
   num_samples_per_file: 1
-  record_length: 1145359
+  record_length: 4096
   keep_files: True
   num_subfolders_train: 2
   num_subfolders_eval: 2
@@ -22,7 +22,7 @@ dataset:
 reader: 
   data_loader: pytorch
   batch_size: 4
-  batch_size_eval: 1
+  batch_size_eval: 4
 
 train:
   epochs: 10
