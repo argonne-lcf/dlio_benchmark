@@ -66,20 +66,25 @@ class DLIOBenchmark(object):
         self.args = ConfigArguments.get_instance()
         LoadConfig(self.args, cfg)
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
-        self.output_folder = self.args.output_folder
-        self.logfile = os.path.join(self.output_folder, self.args.log_file)
-        self.data_folder = self.args.data_folder
-        os.makedirs(self.output_folder, exist_ok=True)
+
         self.storage_root = self.args.storage_root
         if self.args.storage_root:
             self.storage.create_namespace(exist_ok=True)
-        try:
-            hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
-            self.args.output_folder = hydra_cfg['runtime']['output_dir']
-        except:
-            self.args.output_folder = 'output/'
 
+        # Overriding the output folder
+        if self.args.output_folder == None:
+            try:
+                hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
+                self.args.output_folder = hydra_cfg['runtime']['output_dir']
+            except:
+                self.args.output_folder = 'output/'
 
+        self.output_folder = self.args.output_folder
+        os.makedirs(self.output_folder, exist_ok=True)
+        
+        self.logfile = os.path.join(self.output_folder, self.args.log_file)
+
+        self.data_folder = self.args.data_folder
         self.framework = FrameworkFactory().get_framework(self.args.framework,
                                                           self.args.do_profiling)
 
