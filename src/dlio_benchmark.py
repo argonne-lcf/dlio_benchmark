@@ -218,7 +218,7 @@ class DLIOBenchmark(object):
                     total_compute_time += eval_time
                 self.framework.compute(epoch, step, eval_time)
             t1 = time()
-            epoch_time['time_per_step'].append(t1 - t0)
+            time_epoch['time_per_step'].append(t1 - t0)
             self.stats.eval_batch_processed(epoch, step, t0)
 
             step += 1
