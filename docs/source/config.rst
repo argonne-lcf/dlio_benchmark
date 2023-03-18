@@ -13,32 +13,33 @@ The characteristics of a workload is specified through a YAML file. This file wi
   workflow:
     generate_data: False
     train: True
-    evaluation: True
+    checkpoint: True
 
   dataset: 
-    data_folder: data/unet3d
+    data_folder: data/unet3d/
     format: npz
     num_files_train: 168
-    num_files_eval: 42
     num_samples_per_file: 1
     record_length: 234560851
     record_length_stdev: 109346892
-    keep_files: True
-  
+    record_length_resize: 2097152
+    
   reader: 
     data_loader: pytorch
+    batch_size: 4
     read_threads: 4
-    prefetch_size: 2
-    batch_size: 2
-    batch_size_eval: 1
+    file_shuffle: seed
+    sample_shuffle: seed
 
   train:
     epochs: 10
-    computation_time: 0.753
+    computation_time: 1.3604
 
-  evaluation: 
-    eval_time: 5.8
-    epochs_between_evals: 2
+  checkpoint:
+    checkpoint_folder: checkpoints/unet3d
+    checkpoint_after_epoch: 5
+    epochs_between_checkpoints: 2
+    model_size: 499153191
 
 A `DLIO` YAML configuration file contains following sections: 
 
@@ -120,6 +121,9 @@ dataset
    * - record_length_stdev
      - 0.
      - standard deviation of the size of samples
+   * - record_length_resize
+     - 0. 
+     - resized sample size 
    * - format
      - tfrecord
      - data format [tfrecord|csv|npz|jpeg|png]
@@ -286,7 +290,27 @@ checkpoint
 
    One can perform multiple checkpoints within a single epoch, by setting ``steps_between_checkpoints``. If ``steps_between_checkpoints`` is set to be a positive number, ``epochs_between_checkpoints`` will be ignored.
    
-     
+
+output
+------------------
+.. list-table:: 
+   :widths: 15 10 30
+   :header-rows: 1
+
+   * - Parameter
+     - Default
+     - Description
+   * - folder
+     - None
+     - The output folder name.
+   * - log_file
+     - dlio.log
+     - log file name  
+
+.. note::
+   
+   If ``folder`` is not set (None), the output folder will be ```hydra_log/unet3d/$DATE-$TIME```. 
+
 profiling
 ------------------
 .. list-table:: 
