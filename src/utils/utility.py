@@ -122,20 +122,11 @@ def create_dur_event(name, cat, ts, dur):
         "tid": threading.get_native_id(),
         "ts": ts * 1000000,
         "dur": dur * 1000000,
-        "ph": "X"
+        "ph": "X",
+        "args": {
+            "step": 1
+        }
     }
-
-
-def create_event(name, cat, ph):
-    return {
-        "name": name,
-        "cat": cat,
-        "pid": get_rank(),
-        "tid": threading.get_native_id(),
-        "ts": time() * 1000000,
-        "ph": ph
-    }
-
 
 class PerfTrace:
     __instance = None
@@ -166,14 +157,6 @@ class PerfTrace:
         event = create_dur_event(name, cat, ts, dur)
         self.flush_log(json.dumps(event))
 
-    def event_start(self, name, cat='default'):
-        event = create_event(name, cat, 'B')
-        self.flush_log(json.dumps(event))
-
-    def event_stop(self, name, cat='default'):
-        event = create_event(name, cat, "E")
-        self.flush_log(json.dumps(event))
-
     def flush_log(self, s):
         if self.logger is None:
             if os.path.isfile(self.log_file):
@@ -190,13 +173,13 @@ class PerfTrace:
             self.logger.addHandler(fh)
             self.logger.debug("[")
         if s != "":
-            self.logger.debug(f"{s},")
+            self.logger.debug(f"{s}")
 
     def finalize(self):
         start = time()
         end = time()
         event = create_dur_event("finalize", "dlio_benchmark", start, dur=end - start)
-        self.logger.debug(f"{json.dumps(event)}]")
+        self.logger.debug("")
 
 
 def event_logging(module):
