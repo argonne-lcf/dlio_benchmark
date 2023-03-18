@@ -26,7 +26,7 @@ from src.utils.utility import utcnow, PerfTrace,event_logging
 from time import time
 
 MY_MODULE = "reader"
-
+profile_args={}
 
 class NPZReader(FormatReader):
     """
@@ -35,26 +35,28 @@ class NPZReader(FormatReader):
     classname = "NPZReader"
 
     def __init__(self, dataset_type, thread_index, epoch_number):
+        global profile_args
+        profile_args["epoch"] = epoch_number
         t0 = time()
         super().__init__(dataset_type, thread_index, epoch_number)
         t1 = time()
         PerfTrace.get_instance().event_complete(
-            f"{self.__init__.__qualname__}", MY_MODULE, t0, t1 - t0)
+            f"{self.__init__.__qualname__}", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
 
     def open(self, filename):
         t0 = time()
         data = np.load(filename, allow_pickle=True)["x"]
         t1 = time()
-        PerfTrace.get_instance().event_complete(f"{self.open.__qualname__}", MY_MODULE, t0, t1 - t0)
+        PerfTrace.get_instance().event_complete(f"{self.open.__qualname__}", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
         return data
 
     def close(self, filename):
         t0 = time()
         t1 = time()
-
-        PerfTrace.get_instance().event_complete(f"{self.close.__qualname__}", MY_MODULE, t0, t1 - t0)
+        PerfTrace.get_instance().event_complete(f"{self.close.__qualname__}", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
 
     def get_sample(self, filename, sample_index):
+        super().get_sample(filename, sample_index)
         t0 = time()
         my_image = self.open_file_map[filename][..., sample_index]
         t1 = time()
@@ -62,20 +64,24 @@ class NPZReader(FormatReader):
         resized_image = np.resize(my_image, (self._args.max_dimension, self._args.max_dimension))
         t3 = time()
         PerfTrace.get_instance().event_complete(
-            f"{self.get_sample.__qualname__}.read", MY_MODULE, t0, t1 - t0)
+            f"{self.get_sample.__qualname__}.read", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
         PerfTrace.get_instance().event_complete(
-            f"{self.get_sample.__qualname__}.resize", MY_MODULE, t2, t3 - t2)
+            f"{self.get_sample.__qualname__}.resize", MY_MODULE, t2, t3 - t2, arguments=self.profile_args)
         return resized_image
 
-    @event_logging(module=MY_MODULE)
+    @event_logging(module=MY_MODULE, arguments=profile_args)
     def next(self):
         for is_last, batch in super().next():
             yield is_last, batch
 
-    @event_logging(module=MY_MODULE)
     def read_index(self, index):
-        return super().read_index(index)
+        t0 = time()
+        val = super().read_index(index)
+        t1 = time()
+        PerfTrace.get_instance().event_complete(
+            f"{self.read_index.__qualname__}", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
+        return val
 
-    @event_logging(module=MY_MODULE)
+    @event_logging(module=MY_MODULE, arguments=profile_args)
     def finalize(self):
         return super().finalize()

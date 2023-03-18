@@ -24,17 +24,17 @@ class DataLoaderFactory(object):
         pass
 
     @staticmethod
-    def get_loader(type, format_type, dataset_type):
+    def get_loader(type, format_type, dataset_type, epoch_number):
         """
         This function set the data reader based on the data format and the data loader specified.
         """
 
         if type == DataLoaderType.PYTORCH:
             from src.data_loader.torch_data_loader import TorchDataLoader
-            return TorchDataLoader(format_type, dataset_type)
+            return TorchDataLoader(format_type, dataset_type, epoch_number)
         elif type == DataLoaderType.TENSORFLOW:
             from src.data_loader.tf_data_loader import TFDataLoader
-            return TFDataLoader(format_type, dataset_type)
+            return TFDataLoader(format_type, dataset_type, epoch_number)
         else:
             print("Data Loader %s not supported" %type)
             raise Exception(str(ErrorCodes.EC1004))

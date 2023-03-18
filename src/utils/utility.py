@@ -22,6 +22,7 @@ from time import time
 from functools import wraps
 import threading
 import json
+import numpy as np
 
 logging.basicConfig(
     level=logging.INFO,
@@ -112,10 +113,18 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)
 
-
-def create_dur_event(name, cat, ts, dur):
-    return {
+def create_dur_event(name, cat, ts, dur, args={}):
+    d = {
         "name": name,
         "cat": cat,
         "pid": get_rank(),
@@ -123,10 +132,9 @@ def create_dur_event(name, cat, ts, dur):
         "ts": ts * 1000000,
         "dur": dur * 1000000,
         "ph": "X",
-        "args": {
-            "step": 1
-        }
+        "args": args
     }
+    return d
 
 class PerfTrace:
     __instance = None
@@ -153,16 +161,14 @@ class PerfTrace:
         os.makedirs(logdir, exist_ok=True)
         instance.flush_log("")
 
-    def event_complete(self, name, cat, ts, dur):
-        event = create_dur_event(name, cat, ts, dur)
-        self.flush_log(json.dumps(event))
+    def event_complete(self, name, cat, ts, dur, arguments=None):
+        if arguments is None:
+            arguments = {}
+        event = create_dur_event(name, cat, ts, dur, args=arguments)
+        self.flush_log(json.dumps(event, cls=NpEncoder))
 
     def flush_log(self, s):
         if self.logger is None:
-            if os.path.isfile(self.log_file):
-                started = True
-            else:
-                started = False
             self.logger = logging.getLogger("perftrace")
             self.logger.setLevel(logging.DEBUG)
             self.logger.propagate = False
@@ -176,13 +182,13 @@ class PerfTrace:
             self.logger.debug(f"{s}")
 
     def finalize(self):
-        start = time()
-        end = time()
-        event = create_dur_event("finalize", "dlio_benchmark", start, dur=end - start)
-        self.logger.debug("")
+        pass
 
 
-def event_logging(module):
+def event_logging(module, arguments=None):
+    if arguments is None:
+        arguments = {}
+
     def event_logging_f(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -190,8 +196,8 @@ def event_logging(module):
             x = func(*args, **kwargs)
             end = time()
             instance = PerfTrace.get_instance()
-            event = create_dur_event(func.__qualname__, module, start, dur=end - start)
-            instance.flush_log(json.dumps(event))
+            event = create_dur_event(func.__qualname__, module, start, dur=end - start, args=arguments)
+            instance.flush_log(json.dumps(event, cls=NpEncoder))
             return x
 
         return wrapper

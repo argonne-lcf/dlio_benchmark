@@ -11,13 +11,14 @@ from src.utils.config import ConfigArguments
 
 
 class BaseDataLoader(ABC):
-    def __init__(self, format_type, dataset_type):
+    def __init__(self, format_type, dataset_type, epoch_number):
         self._args = ConfigArguments.get_instance()
         self.dataset_type = dataset_type
         self.format_type = format_type
+        self.epoch_number = epoch_number
 
     @abstractmethod
-    def read(self, epoch_number):
+    def read(self):
         pass
 
     @abstractmethod

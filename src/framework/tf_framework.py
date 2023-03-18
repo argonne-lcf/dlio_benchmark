@@ -53,11 +53,11 @@ class TFFramework(Framework):
         PerfTrace.get_instance().event_complete(f"{self.__init__.__qualname__}", MY_MODULE, t0, t1 - t0)
 
     @event_logging(module=MY_MODULE)
-    def init_loader(self, format_type, data_loader=None):
+    def init_loader(self, format_type, data_loader=None, epoch_number=0):
         self.reader_train = DataLoaderFactory.get_loader(DataLoaderType.TENSORFLOW, format_type,
-                                                         dataset_type=DatasetType.TRAIN)
+                                                         dataset_type=DatasetType.TRAIN, epoch_number=epoch_number)
         self.reader_valid = DataLoaderFactory.get_loader(DataLoaderType.TENSORFLOW, format_type,
-                                                         dataset_type=DatasetType.VALID)
+                                                         dataset_type=DatasetType.VALID, epoch_number=epoch_number)
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
 
     @event_logging(module=MY_MODULE)

@@ -48,7 +48,7 @@ from src.data_generator.generator_factory import GeneratorFactory
 from src.storage.storage_factory import StorageFactory
 
 MY_MODULE = "dlio_benchmark"
-
+profile_args = {}
 
 class DLIOBenchmark(object):
     """
@@ -69,7 +69,7 @@ class DLIOBenchmark(object):
         self.args = ConfigArguments.get_instance()
         LoadConfig(self.args, cfg)
         # Overriding the output folder
-        if self.args.output_folder == None:
+        if self.args.output_folder is None:
             try:
                 hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
                 self.args.output_folder = hydra_cfg['runtime']['output_dir']
@@ -197,7 +197,6 @@ class DLIOBenchmark(object):
             self.framework.barrier()
             if self.args.my_rank == 0:
                 logging.info(f"{utcnow()} Profiling Started with {self.args.profiler}")
-        self.framework.init_loader(self.args.format, self.args.data_loader)
         self.framework.barrier()
         file_list_train = []
         file_list_eval = []
@@ -220,7 +219,7 @@ class DLIOBenchmark(object):
         self.args.validate()
         self.framework.barrier()
 
-    @event_logging(module=MY_MODULE)
+    @event_logging(module=MY_MODULE, arguments=profile_args)
     def _eval(self, epoch):
         """
         Evaluation loop will read a separate dataset and has its own own computation time.
@@ -230,11 +229,13 @@ class DLIOBenchmark(object):
         total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         t0 = time()
         loader = self.framework.get_loader(DatasetType.VALID)
-        loader.read(epoch_number=epoch)
+        loader.read()
 
         start_time = time()
         for batch in loader.next():
             end_time = time()
+            global profile_args
+            profile_args["step"] = step
             PerfTrace.get_instance().event_complete(f"{self._eval.__qualname__}.next", MY_MODULE, start_time,
                                      end_time - start_time)
 
@@ -257,7 +258,7 @@ class DLIOBenchmark(object):
             start_time = time()
         return step - 1
 
-    @event_logging(module=MY_MODULE)
+    @event_logging(module=MY_MODULE, arguments=profile_args)
     def _train(self, epoch):
         self.args.reconfigure(epoch, DatasetType.TRAIN)
         """
@@ -272,10 +273,12 @@ class DLIOBenchmark(object):
         self.stats.start_block(epoch, block)
         t0 = time()
         loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
-        loader.read(epoch_number=epoch)
+        loader.read()
         start_time = time()
         for batch in loader.next():
             end_time = time()
+            global profile_args
+            profile_args["step"] = overall_step
             PerfTrace.get_instance().event_complete(f"{self._train.__qualname__}.next", MY_MODULE, start_time,
                                      end_time - start_time)
 
@@ -354,12 +357,14 @@ class DLIOBenchmark(object):
             self.next_checkpoint_epoch = self.checkpoint_after_epoch
 
             for epoch in range(1, self.epochs + 1):
+                global profile_args
+                profile_args["epoch"] = epoch
                 self.framework.barrier()
                 self.next_checkpoint_step = self.steps_between_checkpoints
                 self.stats.start_epoch(epoch)
 
                 # Initialize the dataset
-                self.framework.get_loader(dataset_type=DatasetType.TRAIN)
+                self.framework.init_loader(self.args.format, self.args.data_loader, epoch_number=epoch)
                 #
 
                 steps = self._train(epoch)
@@ -372,10 +377,6 @@ class DLIOBenchmark(object):
                     next_eval_epoch += self.epochs_between_evals
 
                     self.stats.start_eval(epoch)
-
-                    # Initialize the eval dataset
-                    self.framework.get_loader(DatasetType.VALID).read(epoch)
-
                     self._eval(epoch)
                     self.stats.end_eval(epoch)
 
