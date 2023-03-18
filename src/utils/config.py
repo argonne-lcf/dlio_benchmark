@@ -48,6 +48,7 @@ class ConfigArguments:
     storage_type: StorageType = StorageType.LOCAL_FS
     record_length: int = 64 * 1024
     record_length_stdev: int = 0
+    record_length_resize: int = 0
     num_files_train: int = 8
     num_samples_per_file: int = 1
     batch_size: int = 1
@@ -56,7 +57,7 @@ class ConfigArguments:
     generate_data: bool = False
     generate_only: bool = False
     data_folder: str = "./data/"
-    output_folder: str = "./output"
+    output_folder: str = None
     checkpoint_folder: str = "./checkpoints/"
     log_file: str = "dlio.log"
     file_prefix: str = "img"
@@ -156,7 +157,10 @@ class ConfigArguments:
         self.num_files_train = len(file_list_train)
         self.dimension = int(math.sqrt(self.record_length / 8))
         self.dimension_stdev = math.sqrt(self.record_length_stdev / 8)
-        self.max_dimension = int(self.dimension + math.ceil(self.dimension_stdev))
+        self.max_dimension = self.dimension
+        if (self.record_length_resize>0):
+            self.max_dimension =  int(math.sqrt(self.record_length_resize / 8))
+        #self.max_dimension = int(self.dimension + math.ceil(self.dimension_stdev))
         self.total_samples_train = self.num_samples_per_file * len(self.file_list_train)
         self.total_samples_eval = self.num_samples_per_file * len(self.file_list_eval)
         self.required_samples = self.comm_size * self.batch_size
@@ -258,13 +262,15 @@ def LoadConfig(args, config):
             args.storage_type = StorageType(config['storage']['storage_type'])
         if 'storage_root' in config['storage']:
             args.storage_root = config['storage']['storage_root']
-
+        
     # dataset related settings
     if 'dataset' in config:
         if 'record_length' in config['dataset']:
             args.record_length = config['dataset']['record_length']
         if 'record_length_stdev' in config['dataset']:
             args.record_length_stdev = config['dataset']['record_length_stdev']
+        if 'record_length_resize' in config['dataset']:
+            args.record_length_resize = config['dataset']['record_length_resize']
         if 'num_files_train' in config['dataset']:
             args.num_files_train = config['dataset']['num_files_train']
         if 'num_files_eval' in config['dataset']:
@@ -360,7 +366,12 @@ def LoadConfig(args, config):
             args.steps_between_checkpoints = config['checkpoint']['steps_between_checkpoints']
         if 'model_size' in config['checkpoint']:
             args.model_size = config['checkpoint']['model_size']
-
+    if 'output' in config:
+        if 'folder' in config['output']:
+            args.output_folder = config['output']['folder']
+        if 'log_file' in config['output']:
+            args.log_file = config['output']['log_file']
+            
     if 'workflow' in config:
         if 'generate_data' in config['workflow']:
             args.generate_data = config['workflow']['generate_data']

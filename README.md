@@ -74,40 +74,41 @@ This will generate ```DLIO_$model_report.txt``` in the output folder.
 Workload characteristics are specified by a YAML configuration file. Below is an example of a YAML file for the UNet3D workload which is used for 3D image segmentation. 
 
 ```
-  # contents of unet3d.yaml
-  model: unet3d
+# contents of unet3d.yaml
+model: unet3d
 
-  framework: pytorch
+framework: pytorch
 
-  workflow:
-    generate_data: False
-    train: True
-    evaluation: True
+workflow:
+  generate_data: False
+  train: True
+  checkpoint: True
 
-  dataset: 
-    data_folder: ./data/unet3d/
-    format: npz
-    num_files_train: 3620
-    num_files_eval: 42
-    num_samples_per_file: 1
-    batch_size: 4
-    batch_size_eval: 1
-    file_access: multi
-    record_length: 1145359
-    keep_files: True
+dataset: 
+  data_folder: data/unet3d/
+  format: npz
+  num_files_train: 168
+  num_samples_per_file: 1
+  record_length: 234560851
+  record_length_stdev: 109346892
+  record_length_resize: 2097152
   
-  reader: 
-    data_loader: pytorch
-    read_threads: 4
-    prefetch: True
+reader: 
+  data_loader: pytorch
+  batch_size: 4
+  read_threads: 4
+  file_shuffle: seed
+  sample_shuffle: seed
 
-  train:
-    epochs: 10
-    computation_time: 4.59
+train:
+  epochs: 10
+  computation_time: 1.3604
 
-  evaluation: 
-    eval_time: 11.572
-    epochs_between_evals: 2
+checkpoint:
+  checkpoint_folder: checkpoints/unet3d
+  checkpoint_after_epoch: 5
+  epochs_between_checkpoints: 2
+  model_size: 499153191
 ```
 
 The full list of configurations can be found in: https://argonne-lcf.github.io/dlio_benchmark/config.html
