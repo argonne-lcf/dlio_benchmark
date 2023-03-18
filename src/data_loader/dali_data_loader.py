@@ -64,7 +64,7 @@ class DaliDataLoader(BaseDataLoader):
             num_threads = self._args.read_threads
         dataset = DaliDataset(self.format_type, self.dataset_type, epoch_number, num_samples, batch_size, 0)
         # None executes pipeline on CPU and the reader does the batching
-        pipeline = Pipeline(batch_size=batch_size, num_threads=1, device_id=None, py_num_workers=num_threads)
+        pipeline = Pipeline(batch_size=batch_size, num_threads=num_threads, device_id=None, py_num_workers=num_threads)
         with pipeline:
             images, labels = fn.external_source(source=dataset, num_outputs=2, dtype=[types.UINT8, types.UINT8], parallel=parallel, batch=False)
             pipeline.set_outputs(images, labels)
