@@ -7,10 +7,13 @@ import tensorflow as tf
 from src.common.enumerations import DataLoaderType, Shuffle, FormatType, DatasetType
 from src.data_loader.base_data_loader import BaseDataLoader
 from src.reader.reader_factory import ReaderFactory
-from src.utils.utility import utcnow, perftrace
+from src.utils.utility import utcnow, PerfTrace, event_logging
+
+MY_MODULE = "data_loader"
 
 
 class TensorflowDataset(tf.data.Dataset):
+    @staticmethod
     def _generator(format_type, dataset_type, epoch_number, thread_index):
         format_type = format_type.decode('ascii')
         dataset_type = dataset_type.decode('ascii')
@@ -23,8 +26,7 @@ class TensorflowDataset(tf.data.Dataset):
         t0 = time()
         for is_last, batch in reader.next():
             t1 = time()
-            perftrace.event_complete(f"TFLoader_{format_type}_{dataset_type}_epoch_{epoch_number}_step_{count}",
-                                     "TFLoader._generator.next", t0, t1 - t0)
+            PerfTrace.get_instance().event_complete(f"TensorflowDataset._generator.next", MY_MODULE, t0, t1 - t0)
             yield batch
             if is_last == 1:
                 logging.debug(f"{utcnow()} reader thread {thread_index} processed {count} batches")
@@ -32,6 +34,7 @@ class TensorflowDataset(tf.data.Dataset):
             count += 1
             t0 = time()
 
+    @event_logging(module=MY_MODULE)
     def __new__(cls, format_type, dataset_type, epoch_number, shape, thread_index):
         dataset = tf.data.Dataset.from_generator(
             cls._generator,
@@ -45,10 +48,13 @@ class TensorflowDataset(tf.data.Dataset):
 class TFDataLoader(BaseDataLoader):
 
     def __init__(self, format_type, dataset_type):
+        t0 = time()
         super().__init__(format_type, dataset_type)
         self._dataset = None
+        t1 = time()
+        PerfTrace.get_instance().event_complete(f"{self.__init__.__qualname__}", MY_MODULE, t0, t1 - t0)
 
-    @perftrace.event_logging
+    @event_logging(module=MY_MODULE)
     def read(self, epoch_number):
         read_threads = self._args.read_threads
         if read_threads == 0:
@@ -65,14 +71,14 @@ class TFDataLoader(BaseDataLoader):
         self._dataset = tf.data.Dataset.from_tensor_slices(range(read_threads)).with_options(options)
         self._dataset = self._dataset.interleave(lambda x: TensorflowDataset(self.format_type, self.dataset_type,
                                                                              epoch_number, (
-                                                                             batch_size, self._args.max_dimension,
-                                                                             self._args.max_dimension), x),
+                                                                                 batch_size, self._args.max_dimension,
+                                                                                 self._args.max_dimension), x),
                                                  cycle_length=read_threads,
                                                  num_parallel_calls=read_threads)
         if self._args.prefetch_size > 0:
             self._dataset = self._dataset.prefetch(buffer_size=self._args.prefetch_size)
 
-    @perftrace.event_logging
+    @event_logging(module=MY_MODULE)
     def next(self):
         super().next()
 
@@ -83,5 +89,6 @@ class TFDataLoader(BaseDataLoader):
             read_batches += 1
         logging.debug(f"{utcnow()} Rank {self._args.my_rank} read {read_batches} of {total} batches")
 
+    @event_logging(module=MY_MODULE)
     def finalize(self):
         pass

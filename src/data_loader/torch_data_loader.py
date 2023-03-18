@@ -7,9 +7,9 @@ from torch.utils.data import Dataset, DistributedSampler, DataLoader, RandomSamp
 from src.common.enumerations import Shuffle, DataLoaderType, DatasetType
 from src.data_loader.base_data_loader import BaseDataLoader
 from src.reader.reader_factory import ReaderFactory
-from src.utils.utility import utcnow, get_rank, timeit, perftrace
+from src.utils.utility import utcnow, get_rank, timeit, PerfTrace,event_logging
 
-
+MY_MODULE="data_loader"
 class TorchDataset(Dataset):
     """
     Currently, we only support loading one sample per file
@@ -17,6 +17,7 @@ class TorchDataset(Dataset):
     """
 
     def __init__(self, format_type, dataset_type, epoch_number, num_samples, num_workers):
+        t0 = time()
         self.format_type = format_type
         self.dataset_type = dataset_type
         self.epoch_number = epoch_number
@@ -24,7 +25,10 @@ class TorchDataset(Dataset):
         self.reader = None
         if num_workers == 0:
             self.worker_init(-1)
+        t1 = time()
+        PerfTrace.get_instance().event_complete(f"{self.__init__.__qualname__}", MY_MODULE, t0, t1 - t0)
 
+    @event_logging(module=MY_MODULE)
     def worker_init(self, worker_id):
         logging.debug(f"{utcnow()} worker initialized {worker_id} with format {self.format_type}")
         self.reader = ReaderFactory.get_reader(type=self.format_type,
@@ -32,10 +36,11 @@ class TorchDataset(Dataset):
                                                thread_index=worker_id,
                                                epoch_number=self.epoch_number)
 
+    @event_logging(module=MY_MODULE)
     def __len__(self):
         return self.num_samples
 
-    @perftrace.event_logging
+    @event_logging(module=MY_MODULE)
     def __getitem__(self, idx):
         logging.debug(f"{utcnow()} Rank {get_rank()} reading {idx} sample")
         return self.reader.read_index(idx)
@@ -44,10 +49,13 @@ class TorchDataset(Dataset):
 class TorchDataLoader(BaseDataLoader):
 
     def __init__(self, format_type, dataset_type):
+        t0 = time()
         super().__init__(format_type, dataset_type)
         self.epoch_number = None
+        t1 = time()
+        PerfTrace.get_instance().event_complete(f"{self.__init__.__qualname__}", MY_MODULE, t0, t1 - t0)
 
-    @perftrace.event_logging
+    @event_logging(module=MY_MODULE)
     def read(self, epoch_number):
         self.epoch_number = epoch_number
         do_shuffle = True if self._args.sample_shuffle != Shuffle.OFF else False
@@ -83,7 +91,7 @@ class TorchDataLoader(BaseDataLoader):
 
         # self._dataset.sampler.set_epoch(epoch_number)
 
-    @perftrace.event_logging
+    @event_logging(module=MY_MODULE)
     def next(self):
         super().next()
         total = self._args.training_steps if self.dataset_type is DatasetType.TRAIN else self._args.eval_steps
@@ -92,13 +100,12 @@ class TorchDataLoader(BaseDataLoader):
         t0 = time()
         for batch in self._dataset:
             t1 = time()
-            perftrace.event_complete(
-                f"PTLoader_{self.format_type}_{self.dataset_type}_epoch_{self.epoch_number}_step_{count}",
-                "PTLoader.next", t0, t1 - t0)
+            PerfTrace.get_instance().event_complete(
+                f"{self.next.__qualname__}.next", MY_MODULE, t0, t1 - t0)
             yield batch
             count += 1
             t0 = time()
 
-    @perftrace.event_logging
+    @event_logging(module=MY_MODULE)
     def finalize(self):
         pass

@@ -21,7 +21,7 @@ from numpy import random
 from time import time
 import pandas as pd
 
-from src.utils.utility import progress, utcnow, perftrace
+from src.utils.utility import progress, utcnow, PerfTrace,event_logging
 from src.common.enumerations import Shuffle, FileAccess, ReadType, DatasetType
 from src.reader.reader_handler import FormatReader
 
@@ -29,56 +29,53 @@ from src.reader.reader_handler import FormatReader
 CSV Reader reader and iterator logic.
 """
 
+MY_MODULE = "reader"
+
 
 class CSVReader(FormatReader):
-    classname = "CSVReader"
 
     def __init__(self, dataset_type, thread_index, epoch_number):
         t0 = time()
         super().__init__(dataset_type, thread_index, epoch_number)
         t1 = time()
-        perftrace.event_complete(
-            f"{self.classname}_{self.dataset_type}_init_{self.epoch_number}",
-            f"{self.classname}.init", t0, t1 - t0)
+        PerfTrace.get_instance().event_complete(
+            f"{self.__init__.__qualname__}", MY_MODULE, t0, t1 - t0)
 
     def open(self, filename):
         t0 = time()
         data = pd.read_csv(filename, compression="infer").to_numpy()
         t1 = time()
-        perftrace.event_complete(f"{self.classname}_{self.dataset_type}_open_{filename}_epoch_{self.epoch_number}",
-                                 f"{self.classname}.open", t0, t1 - t0)
+        PerfTrace.get_instance().event_complete(f"{self.open.__qualname__}", MY_MODULE, t0, t1 - t0)
         return data
 
     def close(self, filename):
         t0 = time()
         t1 = time()
-        perftrace.event_complete(f"{self.classname}_{self.dataset_type}_close_{filename}_epoch_{self.epoch_number}",
-                                 f"{self.classname}.close", t0, t1 - t0)
+        PerfTrace.get_instance().event_complete(f"{self.close.__qualname__}", MY_MODULE, t0, t1 - t0)
         pass
 
     def get_sample(self, filename, sample_index):
         t0 = time()
         my_image = self.open_file_map[filename][sample_index]
         t1 = time()
-        resized_image = np.resize(my_image, (self._args.max_dimension, self._args.max_dimension))
         t2 = time()
-        perftrace.event_complete(
-            f"{self.classname}_{self.dataset_type}_get_{filename}_sample_{sample_index}_epoch_{self.epoch_number}",
-            f"{self.classname}.get_sample_read", t0, t1 - t0)
-        perftrace.event_complete(
-            f"{self.classname}_{self.dataset_type}_process_{filename}_sample_{sample_index}_epoch_{self.epoch_number}",
-            f"{self.classname}.get_sample_process", t1, t2 - t1)
+        resized_image = np.resize(my_image, (self._args.max_dimension, self._args.max_dimension))
+        t3 = time()
+        PerfTrace.get_instance().event_complete(
+            f"{self.get_sample.__qualname__}.read", MY_MODULE, t0, t1 - t0)
+        PerfTrace.get_instance().event_complete(
+            f"{self.get_sample.__qualname__}.resize", MY_MODULE, t2, t3 - t2)
         return resized_image
 
-    @perftrace.event_logging
+    @event_logging(module=MY_MODULE)
     def next(self):
         for is_last, batch in super().next():
             yield is_last, batch
 
-    @perftrace.event_logging
+    @event_logging(module=MY_MODULE)
     def read_index(self, index):
         return super().read_index(index)
 
-    @perftrace.event_logging
+    @event_logging(module=MY_MODULE)
     def finalize(self):
         return super().finalize()

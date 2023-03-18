@@ -34,7 +34,7 @@ class FormatReader(ABC):
     def __init__(self, dataset_type, thread_index, epoch_number):
         self.thread_index = thread_index
         self._args = ConfigArguments.get_instance()
-        logging.debug(f"Loading {self.classname} reader on thread {self.thread_index} from rank {self._args.my_rank}")
+        logging.debug(f"Loading {self.__class__.__qualname__} reader on thread {self.thread_index} from rank {self._args.my_rank}")
         self.dataset_type = dataset_type
         self.open_file_map = {}
         self.epoch_number = epoch_number
