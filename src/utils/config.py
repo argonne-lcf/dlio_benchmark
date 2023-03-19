@@ -199,7 +199,8 @@ class ConfigArguments:
                     process_thread_file_map[rank][thread_index] = []
                 selected_samples = 0
                 while selected_samples < samples_per_thread:
-                    process_thread_file_map[rank][thread_index].append((file_list[file_index],
+                    process_thread_file_map[rank][thread_index].append((sample_global_list[
+                                                                            sample_index], file_list[file_index],
                                                                         sample_global_list[
                                                                             sample_index] % self.num_samples_per_file))
                     sample_index += 1

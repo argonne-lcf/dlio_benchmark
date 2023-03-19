@@ -30,6 +30,7 @@ from numpy import random
 import glob
 
 class FormatReader(ABC):
+    read_images = None
     def __init__(self, dataset_type, thread_index, epoch_number):
         self.profile_args = {}
         self.profile_args["epoch"] = epoch_number
@@ -40,11 +41,17 @@ class FormatReader(ABC):
         self.dataset_type = dataset_type
         self.open_file_map = {}
         self.epoch_number = epoch_number
+        if FormatReader.read_images is None:
+            FormatReader.read_images = 0
+            logging.info("Setting read_images")
+        else:
+            logging.info("read_images exists")
+
+        self.batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
 
     @abstractmethod
     def open(self, filename):
-        self.profile_args = {}
-        self.profile_args["epoch"] = self.epoch_number
+        pass
 
     @abstractmethod
     def close(self, filename):
@@ -52,21 +59,20 @@ class FormatReader(ABC):
 
     @abstractmethod
     def get_sample(self, filename, sample_index):
-        self.profile_args["image_idx"] = sample_index
         return
 
     @abstractmethod
     def next(self):
         random_image = np.random.rand(self._args.max_dimension, self._args.max_dimension)
-        batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
         batch = []
         image_processed = 0
         batches_processed = 1
         total_images = len(self._args.file_map[self.thread_index])
         logging.debug(f"{utcnow()} Reading {total_images} images thread {self.thread_index} rank {self._args.my_rank}")
 
-        for filename, sample_index in self._args.file_map[self.thread_index]:
+        for global_sample_idx, filename, sample_index in self._args.file_map[self.thread_index]:
             self.profile_args["step"] = batches_processed
+            self.profile_args["image_idx"] = global_sample_idx
             if filename not in self.open_file_map:
                 self.open_file_map[filename] = self.open(filename)
             image = self.get_sample(filename, sample_index)
@@ -74,9 +80,9 @@ class FormatReader(ABC):
             image_processed += 1
             is_last = 0 if image_processed < total_images else 1
             if is_last:
-                while len(batch) is not batch_size:
+                while len(batch) is not self.batch_size:
                     batch.append(random_image)
-            if len(batch) == batch_size:
+            if len(batch) == self.batch_size:
                 batches_processed += 1
                 batch = np.array(batch)
                 yield is_last, batch
@@ -88,10 +94,11 @@ class FormatReader(ABC):
 
     @abstractmethod
     def read_index(self, index):
-        self.profile_args["image_idx"] = index
         filename, sample_index = self._args.global_index_map[index]
         logging.debug(f"{utcnow()} read_index {filename}, {sample_index}")
-
+        FormatReader.read_images += 1
+        self.profile_args["step"] = int(math.ceil(FormatReader.read_images / self.batch_size))
+        self.profile_args["image_idx"] = index
         if self._args.read_type is ReadType.ON_DEMAND or filename not in self.open_file_map:
             self.open_file_map[filename] = self.open(filename)
         image = self.get_sample(filename, sample_index)
