@@ -73,6 +73,7 @@ class FormatReader(ABC):
         for global_sample_idx, filename, sample_index in self._args.file_map[self.thread_index]:
             self.profile_args["step"] = batches_processed
             self.profile_args["image_idx"] = global_sample_idx
+            self.profile_args["image_size"] = 0
             if filename not in self.open_file_map:
                 self.open_file_map[filename] = self.open(filename)
             image = self.get_sample(filename, sample_index)
@@ -99,6 +100,7 @@ class FormatReader(ABC):
         FormatReader.read_images += 1
         self.profile_args["step"] = int(math.ceil(FormatReader.read_images / self.batch_size))
         self.profile_args["image_idx"] = index
+        self.profile_args["image_size"] = 0
         if self._args.read_type is ReadType.ON_DEMAND or filename not in self.open_file_map:
             self.open_file_map[filename] = self.open(filename)
         image = self.get_sample(filename, sample_index)
