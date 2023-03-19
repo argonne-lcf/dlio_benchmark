@@ -60,6 +60,7 @@ class NPZReader(FormatReader):
         t0 = time()
         my_image = self.open_file_map[filename][..., sample_index]
         t1 = time()
+        self.profile_args["image_size"] = my_image.nbytes
         t2 = time()
         resized_image = np.resize(my_image, (self._args.max_dimension, self._args.max_dimension))
         t3 = time()

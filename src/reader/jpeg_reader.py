@@ -57,16 +57,17 @@ class JPEGReader(FormatReader):
     def get_sample(self, filename, sample_index):
         super().get_sample(filename, sample_index)
         t0 = time()
-        my_image = self.open_file_map[filename]
+        my_image = np.asarray(self.open_file_map[filename])
         t1 = time()
+        self.profile_args["image_size"] = my_image.nbytes
         t2 = time()
-        resized_image = my_image.resize((self._args.max_dimension, self._args.max_dimension))
+        resized_image = np.resize(my_image, (self._args.max_dimension, self._args.max_dimension))
         t3 = time()
         PerfTrace.get_instance().event_complete(
             f"{self.get_sample.__qualname__}.read", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
         PerfTrace.get_instance().event_complete(
             f"{self.get_sample.__qualname__}.resize", MY_MODULE, t2, t3 - t2, arguments=self.profile_args)
-        return np.asarray(resized_image)
+        return resized_image
 
     @event_logging(module=MY_MODULE, arguments=profile_args)
     def next(self):
