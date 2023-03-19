@@ -45,6 +45,7 @@ class HDF5Reader(FormatReader):
         PerfTrace.get_instance().event_complete(f"{self.__init__.__qualname__}", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
 
     def open(self, filename):
+        super().open(filename)
         t0 = time()
         data = h5py.File(filename, 'r')
         t1 = time()

@@ -43,7 +43,8 @@ class FormatReader(ABC):
 
     @abstractmethod
     def open(self, filename):
-        pass
+        self.profile_args = {}
+        self.profile_args["epoch"] = self.epoch_number
 
     @abstractmethod
     def close(self, filename):

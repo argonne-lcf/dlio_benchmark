@@ -44,6 +44,7 @@ class NPZReader(FormatReader):
             f"{self.__init__.__qualname__}", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
 
     def open(self, filename):
+        super().open(filename)
         t0 = time()
         data = np.load(filename, allow_pickle=True)["x"]
         t1 = time()
