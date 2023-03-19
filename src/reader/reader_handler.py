@@ -43,9 +43,6 @@ class FormatReader(ABC):
         self.epoch_number = epoch_number
         if FormatReader.read_images is None:
             FormatReader.read_images = 0
-            logging.info("Setting read_images")
-        else:
-            logging.info("read_images exists")
 
         self.batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
 
