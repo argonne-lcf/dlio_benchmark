@@ -1,4 +1,4 @@
-# Us cpu version of torch
+# Use cpu version of torch
 --extra-index-url https://download.pytorch.org/whl/cpu
 --extra-index-url https://developer.download.nvidia.com/compute/redist
 
