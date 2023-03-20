@@ -32,8 +32,6 @@ import glob
 class FormatReader(ABC):
     read_images = None
     def __init__(self, dataset_type, thread_index, epoch_number):
-        self.profile_args = {}
-        self.profile_args["epoch"] = epoch_number
         self.thread_index = thread_index
         self._args = ConfigArguments.get_instance()
         logging.debug(
@@ -41,6 +39,7 @@ class FormatReader(ABC):
         self.dataset_type = dataset_type
         self.open_file_map = {}
         self.epoch_number = epoch_number
+        self.image_idx = -1
         if FormatReader.read_images is None:
             FormatReader.read_images = 0
 
@@ -68,9 +67,7 @@ class FormatReader(ABC):
         logging.debug(f"{utcnow()} Reading {total_images} images thread {self.thread_index} rank {self._args.my_rank}")
 
         for global_sample_idx, filename, sample_index in self._args.file_map[self.thread_index]:
-            self.profile_args["step"] = batches_processed
-            self.profile_args["image_idx"] = global_sample_idx
-            self.profile_args["image_size"] = 0
+            self.image_idx = global_sample_idx
             if filename not in self.open_file_map:
                 self.open_file_map[filename] = self.open(filename)
             image = self.get_sample(filename, sample_index)
@@ -91,13 +88,11 @@ class FormatReader(ABC):
                 self.open_file_map[filename] = None
 
     @abstractmethod
-    def read_index(self, index):
-        filename, sample_index = self._args.global_index_map[index]
+    def read_index(self, global_sample_idx):
+        self.image_idx = global_sample_idx
+        filename, sample_index = self._args.global_index_map[global_sample_idx]
         logging.debug(f"{utcnow()} read_index {filename}, {sample_index}")
         FormatReader.read_images += 1
-        self.profile_args["step"] = int(math.ceil(FormatReader.read_images / self.batch_size))
-        self.profile_args["image_idx"] = index
-        self.profile_args["image_size"] = 0
         if self._args.read_type is ReadType.ON_DEMAND or filename not in self.open_file_map:
             self.open_file_map[filename] = self.open(filename)
         image = self.get_sample(filename, sample_index)

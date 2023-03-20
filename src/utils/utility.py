@@ -113,6 +113,8 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.integer):
@@ -122,6 +124,7 @@ class NpEncoder(json.JSONEncoder):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         return super(NpEncoder, self).default(obj)
+
 
 def create_dur_event(name, cat, ts, dur, args={}):
     d = {
@@ -135,6 +138,7 @@ def create_dur_event(name, cat, ts, dur, args={}):
         "args": args
     }
     return d
+
 
 class PerfTrace:
     __instance = None
@@ -185,10 +189,7 @@ class PerfTrace:
         pass
 
 
-def event_logging(module, arguments=None):
-    if arguments is None:
-        arguments = {}
-
+def event_logging(module):
     def event_logging_f(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -196,10 +197,51 @@ def event_logging(module, arguments=None):
             x = func(*args, **kwargs)
             end = time()
             instance = PerfTrace.get_instance()
-            event = create_dur_event(func.__qualname__, module, start, dur=end - start, args=arguments)
+            event = create_dur_event(func.__qualname__, module, start, dur=end - start, args={})
             instance.flush_log(json.dumps(event, cls=NpEncoder))
             return x
 
         return wrapper
 
     return event_logging_f
+
+
+class Profile(object):
+
+    def __init__(self, name, cat, epoch=None, step=None, image_idx=None, image_size=None):
+        self._name = name
+        self._cat = cat
+        self.reset()
+        if epoch is not None: self._arguments["epoch"] = epoch
+        if step is not None: self._arguments["step"] = step
+        if image_idx is not None: self._arguments["image_idx"] = image_idx
+        if image_size is not None: self._arguments["image_size"] = image_size
+
+    def __enter__(self):
+       return self
+
+    def update(self, epoch=None, step=None, image_idx=None, image_size=None):
+
+        if epoch is not None: self._arguments["epoch"] = epoch
+        if step is not None: self._arguments["step"] = step
+        if image_idx is not None: self._arguments["image_idx"] = image_idx
+        if image_size is not None: self._arguments["image_size"] = image_size
+        return self
+
+    def flush(self):
+        self._t2 = time()
+        PerfTrace.get_instance().event_complete(name=self._name, cat=self._cat, ts=self._t1, dur=self._t2 - self._t1,
+                                                arguments=self._arguments)
+        self._flush = True
+        return self
+
+    def reset(self):
+        self._t1 = time()
+        self._t2 = self._t1
+        self._arguments = {}
+        self._flush = False
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+       if not self._flush:
+           self.flush()
