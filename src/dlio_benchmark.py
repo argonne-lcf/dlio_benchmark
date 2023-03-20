@@ -256,8 +256,6 @@ class DLIOBenchmark(object):
             perftrace.event_complete(f"eval_epoch_{epoch}_step_{step}", "DLIO_BENCHMARK", t0,
                                      t1 - t0)
             self.stats.eval_batch_loaded(epoch, step, t0)
-            if step == 2: 
-                first_step = t1 - t0
             if self.eval_time > 0:
                 if self.eval_time_stdev > 0:
                     eval_time = random.normal(self.eval_time, self.eval_time_stdev)
@@ -277,7 +275,7 @@ class DLIOBenchmark(object):
             self.framework.barrier()
         end_time = time()
         self.total_compute_time += total_compute_time
-        auu = (end_time - start_time - total_compute_time - first_step) / total_compute_time
+        auu = (end_time - start_time - total_compute_time - time_epoch['time_per_step'][0]) / total_compute_time
         time_epoch['auu'] = auu
         time_epoch['throughput'] = total*self.batch_size_eval/(end_time - start_time)
         if self.my_rank == 0 and total_compute_time >0.:            
@@ -312,8 +310,6 @@ class DLIOBenchmark(object):
         t0 = time()        
         for batch in loader.next():
             t1 = time()
-            if (overall_step == 1):
-                first_step = t1 - t0
             perftrace.event_complete(f"train_epoch_{epoch}_step_{block_step}", "DLIO_BENCHMARK", t0,
                                      t1 - t0)
             self.stats.batch_loaded(epoch, overall_step, block, t0)
@@ -364,7 +360,7 @@ class DLIOBenchmark(object):
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
         end_time = time()
         self.total_compute_time += total_compute_time
-        auu = (end_time - start_time - total_compute_time - first_step) / total_compute_time
+        auu = (end_time - start_time - total_compute_time - time_epoch['time_per_step'][0]) / total_compute_time
         time_epoch['auu'] = auu
         time_epoch['throughput'] = max_steps*self.batch_size/(end_time - start_time)
         if self.my_rank == 0 and total_compute_time >0.0:            
