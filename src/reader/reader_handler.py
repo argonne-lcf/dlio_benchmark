@@ -76,7 +76,7 @@ class FormatReader(ABC):
                 batch = np.array(batch)
                 yield is_last, batch
                 batch = []
-            if image_processed % self.num_samples_per_file == 0:
+            if image_processed % self._args.num_samples_per_file == 0:
                 self.close(filename)
                 self.open_file_map[filename] = None
 
