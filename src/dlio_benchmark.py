@@ -73,7 +73,10 @@ class DLIOBenchmark(object):
             self.args.output_folder = hydra_cfg['runtime']['output_dir']
         except:
             self.args.output_folder = 'output/'
-        self.json['workload'] = hydra_cfg.runtime.choices.workload            
+        try:
+            self.json['workload'] = hydra_cfg.runtime.choices.workload
+        except:
+            self.json['workload'] = cfg['model']            
         self.output_folder = self.args.output_folder
         self.logfile = os.path.join(self.output_folder, self.args.log_file)
         self.data_folder = self.args.data_folder
