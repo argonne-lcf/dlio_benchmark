@@ -211,8 +211,6 @@ class DLIOBenchmark(object):
         time_epoch['time_per_step'] = []
         for batch in reader.next():
             self.stats.eval_batch_loaded(epoch, step, t0)
-            if step == 2: 
-                start_time = time()
             if self.eval_time > 0:
                 if self.eval_time_stdev > 0:
                     eval_time = random.normal(self.eval_time, self.eval_time_stdev)
@@ -233,7 +231,7 @@ class DLIOBenchmark(object):
             t0 = time()
         end_time = time()
         self.total_compute_time += total_compute_time
-        auu = (end_time - start_time - total_compute_time) / total_compute_time
+        auu = (end_time - start_time - total_compute_time - time_epoch['time_per_step'][0]) / total_compute_time
         time_epoch['auu'] = auu
         time_epoch['throughput'] = total*self.batch_size_eval/(end_time - start_time)
         if self.my_rank == 0 and total_compute_time >0.:            
@@ -263,8 +261,6 @@ class DLIOBenchmark(object):
         time_epoch['epoch'] = epoch
         time_epoch['time_per_step'] = []
         for batch in reader.next():
-            if overall_step == 2:
-                start_time = time()
             logging.debug(f"{utcnow()} Rank {self.my_rank} batch: {batch[:][1:]}")
             self.stats.batch_loaded(epoch, overall_step, block, t0)
             # Log a new block, unless it's the first one which we've already logged before the loop
@@ -316,7 +312,7 @@ class DLIOBenchmark(object):
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
         end_time = time()
         self.total_compute_time += total_compute_time
-        auu = (end_time - start_time - total_compute_time) / total_compute_time
+        auu = (end_time - start_time - total_compute_time - time_epoch['time_per_step'][0]) / total_compute_time
         time_epoch['auu'] = auu
         time_epoch['throughput'] = max_steps*self.batch_size/(end_time - start_time)
         if self.my_rank == 0 and total_compute_time >0.0:            
