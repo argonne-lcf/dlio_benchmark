@@ -275,7 +275,10 @@ class DLIOBenchmark(object):
             self.framework.barrier()
         end_time = time()
         self.total_compute_time += total_compute_time
-        auu = (end_time - start_time - total_compute_time - time_epoch['time_per_step'][0]) / total_compute_time
+        if (total_compute_time > 0):
+            auu = (end_time - start_time - total_compute_time - time_epoch['time_per_step'][0]) / total_compute_time
+        else:
+            auu = 100000000
         time_epoch['auu'] = auu
         time_epoch['throughput'] = total*self.batch_size_eval/(end_time - start_time)
         if self.my_rank == 0 and total_compute_time >0.:            
@@ -360,7 +363,10 @@ class DLIOBenchmark(object):
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
         end_time = time()
         self.total_compute_time += total_compute_time
-        auu = (end_time - start_time - total_compute_time - time_epoch['time_per_step'][0]) / total_compute_time
+        if (total_compute_time >0.0):
+            auu = (end_time - start_time - total_compute_time - time_epoch['time_per_step'][0]) / total_compute_time
+        else:
+            auu = 100000000
         time_epoch['auu'] = auu
         time_epoch['throughput'] = max_steps*self.batch_size/(end_time - start_time)
         if self.my_rank == 0 and total_compute_time >0.0:            
