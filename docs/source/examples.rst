@@ -21,30 +21,32 @@ UNET3D: 3D Medical Image Segmentation
     workflow:
         generate_data: False
         train: True
-        evaluation: True
+        checkpoint: True
 
     dataset: 
-        data_folder: data/unet3d
+        data_folder: data/unet3d/
         format: npz
-        num_files_train: 3620
-        num_files_eval: 42
+        num_files_train: 168
         num_samples_per_file: 1
-        file_access: multi
-        record_length: 147000000
-        keep_files: True
+        record_length: 234560851
+        record_length_stdev: 109346892
     
     reader: 
         data_loader: pytorch
         batch_size: 4
-        batch_size_eval: 1
+        read_threads: 4
+        file_shuffle: seed
+        sample_shuffle: seed
 
     train:
         epochs: 10
-        computation_time: 4.59
+        computation_time: 1.3604
 
-    evaluation: 
-        eval_time: 11.572
-        epochs_between_evals: 2
+    checkpoint:
+        checkpoint_folder: checkpoints/unet3d
+        checkpoint_after_epoch: 5
+        epochs_between_checkpoints: 2
+        model_size: 499153191
 
 First, we generate the dataset with ```++workload.workflow.generate=False```
 
@@ -283,24 +285,28 @@ BERT: Natural Language Processing Model
         checkpoint: True
     
     dataset: 
-        data_folder: ./data/bert/
+        data_folder: data/bert
         format: tfrecord
         num_files_train: 500
         num_samples_per_file: 313532
-        record-length: 2500
-        batch_size: 48
+        record_length: 2500
+        file_prefix: part
 
     train:
         computation_time: 0.968
         total_training_steps: 5000
     
-    data_reader:
+    reader:
         data_loader: tensorflow
         read_threads: 1
-        computation_threads: 8
+        computation_threads: 1
         transfer_size: 262144
+        batch_size: 48
+        file_shuffle: seed
+        sample_shuffle: seed
 
     checkpoint:
+        checkpoint_folder: checkpoints/bert
         steps_between_checkpoints: 1250
         model_size: 4034713312
 

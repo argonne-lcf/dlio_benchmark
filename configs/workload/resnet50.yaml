@@ -12,6 +12,9 @@ dataset:
  record_length: 150528
  data_folder: data/resnet50
  format: tfrecord
+
+train: 
+ computation_time: 0.1
  
 reader:
  data_loader: tensorflow
