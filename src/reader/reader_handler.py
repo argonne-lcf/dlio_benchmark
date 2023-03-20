@@ -76,10 +76,10 @@ class FormatReader(ABC):
                 batch = np.array(batch)
                 yield is_last, batch
                 batch = []
-        for filename, sample_index in self._args.file_map:
-            if filename in self.open_file_map:
+            if image_processed % self.num_samples_per_file == 0:
                 self.close(filename)
                 self.open_file_map[filename] = None
+
 
     @abstractmethod
     def read_index(self, index):
