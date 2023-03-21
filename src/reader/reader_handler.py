@@ -80,7 +80,6 @@ class FormatReader(ABC):
                 self.close(filename)
                 self.open_file_map[filename] = None
 
-
     @abstractmethod
     def read_index(self, index):
         filename, sample_index = self._args.global_index_map[index]

@@ -59,6 +59,7 @@ class NPZReader(FormatReader):
         t0 = time()
         my_image = self.open_file_map[filename][..., sample_index]
         t1 = time()
+        t1p = time()
         resized_image = np.resize(my_image, (self._args.max_dimension, self._args.max_dimension))
         t2 = time()
         perftrace.event_complete(
@@ -66,7 +67,7 @@ class NPZReader(FormatReader):
             f"{self.classname}.get_sample_read", t0, t1 - t0)
         perftrace.event_complete(
             f"{self.classname}_{self.dataset_type}_process_{filename}_sample_{sample_index}_epoch_{self.epoch_number}",
-            f"{self.classname}.get_sample_process", t1, t2 - t1)
+            f"{self.classname}.get_sample_process", t1p, t2 - t1p)
         return resized_image
 
     @perftrace.event_logging
