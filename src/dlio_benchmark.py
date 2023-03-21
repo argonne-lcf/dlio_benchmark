@@ -273,19 +273,19 @@ class DLIOBenchmark(object):
                     auu = 100000000
                 time_epoch['auu'] = auu
                 time_epoch['throughput'] = total*self.batch_size_eval/(end_time - start_time)
-                if self.my_rank == 0 and total_compute_time >0.:            
+                if self.my_rank == 0 and total_compute_time >0.:
                     logging.info(f"{utcnow()} Epoch {epoch} [eval] accelerator_under_utilization (%): {auu*100:.4f}")
                     logging.info(f"{utcnow()} Epoch {epoch} [eval] throughput (samples/second): {time_epoch['throughput']*self.comm_size}")
 
                 self.json['eval'].append(time_epoch)
                 return step - 1
-    @event_logging(module=MODULE_DLIO_BENCHMARK)
     def _train(self, epoch):
         """
         Training loop for reading the dataset and performing training computations.
         :return: returns total steps.
         """
         with Profile(name=f"{self._train.__qualname__}", cat=MODULE_DLIO_BENCHMARK, epoch=epoch):
+            self.args.reconfigure(epoch, DatasetType.TRAIN)
             block = 1  # A continuous period of training steps, ended by checkpointing
             block_step = overall_step = 1  # Steps are taken within blocks
             max_steps = math.floor(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)

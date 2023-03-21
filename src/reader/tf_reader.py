@@ -25,6 +25,7 @@ from src.common.enumerations import DatasetType
 from src.reader.reader_handler import FormatReader
 import tensorflow as tf
 
+
 class TFReader(FormatReader):
     """
     Reader for TFRecord files.
@@ -59,7 +60,7 @@ class TFReader(FormatReader):
                     'image': tf.io.FixedLenFeature([], tf.string),
                     'size': tf.io.FixedLenFeature([], tf.int64)
                 }
-            parsed_example =  tf.io.parse_example(serialized=serialized, features=features)
+            parsed_example = tf.io.parse_example(serialized=serialized, features=features)
             # Get the image as raw bytes.
             image_raw = parsed_example['image']
             dimension = tf.cast(parsed_example['size'], tf.int32).numpy()
@@ -80,10 +81,12 @@ class TFReader(FormatReader):
         with Profile(name=f"{self.next.__qualname__}", cat=MODULE_DATA_READER, ):
             _file_list = self._args.file_list_train if self.dataset_type is DatasetType.TRAIN else self._args.file_list_eval
             batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
-            logging.debug(f"{utcnow()} Reading {len(_file_list)} files thread {self.thread_index} rank {self._args.my_rank}")
+            logging.debug(
+                f"{utcnow()} Reading {len(_file_list)} files thread {self.thread_index} rank {self._args.my_rank}")
             self._dataset = tf.data.TFRecordDataset(filenames=_file_list, buffer_size=self._args.transfer_size)
             self._dataset = self._dataset.shard(num_shards=self._args.comm_size, index=self._args.my_rank)
-            self._dataset = self._dataset.map(lambda x: tf.py_function(func=self._tf_parse_function, inp=[x], Tout=[tf.float64])
+            self._dataset = self._dataset.map(
+                lambda x: tf.py_function(func=self._tf_parse_function, inp=[x], Tout=[tf.float64])
                 , num_parallel_calls=self._args.computation_threads)
             self._dataset = self._dataset.batch(batch_size, drop_remainder=True)
             total = math.ceil(len(_file_list) / batch_size)

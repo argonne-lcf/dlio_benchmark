@@ -17,10 +17,7 @@
 import logging
 
 import h5py
-import math
 from numpy import random
-import numpy as np
-from time import sleep, time
 
 from src.common.constants import MODULE_DATA_READER
 from src.utils.utility import Profile
@@ -57,11 +54,11 @@ class HDF5Reader(FormatReader):
                 p.update(image_size=my_image.nbytes)
             with Profile(name=f"{self.get_sample.__qualname__}.resize", cat=MODULE_DATA_READER, epoch=self.epoch_number,
                          image_idx=self.image_idx) as p:
-                 self.preprocess()
+                self.preprocess()
                 #resized_image = np.resize(my_image, (self._args.max_dimension, self._args.max_dimension))
                 resized_image = random.random((self._args.max_dimension, self._args.max_dimension))
                 p.update(image_size=resized_image.nbytes)
-        return resized_image
+                return resized_image
 
     def next(self):
         step = 1

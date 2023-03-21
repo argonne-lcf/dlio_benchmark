@@ -64,7 +64,7 @@ class PNGReader(FormatReader):
 
     def next(self):
         step = 1
-        with Profile(name=f"{self.next.__qualname__}", cat=MODULE_DATA_READER, ) as lp:
+        with Profile(name=f"{self.next.__qualname__}", cat=MODULE_DATA_READER) as lp:
             for is_last, batch in super().next():
                 lp.update(epoch=self.epoch_number, step=step).flush()
                 yield is_last, batch

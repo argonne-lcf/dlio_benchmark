@@ -15,7 +15,6 @@
    limitations under the License.
 """
 
-from time import time
 import numpy as np
 from numpy import random
 from PIL import Image
