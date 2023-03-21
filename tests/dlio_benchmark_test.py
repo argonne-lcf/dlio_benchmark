@@ -28,7 +28,7 @@ import time
 import subprocess
 import logging
 import os
-from src.utils.utility import ConfigArguments
+from src.utils.config import ConfigArguments
 
 logging.basicConfig(
     level=logging.INFO,

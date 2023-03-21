@@ -19,9 +19,13 @@ from time import time
 import math
 import logging
 import numpy as np
+from numpy import random
 from PIL import Image
 from src.reader.reader_handler import FormatReader
-from src.utils.utility import progress, utcnow, timeit, perftrace
+from src.utils.utility import progress, utcnow, timeit, PerfTrace,event_logging
+
+MY_MODULE = "reader"
+profile_args={}
 
 class JPEGReader(FormatReader):
     """
@@ -30,51 +34,58 @@ class JPEGReader(FormatReader):
     classname = "JPEGReader"
 
     def __init__(self, dataset_type, thread_index, epoch_number):
+        global profile_args
+        profile_args["epoch"] = epoch_number
         t0 = time()
         super().__init__(dataset_type, thread_index, epoch_number)
         t1 = time()
-        perftrace.event_complete(
-            f"{self.classname}_{self.dataset_type}_init_{self.epoch_number}",
-            f"{self.classname}.init", t0, t1 - t0)
+        PerfTrace.get_instance().event_complete(
+            f"{self.__init__.__qualname__}", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
 
     def open(self, filename):
+        super().open(filename)
         t0 = time()
         data = Image.open(filename)
         t1 = time()
-        perftrace.event_complete(f"{self.classname}_{self.dataset_type}_open_{filename}_epoch_{self.epoch_number}",
-                                 f"{self.classname}.open", t0, t1 - t0)
+        PerfTrace.get_instance().event_complete(f"{self.open.__qualname__}", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
         return data
 
     def close(self, filename):
         t0 = time()
         t1 = time()
-        perftrace.event_complete(f"{self.classname}_{self.dataset_type}_close_{filename}_epoch_{self.epoch_number}",
-                                 f"{self.classname}.close", t0, t1 - t0)
+        PerfTrace.get_instance().event_complete(f"{self.close.__qualname__}", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
         pass
 
     def get_sample(self, filename, sample_index):
+        super().get_sample(filename, sample_index)
         t0 = time()
-        my_image = self.open_file_map[filename]
+        my_image = np.asarray(self.open_file_map[filename])
         t1 = time()
-        resized_image = my_image.resize((self._args.max_dimension, self._args.max_dimension))
+        self.profile_args["image_size"] = my_image.nbytes
         t2 = time()
-        perftrace.event_complete(
-            f"{self.classname}_{self.dataset_type}_get_{filename}_sample_{sample_index}_epoch_{self.epoch_number}",
-            f"{self.classname}.get_sample_read", t0, t1 - t0)
-        perftrace.event_complete(
-            f"{self.classname}_{self.dataset_type}_process_{filename}_sample_{sample_index}_epoch_{self.epoch_number}",
-            f"{self.classname}.get_sample_process", t1, t2 - t1)
-        return np.asarray(resized_image)
+        self.preprocess()
+        #resized_image = np.resize(my_image, (self._args.max_dimension, self._args.max_dimension))
+        resized_image = random.random((self._args.max_dimension, self._args.max_dimension))
+        t3 = time()
+        PerfTrace.get_instance().event_complete(
+            f"{self.get_sample.__qualname__}.read", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
+        PerfTrace.get_instance().event_complete(
+            f"{self.get_sample.__qualname__}.preprocess", MY_MODULE, t2, t3 - t2, arguments=self.profile_args)
+        return resized_image
 
-    @perftrace.event_logging
+    @event_logging(module=MY_MODULE, arguments=profile_args)
     def next(self):
         for is_last, batch in super().next():
             yield is_last, batch
 
-    @perftrace.event_logging
     def read_index(self, index):
-        return super().read_index(index)
+        t0 = time()
+        val = super().read_index(index)
+        t1 = time()
+        PerfTrace.get_instance().event_complete(
+            f"{self.read_index.__qualname__}", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
+        return val
 
-    @perftrace.event_logging
+    @event_logging(module=MY_MODULE, arguments=profile_args)
     def finalize(self):
         return super().finalize()

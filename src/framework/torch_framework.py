@@ -24,14 +24,16 @@ import os
 import torch
 import functools
 import logging
-from src.utils.utility import utcnow, perftrace
+from src.utils.utility import utcnow, PerfTrace,event_logging
 
-from time import sleep
+from time import sleep, time
 
 from src.reader.reader_factory import ReaderFactory
 from src.storage.storage_factory import StorageFactory
 
 HANDLED_FUNCTIONS = {}
+MY_MODULE = "framework"
+
 
 def implements(torch_function):
     """Register a torch function override for ScalarTensor"""
@@ -43,19 +45,23 @@ def implements(torch_function):
 
     return decorator
 
+
 # Does this annotation mean that torch.mean will be replaced by torch_sleep?
 @implements(torch.mean)
 def torch_sleep(sleep_time):
     return sleep(sleep_time)
 
+
 class TorchFramework(Framework):
     __instance = None
 
     def __init__(self, profiling):
+        t0 = time()
         super().__init__()
         self.profiling = profiling
         self.reader_handler = None
 
+    @event_logging(module=MY_MODULE)
     def init_loader(self, format_type, data_loader=None):
         if data_loader is None:
             data_loader = DataLoaderType.PYTORCH
@@ -63,6 +69,7 @@ class TorchFramework(Framework):
         self.reader_valid = DataLoaderFactory.get_loader(data_loader, format_type, dataset_type=DatasetType.VALID)
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
 
+    @event_logging(module=MY_MODULE)
     def get_type(self):
         return FrameworkType.PYTORCH
 
@@ -73,16 +80,19 @@ class TorchFramework(Framework):
             TorchFramework.__instance = TorchFramework(profiling)
         return TorchFramework.__instance
 
+    @event_logging(module=MY_MODULE)
     def start_framework_profiler(self):
         pass
 
+    @event_logging(module=MY_MODULE)
     def stop_framework_profiler(self):
         pass
 
+    @event_logging(module=MY_MODULE)
     def trace_object(self, string, step, r):
         return DummyTraceObject(string, step, r)
 
-    @perftrace.event_logging
+    @event_logging(module=MY_MODULE)
     def checkpoint(self, epoch, step_number):
         if self.rank() == 0:
             """
@@ -94,19 +104,21 @@ class TorchFramework(Framework):
             model_file = os.path.join(self.checkpoint_folder, f"model-{epoch}-{step_number}.bin")
 
             f = open(model_file, "w")
-            string_val = "x" * self.args.model_size 
+            string_val = "x" * self.args.model_size
             f.write(string_val)
             f.close()
 
-    @perftrace.event_logging
+    @event_logging(module=MY_MODULE)
     def compute(self, epoch_number, step, computation_time):
         torch_sleep(computation_time)
 
+    @event_logging(module=MY_MODULE)
     def get_loader(self, dataset_type=DatasetType.TRAIN):
         if dataset_type == DatasetType.TRAIN:
             return self.reader_train
         else:
             return self.reader_valid
 
+    @event_logging(module=MY_MODULE)
     def is_nativeio_available(self):
         return False

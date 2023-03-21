@@ -15,13 +15,18 @@
    limitations under the License.
 """
 import logging
+from time import time
 from typing import List, ClassVar
 from src.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, FrameworkType, \
     DataLoaderType, Profiler, DatasetType
 from dataclasses import dataclass
 import math
 import os
+import numpy as np
 
+from src.utils.utility import PerfTrace,event_logging
+
+MY_MODULE="config"
 
 @dataclass
 class ConfigArguments:
@@ -44,6 +49,7 @@ class ConfigArguments:
     storage_type: StorageType = StorageType.LOCAL_FS
     record_length: int = 64 * 1024
     record_length_stdev: int = 0
+    record_length_resize: int = 0
     num_files_train: int = 8
     num_samples_per_file: int = 1
     batch_size: int = 1
@@ -52,7 +58,7 @@ class ConfigArguments:
     generate_data: bool = False
     generate_only: bool = False
     data_folder: str = "./data/"
-    output_folder: str = "./output"
+    output_folder: str = None
     checkpoint_folder: str = "./checkpoints/"
     log_file: str = "dlio.log"
     file_prefix: str = "img"
@@ -69,6 +75,8 @@ class ConfigArguments:
     computation_threads: int = 1
     computation_time: float = 0.
     computation_time_stdev: float = 0.
+    preprocess_time: float = 0.
+    preprocess_time_stdev: float = 0.
     prefetch_size: int = 0
     enable_chunking: bool = False
     chunk_size: int = 0
@@ -122,6 +130,7 @@ class ConfigArguments:
             ConfigArguments()
         return ConfigArguments.__instance
 
+    @event_logging(module=MY_MODULE)
     def validate(self):
         """ validate whether the parameters are set correctly"""
         if (self.do_profiling == True) and (self.profiler == Profiler('darshan')):
@@ -144,6 +153,7 @@ class ConfigArguments:
     def reset(self):
         ConfigArguments.__instance = None
 
+    @event_logging(module=MY_MODULE)
     def derive_configurations(self, file_list_train, file_list_eval):
         self.file_list_train = file_list_train
         self.file_list_eval = file_list_eval
@@ -151,7 +161,10 @@ class ConfigArguments:
         self.num_files_train = len(file_list_train)
         self.dimension = int(math.sqrt(self.record_length / 8))
         self.dimension_stdev = math.sqrt(self.record_length_stdev / 8)
-        self.max_dimension = int(self.dimension + math.ceil(self.dimension_stdev))
+        self.max_dimension = self.dimension
+        if (self.record_length_resize>0):
+            self.max_dimension =  int(math.sqrt(self.record_length_resize / 8))
+        #self.max_dimension = int(self.dimension + math.ceil(self.dimension_stdev))
         self.total_samples_train = self.num_samples_per_file * len(self.file_list_train)
         self.total_samples_eval = self.num_samples_per_file * len(self.file_list_eval)
         self.required_samples = self.comm_size * self.batch_size
@@ -160,6 +173,7 @@ class ConfigArguments:
         self.training_steps = int(math.ceil(self.total_samples_train / self.batch_size / self.comm_size))
         self.eval_steps = int(math.ceil(self.total_samples_eval / self.batch_size_eval / self.comm_size))
 
+    @event_logging(module=MY_MODULE)
     def build_sample_map(self, file_list, total_samples, epoch_number):
         logging.debug(f"ranks {self.comm_size} threads {self.read_threads} tensors")
         from numpy import random
@@ -170,7 +184,7 @@ class ConfigArguments:
         self.samples_per_thread = total_samples / self.comm_size / num_threads
         file_index = 0
         sample_index = 0
-        sample_global_list = range(total_samples)
+        sample_global_list = np.arange(total_samples)
         if self.file_shuffle is not Shuffle.OFF:
             if self.seed_change_epoch:
                 random.seed(self.seed + epoch_number)
@@ -185,10 +199,10 @@ class ConfigArguments:
                 if thread_index not in process_thread_file_map[rank]:
                     process_thread_file_map[rank][thread_index] = []
                 selected_samples = 0
-                while selected_samples < self.samples_per_thread:
-                    process_thread_file_map[rank][thread_index].append((file_list[file_index],
-                                                                        sample_global_list[
-                                                                            sample_index] % self.num_samples_per_file))
+                while selected_samples < samples_per_thread:
+                    process_thread_file_map[rank][thread_index].append((sample_global_list[sample_index], 
+                                                                        file_list[file_index],
+                                                                        sample_global_list[sample_index] % self.num_samples_per_file))
                     sample_index += 1
                     selected_samples += 1
                     if sample_index >= self.num_samples_per_file:
@@ -198,6 +212,7 @@ class ConfigArguments:
                         break
         return process_thread_file_map
 
+    @event_logging(module=MY_MODULE)
     def get_global_map(self, file_list, total_samples):
         process_thread_file_map = {}
         for global_sample_index in range(total_samples):
@@ -205,6 +220,8 @@ class ConfigArguments:
             sample_index = global_sample_index % self.num_samples_per_file
             process_thread_file_map[global_sample_index] = (file_list[file_index], sample_index)
         return process_thread_file_map
+
+    @event_logging(module=MY_MODULE)
     def reconfigure(self, epoch_number, dataset_type):
         from numpy import random
         if self.file_shuffle is not Shuffle.OFF:
@@ -228,8 +245,6 @@ class ConfigArguments:
             else:
                 self.global_index_map = self.get_global_map(self.file_list_eval, self.total_samples_eval)
 
-
-
 def LoadConfig(args, config):
     '''
     Override the args by a system config (typically loaded from a YAML file)
@@ -248,13 +263,15 @@ def LoadConfig(args, config):
             args.storage_type = StorageType(config['storage']['storage_type'])
         if 'storage_root' in config['storage']:
             args.storage_root = config['storage']['storage_root']
-
+        
     # dataset related settings
     if 'dataset' in config:
         if 'record_length' in config['dataset']:
             args.record_length = config['dataset']['record_length']
         if 'record_length_stdev' in config['dataset']:
             args.record_length_stdev = config['dataset']['record_length_stdev']
+        if 'record_length_resize' in config['dataset']:
+            args.record_length_resize = config['dataset']['record_length_resize']
         if 'num_files_train' in config['dataset']:
             args.num_files_train = config['dataset']['num_files_train']
         if 'num_files_eval' in config['dataset']:
@@ -312,6 +329,10 @@ def LoadConfig(args, config):
             args.read_type = reader['read_type']
         if 'transfer_size' in reader:
             args.transfer_size = reader['transfer_size']
+        if 'preprocess_time' in reader:
+            args.preprocess_time = reader['preprocess_time']
+        if 'preprocess_time_stdev' in reader: 
+            args.preprocess_time_stdev = reader['preprocess_time_stdev']
 
     # training relevant setting
     if 'train' in config:
@@ -350,7 +371,12 @@ def LoadConfig(args, config):
             args.steps_between_checkpoints = config['checkpoint']['steps_between_checkpoints']
         if 'model_size' in config['checkpoint']:
             args.model_size = config['checkpoint']['model_size']
-
+    if 'output' in config:
+        if 'folder' in config['output']:
+            args.output_folder = config['output']['folder']
+        if 'log_file' in config['output']:
+            args.log_file = config['output']['log_file']
+            
     if 'workflow' in config:
         if 'generate_data' in config['workflow']:
             args.generate_data = config['workflow']['generate_data']
