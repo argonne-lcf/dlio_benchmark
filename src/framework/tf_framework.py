@@ -50,11 +50,11 @@ class TFFramework(Framework):
                 self.tensorboard = ProfilerFactory.get_profiler(Profiler.TENSORBOARD)
         self.reader_handler = None
     @event_logging(module=MY_MODULE)
-    def init_loader(self, format_type, data_loader=None):
+    def init_loader(self, format_type, epoch_number, data_loader=None):
         if data_loader is None:
             data_loader = DataLoaderType.TENSORFLOW
-        self.reader_train = DataLoaderFactory.get_loader(data_loader, format_type, dataset_type=DatasetType.TRAIN)
-        self.reader_valid = DataLoaderFactory.get_loader(data_loader, format_type, dataset_type=DatasetType.VALID)
+        self.reader_train = DataLoaderFactory.get_loader(data_loader, format_type, dataset_type=DatasetType.TRAIN, epoch_number=epoch_number)
+        self.reader_valid = DataLoaderFactory.get_loader(data_loader, format_type, dataset_type=DatasetType.VALID, epoch_number=epoch_number)
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
 
     @event_logging(module=MY_MODULE)

@@ -48,10 +48,11 @@ class TorchDataset(Dataset):
         profile_args["image_idx"] = idx
         t0 = time()
         logging.debug(f"{utcnow()} Rank {get_rank()} reading {idx} sample")
+        image = self.reader.read_index(idx)
         t1 = time()
         PerfTrace.get_instance().event_complete(f"{self.__getitem__.__qualname__}", MY_MODULE, t0, t1 - t0,
                                                 arguments=profile_args)
-        return self.reader.read_index(idx)
+        return image
 
 
 class TorchDataLoader(BaseDataLoader):

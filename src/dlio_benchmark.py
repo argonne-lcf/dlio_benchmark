@@ -407,7 +407,7 @@ class DLIOBenchmark(object):
                 self.stats.start_epoch(epoch)
 
                 # Initialize the dataset
-                self.framework.init_loader(self.args.format, self.args.data_loader, epoch_number=epoch)
+                self.framework.init_loader(self.args.format, epoch, self.args.data_loader)
                 #
 
                 steps = self._train(epoch)
