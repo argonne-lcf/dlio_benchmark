@@ -177,16 +177,16 @@ reader
    * - Parameter
      - Default
      - Description
-   * - data_loader*
+   * - data_loader
      - tensorflow
-     - select the data loader to use [tensorflow|pytorch|node]. 
+     - select the data loader to use [tensorflow|pytorch]. 
    * - batch_size
      - 1 
      - batch size for training
    * - batch_size_eval
      - 1 
      - batch size for evaluation
-   * - read_threads
+   * - read_threads* 
      - 1
      - number of threads to load the data (for tensorflow and pytorch data loader)
    * - computation_threads
@@ -194,7 +194,7 @@ reader
      - number of threads to preprocess the data
    * - prefetch_size
      - 0
-     - number of batch to prefetch (0 - no prefetch at all)
+     - number of batches to prefetch (0 - no prefetch at all)
    * - sample_shuffle
      - off
      - [seed|random|off] whether and how to shuffle the dataset samples
@@ -204,13 +204,19 @@ reader
    * - transfer_size
      - 262144
      - transfer size in byte for tensorflow data loader. 
-
+   * - preprocess_time
+     - 0.0
+     - The amount of emulated preprocess time (sleep) in second. 
+   * - preprocess_time_stdev
+     - 0.0
+     - The standard deviation of the amount of emulated preprocess time (sleep) in second. 
 .. note:: 
 
-  If ``none`` is set for ``data_reader.data_loader``, then custom 
-  data reader such as ``npz_reader``, ``csv_reader``, ``hdf5_reader`` will be used. 
-  Currently, these custom readers do not support advanced features
-  such as multiple read_threads, prefetch, etc. 
+TensorFlow and PyTorch behave differently for some parameters. For ``read_threads``, tensorflow does 
+not support ``read_threads=0``, but pytorch does, in which case, the main thread will be doing data loader and no overlap between I/O and compute. 
+
+For ``prefetch_size``, if ``0`` is set. It will change to 2. 
+
 
 train
 ------------------
