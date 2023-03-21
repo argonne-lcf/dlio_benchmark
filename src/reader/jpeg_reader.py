@@ -19,6 +19,7 @@ from time import time
 import math
 import logging
 import numpy as np
+from numpy import random
 from PIL import Image
 from src.reader.reader_handler import FormatReader
 from src.utils.utility import progress, utcnow, timeit, PerfTrace,event_logging

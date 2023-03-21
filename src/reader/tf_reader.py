@@ -17,6 +17,7 @@
 import math
 import logging
 from time import time
+from numpy import random
 
 from src.utils.utility import utcnow, PerfTrace,event_logging
 from src.common.enumerations import DatasetType

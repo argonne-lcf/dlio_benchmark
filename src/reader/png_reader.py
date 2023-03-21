@@ -20,6 +20,8 @@ import math
 import logging
 import numpy as np
 from PIL import Image
+from numpy import random
+
 
 from src.reader.reader_handler import FormatReader
 from src.utils.utility import utcnow, PerfTrace,event_logging
