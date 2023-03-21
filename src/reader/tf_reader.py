@@ -17,6 +17,7 @@
 import math
 import logging
 from time import time
+from numpy import random
 
 from src.common.constants import MODULE_DATA_READER
 from src.utils.utility import utcnow, PerfTrace, event_logging, Profile

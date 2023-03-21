@@ -37,13 +37,13 @@ docker run -t docker.io/zhenghh04/dlio:latest python ./src/dlio_benchmark.py ++w
 One can also run interactively inside the container
 ```bash
 docker run -t docker.io/zhenghh04/dlio:latest /bin/bash
-root@30358dd47935:/workspace/dlio# python ./src/dlio_benchmark.py ++workload.workflow.generate_data=True
+root@30358dd47935:/workspace/dlio$ python ./src/dlio_benchmark.py ++workload.workflow.generate_data=True
 ```
 
 ## Running the benchmark
 
 A DLIO run is split in 3 phases: 
-- Generate synthetic data DLIO will use
+- Generate synthetic data that DLIO will use
 - Run the benchmark using the previously generated data
 - Post-process the results to generate a report
 

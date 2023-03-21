@@ -19,7 +19,6 @@ from src.common.constants import MODULE_DATA_READER
 from src.reader.reader_handler import FormatReader
 from src.utils.utility import Profile
 
-
 class NPZReader(FormatReader):
     """
     Reader for NPZ files
@@ -50,7 +49,9 @@ class NPZReader(FormatReader):
                 p.update(image_size=my_image.nbytes)
             with Profile(name=f"{self.get_sample.__qualname__}.resize", cat=MODULE_DATA_READER, epoch=self.epoch_number,
                          image_idx=self.image_idx) as p:
-                resized_image = np.resize(my_image, (self._args.max_dimension, self._args.max_dimension))
+                self.preprocess()
+                #resized_image = np.resize(my_image, (self._args.max_dimension, self._args.max_dimension))
+                resized_image = random.random((self._args.max_dimension, self._args.max_dimension))
                 p.update(image_size=resized_image.nbytes)
             return resized_image
 

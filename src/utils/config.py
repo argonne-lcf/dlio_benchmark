@@ -24,6 +24,7 @@ from src.common.enumerations import StorageType, FormatType, Shuffle, ReadType, 
 from dataclasses import dataclass
 import math
 import os
+import numpy as np
 
 from src.utils.utility import event_logging
 
@@ -74,6 +75,8 @@ class ConfigArguments:
     computation_threads: int = 1
     computation_time: float = 0.
     computation_time_stdev: float = 0.
+    preprocess_time: float = 0.
+    preprocess_time_stdev: float = 0.
     prefetch_size: int = 0
     enable_chunking: bool = False
     chunk_size: int = 0
@@ -179,7 +182,7 @@ class ConfigArguments:
         samples_per_thread = total_samples / self.comm_size / num_threads
         file_index = 0
         sample_index = 0
-        sample_global_list = range(total_samples)
+        sample_global_list = np.arange(total_samples)
         if self.file_shuffle is not Shuffle.OFF:
             if self.seed_change_epoch:
                 random.seed(self.seed + epoch_number)
@@ -329,6 +332,10 @@ def LoadConfig(args, config):
             args.read_type = reader['read_type']
         if 'transfer_size' in reader:
             args.transfer_size = reader['transfer_size']
+        if 'preprocess_time' in reader:
+            args.preprocess_time = reader['preprocess_time']
+        if 'preprocess_time_stdev' in reader: 
+            args.preprocess_time_stdev = reader['preprocess_time_stdev']
 
     # training relevant setting
     if 'train' in config:

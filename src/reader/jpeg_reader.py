@@ -17,6 +17,7 @@
 
 from time import time
 import numpy as np
+from numpy import random
 from PIL import Image
 
 from src.common.constants import MODULE_DATA_READER
@@ -55,10 +56,12 @@ class JPEGReader(FormatReader):
             with Profile(name=f"{self.get_sample.__qualname__}.resize", cat=MODULE_DATA_READER,
                          epoch=self.epoch_number,
                          image_idx=self.image_idx) as p:
-                resized_image = np.resize(my_image, (self._args.max_dimension, self._args.max_dimension))
+                self.preprocess()
+                #resized_image = np.resize(my_image, (self._args.max_dimension, self._args.max_dimension))
+                resized_image = random.random((self._args.max_dimension, self._args.max_dimension))
                 p.update(image_size=resized_image.nbytes)
             return resized_image
-
+            
     def next(self):
         step = 1
         with Profile(name=f"{self.next.__qualname__}", cat=MODULE_DATA_READER, ) as lp:

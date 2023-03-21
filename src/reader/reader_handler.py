@@ -27,6 +27,7 @@ import os
 import math
 import logging
 from numpy import random
+from time import sleep
 import glob
 
 class FormatReader(ABC):
@@ -44,6 +45,11 @@ class FormatReader(ABC):
             FormatReader.read_images = 0
 
         self.batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
+    
+    def preprocess(self):
+        if (self._args.preprocess_time !=0. or self._args.preprocess_time_stdev !=0.):
+            t = random.normal(self._args.preprocess_time, self._args.preprocess_time_stdev)
+            sleep(max(t, 0.0))
 
     @abstractmethod
     def open(self, filename):
@@ -82,8 +88,7 @@ class FormatReader(ABC):
                 batch = np.array(batch)
                 yield is_last, batch
                 batch = []
-        for filename, sample_index in self._args.file_map:
-            if filename in self.open_file_map:
+            if image_processed % self._args.num_samples_per_file == 0:
                 self.close(filename)
                 self.open_file_map[filename] = None
 
