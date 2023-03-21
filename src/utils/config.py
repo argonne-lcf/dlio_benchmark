@@ -21,6 +21,7 @@ from src.common.enumerations import StorageType, FormatType, Shuffle, ReadType, 
 from dataclasses import dataclass
 import math
 import os
+import numpy as np
 
 
 @dataclass
@@ -172,7 +173,7 @@ class ConfigArguments:
         samples_per_thread = total_samples / self.comm_size / num_threads
         file_index = 0
         sample_index = 0
-        sample_global_list = range(total_samples)
+        sample_global_list = np.arange(total_samples)
         if self.file_shuffle is not Shuffle.OFF:
             if self.seed_change_epoch:
                 random.seed(self.seed + epoch_number)
