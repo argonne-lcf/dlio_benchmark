@@ -66,14 +66,12 @@ class CSVReader(FormatReader):
         self.profile_args["image_size"] = my_image.nbytes
         t2 = time()
         self.preprocess()
-        #resized_image = np.resize(my_image, (self._args.max_dimension, self._args.max_dimension))
-        resized_image = random.random((self._args.max_dimension, self._args.max_dimension))
         t3 = time()
         PerfTrace.get_instance().event_complete(
             f"{self.get_sample.__qualname__}.read", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
         PerfTrace.get_instance().event_complete(
             f"{self.get_sample.__qualname__}.preprocess", MY_MODULE, t2, t3 - t2, arguments=self.profile_args)
-        return resized_image
+        return self.resized_image
 
     @event_logging(module=MY_MODULE, arguments=profile_args)
     def next(self):

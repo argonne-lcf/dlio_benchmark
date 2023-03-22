@@ -46,7 +46,8 @@ class FormatReader(ABC):
             FormatReader.read_images = 0
 
         self.batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
-    
+        self.resized_image = random.random((self._args.max_dimension, self._args.max_dimension))
+
     def preprocess(self):
         if (self._args.preprocess_time !=0. or self._args.preprocess_time_stdev !=0.):
             t = random.normal(self._args.preprocess_time, self._args.preprocess_time_stdev)

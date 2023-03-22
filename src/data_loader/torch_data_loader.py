@@ -107,6 +107,7 @@ class TorchDataLoader(BaseDataLoader):
         logging.debug(f"{utcnow()} Rank {self._args.my_rank} should read {total} batches")
         count = 1
         t0 = time()
+        #return self._dataset
         for batch in self._dataset:
             profile_args["step"] = count
             t1 = time()
