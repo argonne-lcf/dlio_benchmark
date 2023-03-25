@@ -17,7 +17,6 @@ class TensorflowDataset(tf.data.Dataset):
     @staticmethod
     @dlp.log
     def _generator(format_type, dataset_type, epoch_number, thread_index):
-        global dlp
         format_type = format_type.decode('ascii')
         dataset_type = dataset_type.decode('ascii')
         logging.debug(f"{utcnow()} format_type {format_type} dataset_type {dataset_type} tensors")
