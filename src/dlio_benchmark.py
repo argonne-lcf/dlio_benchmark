@@ -330,13 +330,14 @@ class DLIOBenchmark(object):
                 self.next_checkpoint_step += self.steps_between_checkpoints
             else:
                 block_step += 1
-            overall_step += 1
+
             if overall_step >= max_steps or overall_step == self.total_training_steps:
                 if self.args.my_rank == 0:
                     logging.info(f"{utcnow()} Maximum number of steps reached")
                 if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
                     self.stats.end_block(epoch, block, block_step - 1)
                 break
+            overall_step += 1
             t0 = time()
         self.framework.barrier()
         if self.do_checkpoint and (self.steps_between_checkpoints < 0) and (epoch == self.next_checkpoint_epoch):
