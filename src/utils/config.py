@@ -26,8 +26,8 @@ import math
 import os
 import numpy as np
 
-from src.utils.utility import event_logging
-
+from src.utils.utility import Profile
+dlp = Profile(MODULE_CONFIG)
 @dataclass
 class ConfigArguments:
     __instance = None
@@ -129,7 +129,7 @@ class ConfigArguments:
             ConfigArguments()
         return ConfigArguments.__instance
 
-    @event_logging(module=MODULE_CONFIG)
+    @dlp.log
     def validate(self):
         """ validate whether the parameters are set correctly"""
         if (self.do_profiling == True) and (self.profiler == Profiler('darshan')):
@@ -152,7 +152,7 @@ class ConfigArguments:
     def reset(self):
         ConfigArguments.__instance = None
 
-    @event_logging(module=MODULE_CONFIG)
+    @dlp.log
     def derive_configurations(self, file_list_train, file_list_eval):
         self.file_list_train = file_list_train
         self.file_list_eval = file_list_eval
@@ -172,7 +172,7 @@ class ConfigArguments:
         self.training_steps = int(math.ceil(self.total_samples_train / self.batch_size / self.comm_size))
         self.eval_steps = int(math.ceil(self.total_samples_eval / self.batch_size_eval / self.comm_size))
 
-    @event_logging(module=MODULE_CONFIG)
+    @dlp.log
     def build_sample_map(self, file_list, total_samples, epoch_number):
         from numpy import random
         num_files = len(file_list)
@@ -215,7 +215,7 @@ class ConfigArguments:
                         break
         return process_thread_file_map
 
-    @event_logging(module=MODULE_CONFIG)
+    @dlp.log
     def get_global_map(self, file_list, total_samples):
         process_thread_file_map = {}
         for global_sample_index in range(total_samples):
@@ -224,7 +224,7 @@ class ConfigArguments:
             process_thread_file_map[global_sample_index] = (file_list[file_index], sample_index)
         return process_thread_file_map
 
-    @event_logging(module=MODULE_CONFIG)
+    @dlp.log
     def reconfigure(self, epoch_number, dataset_type):
         from numpy import random
         if self.file_shuffle is not Shuffle.OFF:

@@ -40,7 +40,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 from dataclasses import dataclass
-from src.utils.utility import utcnow, measure_performance, event_logging, PerfTrace, Profile
+from src.utils.utility import utcnow, measure_performance, PerfTrace, Profile
 from omegaconf import DictConfig, OmegaConf
 from src.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
@@ -50,7 +50,7 @@ from src.profiler.profiler_factory import ProfilerFactory
 from src.framework.framework_factory import FrameworkFactory
 from src.data_generator.generator_factory import GeneratorFactory
 from src.storage.storage_factory import StorageFactory
-
+dlp = Profile(MODULE_DLIO_BENCHMARK)
 class DLIOBenchmark(object):
     """
     The Benchmark represents the I/O behavior of deep learning applications.
@@ -71,8 +71,8 @@ class DLIOBenchmark(object):
         LoadConfig(self.args, cfg)
         self.json = {}
 
-        self.json['train']=[]
-        self.json['eval']=[]
+        self.json['train'] = []
+        self.json['eval'] = []
         if self.args.output_folder is None:
             try:
                 hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
@@ -82,7 +82,7 @@ class DLIOBenchmark(object):
         try:
             self.json['workload'] = hydra_cfg.runtime.choices.workload
         except:
-            self.json['workload'] = cfg['model']            
+            self.json['workload'] = cfg['model']
         self.output_folder = self.args.output_folder
         PerfTrace.initialize_log(self.args.output_folder)
         with Profile(name=f"{self.__init__.__qualname__}", cat=MODULE_DLIO_BENCHMARK):
@@ -175,7 +175,7 @@ class DLIOBenchmark(object):
             self.per_epoch_stats = {}
             self.stats = StatsCounter()
 
-    @event_logging(module=MODULE_DLIO_BENCHMARK)
+    @dlp.log
     def initialize(self):
         """
         Initializes the benchmark runtime.
@@ -224,150 +224,144 @@ class DLIOBenchmark(object):
         self.framework.barrier()
         self.total_compute_time = 0.0
 
+    @dlp.log
     def _eval(self, epoch):
         """
         Evaluation loop will read a separate dataset and has its own own computation time.
         """
-        with Profile(name=f"{self._eval.__qualname__}", cat=MODULE_DLIO_BENCHMARK, epoch=epoch) as lp:
-            self.args.reconfigure(epoch, DatasetType.VALID)
-            step = 1
-            total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
+        self.args.reconfigure(epoch, DatasetType.VALID)
+        step = 1
+        total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
 
-            loader = self.framework.get_loader(DatasetType.VALID)
-            loader.read()
+        loader = self.framework.get_loader(DatasetType.VALID)
+        loader.read()
 
-            start_time = time()
-            total_compute_time = 0.0
-            time_epoch = {}
-            time_epoch['epoch'] = epoch
-            time_epoch['time_per_step'] = []
-            t0 = time()
-            with Profile(name=f"{self._eval.__qualname__}", cat=MODULE_DLIO_BENCHMARK) as lp:
-                for batch in loader.next():
-                    t1 = time()
-                    lp.update(epoch=epoch, step=step).flush()
-                    self.stats.eval_batch_loaded(epoch, step, t0)
-                    if self.eval_time > 0:
-                        if self.eval_time_stdev > 0:
-                            eval_time = random.normal(self.eval_time, self.eval_time_stdev)
-                        else:
-                            eval_time = self.eval_time
-                        if step > 1:
-                            total_compute_time += eval_time
-                        self.framework.compute(epoch, step, eval_time)
-                    t1 = time()
-                    time_epoch['time_per_step'].append(t1 - t0)
-                    self.stats.eval_batch_processed(epoch, step, t0)
-
-                    step += 1
-                    if step > total:
-                        break
-                    t0 = time()
-                    lp.reset()
-                    self.framework.barrier()
-                end_time = time()
-                self.total_compute_time += total_compute_time
-                if (total_compute_time > 0):
-                    auu = (end_time - start_time - total_compute_time - time_epoch['time_per_step'][0]) / total_compute_time
+        start_time = time()
+        total_compute_time = 0.0
+        time_epoch = {}
+        time_epoch['epoch'] = epoch
+        time_epoch['time_per_step'] = []
+        t0 = time()
+        for batch in dlp.iter(loader.next()):
+            t1 = time()
+            self.stats.eval_batch_loaded(epoch, step, t0)
+            if self.eval_time > 0:
+                if self.eval_time_stdev > 0:
+                    eval_time = random.normal(self.eval_time, self.eval_time_stdev)
                 else:
-                    auu = 100000000
-                time_epoch['auu'] = auu
-                time_epoch['throughput'] = total*self.batch_size_eval/(end_time - start_time)
-                if self.my_rank == 0 and total_compute_time >0.:
-                    logging.info(f"{utcnow()} Epoch {epoch} [eval] accelerator_under_utilization (%): {auu*100:.4f}")
-                    logging.info(f"{utcnow()} Epoch {epoch} [eval] throughput (samples/second): {time_epoch['throughput']*self.comm_size}")
+                    eval_time = self.eval_time
+                if step > 1:
+                    total_compute_time += eval_time
+                self.framework.compute(epoch, step, eval_time)
+            t1 = time()
+            time_epoch['time_per_step'].append(t1 - t0)
+            self.stats.eval_batch_processed(epoch, step, t0)
 
-                self.json['eval'].append(time_epoch)
-                return step - 1
+            step += 1
+            if step > total:
+                break
+            t0 = time()
+            self.framework.barrier()
+        end_time = time()
+        self.total_compute_time += total_compute_time
+        if (total_compute_time > 0):
+            auu = (end_time - start_time - total_compute_time - time_epoch['time_per_step'][0]) / total_compute_time
+        else:
+            auu = 100000000
+        time_epoch['auu'] = auu
+        time_epoch['throughput'] = total*self.batch_size_eval/(end_time - start_time)
+        if self.my_rank == 0 and total_compute_time >0.:
+            logging.info(f"{utcnow()} Epoch {epoch} [eval] accelerator_under_utilization (%): {auu*100:.4f}")
+            logging.info(f"{utcnow()} Epoch {epoch} [eval] throughput (samples/second): {time_epoch['throughput']*self.comm_size}")
+
+        self.json['eval'].append(time_epoch)
+        return step - 1
+    @dlp.log
     def _train(self, epoch):
         """
         Training loop for reading the dataset and performing training computations.
         :return: returns total steps.
         """
-        with Profile(name=f"{self._train.__qualname__}", cat=MODULE_DLIO_BENCHMARK, epoch=epoch):
-            self.args.reconfigure(epoch, DatasetType.TRAIN)
-            block = 1  # A continuous period of training steps, ended by checkpointing
-            block_step = overall_step = 1  # Steps are taken within blocks
-            max_steps = math.floor(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
-            self.steps_per_epoch = max_steps
-            # Start the very first block
-            self.stats.start_block(epoch, block)
+        self.args.reconfigure(epoch, DatasetType.TRAIN)
+        block = 1  # A continuous period of training steps, ended by checkpointing
+        block_step = overall_step = 1  # Steps are taken within blocks
+        max_steps = math.floor(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
+        self.steps_per_epoch = max_steps
+        # Start the very first block
+        self.stats.start_block(epoch, block)
 
-            loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
-            loader.read()
-            start_time = time()
-            time_epoch = {}
-            time_epoch['epoch'] = epoch
-            time_epoch['time_per_step'] = []
-            total_compute_time = 0.0
-            t0 = time()
-            with Profile(name=f"{self._eval.__qualname__}", cat=MODULE_DLIO_BENCHMARK) as lp:
-                for batch in loader.next():
-                    lp.update(epoch=epoch, step=overall_step).flush()
-                    self.stats.batch_loaded(epoch, overall_step, block, t0)
+        loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
+        loader.read()
+        start_time = time()
+        time_epoch = {}
+        time_epoch['epoch'] = epoch
+        time_epoch['time_per_step'] = []
+        total_compute_time = 0.0
+        t0 = time()
+        for batch in dlp.iter(loader.next()):
+            self.stats.batch_loaded(epoch, overall_step, block, t0)
 
-                    # Log a new block, unless it's the first one which we've already logged before the loop
-                    if block_step == 1 and block != 1:
-                        self.stats.start_block(epoch, block)
+            # Log a new block, unless it's the first one which we've already logged before the loop
+            if block_step == 1 and block != 1:
+                self.stats.start_block(epoch, block)
 
-                    if self.computation_time > 0:
-                        self.framework.trace_object("Train", overall_step, 1)
-                        if self.computation_time_stdev > 0:
-                            computation_time = random.normal(self.computation_time, self.computation_time_stdev)
-                        else:
-                            computation_time = self.computation_time
-                        if overall_step > 1:
-                            total_compute_time += computation_time
-                        self.framework.compute(epoch, block_step, computation_time)
-                    self.framework.barrier()
-                    self.stats.batch_processed(epoch, overall_step, block, t0)
-                    t1 = time()
-                    time_epoch['time_per_step'].append(t1 - t0)
-                    if self.do_checkpoint and (
-                            self.steps_between_checkpoints >= 0) and overall_step == self.next_checkpoint_step:
-                        self.stats.end_block(epoch, block, block_step)
-                        self.stats.start_ckpt(epoch, block, overall_step)
-                        self.framework.checkpoint(epoch, overall_step)
-                        self.stats.end_ckpt(epoch, block)
-                        block += 1
-                        # Reset the number of steps after every checkpoint to mark the start of a new block
-                        block_step = 1
-                        self.next_checkpoint_step += self.steps_between_checkpoints
-                    else:
-                        block_step += 1
-
-                    if overall_step >= max_steps or overall_step == self.total_training_steps:
-                        if self.args.my_rank == 0:
-                            logging.info(f"{utcnow()} Maximum number of steps reached")
-                        if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
-                            self.stats.end_block(epoch, block, block_step - 1)
-                        break
-                    overall_step += 1
-                    t0 = time()
-                    lp.reset()
+            if self.computation_time > 0:
+                self.framework.trace_object("Train", overall_step, 1)
+                if self.computation_time_stdev > 0:
+                    computation_time = random.normal(self.computation_time, self.computation_time_stdev)
+                else:
+                    computation_time = self.computation_time
+                if overall_step > 1:
+                    total_compute_time += computation_time
+                self.framework.compute(epoch, block_step, computation_time)
             self.framework.barrier()
-            if self.do_checkpoint and (self.steps_between_checkpoints < 0) and (epoch == self.next_checkpoint_epoch):
+            self.stats.batch_processed(epoch, overall_step, block, t0)
+            t1 = time()
+            time_epoch['time_per_step'].append(t1 - t0)
+            if self.do_checkpoint and (
+                    self.steps_between_checkpoints >= 0) and overall_step == self.next_checkpoint_step:
                 self.stats.end_block(epoch, block, block_step)
                 self.stats.start_ckpt(epoch, block, overall_step)
                 self.framework.checkpoint(epoch, overall_step)
                 self.stats.end_ckpt(epoch, block)
-                self.next_checkpoint_epoch += self.epochs_between_checkpoints
-            end_time = time()
-            self.total_compute_time += total_compute_time
-            if (total_compute_time >0.0):
-                auu = (end_time - start_time - total_compute_time - time_epoch['time_per_step'][0]) / total_compute_time
+                block += 1
+                # Reset the number of steps after every checkpoint to mark the start of a new block
+                block_step = 1
+                self.next_checkpoint_step += self.steps_between_checkpoints
             else:
-                auu = 100000000
-            time_epoch['auu'] = auu
-            time_epoch['throughput'] = max_steps*self.batch_size/(end_time - start_time)
-            if self.my_rank == 0 and total_compute_time >0.0:            
-                logging.info(f"{utcnow()} Epoch {epoch} [training] accelerator_under_utilization (%): {auu*100:.4f}")
-                logging.info(f"{utcnow()} Epoch {epoch} [training] throughput (samples/second): {time_epoch['throughput']*self.comm_size}")
+                block_step += 1
 
-            self.json['train'].append(time_epoch)
-            return overall_step
+            if overall_step >= max_steps or overall_step == self.total_training_steps:
+                if self.args.my_rank == 0:
+                    logging.info(f"{utcnow()} Maximum number of steps reached")
+                if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
+                    self.stats.end_block(epoch, block, block_step - 1)
+                break
+            overall_step += 1
+            t0 = time()
+        self.framework.barrier()
+        if self.do_checkpoint and (self.steps_between_checkpoints < 0) and (epoch == self.next_checkpoint_epoch):
+            self.stats.end_block(epoch, block, block_step)
+            self.stats.start_ckpt(epoch, block, overall_step)
+            self.framework.checkpoint(epoch, overall_step)
+            self.stats.end_ckpt(epoch, block)
+            self.next_checkpoint_epoch += self.epochs_between_checkpoints
+        end_time = time()
+        self.total_compute_time += total_compute_time
+        if total_compute_time >0.0:
+            auu = (end_time - start_time - total_compute_time - time_epoch['time_per_step'][0]) / total_compute_time
+        else:
+            auu = 100000000
+        time_epoch['auu'] = auu
+        time_epoch['throughput'] = max_steps*self.batch_size/(end_time - start_time)
+        if self.my_rank == 0 and total_compute_time >0.0:
+            logging.info(f"{utcnow()} Epoch {epoch} [training] accelerator_under_utilization (%): {auu*100:.4f}")
+            logging.info(f"{utcnow()} Epoch {epoch} [training] throughput (samples/second): {time_epoch['throughput']*self.comm_size}")
 
-    @event_logging(module=MODULE_DLIO_BENCHMARK)
+        self.json['train'].append(time_epoch)
+        return overall_step
+
+    @dlp.log
     def run(self):
         """
         Run the total epochs for training. 
@@ -416,7 +410,7 @@ class DLIOBenchmark(object):
 
         self.stop_timestamp=time()
         self.json['stop_time'] = self.start_timestamp        
-    @event_logging(module=MODULE_DLIO_BENCHMARK)
+    @dlp.log
     def finalize(self):
         """
         It finalizes the dataset once training is completed.
