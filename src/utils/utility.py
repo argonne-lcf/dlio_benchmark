@@ -259,9 +259,9 @@ class Profile(object):
 
         return wrapper
 
-    def iter(self, func):
+    def iter(self, func, iter_name="step"):
         name = f"{inspect.stack()[1].function}.iter"
-        self._arguments["step"] = 1
+        self._arguments[iter_name] = 1
         start = time()
         for v in func:
             end = time()
@@ -269,7 +269,7 @@ class Profile(object):
             instance = PerfTrace.get_instance()
             event = create_dur_event(name, self._cat, start, dur=end - start, args=self._arguments)
             instance.flush_log(json.dumps(event, cls=NpEncoder))
-            self._arguments["step"] += 1
+            self._arguments[iter_name] += 1
             start = time()
 
     def log_init(self, init):
