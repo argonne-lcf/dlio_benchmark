@@ -19,9 +19,11 @@ from src.data_generator.data_generator import DataGenerator
 from numpy import random
 import tensorflow as tf
 
-from src.utils.utility import progress, utcnow
+from src.utils.utility import progress, utcnow, Profile
 from shutil import copyfile
+from src.common.constants import MODULE_DATA_GENERATOR
 
+dlp = Profile(MODULE_DATA_GENERATOR)
 import logging
 class TFRecordGenerator(DataGenerator):
     """
@@ -29,6 +31,7 @@ class TFRecordGenerator(DataGenerator):
     """
     def __init__(self):
         super().__init__()
+    @dlp.log
     def generate(self):
         """
         Generator for creating data in TFRecord format of 3d dataset.
@@ -38,7 +41,7 @@ class TFRecordGenerator(DataGenerator):
         super().generate()
         # This creates a 2D image representing a single record
         record_label = 0
-        for i in range(self.my_rank, self.total_files_to_generate, self.comm_size):
+        for i in dlp.iter(range(self.my_rank, self.total_files_to_generate, self.comm_size)):
             progress(i+1, self.total_files_to_generate, "Generating TFRecord Data")
             out_path_spec = self.storage.get_uri(self._file_list[i])
             if (self._dimension_stdev>0):

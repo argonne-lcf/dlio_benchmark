@@ -20,6 +20,7 @@ Module constants
 MODULE_DATA_LOADER = "data_loader"
 MODULE_AI_FRAMEWORK = "ai_framework"
 MODULE_DATA_READER = "reader"
+MODULE_DATA_GENERATOR = "generator"
 MODULE_STORAGE = "storage"
 MODULE_CONFIG = "config"
 MODULE_DLIO_BENCHMARK = "dlio_benchmark"

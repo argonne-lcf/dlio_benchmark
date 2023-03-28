@@ -75,9 +75,8 @@ class TFReader(FormatReader):
         size = dimension * dimension
         dlp.update(image_size=size)
         # image_tensor = tf.io.decode_image(image_raw)
-        resized_image = tf.reshape(image_tensor, [dimension, dimension])
-        return tf.pad(resized_image,
-                      ((0, self._args.max_dimension - dimension), (0, self._args.max_dimension - dimension)))
+        resized_image = tf.convert_to_tensor(self._args.resized_image)
+        return resized_image
 
     @dlp.log
     def next(self):
@@ -93,7 +92,7 @@ class TFReader(FormatReader):
         self._dataset = self._dataset.batch(batch_size, drop_remainder=True)
         total = math.ceil(len(_file_list)/self._args.comm_size / batch_size)
         step = 1
-        for batch in dlp.iter(self._dataset):
+        for batch in self._dataset:
             is_last = 0 if step <= total else 1
             yield batch[0]
             step += 1

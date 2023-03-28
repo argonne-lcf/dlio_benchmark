@@ -20,8 +20,12 @@ from numpy import random
 
 from src.common.enumerations import Compression
 from src.data_generator.data_generator import DataGenerator
-from src.utils.utility import progress
+from src.utils.utility import progress, Profile
 from shutil import copyfile
+
+from src.common.constants import MODULE_DATA_GENERATOR
+
+dlp = Profile(MODULE_DATA_GENERATOR)
 
 """
 Generator for creating data in HDF5 format.
@@ -31,6 +35,8 @@ class HDF5Generator(DataGenerator):
         super().__init__()
         self.chunk_size = self._args.chunk_size
         self.enable_chunking = self._args.enable_chunking
+
+    @dlp.log    
     def generate(self):
         """
         Generate hdf5 data for training. It generates a 3d dataset and writes it to file.
@@ -40,7 +46,7 @@ class HDF5Generator(DataGenerator):
         dim1 = dim2 = self._dimension
         records = random.random((samples_per_iter, dim1, dim2))
         record_labels = [0] * self.num_samples
-        for i in range(self.my_rank, int(self.total_files_to_generate), self.comm_size):
+        for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
             progress(i, self.total_files_to_generate, "Generating HDF5 Data")
             out_path_spec = self.storage.get_uri(self._file_list[i])
             hf = h5py.File(out_path_spec, 'w')

@@ -22,8 +22,11 @@ import logging
 import numpy as np
 from numpy import random
 
-from src.utils.utility import progress, utcnow
+from src.utils.utility import progress, utcnow, Profile
 from shutil import copyfile
+from src.common.constants import MODULE_DATA_GENERATOR
+
+dlp = Profile(MODULE_DATA_GENERATOR)
 
 """
 Generator for creating data in NPZ format.
@@ -32,13 +35,14 @@ class NPZGenerator(DataGenerator):
     def __init__(self):
         super().__init__()
 
+    @dlp.log
     def generate(self):
         """
         Generator for creating data in NPZ format of 3d dataset.
         """
         super().generate()
         record_labels = [0] * self.num_samples
-        for i in range(self.my_rank, int(self.total_files_to_generate), self.comm_size):
+        for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
             if (self._dimension_stdev>0):
                 dim1, dim2 = [max(int(d), 0) for d in random.normal( self._dimension, self._dimension_stdev, 2)]
             else:

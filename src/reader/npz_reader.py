@@ -45,8 +45,8 @@ class NPZReader(FormatReader):
     @dlp.log
     def get_sample(self, filename, sample_index):
         super().get_sample(filename, sample_index)
-        self.image = self.open_file_map[filename][..., sample_index]
-        dlp.update(image_size=self.image.nbytes)
+        image = self.open_file_map[filename][..., sample_index]
+        dlp.update(image_size=image.nbytes)
 
     def next(self):
         for batch in super().next():

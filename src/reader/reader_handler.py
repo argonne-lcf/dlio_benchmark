@@ -47,7 +47,6 @@ class FormatReader(ABC):
 
         if FormatReader.read_images is None:
             FormatReader.read_images = 0
-        self.image = None
         self.step = 1
         self.image_idx = 0
         self.batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
@@ -130,7 +129,6 @@ class FormatReader(ABC):
         self._args = None
         self.dataset_type = None
         self.open_file_map = None
-        self.image = None
         self.step = None
         self.image_idx = None
         self.batch_size = None

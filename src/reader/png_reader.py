@@ -49,13 +49,8 @@ class PNGReader(FormatReader):
     def get_sample(self, filename, sample_index):
         logging.debug(f"{utcnow()} sample_index {sample_index}, {self.image_idx}")
         super().get_sample(filename, sample_index)
-        self.image = self.open_file_map[filename]
-        dlp.update(image_size=self.image.nbytes)
-
-    @dlp.log
-    def resize_sample(self, filename, sample_index):
-        super().resize_sample(filename, sample_index)
-        dlp.update(image_size=self.image.nbytes)
+        image = self.open_file_map[filename]
+        dlp.update(image_size=image.nbytes)
 
     def next(self):
         for batch in super().next():

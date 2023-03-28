@@ -215,7 +215,7 @@ reader
 TensorFlow and PyTorch behave differently for some parameters. For ``read_threads``, tensorflow does 
 not support ``read_threads=0``, but pytorch does, in which case, the main thread will be doing data loader and no overlap between I/O and compute. 
 
-For ``prefetch_size``, if ``0`` is set. It will change to 2. 
+For pytorch, ``prefetch_size`` is set to be 0, it will be changed to 2. In other words, the default value for ``prefetch_size`` in pytorch is 2. 
 
 
 train
