@@ -15,75 +15,55 @@
    limitations under the License.
 """
 
-from time import time
-import math
-import logging
 import numpy as np
 from numpy import random
 from PIL import Image
-from src.reader.reader_handler import FormatReader
-from src.utils.utility import progress, utcnow, timeit, PerfTrace,event_logging
 
-MY_MODULE = "reader"
-profile_args={}
+from src.common.constants import MODULE_DATA_READER
+from src.reader.reader_handler import FormatReader
+from src.utils.utility import Profile
+
+dlp = Profile(MODULE_DATA_READER)
+
 
 class JPEGReader(FormatReader):
     """
     Reader for JPEG files
     """
-    classname = "JPEGReader"
 
-    def __init__(self, dataset_type, thread_index, epoch_number):
-        global profile_args
-        profile_args["epoch"] = epoch_number
-        t0 = time()
-        super().__init__(dataset_type, thread_index, epoch_number)
-        t1 = time()
-        PerfTrace.get_instance().event_complete(
-            f"{self.__init__.__qualname__}", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
+    @dlp.log_init
+    def __init__(self, dataset_type, thread_index, epoch):
+        super().__init__(dataset_type, thread_index)
 
+    @dlp.log
     def open(self, filename):
         super().open(filename)
-        t0 = time()
-        data = Image.open(filename)
-        t1 = time()
-        PerfTrace.get_instance().event_complete(f"{self.open.__qualname__}", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
-        return data
+        return np.asarray(Image.open(filename))
 
+    @dlp.log
     def close(self, filename):
-        t0 = time()
-        t1 = time()
-        PerfTrace.get_instance().event_complete(f"{self.close.__qualname__}", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
-        pass
+        super().close(filename)
 
+    @dlp.log
     def get_sample(self, filename, sample_index):
         super().get_sample(filename, sample_index)
-        t0 = time()
-        my_image = np.asarray(self.open_file_map[filename])
-        t1 = time()
-        self.profile_args["image_size"] = my_image.nbytes
-        t2 = time()
-        self.preprocess()
-        t3 = time()
-        PerfTrace.get_instance().event_complete(
-            f"{self.get_sample.__qualname__}.read", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
-        PerfTrace.get_instance().event_complete(
-            f"{self.get_sample.__qualname__}.preprocess", MY_MODULE, t2, t3 - t2, arguments=self.profile_args)
-        return self._args.resized_image
+        self.image = self.open_file_map[filename]
+        dlp.update(image_size=self.image.nbytes)
 
-    @event_logging(module=MY_MODULE, arguments=profile_args)
+    @dlp.log
+    def resize_sample(self, filename, sample_index):
+        super().resize_sample(filename, sample_index)
+        dlp.update(image_size=self.image.nbytes)
+
+    @dlp.log
     def next(self):
-        for is_last, batch in super().next():
-            yield is_last, batch
+        for batch in dlp.iter(super().next()):
+            yield batch
 
-    def read_index(self, index):
-        t0 = time()
-        val = super().read_index(index)
-        t1 = time()
-        PerfTrace.get_instance().event_complete(
-            f"{self.read_index.__qualname__}", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
-        return val
+    @dlp.log
+    def read_index(self, image_idx, step):
+        return super().read_index(image_idx, step)
 
-    @event_logging(module=MY_MODULE, arguments=profile_args)
+    @dlp.log
     def finalize(self):
         return super().finalize()

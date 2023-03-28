@@ -17,75 +17,54 @@
 import logging
 
 import h5py
-import math
 from numpy import random
-import numpy as np
-from time import sleep, time
 
-from src.utils.utility import progress, utcnow, PerfTrace,event_logging
-from src.common.enumerations import Shuffle, FileAccess, ReadType, DatasetType
+from src.common.constants import MODULE_DATA_READER
+from src.utils.utility import Profile
 from src.reader.reader_handler import FormatReader
+
+dlp = Profile(MODULE_DATA_READER)
 
 """
 Reader for HDF5 files for training file.
 """
 
-MY_MODULE = "reader"
-profile_args={}
 
 class HDF5Reader(FormatReader):
-    classname = "HDF5Reader"
 
-    def __init__(self, dataset_type, thread_index, epoch_number):
-        global profile_args
-        profile_args["epoch"] = epoch_number
-        t0 = time()
-        super().__init__(dataset_type, thread_index, epoch_number)
-        t1 = time()
-        PerfTrace.get_instance().event_complete(f"{self.__init__.__qualname__}", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
+    @dlp.log_init
+    def __init__(self, dataset_type, thread_index, epoch):
+        super().__init__(dataset_type, thread_index)
 
+    @dlp.log
     def open(self, filename):
         super().open(filename)
-        t0 = time()
-        data = h5py.File(filename, 'r')
-        t1 = time()
-        PerfTrace.get_instance().event_complete(f"{self.open.__qualname__}", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
-        return data
+        return h5py.File(filename, 'r')
 
+    @dlp.log
     def close(self, filename):
-        t0 = time()
         self.open_file_map[filename].close()
-        t1 = time()
-        PerfTrace.get_instance().event_complete(f"{self.close.__qualname__}", MY_MODULE, t0, t1 - t0)
 
+    @dlp.log
     def get_sample(self, filename, sample_index):
         super().get_sample(filename, sample_index)
-        t0 = time()
-        my_image = self.open_file_map[filename]['records'][sample_index]
-        t1 = time()
-        self.profile_args["image_size"] = my_image.nbytes
-        t2 = time()
-        self.preprocess()
-        t3 = time()
-        PerfTrace.get_instance().event_complete(
-            f"{self.get_sample.__qualname__}.read", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
-        PerfTrace.get_instance().event_complete(
-            f"{self.get_sample.__qualname__}.preprocess", MY_MODULE, t2, t3 - t2, arguments=self.profile_args)
-        return self._args.resized_image
+        self.image = self.open_file_map[filename]['records'][sample_index]
+        dlp.update(image_size=self.image.nbytes)
 
-    @event_logging(module=MY_MODULE, arguments=profile_args)
+    @dlp.log
+    def resize_sample(self, filename, sample_index):
+        super().resize_sample(filename, sample_index)
+        dlp.update(image_size=self.image.nbytes)
+
+    @dlp.log
     def next(self):
-        for is_last, batch in super().next():
-            yield is_last, batch
+        for batch in dlp.iter(super().next()):
+            yield batch
 
-    def read_index(self, index):
-        t0 = time()
-        val = super().read_index(index)
-        t1 = time()
-        PerfTrace.get_instance().event_complete(
-            f"{self.read_index.__qualname__}", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
-        return val
+    @dlp.log
+    def read_index(self, image_idx, step):
+        return super().read_index(image_idx, step)
 
-    @event_logging(module=MY_MODULE, arguments=profile_args)
+    @dlp.log
     def finalize(self):
         return super().finalize()
