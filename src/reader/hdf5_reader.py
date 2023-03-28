@@ -71,7 +71,7 @@ class HDF5Reader(FormatReader):
             f"{self.get_sample.__qualname__}.read", MY_MODULE, t0, t1 - t0, arguments=self.profile_args)
         PerfTrace.get_instance().event_complete(
             f"{self.get_sample.__qualname__}.preprocess", MY_MODULE, t2, t3 - t2, arguments=self.profile_args)
-        return self.resized_image
+        return self._args.resized_image
 
     @event_logging(module=MY_MODULE, arguments=profile_args)
     def next(self):

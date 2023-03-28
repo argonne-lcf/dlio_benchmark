@@ -163,7 +163,7 @@ class ConfigArguments:
         self.max_dimension = self.dimension
         if (self.record_length_resize>0):
             self.max_dimension =  int(math.sqrt(self.record_length_resize / 8))
-        #self.max_dimension = int(self.dimension + math.ceil(self.dimension_stdev))
+        self.resized_image = np.random.random((self.max_dimension, self.max_dimension))
         self.total_samples_train = self.num_samples_per_file * len(self.file_list_train)
         self.total_samples_eval = self.num_samples_per_file * len(self.file_list_eval)
         self.required_samples = self.comm_size * self.batch_size
