@@ -95,7 +95,7 @@ class TorchDataLoader(BaseDataLoader):
         super().next()
         total = self._args.training_steps if self.dataset_type is DatasetType.TRAIN else self._args.eval_steps
         logging.debug(f"{utcnow()} Rank {self._args.my_rank} should read {total} batches")
-        for batch in dlp.iter(self._dataset):
+        for batch in self._dataset:
             yield batch
 
     @dlp.log

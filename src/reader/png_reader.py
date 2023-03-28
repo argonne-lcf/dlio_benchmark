@@ -57,9 +57,8 @@ class PNGReader(FormatReader):
         super().resize_sample(filename, sample_index)
         dlp.update(image_size=self.image.nbytes)
 
-    @dlp.log
     def next(self):
-        for batch in dlp.iter(super().next()):
+        for batch in super().next():
             yield batch
 
     @dlp.log

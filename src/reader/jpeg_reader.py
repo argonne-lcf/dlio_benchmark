@@ -50,9 +50,8 @@ class JPEGReader(FormatReader):
         self.image = self.open_file_map[filename]
         dlp.update(image_size=self.image.nbytes)
 
-    @dlp.log
     def next(self):
-        for batch in dlp.iter(super().next()):
+        for batch in super().next():
             yield batch
 
     @dlp.log

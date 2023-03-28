@@ -24,7 +24,7 @@ class TensorflowDataset(tf.data.Dataset):
                                           dataset_type=DatasetType.get_enum(dataset_type),
                                           thread_index=thread_index,
                                           epoch_number=epoch_number)
-        for batch in dlp.iter(reader.next()):
+        for batch in reader.next():
             yield batch
 
     @dlp.log
@@ -72,7 +72,7 @@ class TFDataLoader(BaseDataLoader):
 
     @dlp.log
     def next(self):
-        for batch in dlp.iter(self._dataset):
+        for batch in self._dataset:
             yield batch
 
     @dlp.log
