@@ -51,11 +51,6 @@ class JPEGReader(FormatReader):
         dlp.update(image_size=self.image.nbytes)
 
     @dlp.log
-    def resize_sample(self, filename, sample_index):
-        super().resize_sample(filename, sample_index)
-        dlp.update(image_size=self.image.nbytes)
-
-    @dlp.log
     def next(self):
         for batch in dlp.iter(super().next()):
             yield batch

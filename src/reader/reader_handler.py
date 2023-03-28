@@ -20,7 +20,7 @@ from src.common.enumerations import FrameworkType, Shuffle, FileAccess, DatasetT
     ReadType
 from src.framework.framework_factory import FrameworkFactory
 from src.storage.storage_factory import StorageFactory
-from src.utils.utility import utcnow
+from src.utils.utility import Profile, utcnow
 from src.utils.config import ConfigArguments
 import numpy as np
 import os
@@ -29,7 +29,10 @@ import logging
 from numpy import random
 from time import sleep
 import glob
+from src.common.constants import MODULE_DATA_READER
 
+
+dlp = Profile(MODULE_DATA_READER)
 
 class FormatReader(ABC):
     read_images = None
@@ -68,11 +71,6 @@ class FormatReader(ABC):
         return
 
     @abstractmethod
-    def resize_sample(self, filename, sample_index):
-        self.preprocess()
-        self.image = random.random((self._args.max_dimension, self._args.max_dimension))
-
-    @abstractmethod
     def next(self):
         random_image = np.random.rand(self._args.max_dimension, self._args.max_dimension)
         batch = []
@@ -86,8 +84,8 @@ class FormatReader(ABC):
             if filename not in self.open_file_map:
                 self.open_file_map[filename] = self.open(filename)
             self.get_sample(filename, sample_index)
-            self.resize_sample(filename, sample_index)
-            batch.append(self.image)
+            self.preprocess()
+            batch.append(self._args.resized_image)
             image_processed += 1
             is_last = 0 if image_processed < total_images else 1
             if is_last:
@@ -114,11 +112,11 @@ class FormatReader(ABC):
         if self._args.read_type is ReadType.ON_DEMAND or filename not in self.open_file_map:
             self.open_file_map[filename] = self.open(filename)
         self.get_sample(filename, sample_index)
-        self.resize_sample(filename, sample_index)
+        self.preprocess()
         if self._args.read_type is ReadType.ON_DEMAND:
             self.close(filename)
             self.open_file_map[filename] = None
-        return self.image
+        return self._args.resized_image
 
     @abstractmethod
     def finalize(self):
