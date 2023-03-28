@@ -69,7 +69,7 @@ class CSVGenerator(DataGenerator):
             df.to_csv(out_path_spec, compression=compression)
         MPI.COMM_WORLD.Barrier()
         source_out_path_spec = self.storage.get_uri(self._file_list[0])
-        for i in dlp.iter(range(self.comm_rank, int(self.total_files_to_generate), self.comm_size)):
+        for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
             progress(i+1, self.total_files_to_generate, "Generating CSV Data")
             out_path_spec = self.storage.get_uri(self._file_list[i])
             copyfile(source_out_path_spec, out_path_spec)
