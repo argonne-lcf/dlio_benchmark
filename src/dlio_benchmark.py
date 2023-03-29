@@ -26,6 +26,8 @@ import numpy as np
 # Reduce TF and CUDA logging
 from numpy import random
 
+from src.common.constants import MODULE_DLIO_BENCHMARK
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['AUTOGRAPH_VERBOSITY'] = '0'
 import tensorflow as tf
@@ -38,7 +40,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 from dataclasses import dataclass
-from src.utils.utility import utcnow, measure_performance, PerfTrace,event_logging
+from src.utils.utility import utcnow, measure_performance, PerfTrace, Profile
 from omegaconf import DictConfig, OmegaConf
 from src.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
@@ -48,10 +50,7 @@ from src.profiler.profiler_factory import ProfilerFactory
 from src.framework.framework_factory import FrameworkFactory
 from src.data_generator.generator_factory import GeneratorFactory
 from src.storage.storage_factory import StorageFactory
-
-MY_MODULE = "dlio_benchmark"
-profile_args = {}
-
+dlp = Profile(MODULE_DLIO_BENCHMARK)
 class DLIOBenchmark(object):
     """
     The Benchmark represents the I/O behavior of deep learning applications.
@@ -72,8 +71,8 @@ class DLIOBenchmark(object):
         LoadConfig(self.args, cfg)
         self.json = {}
 
-        self.json['train']=[]
-        self.json['eval']=[]
+        self.json['train'] = []
+        self.json['eval'] = []
         if self.args.output_folder is None:
             try:
                 hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
@@ -83,100 +82,100 @@ class DLIOBenchmark(object):
         try:
             self.json['workload'] = hydra_cfg.runtime.choices.workload
         except:
-            self.json['workload'] = cfg['model']            
+            self.json['workload'] = cfg['model']
         self.output_folder = self.args.output_folder
         PerfTrace.initialize_log(self.args.output_folder)
-        self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
+        with Profile(name=f"{self.__init__.__qualname__}", cat=MODULE_DLIO_BENCHMARK):
+            self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
 
-        self.logfile = os.path.join(self.output_folder, self.args.log_file)
-        self.data_folder = self.args.data_folder
-        self.storage_root = self.args.storage_root
-        if self.args.storage_root:
-            self.storage.create_namespace(exist_ok=True)
-        self.framework = FrameworkFactory().get_framework(self.args.framework,
-                                                          self.args.do_profiling)
+            self.output_folder = self.args.output_folder
+            self.logfile = os.path.join(self.output_folder, self.args.log_file)
+            self.data_folder = self.args.data_folder
+            self.storage_root = self.args.storage_root
+            if self.args.storage_root:
+                self.storage.create_namespace(exist_ok=True)
+            self.framework = FrameworkFactory().get_framework(self.args.framework,
+                                                              self.args.do_profiling)
 
-        self.my_rank = self.args.my_rank = self.framework.rank()
-        self.comm_size = self.args.comm_size = self.framework.size()
-        # Delete previous logfile
-        if self.my_rank == 0:
-            if os.path.isfile(self.logfile):
-                os.remove(self.logfile)
-        self.framework.barrier()
-        # Configure the logging library
-        log_level = logging.DEBUG if self.args.debug else logging.INFO
-        logging.basicConfig(
-            level=log_level,
-            handlers=[
-                logging.FileHandler(self.logfile, mode="a", encoding='utf-8'),
-                logging.StreamHandler()
-            ],
-            format='[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'
-            # logging's max timestamp resolution is msecs, we will pass in usecs in the message
-        )
+            self.my_rank = self.args.my_rank = self.framework.rank()
+            self.comm_size = self.args.comm_size = self.framework.size()
+            # Delete previous logfile
+            if self.my_rank == 0:
+                if os.path.isfile(self.logfile):
+                    os.remove(self.logfile)
+            self.framework.barrier()
+            # Configure the logging library
+            log_level = logging.DEBUG if self.args.debug else logging.INFO
+            logging.basicConfig(
+                level=log_level,
+                handlers=[
+                    logging.FileHandler(self.logfile, mode="a", encoding='utf-8'),
+                    logging.StreamHandler()
+                ],
+                format='[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'
+                # logging's max timestamp resolution is msecs, we will pass in usecs in the message
+            )
 
-        if self.args.my_rank == 0:
-            logging.info(f"{utcnow()} Running DLIO with {self.args.comm_size} process(es)")
-            try:
-                logging.info(
-                    f"{utcnow()} Reading YAML config file './configs/workload/{hydra_cfg.runtime.choices.workload}.yaml'")
-            except:
-                pass
+            if self.args.my_rank == 0:
+                logging.info(f"{utcnow()} Running DLIO with {self.args.comm_size} process(es)")
+                try:
+                    logging.info(
+                        f"{utcnow()} Reading YAML config file './configs/workload/{hydra_cfg.runtime.choices.workload}.yaml'")
+                except:
+                    pass
 
-        self.generate_only = self.args.generate_only
-        self.do_profiling = self.args.do_profiling
+            self.generate_only = self.args.generate_only
+            self.do_profiling = self.args.do_profiling
 
-        self.data_generator = None
-        self.num_files_train = self.args.num_files_train
-        self.num_samples = self.args.num_samples_per_file
-        self.total_training_steps = self.args.total_training_steps
+            self.data_generator = None
+            self.num_files_train = self.args.num_files_train
+            self.num_samples = self.args.num_samples_per_file
+            self.total_training_steps = self.args.total_training_steps
 
-        self.epochs = self.args.epochs
-        self.batch_size = self.args.batch_size
-        self.computation_time = self.args.computation_time
-        self.computation_time_stdev = self.args.computation_time_stdev
+            self.epochs = self.args.epochs
+            self.batch_size = self.args.batch_size
+            self.computation_time = self.args.computation_time
+            self.computation_time_stdev = self.args.computation_time_stdev
 
-        if self.do_profiling:
-            self.profiler = ProfilerFactory().get_profiler(self.args.profiler)
+            if self.do_profiling:
+                self.profiler = ProfilerFactory().get_profiler(self.args.profiler)
 
-        if self.args.generate_data:
-            self.data_generator = GeneratorFactory.get_generator(self.args.format)
+            if self.args.generate_data:
+                self.data_generator = GeneratorFactory.get_generator(self.args.format)
 
-        # Checkpointing support
-        self.do_checkpoint = self.args.do_checkpoint
-        self.steps_between_checkpoints = self.args.steps_between_checkpoints
-        self.epochs_between_checkpoints = self.args.epochs_between_checkpoints
-        self.checkpoint_after_epoch = self.args.checkpoint_after_epoch
+            # Checkpointing support
+            self.do_checkpoint = self.args.do_checkpoint
+            self.steps_between_checkpoints = self.args.steps_between_checkpoints
+            self.epochs_between_checkpoints = self.args.epochs_between_checkpoints
+            self.checkpoint_after_epoch = self.args.checkpoint_after_epoch
 
-        # Evaluation support
-        self.do_eval = self.args.do_eval
-        self.num_files_eval = self.args.num_files_eval
+            # Evaluation support
+            self.do_eval = self.args.do_eval
+            self.num_files_eval = self.args.num_files_eval
 
-        self.batch_size_eval = self.args.batch_size_eval
-        self.eval_time = self.args.eval_time
-        self.eval_time_stdev = self.args.eval_time_stdev
-        self.eval_after_epoch = self.args.eval_after_epoch
-        self.epochs_between_evals = self.args.epochs_between_evals
+            self.batch_size_eval = self.args.batch_size_eval
+            self.eval_time = self.args.eval_time
+            self.eval_time_stdev = self.args.eval_time_stdev
+            self.eval_after_epoch = self.args.eval_after_epoch
+            self.epochs_between_evals = self.args.epochs_between_evals
 
-        # Hold various lists/dicts for statistics
-        self.time_to_load_train_batch = []
-        self.time_to_process_train_batch = []
+            # Hold various lists/dicts for statistics
+            self.time_to_load_train_batch = []
+            self.time_to_process_train_batch = []
 
-        self.time_to_load_eval_batch = []
-        self.time_to_process_eval_batch = []
+            self.time_to_load_eval_batch = []
+            self.time_to_process_eval_batch = []
 
-        self.epoch_time_ranges = []
-        self.eval_time_ranges = []
+            self.epoch_time_ranges = []
+            self.eval_time_ranges = []
 
-        self.ckpt_time_ranges = []
+            self.ckpt_time_ranges = []
 
-        # Indexed by epoch number, contains start-end timestamps and other information
-        self.per_epoch_stats = {}
-        self.stats = StatsCounter()
-        t1 = time()
-        PerfTrace.get_instance().event_complete(f"{self.__init__.__qualname__}", MY_MODULE, t0, t1 - t0)
+            # Indexed by epoch number, contains start-end timestamps and other information
+            self.per_epoch_stats = {}
+            self.stats = StatsCounter()
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def initialize(self):
         """
         Initializes the benchmark runtime.
@@ -225,7 +224,7 @@ class DLIOBenchmark(object):
         self.framework.barrier()
         self.total_compute_time = 0.0
 
-    @event_logging(module=MY_MODULE, arguments=profile_args)
+    @dlp.log
     def _eval(self, epoch):
         """
         Evaluation loop will read a separate dataset and has its own own computation time.
@@ -242,14 +241,9 @@ class DLIOBenchmark(object):
         time_epoch = {}
         time_epoch['epoch'] = epoch
         time_epoch['time_per_step'] = []
-        t0 = time()        
-        for batch in loader.next():
+        t0 = time()
+        for batch in dlp.iter(loader.next()):
             t1 = time()
-            global profile_args
-            profile_args["step"] = step
-            PerfTrace.get_instance().event_complete(f"{self._eval.__qualname__}.next", MY_MODULE, t0,
-                                     t1 - t0)
-
             self.stats.eval_batch_loaded(epoch, step, t0)
             if self.eval_time > 0:
                 if self.eval_time_stdev > 0:
@@ -276,20 +270,19 @@ class DLIOBenchmark(object):
             auu = 100000000
         time_epoch['auu'] = auu
         time_epoch['throughput'] = total*self.batch_size_eval/(end_time - start_time)
-        if self.my_rank == 0 and total_compute_time >0.:            
+        if self.my_rank == 0 and total_compute_time >0.:
             logging.info(f"{utcnow()} Epoch {epoch} [eval] accelerator_under_utilization (%): {auu*100:.4f}")
             logging.info(f"{utcnow()} Epoch {epoch} [eval] throughput (samples/second): {time_epoch['throughput']*self.comm_size}")
 
         self.json['eval'].append(time_epoch)
         return step - 1
-
-    @event_logging(module=MY_MODULE, arguments=profile_args)
+    @dlp.log
     def _train(self, epoch):
-        self.args.reconfigure(epoch, DatasetType.TRAIN)
         """
         Training loop for reading the dataset and performing training computations.
         :return: returns total steps.
         """
+        self.args.reconfigure(epoch, DatasetType.TRAIN)
         block = 1  # A continuous period of training steps, ended by checkpointing
         block_step = overall_step = 1  # Steps are taken within blocks
         max_steps = math.floor(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
@@ -304,14 +297,8 @@ class DLIOBenchmark(object):
         time_epoch['epoch'] = epoch
         time_epoch['time_per_step'] = []
         total_compute_time = 0.0
-        t0 = time()        
-        for batch in loader.next():
-            t1 = time()
-            global profile_args
-            profile_args["step"] = overall_step
-            PerfTrace.get_instance().event_complete(f"{self._train.__qualname__}.next", MY_MODULE, t0,
-                                     t1 - t0)
-
+        t0 = time()
+        for batch in dlp.iter(loader.next()):
             self.stats.batch_loaded(epoch, overall_step, block, t0)
 
             # Log a new block, unless it's the first one which we've already logged before the loop
@@ -361,20 +348,20 @@ class DLIOBenchmark(object):
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
         end_time = time()
         self.total_compute_time += total_compute_time
-        if (total_compute_time >0.0):
+        if total_compute_time >0.0:
             auu = (end_time - start_time - total_compute_time - time_epoch['time_per_step'][0]) / total_compute_time
         else:
             auu = 100000000
         time_epoch['auu'] = auu
         time_epoch['throughput'] = max_steps*self.batch_size/(end_time - start_time)
-        if self.my_rank == 0 and total_compute_time >0.0:            
+        if self.my_rank == 0 and total_compute_time >0.0:
             logging.info(f"{utcnow()} Epoch {epoch} [training] accelerator_under_utilization (%): {auu*100:.4f}")
             logging.info(f"{utcnow()} Epoch {epoch} [training] throughput (samples/second): {time_epoch['throughput']*self.comm_size}")
 
         self.json['train'].append(time_epoch)
         return overall_step
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def run(self):
         """
         Run the total epochs for training. 
@@ -400,8 +387,6 @@ class DLIOBenchmark(object):
             self.next_checkpoint_epoch = self.checkpoint_after_epoch
 
             for epoch in range(1, self.epochs + 1):
-                global profile_args
-                profile_args["epoch"] = epoch
                 self.framework.barrier()
                 self.next_checkpoint_step = self.steps_between_checkpoints
                 self.stats.start_epoch(epoch)
@@ -425,7 +410,7 @@ class DLIOBenchmark(object):
 
         self.stop_timestamp=time()
         self.json['stop_time'] = self.start_timestamp        
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def finalize(self):
         """
         It finalizes the dataset once training is completed.

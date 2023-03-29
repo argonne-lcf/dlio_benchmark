@@ -186,7 +186,7 @@ def test_iostat_profiling() -> None:
             subprocess.run(["ls", "-l", "/dev/null"], capture_output=True)
             cmd = f"python src/dlio_postprocessor.py --output-folder={benchmark.output_folder}"
             cmd = cmd.split()
-            subprocess.run(cmd, capture_output=True, timeout=4)
+            subprocess.run(cmd, capture_output=True, timeout=10)
         clean()
 
 

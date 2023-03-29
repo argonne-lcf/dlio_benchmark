@@ -25,8 +25,11 @@ from numpy import random
 import csv
 
 from shutil import copyfile
-from src.utils.utility import progress
+from src.utils.utility import progress, Profile
 import pandas as pd
+from src.common.constants import MODULE_DATA_GENERATOR
+
+dlp = Profile(MODULE_DATA_GENERATOR)
 
 """
 Generator for creating data in CSV format.
@@ -34,6 +37,8 @@ Generator for creating data in CSV format.
 class CSVGenerator(DataGenerator):
     def __init__(self):
         super().__init__()
+    
+    @dlp.log
     def generate(self):
         """
         Generate csv data for training. It generates a 2d dataset and writes it to file.
@@ -64,8 +69,8 @@ class CSVGenerator(DataGenerator):
             df.to_csv(out_path_spec, compression=compression)
         MPI.COMM_WORLD.Barrier()
         source_out_path_spec = self.storage.get_uri(self._file_list[0])
-        for i in range(1, int(self.total_files_to_generate)):
-            if i % self.comm_size == self.my_rank:
-                progress(i+1, self.total_files_to_generate, "Generating CSV Data")
-                out_path_spec = self.storage.get_uri(self._file_list[i])
-                copyfile(source_out_path_spec, out_path_spec)
+        for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
+            progress(i+1, self.total_files_to_generate, "Generating CSV Data")
+            out_path_spec = self.storage.get_uri(self._file_list[i])
+            if out_path_spec != source_out_path_spec:
+               copyfile(source_out_path_spec, out_path_spec)

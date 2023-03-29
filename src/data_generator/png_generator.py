@@ -22,13 +22,18 @@ import logging
 import numpy as np
 from numpy import random
 
-from src.utils.utility import progress, utcnow
+from src.utils.utility import progress, utcnow, Profile
 from shutil import copyfile
 import PIL.Image as im
+from src.common.constants import MODULE_DATA_GENERATOR
+
+dlp = Profile(MODULE_DATA_GENERATOR)
 
 class PNGGenerator(DataGenerator):
     def __init__(self):
         super().__init__()
+
+    @dlp.log        
     def generate(self):
         """
         Generator for creating data in PNG format of 3d dataset.
@@ -39,7 +44,7 @@ class PNGGenerator(DataGenerator):
         record_labels = [0] 
         if self.my_rank==0:
             logging.info(f"{utcnow()} Dimension of images: {dim} x {dim}")
-        for i in range(self.my_rank, int(self.total_files_to_generate), self.comm_size):
+        for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
             if (dim_stdev>0):
                 dim1, dim2 = [max(int(d), 0) for d in random.normal(dim, dim_stdev, 2)]
             else:

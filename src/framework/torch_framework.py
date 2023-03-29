@@ -19,12 +19,12 @@ from src.common.error_code import ErrorCodes
 from src.common.enumerations import FormatType, FrameworkType, DatasetType, DataLoaderType
 from src.data_loader.data_loader_factory import DataLoaderFactory
 from src.framework.framework import Framework, DummyTraceObject
-
+from src.common.constants import MODULE_AI_FRAMEWORK
 import os
 import torch
 import functools
 import logging
-from src.utils.utility import utcnow, PerfTrace,event_logging
+from src.utils.utility import utcnow, PerfTrace, Profile
 
 from time import sleep, time
 
@@ -32,7 +32,7 @@ from src.reader.reader_factory import ReaderFactory
 from src.storage.storage_factory import StorageFactory
 
 HANDLED_FUNCTIONS = {}
-MY_MODULE = "framework"
+dlp = Profile(MODULE_AI_FRAMEWORK)
 
 
 def implements(torch_function):
@@ -55,23 +55,21 @@ def torch_sleep(sleep_time):
 class TorchFramework(Framework):
     __instance = None
 
+    @dlp.log_init
     def __init__(self, profiling):
-        t0 = time()
         super().__init__()
         self.profiling = profiling
         self.reader_handler = None
-        t1 = time()
-        PerfTrace.get_instance().event_complete(f"{self.__init__.__qualname__}", MY_MODULE, t0, t1 - t0)
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def init_loader(self, format_type, data_loader=None, epoch_number=0):
         self.reader_train = DataLoaderFactory.get_loader(DataLoaderType.PYTORCH, format_type,
-                                                         dataset_type=DatasetType.TRAIN,epoch_number=epoch_number)
+                                                         dataset_type=DatasetType.TRAIN, epoch_number=epoch_number)
         self.reader_valid = DataLoaderFactory.get_loader(DataLoaderType.PYTORCH, format_type,
-                                                         dataset_type=DatasetType.VALID,epoch_number=epoch_number)
+                                                         dataset_type=DatasetType.VALID, epoch_number=epoch_number)
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def get_type(self):
         return FrameworkType.PYTORCH
 
@@ -82,19 +80,19 @@ class TorchFramework(Framework):
             TorchFramework.__instance = TorchFramework(profiling)
         return TorchFramework.__instance
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def start_framework_profiler(self):
         pass
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def stop_framework_profiler(self):
         pass
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def trace_object(self, string, step, r):
         return DummyTraceObject(string, step, r)
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def checkpoint(self, epoch, step_number):
         if self.rank() == 0:
             """
@@ -110,17 +108,17 @@ class TorchFramework(Framework):
             f.write(string_val)
             f.close()
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def compute(self, epoch_number, step, computation_time):
         torch_sleep(computation_time)
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def get_loader(self, dataset_type=DatasetType.TRAIN):
         if dataset_type == DatasetType.TRAIN:
             return self.reader_train
         else:
             return self.reader_valid
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def is_nativeio_available(self):
         return False
