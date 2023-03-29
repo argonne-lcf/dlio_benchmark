@@ -19,8 +19,9 @@ import os
 import logging
 from time import time
 
+from src.common.constants import MODULE_AI_FRAMEWORK
 from src.data_loader.data_loader_factory import DataLoaderFactory
-from src.utils.utility import utcnow, PerfTrace,event_logging
+from src.utils.utility import utcnow, Profile
 from src.common.error_code import ErrorCodes
 from src.framework.framework import Framework
 from src.reader.reader_factory import ReaderFactory
@@ -32,14 +33,14 @@ import tensorflow as tf
 from tensorflow.python.framework import errors
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
-MY_MODULE = "framework"
 
+dlp = Profile(MODULE_AI_FRAMEWORK)
 
 class TFFramework(Framework):
     __instance = None
 
+    @dlp.log_init
     def __init__(self, profiling):
-        t0 = time()
         super().__init__()
         self.profiling = profiling
         # TODO: Temporary fix, need to separate the iostat profiler (needed for report gen) and the others
@@ -49,15 +50,16 @@ class TFFramework(Framework):
             else:
                 self.tensorboard = ProfilerFactory.get_profiler(Profiler.TENSORBOARD)
         self.reader_handler = None
-    @event_logging(module=MY_MODULE)
-    def init_loader(self, format_type, epoch_number, data_loader=None):
-        if data_loader is None:
-            data_loader = DataLoaderType.TENSORFLOW
-        self.reader_train = DataLoaderFactory.get_loader(data_loader, format_type, dataset_type=DatasetType.TRAIN, epoch_number=epoch_number)
-        self.reader_valid = DataLoaderFactory.get_loader(data_loader, format_type, dataset_type=DatasetType.VALID, epoch_number=epoch_number)
+
+    @dlp.log
+    def init_loader(self, format_type, data_loader=None, epoch_number=0):
+        self.reader_train = DataLoaderFactory.get_loader(DataLoaderType.TENSORFLOW, format_type,
+                                                         dataset_type=DatasetType.TRAIN, epoch_number=epoch_number)
+        self.reader_valid = DataLoaderFactory.get_loader(DataLoaderType.TENSORFLOW, format_type,
+                                                         dataset_type=DatasetType.VALID, epoch_number=epoch_number)
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def get_type(self):
         return FrameworkType.TENSORFLOW
 
@@ -68,21 +70,21 @@ class TFFramework(Framework):
             TFFramework.__instance = TFFramework(profiling)
         return TFFramework.__instance
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def start_framework_profiler(self):
         if self.profiling:
             self.tensorboard.start()
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def stop_framework_profiler(self):
         if self.profiling:
             self.tensorboard.stop()
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def trace_object(self, string, step, r):
         return tf.profiler.experimental.Trace(string, step_num=step, _r=r)
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def checkpoint(self, epoch, step_number):
         """
         Performs Checkpointing for a specific step number. It writes different file of different sizes.
@@ -105,27 +107,27 @@ class TFFramework(Framework):
             string_val = "x" * (24740228)
             self.storage.put_data(meta_file, string_val)
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def compute(self, epoch_number, step, computation_time):
         tf.function(self.model)(epoch_number, step, computation_time)
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def get_loader(self, dataset_type=DatasetType.TRAIN):
         if dataset_type == DatasetType.TRAIN:
             return self.reader_train
         else:
             return self.reader_valid
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def is_nativeio_available(self):
         return True
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def create_node(self, id, exist_ok=False):
         tf.io.gfile.mkdir(id)
         return True
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def get_node(self, id):
         if tf.io.gfile.exists(id):
             if tf.io.gfile.isdir(id):
@@ -135,7 +137,7 @@ class TFFramework(Framework):
         else:
             return None
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def walk_node(self, id, use_pattern=False):
         try:
             if not use_pattern:
@@ -145,17 +147,17 @@ class TFFramework(Framework):
         except errors.NotFoundError:
             return []
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def delete_node(self, id):
         tf.io.gfile.rmtree(id)
         return True
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def put_data(self, id, data, offset=None, length=None):
         with tf.io.gfile.GFile(id, "w") as fd:
             fd.write(data)
 
-    @event_logging(module=MY_MODULE)
+    @dlp.log
     def get_data(self, id, data, offset=None, length=None):
         with tf.io.gfile.GFile(id, "r") as fd:
             data = fd.read()

@@ -23,6 +23,7 @@ from functools import wraps
 import threading
 import json
 import numpy as np
+import inspect
 
 # UTC timestamp format with microsecond precision
 LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
@@ -104,6 +105,8 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.integer):
@@ -113,6 +116,7 @@ class NpEncoder(json.JSONEncoder):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         return super(NpEncoder, self).default(obj)
+
 
 def create_dur_event(name, cat, ts, dur, args={}):
     d = {
@@ -126,6 +130,7 @@ def create_dur_event(name, cat, ts, dur, args={}):
         "args": args
     }
     return d
+
 
 class PerfTrace:
     __instance = None
@@ -176,21 +181,116 @@ class PerfTrace:
         pass
 
 
-def event_logging(module, arguments=None):
-    if arguments is None:
-        arguments = {}
+class Profile(object):
 
-    def event_logging_f(func):
+    def __init__(self, cat, name=None, epoch=None, step=None, image_idx=None, image_size=None):
+        if not name:
+            name = inspect.stack()[1].function
+        self._name = name
+        self._cat = cat
+        self._arguments = {}
+        if epoch is not None: self._arguments["epoch"] = epoch
+        if step is not None: self._arguments["step"] = step
+        if image_idx is not None: self._arguments["image_idx"] = image_idx
+        if image_size is not None: self._arguments["image_size"] = image_size
+        self.reset()
+
+    def __enter__(self):
+        return self
+
+    def update(self, epoch=None, step=None, image_idx=None, image_size=None):
+
+        if epoch is not None: self._arguments["epoch"] = epoch
+        if step is not None: self._arguments["step"] = step
+        if image_idx is not None: self._arguments["image_idx"] = image_idx
+        if image_size is not None: self._arguments["image_size"] = image_size
+        return self
+
+    def flush(self):
+        self._t2 = time()
+        PerfTrace.get_instance().event_complete(name=self._name, cat=self._cat, ts=self._t1, dur=self._t2 - self._t1,
+                                                arguments=self._arguments)
+        self._flush = True
+        return self
+
+    def reset(self):
+        self._t1 = time()
+        self._t2 = self._t1
+        self._flush = False
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if not self._flush:
+            self.flush()
+
+    def log(self, func):
+        arg_names = inspect.getfullargspec(func)[0]
+
         @wraps(func)
         def wrapper(*args, **kwargs):
+            if "self" == arg_names[0]:
+                if hasattr(args[0], "epoch"):
+                    self._arguments["epoch"] = args[0].epoch
+                if hasattr(args[0], "step"):
+                    self._arguments["step"] = args[0].step
+                if hasattr(args[0], "image_size"):
+                    self._arguments["image_size"] = args[0].image_size
+                if hasattr(args[0], "image_idx"):
+                    self._arguments["image_idx"] = args[0].image_idx
+            for name, value in zip(arg_names[1:], kwargs):
+                if hasattr(args, name):
+                    setattr(args, name, value)
+                    if name == "epoch":
+                        self._arguments["epoch"] = value
+                    elif name == "image_idx":
+                        self._arguments["image_idx"] = value
+                    elif name == "image_size":
+                        self._arguments["image_size"] = value
+                    elif name == "step":
+                        self._arguments["image_size"] = value
+
             start = time()
             x = func(*args, **kwargs)
             end = time()
             instance = PerfTrace.get_instance()
-            event = create_dur_event(func.__qualname__, module, start, dur=end - start, args=arguments)
+            event = create_dur_event(func.__qualname__, self._cat, start, dur=end - start, args=self._arguments)
             instance.flush_log(json.dumps(event, cls=NpEncoder))
             return x
 
         return wrapper
 
-    return event_logging_f
+    def iter(self, func, iter_name="step"):
+        self._arguments[iter_name] = 1
+        name = f"{inspect.stack()[1].function}.iter"
+        kernal_name = f"{inspect.stack()[1].function}"
+        start = time()
+        for v in func:
+            end = time()
+            t0 = time()
+            yield v
+            instance = PerfTrace.get_instance()
+            event = create_dur_event(name, self._cat, start, dur=end - start, args=self._arguments)
+            instance.flush_log(json.dumps(event, cls=NpEncoder))
+            t1 = time()
+            event = create_dur_event(kernal_name, self._cat, t0, dur=t1 - t0, args=self._arguments)
+            instance.flush_log(json.dumps(event, cls=NpEncoder))
+            self._arguments[iter_name] += 1
+            start = time()
+
+    def log_init(self, init):
+        arg_names = inspect.getfullargspec(init)[0]
+
+        @wraps(init)
+        def new_init(args, *kwargs):
+            for name, value in zip(arg_names[1:], kwargs):
+                setattr(args, name, value)
+                if name == "epoch":
+                    self._arguments["epoch"] = value
+            start = time()
+            init(args, *kwargs)
+            end = time()
+            instance = PerfTrace.get_instance()
+            event = create_dur_event(init.__qualname__, self._cat, start, dur=end - start, args=self._arguments)
+            instance.flush_log(json.dumps(event, cls=NpEncoder))
+
+        return new_init
