@@ -72,4 +72,5 @@ class CSVGenerator(DataGenerator):
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
             progress(i+1, self.total_files_to_generate, "Generating CSV Data")
             out_path_spec = self.storage.get_uri(self._file_list[i])
-            copyfile(source_out_path_spec, out_path_spec)
+            if out_path_spec != source_out_path_spec:
+               copyfile(source_out_path_spec, out_path_spec)
