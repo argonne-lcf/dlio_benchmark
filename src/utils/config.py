@@ -71,7 +71,7 @@ class ConfigArguments:
     epochs_between_checkpoints: int = 1
     steps_between_checkpoints: int = -1
     transfer_size: int = None
-    read_threads: int = 4
+    read_threads: int = 1
     computation_threads: int = 1
     computation_time: float = 0.
     computation_time_stdev: float = 0.
