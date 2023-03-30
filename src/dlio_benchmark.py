@@ -295,11 +295,8 @@ class DLIOBenchmark(object):
             for epoch in range(1, self.epochs + 1):
                 self.next_checkpoint_step = self.steps_between_checkpoints                
                 self.stats.start_train(epoch)
-
                 # Initialize the dataset
                 self.framework.get_reader(dataset_type=DatasetType.TRAIN).read(epoch)
-                self.framework.barrier()
-
                 steps = self._train(epoch)
                 self.stats.end_train(epoch, steps)
                 logging.debug(f"{utcnow()} Rank {self.my_rank} returned after {steps} steps.")
