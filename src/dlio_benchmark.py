@@ -173,7 +173,6 @@ class DLIOBenchmark(object):
                 logging.info(f"{utcnow()} Profiling Started with {self.args.profiler}")
         self.framework.init_reader(self.args.format, self.args.data_loader)
         self.framework.barrier()
-        self.total_compute_time = 0.0
     
     def _eval(self, epoch):
         """
@@ -183,7 +182,6 @@ class DLIOBenchmark(object):
         total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         t0 = time() 
         reader = self.framework.get_reader(DatasetType.VALID)
-        total_compute_time = 0.0
         for batch in reader.next():
             self.stats.eval_batch_loaded(epoch, step, t0)
             if self.eval_time > 0:
@@ -191,8 +189,6 @@ class DLIOBenchmark(object):
                     eval_time = random.normal(self.eval_time, self.eval_time_stdev)
                 else:
                     eval_time = self.eval_time
-                if step > 1:
-                    total_compute_time += eval_time
                 self.framework.compute(epoch, step, eval_time)
             self.stats.eval_batch_processed(epoch, step, t0, eval_time)
 
@@ -216,9 +212,6 @@ class DLIOBenchmark(object):
         self.stats.start_block(epoch, block)
         t0 = time()
         reader = self.framework.get_reader(dataset_type=DatasetType.TRAIN)
-
-        total_compute_time = 0.0
-        start_time = time()
         for batch in reader.next():
             logging.debug(f"{utcnow()} Rank {self.my_rank} batch: {batch[:][1:]}")
             self.stats.batch_loaded(epoch, overall_step, block, t0)
@@ -267,7 +260,6 @@ class DLIOBenchmark(object):
             self.stats.end_ckpt(epoch, block)
             self.framework.barrier()
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
-        end_time = time()
         return overall_step
 
     def run(self):
@@ -276,7 +268,6 @@ class DLIOBenchmark(object):
         On each epoch, it prepares dataset for reading, it trains, and finalizes the dataset.
         If evaluation is enabled, it reads the eval dataset, performs evaluation and finalizes.
         """
-        self.start_timestamp=time()
         self.stats.start_run()
         if not self.generate_only:
             # Print out the expected number of steps for each epoch and evaluation
