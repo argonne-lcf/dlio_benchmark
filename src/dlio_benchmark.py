@@ -225,8 +225,6 @@ class DLIOBenchmark(object):
                     computation_time = random.normal(self.computation_time, self.computation_time_stdev)
                 else:
                     computation_time = self.computation_time
-                if overall_step > 1:
-                    total_compute_time += computation_time
                 self.framework.compute(epoch, block_step, computation_time)
             self.framework.barrier()
             self.stats.batch_processed(epoch, overall_step, block, t0, computation_time)
