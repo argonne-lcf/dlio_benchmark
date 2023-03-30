@@ -84,7 +84,7 @@ class FormatReader(ABC):
             self.image_idx = global_sample_idx
             if filename not in self.open_file_map:
                 self.open_file_map[filename] = self.open(filename)
-            image = self.get_sample(filename, sample_index)
+            self.get_sample(filename, sample_index)
             self.preprocess()
             batch.append(self._args.resized_image)
             image_processed += 1

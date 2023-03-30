@@ -8,61 +8,50 @@ import nvidia.dali.types as types
 import nvidia.dali as dali
 from nvidia.dali.plugin.pytorch import DALIGenericIterator
 
+from src.common.constants import MODULE_DATA_LOADER
 from src.common.enumerations import Shuffle, DataLoaderType, DatasetType
 from src.data_loader.base_data_loader import BaseDataLoader
 from src.reader.reader_factory import ReaderFactory
-from src.utils.utility import utcnow, get_rank, timeit, PerfTrace, event_logging
+from src.utils.utility import utcnow, get_rank, timeit, Profile
 
-MY_MODULE="data_loader"
-profile_args = {}
+dlp = Profile(MODULE_DATA_LOADER)
+
 
 class DaliDataset(object):
-    def __init__(self, format_type, dataset_type, epoch_number, num_samples, batch_size, thread_index):
-        global profile_args
-        profile_args["epoch"] = epoch_number
-        t0 = time()
+
+    def __init__(self, format_type, dataset_type, epoch, num_samples, batch_size, thread_index):
         self.format_type = format_type
         self.dataset_type = dataset_type
-        self.epoch_number = epoch_number
+        self.epoch = epoch
         self.num_samples = num_samples
+        self.num_images_read = 0
         self.batch_size = batch_size
         self.reader = ReaderFactory.get_reader(type=self.format_type,
                                                dataset_type=self.dataset_type,
                                                thread_index=thread_index,
-                                               epoch_number=self.epoch_number)
+                                               epoch_number=self.epoch)
         self.item = self.reader.next()
         self.is_last = 0
-        t1 = time()
-        PerfTrace.get_instance().event_complete(f"{self.__init__.__qualname__}", MY_MODULE, t0, t1 - t0,
-                                                arguments=profile_args)
 
     def __call__(self, sample_info):
+        self.num_images_read += 1
+        step = int(math.ceil(self.num_images_read / self.batch_size))
         sample_idx = sample_info.idx_in_epoch
         if sample_info.iteration >= self.num_samples // self.batch_size:
             # Indicate end of the epoch
             raise StopIteration()
-        global profile_args
-        profile_args["image_idx"] = sample_idx
-        t0 = time()
-        image = self.reader.read_index(sample_idx)
-        t1 = time()
-        PerfTrace.get_instance().event_complete(f"{self.__call__.__qualname__}", MY_MODULE, t0, t1 - t0,
-                                                arguments=profile_args)
+        with Profile(MODULE_DATA_LOADER, epoch=self.epoch,image_idx=sample_idx, step=step):
+            image = self.reader.read_index(sample_idx, step)
         return image, np.uint8([sample_idx])
 
+
 class DaliDataLoader(BaseDataLoader):
-
-    def __init__(self, format_type, dataset_type, epoch_number):
-        global profile_args
-        profile_args["epoch"] = epoch_number
-        t0 = time()
-        super().__init__(format_type, dataset_type, epoch_number)
+    @dlp.log_init
+    def __init__(self, format_type, dataset_type, epoch):
+        super().__init__(format_type, dataset_type, epoch)
         self.pipelines = []
-        t1 = time()
-        PerfTrace.get_instance().event_complete(f"{self.__init__.__qualname__}", MY_MODULE, t0, t1 - t0,
-                                                arguments=profile_args)
 
-    @event_logging(module=MY_MODULE, arguments=profile_args)
+    @dlp.log
     def read(self):
         num_samples = self._args.total_samples_train if self.dataset_type is DatasetType.TRAIN else self._args.total_samples_eval
         batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
@@ -75,34 +64,22 @@ class DaliDataLoader(BaseDataLoader):
         # None executes pipeline on CPU and the reader does the batching
         pipeline = Pipeline(batch_size=batch_size, num_threads=num_threads, device_id=None, py_num_workers=num_threads)
         with pipeline:
-            images, labels = fn.external_source(source=dataset, num_outputs=2, dtype=[types.UINT8, types.UINT8], parallel=parallel, batch=False)
+            images, labels = fn.external_source(source=dataset, num_outputs=2, dtype=[types.UINT8, types.UINT8],
+                                                parallel=parallel, batch=False)
             pipeline.set_outputs(images, labels)
         self.pipelines.append(pipeline)
         logging.info(f"{utcnow()} Creating {num_threads} pipelines by {self._args.my_rank} rank ")
 
-    @event_logging(module=MY_MODULE, arguments=profile_args)
+    @dlp.log
     def next(self):
-        global profile_args
         super().next()
-        total = self._args.training_steps if self.dataset_type is DatasetType.TRAIN else self._args.eval_steps
         num_samples = self._args.total_samples_train if self.dataset_type is DatasetType.TRAIN else self._args.total_samples_eval
         batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
-        logging.debug(f"{utcnow()} Rank {self._args.my_rank} should read {total} batches")
-        for step in range(num_samples//batch_size):
-            profile_args["step"] = step
-            t0 = time()
+        for step in range(num_samples // batch_size):
             _dataset = DALIGenericIterator(self.pipelines, ['data', 'label'], size=1)
-            t1 = time()
-            PerfTrace.get_instance().event_complete(
-                f"{self.next.__qualname__}.next.iter", MY_MODULE, t0, t1 - t0, arguments=profile_args)
-            t0 = time()
             for batch in _dataset:
-                t1 = time()
-                PerfTrace.get_instance().event_complete(
-                    f"{self.next.__qualname__}.next", MY_MODULE, t0, t1 - t0, arguments=profile_args)
                 yield batch
-                t0 = time()
 
-    @event_logging(module=MY_MODULE, arguments=profile_args)
+    @dlp.log
     def finalize(self):
         pass
