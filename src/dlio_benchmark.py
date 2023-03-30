@@ -103,7 +103,7 @@ class DLIOBenchmark(object):
         if self.args.my_rank==0:
             logging.info(f"{utcnow()} Running DLIO with {self.args.comm_size} process(es)")
             try:
-                f"{utcnow()} Reading workload YAML config file '{hydra_cfg.runtime.config_sources[1]['path']}/workload/{hydra_cfg.runtime.choices.workload}.yaml'")
+                logging.info(f"{utcnow()} Reading workload YAML config file '{hydra_cfg.runtime.config_sources[1]['path']}/workload/{hydra_cfg.runtime.choices.workload}.yaml'")
             except:
                 pass
 
