@@ -329,7 +329,7 @@ class DLIOBenchmark(object):
                     self.stats.start_eval(epoch)
                     self._eval(epoch)
                     self.stats.end_eval(epoch)
-                    self.framework.get_reader(DatasetType.VALID).finalize()
+                    self.framework.get_loader(DatasetType.VALID).finalize()
         self.stats.end_run()
     @dlp.log
     def finalize(self):
