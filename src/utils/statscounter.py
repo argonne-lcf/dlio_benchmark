@@ -25,7 +25,8 @@ import logging
 import pandas as pd
 from time import time
 import numpy as np
-
+from mpi4py import MPI
+comm = MPI.COMM_WORLD
 class StatsCounter(object):
 
     def __init__(self):
@@ -33,10 +34,13 @@ class StatsCounter(object):
         self.my_rank = self.args.my_rank
         self.comm_size = self.args.comm_size
         self.output_folder = self.args.output_folder
-
+        self.record_size = self.args.record_length
         self.batch_size = self.args.batch_size
         self.batch_size_eval = self.args.batch_size_eval
-        
+        self.summary = {}
+        self.summary['num_procs'] = self.comm_size
+        self.summary['metric'] = {}
+
         max_steps = math.floor(self.args.num_samples_per_file * self.args.num_files_train / self.args.batch_size / self.args.comm_size)
 
         if self.args.total_training_steps > 0:
@@ -61,29 +65,46 @@ class StatsCounter(object):
         self.eval_throughput = []
     def start_run(self):
         self.start_run_timestamp = time()
+        self.summary['start'] = utcnow()
     def end_run(self):
+        self.summary['end'] = utcnow()
         self.end_run_timestamp = time()
         total_elapsed_time = self.end_run_timestamp - self.start_run_timestamp
-
-        train_auu = self.train_auu
-        train_throughput = self.train_throughput
+        train_auu = np.array(comm.allreduce(np.array(self.train_auu)))/comm.size
+        train_throughput = comm.allreduce(np.array(self.train_throughput))
+        self.summary['epochs'] = len(train_auu)
+        self.summary['metric']['train_auu'] = list(train_auu)
+        self.summary['metric']['train_auu_mean'] = np.mean(train_auu)
+        self.summary['metric']['train_auu_stdev'] = np.std(train_auu)
+        self.summary['metric']['train_throughput'] = list(train_throughput)
+        self.summary['metric']['train_throughput_mean'] = np.mean(train_throughput)
+        self.summary['metric']['train_throughput_stdev'] = np.std(train_throughput)
+        self.summary['metric']['train_io_mean'] = np.mean(train_throughput)*self.record_size
+        self.summary['metric']['train_io_stdev'] = np.std(train_throughput)*self.record_size
         if len(self.eval_auu)>0:
-            eval_auu = self.eval_auu
-            eval_throughput = self.eval_throughput
+            eval_auu = np.array(comm.allreduce(self.eval_auu))/comm.size
+            eval_throughput = comm.allreduce(self.eval_throughput)
+            self.summary['metric']['eval_auu'] = list(eval_auu)
+            self.summary['metric']['eval_auu_mean'] = np.mean(eval_auu)
+            self.summary['metric']['eval_auu_stdev'] = np.std(eval_auu)
+            self.summary['metric']['eval_throughput'] = list(eval_throughput)
+            self.summary['metric']['eval_throughput_mean'] = np.mean(eval_throughput)
+            self.summary['metric']['eval_throughput_stdev'] = np.std(eval_throughput)
+            self.summary['metric']['eval_io_mean'] = np.mean(eval_throughput)*self.record_size/1024./1024.
+            self.summary['metric']['eval_io_stdev'] = np.std(eval_throughput)*self.record_size/1024./1024.
         if self.my_rank==0:
             logging.info(f"{utcnow()} Saved outputs in {self.output_folder}")   
             metric="Averaged metric over all epochs\n[METRIC] ==================================================\n"
             metric = metric + f"[METRIC] Training Accelerator Under Utilization (%): {np.mean(train_auu):.4f} ({np.std(train_auu):.4f})\n"
-            metric = metric + f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput)*self.comm_size:.6f} ({np.std(train_throughput)*self.comm_size:.6f})\n"
-            metric = metric + f"[METRIC] Training Throughput (MB/second): {np.mean(train_throughput)*self.comm_size:.6f} ({np.std(train_throughput)*self.comm_size*self.record_size/1024/1024:.6f})\n"
+            metric = metric + f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput):.4f} ({np.std(train_throughput):.4f})\n"
+            metric = metric + f"[METRIC] Training I/O Throughput (MB/second): {np.mean(train_throughput)*self.record_size/1024/1024:.4f} ({np.std(train_throughput)*self.record_size/1024/1024:.4f})\n"
 
             if len(self.eval_auu)>0:
                 metric = metric + f"[METRIC] Eval Accelerator Under Utilization (%): {np.mean(eval_auu):.4f} ({np.std(eval_auu):.4f})\n"
-                metric = metric + f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput)*self.comm_size:.6f} ({np.std(eval_throughput)*self.comm_size:.6f})\n"
-                metric = metric + f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput)*self.comm_size:.6f} ({np.std(eval_throughput)*self.comm_size*self.record_size/1024/1024:.6f})\n"
+                metric = metric + f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput):.6f} ({np.std(eval_throughput):.6f})\n"
+                metric = metric + f"[METRIC] Eval Throughput (MB/second): {np.mean(eval_throughput)*self.record_size/1024/1024:.6f} ({np.std(eval_throughput)*self.record_size/1024/1024:.6f})\n"
             metric+="[METRIC] ==================================================\n"
             logging.info(metric)   
-
     def start_train(self, epoch):   
         if self.my_rank == 0:
             ts = utcnow()
@@ -118,8 +139,6 @@ class StatsCounter(object):
             self.per_epoch_stats[epoch]['end'] = ts
             self.per_epoch_stats[epoch]['duration'] = duration
             logging.info(f"{ts} Ending epoch {epoch} - {np.sum(steps)} steps completed in {duration} s")
-#            logging.info(f"{utcnow()} Epoch {epoch} [training] accelerator_under_utilization (%): {auu:.4f}")
-#            logging.info(f"{utcnow()} Epoch {epoch} [training] throughput (samples/second): {throughput*self.comm_size:.4f}")
 
     def start_eval(self, epoch):
         self.start_timestamp = time()
@@ -255,6 +274,8 @@ class StatsCounter(object):
         if self.my_rank == 0:
             with open(os.path.join(self.output_folder, 'per_epoch_stats.json'), 'w') as outfile:
                 json.dump(self.per_epoch_stats, outfile, indent=4)
+            with open(os.path.join(self.output_folder, 'summary.json'), 'w') as outfile:
+                json.dump(self.summary, outfile, indent=4)
 
         with open(os.path.join(self.output_folder, f'{self.my_rank}_output.json'), 'w') as outfile:
             json.dump(self.output, outfile, indent=4)

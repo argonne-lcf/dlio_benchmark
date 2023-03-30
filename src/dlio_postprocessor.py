@@ -71,6 +71,9 @@ class DLIOPostProcessor:
         if is_missing_file:
             exit(-1)
         '''
+        with open(os.path.join(self.outdir, 'summary.json'), 'r') as summary_file:
+            self.summary = json.load(summary_file)
+
         # All files are present, load some in
         try:
             with open(os.path.join(self.outdir, 'iostat.json'), 'r') as iotrace_file:
@@ -190,8 +193,9 @@ class DLIOPostProcessor:
         logging.info(f"Computing overall stats")
 
         # Save the overall stats
-        self.overall_stats['samples/s'] = self.get_stats(all_sample_latencies, num_procs=self.num_files)
-        self.overall_stats['MB/s'] = self.get_stats(all_sample_bandwidth, num_procs=self.num_files)
+        self.overall_stats['samples/s'] = self.get_stats(self.summary['metric']['train_throughput'])
+        io = np.array(self.summary['metric']['train_throughput'])*self.record_size/1024/1024.
+        self.overall_stats['MB/s'] = self.get_stats(io)
         # The average process loading time is the sum of all the time spent 
         # loading across different processes divided by the number of processes
         self.overall_stats['avg_process_loading_time'] = '{:.2f}'.format(sum(all_loading_times) / self.comm_size)
@@ -425,7 +429,7 @@ class DLIOPostProcessor:
                 outfile.write(f"{indent}{fmt.format(row_name)}{row_content}\n")
             outfile.write("\n")
 
-        def write_out_stats_table(outfile, stats_dict, has_loading=True, indent=0):
+        def write_out_stats_table(outfile, stats_dict, has_loading=True, indent=0, overall=False):
             if self.iotrace == None:
                 return 
             indent = TAB * indent
@@ -438,9 +442,14 @@ class DLIOPostProcessor:
             outfile.write(f"{indent}{fmt.format('')}{ROW_SEP}\n")
 
             if has_loading:
-                outfile.write(f"{indent}{fmt.format('Throughput Stats (over all steps)')}\n")
-                outfile.write(f"{indent}{fmt.format('  Samples/s:')}{format_stats(stats_dict['samples/s'])}\n")
-                outfile.write(f"{indent}{fmt.format('  MB/s (derived from Samples/s):')}{format_stats(stats_dict['MB/s'])}\n")
+                if overall:
+                    outfile.write(f"{indent}{fmt.format('Throughput Stats (over all epochs)')}\n")
+                    outfile.write(f"{indent}{fmt.format('  Samples/s:')}{format_stats(stats_dict['samples/s'])}\n")
+                    outfile.write(f"{indent}{fmt.format('  MB/s (derived from Samples/s):')}{format_stats(stats_dict['MB/s'])}\n")
+                else:
+                    outfile.write(f"{indent}{fmt.format('Throughput Stats (over all steps)')}\n")
+                    outfile.write(f"{indent}{fmt.format('  Samples/s:')}{format_stats(stats_dict['samples/s'])}\n")
+                    outfile.write(f"{indent}{fmt.format('  MB/s (derived from Samples/s):')}{format_stats(stats_dict['MB/s'])}\n")
 
             outfile.write("\n")
             outfile.write(f"{indent}{fmt.format('I/O Stats (over all time segments)')}\n")
@@ -496,7 +505,7 @@ class DLIOPostProcessor:
 
             format_print(outfile, overall_desc, indent=1)
             if (self.iotrace is not None):
-                write_out_stats_table(outfile, self.overall_stats, indent=1)
+                write_out_stats_table(outfile, self.overall_stats, indent=1, overall=True)
 
             outfile.write("\nDetailed Report\n\n")
 
