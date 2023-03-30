@@ -28,6 +28,7 @@ from omegaconf import DictConfig, OmegaConf
 from hydra import initialize, compose
 import yaml 
 import glob
+import numpy as np
 
 
 class DLIOPostProcessor:
@@ -49,7 +50,7 @@ class DLIOPostProcessor:
         self.verify_and_load_all_files()
         self.disks = []
         self.overall_stats = {}
-
+        self.record_size = args.record_size
 
     def verify_and_load_all_files(self):
         outdir_listing = [f for f in os.listdir(self.outdir) if os.path.isfile(os.path.join(self.outdir, f))]
@@ -57,9 +58,9 @@ class DLIOPostProcessor:
         all_files = ['iostat.json', 'per_epoch_stats.json']
 
         load_and_proc_time_files = []
-
+        
         for rank in range(self.comm_size):
-            load_and_proc_time_files.append(f'{rank}_load_and_proc_times.json')
+            load_and_proc_time_files.append(f'{rank}_output.json')
 
         all_files.extend(load_and_proc_time_files)
         '''
@@ -101,8 +102,6 @@ class DLIOPostProcessor:
 
         # Samples per second is straight forward, to obtain it 
         # we divide the batch size by the time taken to load it
-        all_samples_per_s = []
-        self.epoch_samples_per_s = {}
 
         # Sample latency is defined by the time between when a sample is loaded
         # and when it is no longer needed. Since in a given epoch, we iterate over
@@ -110,8 +109,10 @@ class DLIOPostProcessor:
         # has been processed. 
         # We obtain it by dividing the batch size by its processing time.
         all_sample_latencies = []
+        all_sample_bandwidth = []
         self.epoch_sample_latencies = {}
-
+        self.epoch_sample_bandwidth = {}
+        self.num_files = len(self.load_and_proc_time_files)
         # There is one file per worker process, with data
         # separated by epoch and by phase of training (block, eval)
         # First, we will combine the different workers' data before
@@ -128,7 +129,6 @@ class DLIOPostProcessor:
                     if epoch not in self.epoch_loading_times:
                         # Initialize structures to hold the data
                         self.epoch_loading_times[epoch] = {}
-                        self.epoch_samples_per_s[epoch] = {}
 
                     for phase, phase_loading_times in loading_data.items():
                         assert isinstance(phase_loading_times, list)
@@ -142,16 +142,11 @@ class DLIOPostProcessor:
                         
                         all_loading_times.extend(phase_loading_times)
 
-                        phase_samples_per_s = [effective_batch_size / time for time in phase_loading_times]
-                        all_samples_per_s.extend(phase_samples_per_s)
 
-                        if phase not in self.epoch_samples_per_s[epoch]:
+                        if phase not in self.epoch_loading_times[epoch]:
                             self.epoch_loading_times[epoch][phase] = phase_loading_times
-                            self.epoch_samples_per_s[epoch][phase] = phase_samples_per_s
                         else:
                             self.epoch_loading_times[epoch][phase].extend(phase_loading_times)
-                            self.epoch_samples_per_s[epoch][phase].extend(phase_samples_per_s)
-
 
                     # Same thing for processing times
                     processing_data = load_and_proc_times[epoch]['proc']
@@ -159,6 +154,7 @@ class DLIOPostProcessor:
                     if epoch not in self.epoch_sample_latencies:
                         self.epoch_processing_times[epoch] = {}
                         self.epoch_sample_latencies[epoch] = {}
+                        self.epoch_sample_bandwidth[epoch] = {}
 
                     # For each training phase, fetch the loading times and combine them
                     for phase, phase_processing_times in processing_data.items():
@@ -174,14 +170,18 @@ class DLIOPostProcessor:
                         all_processing_times.extend(phase_processing_times)
 
                         phase_sample_latencies = [effective_batch_size / time for time in phase_processing_times]
+                        phase_sample_bandwidth = list(np.array(phase_sample_latencies)*self.record_size / 1024./1024)
                         all_sample_latencies.extend(phase_sample_latencies)
-
+                        all_sample_bandwidth.extend(phase_sample_bandwidth)
                         if phase not in self.epoch_sample_latencies[epoch]:
                             self.epoch_processing_times[epoch][phase] = phase_processing_times
                             self.epoch_sample_latencies[epoch][phase] = phase_sample_latencies
+                            self.epoch_sample_bandwidth[epoch][phase] = phase_sample_bandwidth 
                         else:
                             self.epoch_processing_times[epoch][phase].extend(phase_processing_times)
                             self.epoch_sample_latencies[epoch][phase].extend(phase_sample_latencies)
+                            self.epoch_sample_bandwidth[epoch][phase].extend(phase_sample_bandwidth)
+
 
 
         # At this point, we should have one big structure containing overall stats, 
@@ -190,9 +190,8 @@ class DLIOPostProcessor:
         logging.info(f"Computing overall stats")
 
         # Save the overall stats
-        self.overall_stats['samples/s'] = self.get_stats(all_samples_per_s)
-        self.overall_stats['sample_latency'] = self.get_stats(all_sample_latencies)
-
+        self.overall_stats['samples/s'] = self.get_stats(all_sample_latencies, num_procs=self.num_files)
+        self.overall_stats['MB/s'] = self.get_stats(all_sample_bandwidth, num_procs=self.num_files)
         # The average process loading time is the sum of all the time spent 
         # loading across different processes divided by the number of processes
         self.overall_stats['avg_process_loading_time'] = '{:.2f}'.format(sum(all_loading_times) / self.comm_size)
@@ -206,27 +205,33 @@ class DLIOPostProcessor:
 
             epoch_loading_times = self.epoch_loading_times[epoch]
             epoch_processing_times = self.epoch_processing_times[epoch]
-            epoch_samples_per_s = self.epoch_samples_per_s[epoch]
             epoch_sample_latencies = self.epoch_sample_latencies[epoch]
-
+            epoch_sample_bandwidth = self.epoch_sample_bandwidth[epoch]
             for phase in epoch_loading_times.keys():
                 logging.debug(f"Computing stats for epoch {epoch} {phase}")
 
                 phase_loading_times = epoch_loading_times[phase]
                 phase_processing_times = epoch_processing_times[phase]
-                phase_samples_per_s = epoch_samples_per_s[phase]
                 phase_sample_latencies = epoch_sample_latencies[phase]
+                phase_sample_bandwidth = epoch_sample_bandwidth[phase]
 
                 self.per_epoch_stats[epoch][phase]['avg_process_loading_time'] = '{:.2f}'.format(sum(phase_loading_times) / self.comm_size)
                 self.per_epoch_stats[epoch][phase]['avg_process_processing_time'] = '{:.2f}'.format(sum(phase_processing_times) / self.comm_size)
-                self.per_epoch_stats[epoch][phase]['samples/s'] = self.get_stats(phase_samples_per_s)
-                self.per_epoch_stats[epoch][phase]['sample_latency'] = self.get_stats(phase_sample_latencies)
+                self.per_epoch_stats[epoch][phase]['samples/s'] = self.get_stats(phase_sample_latencies, num_procs=self.comm_size)
+                self.per_epoch_stats[epoch][phase]['MB/s'] = self.get_stats(phase_sample_bandwidth, num_procs=self.comm_size)
 
 
-    def get_stats(self, series):
+    def get_stats(self, series, num_procs=1):
         """
         Return a dictionary with various statistics of the given series
         """
+
+        if (num_procs>1):
+            new_series = np.zeros(len(series)//num_procs)
+            n = len(new_series)
+            for i in range(num_procs):
+                new_series += series[i*n:(i+1)*n]
+            series = new_series
         if series is None or len(series) < 2:
             return {
                 "mean": 'n/a',
@@ -433,11 +438,12 @@ class DLIOPostProcessor:
             outfile.write(f"{indent}{fmt.format('')}{ROW_SEP}\n")
 
             if has_loading:
-                outfile.write(f"{indent}{fmt.format('Samples/s:')}{format_stats(stats_dict['samples/s'])}\n")
-                outfile.write(f"{indent}{fmt.format('Sample Latency (s):')}{format_stats(stats_dict['sample_latency'])}\n")
+                outfile.write(f"{indent}{fmt.format('Throughput Stats (over all steps)')}\n")
+                outfile.write(f"{indent}{fmt.format('  Samples/s:')}{format_stats(stats_dict['samples/s'])}\n")
+                outfile.write(f"{indent}{fmt.format('  MB/s (derived from Samples/s):')}{format_stats(stats_dict['MB/s'])}\n")
 
             outfile.write("\n")
-            outfile.write(f"{indent}{fmt.format('I/O Stats')}\n")
+            outfile.write(f"{indent}{fmt.format('I/O Stats (over all time segments)')}\n")
 
             for disk in self.disks:
                 outfile.write(f"{indent}{fmt.format(f'{HALF_TAB}Device: {disk}')}\n")
@@ -587,7 +593,7 @@ def main():
     args = parser.parse_args()
 
     # figuring out the number of process from the outputs
-    args.num_proc = len(glob.glob(args.output_folder + "/*_load_and_proc_times.json"))
+    args.num_proc = len(glob.glob(args.output_folder + "/*_output.json"))
 
     # load the yaml file and override the command line argument
     base_config = os.path.join(args.output_folder, args.hydra_folder, "config.yaml")
@@ -599,6 +605,7 @@ def main():
         args.name = hydra_config['workload']['model']
     else:
         args.name="default"
+    args.record_size = hydra_config['workload']['dataset']['record_length']
     for op in open(override_config, "r").readlines():
         if op.find("train.epochs")!=-1:
             args.epochs = int(op.split("=")[1])
