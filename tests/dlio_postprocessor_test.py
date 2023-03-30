@@ -51,9 +51,9 @@ class TestDLIOPostProcessor(unittest.TestCase):
         #   'avg_process_loading_time': '21.00', 
         #   'avg_process_processing_time': '21.00'
         # }
-        self.assertEqual(postproc.overall_stats['samples/s']['mean'], '4.89')
-        self.assertEqual(postproc.overall_stats['avg_process_loading_time'], '8.45')
-        self.assertEqual(postproc.overall_stats['avg_process_processing_time'], '68.78')
+        self.assertEqual(postproc.overall_stats['samples/s']['mean'], '4.81')
+        self.assertEqual(postproc.overall_stats['avg_process_loading_time'], '9.08')
+        self.assertEqual(postproc.overall_stats['avg_process_processing_time'], '69.87')
 
 
 

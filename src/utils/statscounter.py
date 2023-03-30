@@ -79,8 +79,8 @@ class StatsCounter(object):
         self.summary['metric']['train_throughput'] = list(train_throughput)
         self.summary['metric']['train_throughput_mean'] = np.mean(train_throughput)
         self.summary['metric']['train_throughput_stdev'] = np.std(train_throughput)
-        self.summary['metric']['train_io_mean'] = np.mean(train_throughput)*self.record_size
-        self.summary['metric']['train_io_stdev'] = np.std(train_throughput)*self.record_size
+        self.summary['metric']['train_io_mean'] = np.mean(train_throughput)*self.record_size/1024./1024.
+        self.summary['metric']['train_io_stdev'] = np.std(train_throughput)*self.record_size/1024./1024.
         if len(self.eval_auu)>0:
             eval_auu = np.array(comm.allreduce(self.eval_auu))/comm.size
             eval_throughput = comm.allreduce(self.eval_throughput)
@@ -94,7 +94,7 @@ class StatsCounter(object):
             self.summary['metric']['eval_io_stdev'] = np.std(eval_throughput)*self.record_size/1024./1024.
         if self.my_rank==0:
             logging.info(f"{utcnow()} Saved outputs in {self.output_folder}")   
-            metric="Averaged metric over all epochs\n[METRIC] ==================================================\n"
+            metric="Averaged metric over all epochs\n[METRIC] ==========================================================\n"
             metric = metric + f"[METRIC] Training Accelerator Under Utilization (%): {np.mean(train_auu):.4f} ({np.std(train_auu):.4f})\n"
             metric = metric + f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput):.4f} ({np.std(train_throughput):.4f})\n"
             metric = metric + f"[METRIC] Training I/O Throughput (MB/second): {np.mean(train_throughput)*self.record_size/1024/1024:.4f} ({np.std(train_throughput)*self.record_size/1024/1024:.4f})\n"
@@ -103,7 +103,7 @@ class StatsCounter(object):
                 metric = metric + f"[METRIC] Eval Accelerator Under Utilization (%): {np.mean(eval_auu):.4f} ({np.std(eval_auu):.4f})\n"
                 metric = metric + f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput):.6f} ({np.std(eval_throughput):.6f})\n"
                 metric = metric + f"[METRIC] Eval Throughput (MB/second): {np.mean(eval_throughput)*self.record_size/1024/1024:.6f} ({np.std(eval_throughput)*self.record_size/1024/1024:.6f})\n"
-            metric+="[METRIC] ==================================================\n"
+            metric+="[METRIC] ==========================================================\n"
             logging.info(metric)   
     def start_train(self, epoch):   
         if self.my_rank == 0:
