@@ -243,7 +243,10 @@ class StatsCounter(object):
     def compute_metrics_train(self, epoch, block):
         key = f"block{block}"
         total_compute_time = np.sum(self.output[epoch]['compute'][key][1:])
-        auu = (self.end_timestamp - self.start_timestamp - total_compute_time - self.output[epoch]['proc'][key][0]) / total_compute_time
+        if total_compute_time == 0.0:
+            auu = -1
+        else:
+            auu = (self.end_timestamp - self.start_timestamp - total_compute_time - self.output[epoch]['proc'][key][0]) / total_compute_time
         throughput = len(self.output[epoch]['compute'][key])/(self.end_timestamp - self.start_timestamp)*self.batch_size
         self.output[epoch]['auu'][key] = auu*100
         self.output[epoch]['throughput'][key] = throughput
@@ -251,7 +254,10 @@ class StatsCounter(object):
     def compute_metrics_eval(self, epoch):
         key = 'eval'
         total_compute_time = np.sum(self.output[epoch]['compute'][key][1:])
-        auu = (self.end_timestamp - self.start_timestamp - total_compute_time - self.output[epoch]['proc'][key][0]) / total_compute_time
+        if total_compute_time == 0.0:
+            auu = -1
+        else:
+            auu = (self.end_timestamp - self.start_timestamp - total_compute_time - self.output[epoch]['proc'][key][0]) / total_compute_time
         throughput = len(self.output[epoch]['compute'][key])/(self.end_timestamp - self.start_timestamp)*self.batch_size_eval
         self.output[epoch]['auu'][key] = auu*100
         self.output[epoch]['throughput'][key] = throughput
