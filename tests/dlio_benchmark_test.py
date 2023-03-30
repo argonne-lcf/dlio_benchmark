@@ -68,7 +68,7 @@ def run_benchmark(cfg, storage_root="./", verify=True):
     if (comm.rank==0):
         logging.info("Time for the benchmark: %.10f" %(t1-t0)) 
         if (verify):
-            self.assertEqual(len(glob.glob(benchmark.output_folder+"./*_output.json")), benchmark.comm_size)
+            assert(len(glob.glob(benchmark.output_folder+"./*_output.json"))==benchmark.comm_size)
     return benchmark
 
 
