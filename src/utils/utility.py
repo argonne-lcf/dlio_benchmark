@@ -22,6 +22,8 @@ from time import time
 from functools import wraps
 import threading
 import json
+from typing import Dict
+
 import numpy as np
 import inspect
 import dlio_profiler_py as dlio_logger
@@ -166,33 +168,46 @@ class Profile(object):
     def __init__(self, cat, name=None, epoch=None, step=None, image_idx=None, image_size=None):
         if not name:
             name = inspect.stack()[1].function
-        dlio_logger.reset()
         self._name = name
         self._cat = cat
-        if epoch is not None: dlio_logger.update_int("epoch", epoch)
-        if step is not None: dlio_logger.update_int("step", step)
-        if image_idx is not None: dlio_logger.update_int("image_idx", image_idx)
-        if image_size is not None: dlio_logger.update_int("image_size", image_size)
+        self._arguments:Dict[str, int] = {}
+        if epoch is not None: self._arguments["epoch"] = epoch
+        if step is not None: self._arguments["step"] = step
+        if image_idx is not None: self._arguments["image_idx"] = image_idx
+        if image_size is not None: self._arguments["image_size"] = image_size
         self.reset()
 
     def __enter__(self):
-        dlio_logger.start(self._name, self._cat)
+        self._t1 = dlio_logger.get_time()
         return self
 
     def update(self, epoch=None, step=None, image_idx=None, image_size=None):
 
-        if epoch is not None: dlio_logger.update_int("epoch", epoch)
-        if step is not None: dlio_logger.update_int("step", step)
-        if image_idx is not None: dlio_logger.update_int("image_idx", image_idx)
-        if image_size is not None: dlio_logger.update_int("image_size", image_size)
+        if epoch is not None: self._arguments["epoch"] = epoch
+        if step is not None: self._arguments["step"] = step
+        if image_idx is not None: self._arguments["image_idx"] = image_idx
+        if image_size is not None: self._arguments["image_size"] = image_size
+        return self
+
+    def flush(self):
+        self._t2 = dlio_logger.get_time()
+        if len(self._arguments) > 0:
+            dlio_logger.log_event(name=self._name, cat=self._cat, start_time=self._t1, duration=self._t2 - self._t1,
+                                  int_args=self._arguments)
+        else:
+            dlio_logger.log_event(name=self._name, cat=self._cat, start_time=self._t1, duration=self._t2 - self._t1)
+        self._flush = True
         return self
 
     def reset(self):
-        dlio_logger.start(self._name, self._cat)
+        self._t1 = dlio_logger.get_time()
+        self._t2 = self._t1
+        self._flush = False
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        dlio_logger.stop()
+        if not self._flush:
+            self.flush()
 
     def log(self, func):
         arg_names = inspect.getfullargspec(func)[0]
@@ -200,44 +215,56 @@ class Profile(object):
         def wrapper(*args, **kwargs):
             if "self" == arg_names[0]:
                 if hasattr(args[0], "epoch"):
-                    dlio_logger.update_int("epoch", args[0].epoch)
+                    self._arguments["epoch"] = args[0].epoch
                 if hasattr(args[0], "step"):
-                    dlio_logger.update_int("step", args[0].step)
+                    self._arguments["step"] = args[0].step
                 if hasattr(args[0], "image_size"):
-                    dlio_logger.update_int("image_size", args[0].image_size)
+                    self._arguments["image_size"] = args[0].image_size
                 if hasattr(args[0], "image_idx"):
-                    dlio_logger.update_int("image_idx", args[0].image_idx)
+                    self._arguments["image_idx"] = args[0].image_idx
             for name, value in zip(arg_names[1:], kwargs):
                 if hasattr(args, name):
                     setattr(args, name, value)
                     if name == "epoch":
-                        dlio_logger.update_int("epoch", value)
+                        self._arguments["epoch"] = int(value)
                     elif name == "image_idx":
-                        dlio_logger.update_int("image_idx", value)
+                        self._arguments["image_idx"] = int(value)
                     elif name == "image_size":
-                        dlio_logger.update_int("image_size", value)
+                        self._arguments["image_size"] = int(value)
                     elif name == "step":
-                        dlio_logger.update_int("step", value)
-            dlio_logger.start(func.__qualname__, self._cat)
+                        self._arguments["image_size"] = int(value)
+
+            start = dlio_logger.get_time()
             x = func(*args, **kwargs)
-            dlio_logger.stop()
+            end = dlio_logger.get_time()
+            if len(self._arguments) > 0:
+                dlio_logger.log_event(name=func.__qualname__, cat=self._cat, start_time=start, duration=end - start,
+                                      int_args=self._arguments)
+            else:
+                dlio_logger.log_event(name=func.__qualname__, cat=self._cat, start_time=start, duration=end - start)
             return x
 
         return wrapper
 
     def iter(self, func, iter_name="step"):
-        iter_value = 1
-        dlio_logger.update_int(iter_name, iter_value)
+        self._arguments[iter_name] = 1
         name = f"{inspect.stack()[1].function}.iter"
         kernal_name = f"{inspect.stack()[1].function}"
-        dlio_logger.start(name, self._cat)
+        start = dlio_logger.get_time()
         for v in func:
-            dlio_logger.stop()
-            dlio_logger.start(kernal_name, self._cat)
+            end = dlio_logger.get_time()
+            t0 = dlio_logger.get_time()
             yield v
-            dlio_logger.stop()
-            iter_value += 1
-            dlio_logger.update_int(iter_name, iter_value)
+            t1 = dlio_logger.get_time()
+
+            if len(self._arguments) > 0:
+                dlio_logger.log_event(name=name, cat=self._cat, start_time=start, duration=end - start, int_args=self._arguments)
+                dlio_logger.log_event(name=kernal_name, cat=self._cat, start_time=t0, duration=t1 - t0, int_args=self._arguments)
+            else:
+                dlio_logger.log_event(name=name, cat=self._cat, start_time=start, duration=end - start)
+                dlio_logger.log_event(name=kernal_name, cat=self._cat, start_time=t0, duration=t1 - t0)
+            self._arguments[iter_name] += 1
+            start = dlio_logger.get_time()
 
     def log_init(self, init):
         arg_names = inspect.getfullargspec(init)[0]
@@ -247,9 +274,14 @@ class Profile(object):
             for name, value in zip(arg_names[1:], kwargs):
                 setattr(args, name, value)
                 if name == "epoch":
-                    dlio_logger.update_int("epoch", value)
-            dlio_logger.start(init.__qualname__, self._cat)
+                    self._arguments["epoch"] = value
+            start = dlio_logger.get_time()
             init(args, *kwargs)
-            dlio_logger.stop()
+            end = dlio_logger.get_time()
 
+            if len(self._arguments) > 0:
+                dlio_logger.log_event(name=init.__qualname__, cat=self._cat, start_time=start, duration=end - start,
+                                      int_args=self._arguments)
+            else:
+                dlio_logger.log_event(name=init.__qualname__, cat=self._cat, start_time=start, duration=end - start)
         return new_init
