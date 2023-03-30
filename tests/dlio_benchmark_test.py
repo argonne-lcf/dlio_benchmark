@@ -65,13 +65,10 @@ def run_benchmark(cfg, storage_root="./", verify=True):
     benchmark.run()
     benchmark.finalize()
     t1 = time.time()
-    if (comm.rank == 0):
-        logging.info("Time for the benchmark: %.10f" % (t1 - t0))
-    if (verify):
-        os.system(f"ls {benchmark.output_folder}")
-        output = pathlib.Path(benchmark.output_folder)
-        load_json = list(output.glob("*_load_and_proc_times.json"))
-        assert (len(load_json) == benchmark.comm_size)
+    if (comm.rank==0):
+        logging.info("Time for the benchmark: %.10f" %(t1-t0)) 
+        if (verify):
+            self.assertEqual(len(glob.glob(benchmark.output_folder+"./*_output.json")), benchmark.comm_size)
     return benchmark
 
 
