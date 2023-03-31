@@ -167,8 +167,8 @@ class StatsCounter(object):
             logging.info(f"{ts} Ending eval - {self.steps_eval} steps completed in {duration} s")
             self.per_epoch_stats[epoch]['eval']['end'] = ts
             self.per_epoch_stats[epoch]['eval']['duration'] = duration        
-            logging.info(f"{utcnow()} Epoch {epoch} [eval] accelerator_under_utilization (%): {self.output[epoch]['au']['eval']:.4f}")
-            logging.info(f"{utcnow()} Epoch {epoch} [eval] throughput (samples/second): {self.output[epoch]['throughput']['eval']*self.comm_size:.4f}")
+            logging.info(f"{utcnow()} Epoch {epoch} [Eval] Accelerator Utilization (%): {self.output[epoch]['au']['eval']:.4f}")
+            logging.info(f"{utcnow()} Epoch {epoch} [Eval] Throughput (samples/second): {self.output[epoch]['throughput']['eval']*self.comm_size:.4f}")
 
     def start_block(self, epoch, block):
         self.start_timestamp = time()
@@ -200,8 +200,8 @@ class StatsCounter(object):
             logging.info(f"{ts} Ending block {block} - {steps_taken} steps completed in {duration} s")
             self.per_epoch_stats[epoch][f'block{block}']['end'] = ts
             self.per_epoch_stats[epoch][f'block{block}']['duration'] = duration
-            logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [training] accelerator_under_utilization (%): {self.output[epoch]['au'][f'block{block}']:.4f}")
-            logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [training] throughput (samples/second): {self.output[epoch]['throughput'][f'block{block}']*self.comm_size:.4f}")
+            logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Accelerator Utilization (%): {self.output[epoch]['au'][f'block{block}']:.4f}")
+            logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Throughput (samples/second): {self.output[epoch]['throughput'][f'block{block}']*self.comm_size:.4f}")
 
     def start_ckpt(self, epoch, block, steps_taken):
         if self.my_rank == 0:
