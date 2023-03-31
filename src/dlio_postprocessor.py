@@ -193,8 +193,8 @@ class DLIOPostProcessor:
         logging.info(f"Computing overall stats")
 
         # Save the overall stats
-        self.overall_stats['samples/s'] = self.get_stats(self.summary['metric']['train_throughput'])
-        io = np.array(self.summary['metric']['train_throughput'])*self.record_size/1024/1024.
+        self.overall_stats['samples/s'] = self.get_stats(self.summary['metric']['train_throughput_samples_per_second'])
+        io = np.array(self.summary['metric']['train_throughput_samples_per_second'])*self.record_size/1024/1024.
         self.overall_stats['MB/s'] = self.get_stats(io)
         # The average process loading time is the sum of all the time spent 
         # loading across different processes divided by the number of processes
