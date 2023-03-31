@@ -284,6 +284,6 @@ class StatsCounter(object):
                 json.dump(self.per_epoch_stats, outfile, indent=4)
             with open(os.path.join(self.output_folder, 'summary.json'), 'w') as outfile:
                 json.dump(self.summary, outfile, indent=4)
-
+        self.output['hostname'] = socket.gethostname()
         with open(os.path.join(self.output_folder, f'{self.my_rank}_output.json'), 'w') as outfile:
             json.dump(self.output, outfile, indent=4)
