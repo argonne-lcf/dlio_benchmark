@@ -1,22 +1,23 @@
 {
-    "num_procs": 2,
+    "num_accelerators": 2,
+    "hostname": "7a3725255f7c",
     "metric": {
-        "train_auu": [
-            4.2228377205384255,
-            10.80447118866274
+        "train_au_percentage": [
+            97.40221299202571,
+            85.99759415646433
         ],
-        "train_auu_mean": 7.513654454600583,
-        "train_auu_stdev": 3.2908167340621572,
-        "train_throughput": [
-            4.934285231225383,
-            4.685534097995802
+        "train_au_mean_percentage": 91.69990357424501,
+        "train_au_stdev_percentage": 5.702309417780691,
+        "train_throughput_samples_per_second": [
+            5.205868463733234,
+            4.558981769090128
         ],
-        "train_throughput_mean": 4.8099096646105926,
-        "train_throughput_stdev": 0.12437556661479032,
-        "train_io_mean": 1075.9511033670285,
-        "train_io_stdev": 27.822149990818414
+        "train_throughput_mean_samples_per_second": 4.882425116411681,
+        "train_throughput_stdev_samples_per_second": 0.323443347321553,
+        "train_io_mean_MB_per_second": 1092.1724226468066,
+        "train_io_stdev_MB_per_second": 72.35254936030583
     },
-    "start": "2023-03-30T19:25:14.965236",
-    "end": "2023-03-30T19:26:24.995224",
+    "start": "2023-03-31T14:50:37.201309",
+    "end": "2023-03-31T14:51:46.545664",
     "epochs": 2
 }
