@@ -356,7 +356,6 @@ class DLIOBenchmark(object):
             self.stats.save_data()
         self.framework.barrier()  
 
-@measure_performance
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg: DictConfig) -> None:
     """
