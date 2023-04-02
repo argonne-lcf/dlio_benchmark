@@ -38,6 +38,7 @@ class CSVGenerator(DataGenerator):
         Generate csv data for training. It generates a 2d dataset and writes it to file.
         """
         super().generate()
+        random.seed(10)
         records = [record]*self.num_samples
         record_label = 0
         for i in range(0, int(self.total_files_to_generate)):
@@ -64,3 +65,4 @@ class CSVGenerator(DataGenerator):
                     elif self.compression == Compression.XZ:
                         out_path_spec = out_path_spec + ".xz"
                 df.to_csv(out_path_spec, compression=compression)
+        random.seed()
