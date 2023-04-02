@@ -39,7 +39,6 @@ class CSVGenerator(DataGenerator):
         """
         super().generate()
         random.seed(10)
-        records = [record]*self.num_samples
         record_label = 0
         for i in range(0, int(self.total_files_to_generate)):
             if (self._dimension_stdev>0):

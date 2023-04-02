@@ -38,7 +38,7 @@ class JPEGGenerator(DataGenerator):
         super().generate()
         random.seed(10)
         dim = int(np.sqrt(self.record_size/3.0))
-        dim_stdev = self.record_size_stdev = 1.0/np.sqrt(self.record_size*3.0)/2.0
+        dim_stdev = self.record_size_stdev/np.sqrt(self.record_size*3.0)/2.0
         record_labels = [0] 
         if self.my_rank==0:
             logging.info(f"{utcnow()} Dimension of images: {dim} x {dim} x 3")
