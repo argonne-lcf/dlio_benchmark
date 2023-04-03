@@ -157,7 +157,7 @@ class PerfTrace:
         instance.log_file = os.path.join(logdir, instance.logfile)
         if os.path.isfile(instance.log_file):
             os.remove(instance.log_file)
-        dlio_logger.initialize(instance.log_file, f"{data_dir}")
+        dlio_logger.initialize(instance.log_file, f"{data_dir}", process_id=get_rank())
 
     def finalize(self):
         dlio_logger.finalize()
