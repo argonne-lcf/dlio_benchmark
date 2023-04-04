@@ -90,7 +90,7 @@ class TFReader(FormatReader):
             lambda x: tf.py_function(func=self.parse_image, inp=[x], Tout=[tf.float64])
             , num_parallel_calls=self._args.computation_threads)
         self._dataset = self._dataset.batch(batch_size, drop_remainder=True)
-        total = math.ceil(len(_file_list)/self._args.comm_size / batch_size)
+        total = math.ceil(len(_file_list)/self._args.comm_size / batch_size * self._args.num_samples_per_file)
         step = 1
         for batch in self._dataset:
             is_last = 0 if step <= total else 1
