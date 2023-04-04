@@ -51,8 +51,8 @@ class TFDataLoader(BaseDataLoader):
         if read_threads == 0:
             if self._args.my_rank == 0:
                 logging.warning(
-                    f"{utcnow()} `read_threads` is set to be 0 for tf.data loader. We change it to tf.data.AUTOTUNE")
-            read_threads = tf.data.AUTOTUNE
+                    f"{utcnow()} `read_threads` is set to be 0 for tf.data loader. We change it to 1")
+            read_threads = 1
 
         options = tf.data.Options()
         options.threading.private_threadpool_size = read_threads
@@ -60,6 +60,7 @@ class TFDataLoader(BaseDataLoader):
 
         batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
         self._dataset = tf.data.Dataset.from_tensor_slices(range(read_threads)).with_options(options)
+
         self._dataset = self._dataset.interleave(lambda x: TensorflowDataset(self.format_type, self.dataset_type,
                                                                              self.epoch_number, (
                                                                                  batch_size,

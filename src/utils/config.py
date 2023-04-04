@@ -247,7 +247,6 @@ class ConfigArguments:
                 self.global_index_map = self.get_global_map(self.file_list_train, self.total_samples_train)
             else:
                 self.global_index_map = self.get_global_map(self.file_list_eval, self.total_samples_eval)
-
 def LoadConfig(args, config):
     '''
     Override the args by a system config (typically loaded from a YAML file)

@@ -130,8 +130,12 @@ class StatsCounter(object):
         au = np.array([self.output[epoch]['au'][k] for k in self.output[epoch]['au']])
         throughput = np.array([self.output[epoch]['throughput'][k] for k in self.output[epoch]['throughput']])
         steps = np.array([len(self.output[epoch]['proc'][k]) for k in self.output[epoch]['throughput']])
-        au = np.sum(au*steps)/np.sum(steps)
-        throughput = np.sum(throughput*steps)/np.sum(steps)
+        if (np.sum(steps)==0):
+            au = 0.0
+            throughput = 0.0
+        else:
+            au = np.sum(au*steps)/np.sum(steps)
+            throughput = np.sum(throughput*steps)/np.sum(steps)
         self.train_au.append(au)
         self.train_throughput.append(throughput)
 
@@ -246,8 +250,11 @@ class StatsCounter(object):
     def compute_metrics_train(self, epoch, block):
         key = f"block{block}"
         total_compute_time = np.sum(self.output[epoch]['compute'][key][1:])
-        total_time = self.end_timestamp - self.start_timestamp - self.output[epoch]['proc'][key][0]
-        au = total_compute_time / total_time
+        if (total_compute_time==0):
+            au=0.0
+        else:
+            total_time = self.end_timestamp - self.start_timestamp - self.output[epoch]['proc'][key][0]
+            au = total_compute_time / total_time
         throughput = len(self.output[epoch]['compute'][key])/(self.end_timestamp - self.start_timestamp)*self.batch_size
         self.output[epoch]['au'][key] = au*100
         self.output[epoch]['throughput'][key] = throughput
@@ -255,8 +262,11 @@ class StatsCounter(object):
     def compute_metrics_eval(self, epoch):
         key = 'eval'
         total_compute_time = np.sum(self.output[epoch]['compute'][key][1:])
-        total_time = self.end_timestamp - self.start_timestamp - self.output[epoch]['proc'][key][0]
-        au = total_compute_time / total_time
+        if (total_compute_time==0):
+            au=0.0
+        else:
+            total_time = self.end_timestamp - self.start_timestamp - self.output[epoch]['proc'][key][0]
+            au = total_compute_time / total_time
         throughput = len(self.output[epoch]['compute'][key])/(self.end_timestamp - self.start_timestamp)*self.batch_size_eval
         self.output[epoch]['au'][key] = au*100
         self.output[epoch]['throughput'][key] = throughput
