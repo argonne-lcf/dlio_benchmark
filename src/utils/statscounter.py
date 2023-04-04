@@ -71,42 +71,43 @@ class StatsCounter(object):
     def end_run(self):
         self.summary['end'] = utcnow()
         self.end_run_timestamp = time()
-        total_elapsed_time = self.end_run_timestamp - self.start_run_timestamp
-        train_au = np.array(comm.allreduce(np.array(self.train_au)))/comm.size
-        train_throughput = comm.allreduce(np.array(self.train_throughput))
-        self.summary['epochs'] = len(train_au)
-        self.summary['metric']['train_au_percentage'] = list(train_au)
-        self.summary['metric']['train_au_mean_percentage'] = np.mean(train_au)
-        self.summary['metric']['train_au_stdev_percentage'] = np.std(train_au)
-        self.summary['metric']['train_throughput_samples_per_second'] = list(train_throughput)
-        self.summary['metric']['train_throughput_mean_samples_per_second'] = np.mean(train_throughput)
-        self.summary['metric']['train_throughput_stdev_samples_per_second'] = np.std(train_throughput)
-        self.summary['metric']['train_io_mean_MB_per_second'] = np.mean(train_throughput)*self.record_size/1024./1024.
-        self.summary['metric']['train_io_stdev_MB_per_second'] = np.std(train_throughput)*self.record_size/1024./1024.
-        if self.args.do_eval:
-            eval_au = np.array(comm.allreduce(self.eval_au))/comm.size
-            eval_throughput = comm.allreduce(self.eval_throughput)
-            self.summary['metric']['eval_au_percentage'] = list(eval_au)
-            self.summary['metric']['eval_au_mean_percentage'] = np.mean(eval_au)
-            self.summary['metric']['eval_au_stdev_percentage'] = np.std(eval_au)
-            self.summary['metric']['eval_throughput_samples_per_second'] = list(eval_throughput)
-            self.summary['metric']['eval_throughput_mean_samples_per_second'] = np.mean(eval_throughput)
-            self.summary['metric']['eval_throughput_stdev_samples_per_second'] = np.std(eval_throughput)
-            self.summary['metric']['eval_io_mean_MB_per_second'] = np.mean(eval_throughput)*self.record_size/1024./1024.
-            self.summary['metric']['eval_io_stdev_MB_per_second'] = np.std(eval_throughput)*self.record_size/1024./1024.
-        if self.my_rank==0:
-            logging.info(f"{utcnow()} Saved outputs in {self.output_folder}")   
-            metric="Averaged metric over all epochs\n[METRIC] ==========================================================\n"
-            metric = metric + f"[METRIC] Training Accelerator Utilization (%): {np.mean(train_au):.4f} ({np.std(train_au):.4f})\n"
-            metric = metric + f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput):.4f} ({np.std(train_throughput):.4f})\n"
-            metric = metric + f"[METRIC] Training I/O Throughput (MB/second): {np.mean(train_throughput)*self.record_size/1024/1024:.4f} ({np.std(train_throughput)*self.record_size/1024/1024:.4f})\n"
-
+        if not self.args.generate_only:
+            total_elapsed_time = self.end_run_timestamp - self.start_run_timestamp
+            train_au = np.array(comm.allreduce(np.array(self.train_au)))/comm.size
+            train_throughput = comm.allreduce(np.array(self.train_throughput))
+            self.summary['epochs'] = len(train_au)
+            self.summary['metric']['train_au_percentage'] = list(train_au)
+            self.summary['metric']['train_au_mean_percentage'] = np.mean(train_au)
+            self.summary['metric']['train_au_stdev_percentage'] = np.std(train_au)
+            self.summary['metric']['train_throughput_samples_per_second'] = list(train_throughput)
+            self.summary['metric']['train_throughput_mean_samples_per_second'] = np.mean(train_throughput)
+            self.summary['metric']['train_throughput_stdev_samples_per_second'] = np.std(train_throughput)
+            self.summary['metric']['train_io_mean_MB_per_second'] = np.mean(train_throughput)*self.record_size/1024./1024.
+            self.summary['metric']['train_io_stdev_MB_per_second'] = np.std(train_throughput)*self.record_size/1024./1024.
             if self.args.do_eval:
-                metric = metric + f"[METRIC] Eval Accelerator Utilization (%): {np.mean(eval_au):.4f} ({np.std(eval_au):.4f})\n"
-                metric = metric + f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput):.6f} ({np.std(eval_throughput):.6f})\n"
-                metric = metric + f"[METRIC] Eval Throughput (MB/second): {np.mean(eval_throughput)*self.record_size/1024/1024:.6f} ({np.std(eval_throughput)*self.record_size/1024/1024:.6f})\n"
-            metric+="[METRIC] ==========================================================\n"
-            logging.info(metric)   
+                eval_au = np.array(comm.allreduce(self.eval_au))/comm.size
+                eval_throughput = comm.allreduce(self.eval_throughput)
+                self.summary['metric']['eval_au_percentage'] = list(eval_au)
+                self.summary['metric']['eval_au_mean_percentage'] = np.mean(eval_au)
+                self.summary['metric']['eval_au_stdev_percentage'] = np.std(eval_au)
+                self.summary['metric']['eval_throughput_samples_per_second'] = list(eval_throughput)
+                self.summary['metric']['eval_throughput_mean_samples_per_second'] = np.mean(eval_throughput)
+                self.summary['metric']['eval_throughput_stdev_samples_per_second'] = np.std(eval_throughput)
+                self.summary['metric']['eval_io_mean_MB_per_second'] = np.mean(eval_throughput)*self.record_size/1024./1024.
+                self.summary['metric']['eval_io_stdev_MB_per_second'] = np.std(eval_throughput)*self.record_size/1024./1024.
+            if self.my_rank==0:
+                logging.info(f"{utcnow()} Saved outputs in {self.output_folder}")   
+                metric="Averaged metric over all epochs\n[METRIC] ==========================================================\n"
+                metric = metric + f"[METRIC] Training Accelerator Utilization (%): {np.mean(train_au):.4f} ({np.std(train_au):.4f})\n"
+                metric = metric + f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput):.4f} ({np.std(train_throughput):.4f})\n"
+                metric = metric + f"[METRIC] Training I/O Throughput (MB/second): {np.mean(train_throughput)*self.record_size/1024/1024:.4f} ({np.std(train_throughput)*self.record_size/1024/1024:.4f})\n"
+
+                if self.args.do_eval:
+                    metric = metric + f"[METRIC] Eval Accelerator Utilization (%): {np.mean(eval_au):.4f} ({np.std(eval_au):.4f})\n"
+                    metric = metric + f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput):.6f} ({np.std(eval_throughput):.6f})\n"
+                    metric = metric + f"[METRIC] Eval Throughput (MB/second): {np.mean(eval_throughput)*self.record_size/1024/1024:.6f} ({np.std(eval_throughput)*self.record_size/1024/1024:.6f})\n"
+                metric+="[METRIC] ==========================================================\n"
+                logging.info(metric)   
     def start_train(self, epoch):   
         if self.my_rank == 0:
             ts = utcnow()
@@ -245,10 +246,8 @@ class StatsCounter(object):
     def compute_metrics_train(self, epoch, block):
         key = f"block{block}"
         total_compute_time = np.sum(self.output[epoch]['compute'][key][1:])
-        if total_compute_time == 0.0:
-            au = -1
-        else:
-            au = 1.0 - (self.end_timestamp - self.start_timestamp - total_compute_time - self.output[epoch]['proc'][key][0]) / total_compute_time
+        total_time = self.end_timestamp - self.start_timestamp - self.output[epoch]['proc'][key][0]
+        au = total_compute_time / total_time
         throughput = len(self.output[epoch]['compute'][key])/(self.end_timestamp - self.start_timestamp)*self.batch_size
         self.output[epoch]['au'][key] = au*100
         self.output[epoch]['throughput'][key] = throughput
@@ -256,10 +255,8 @@ class StatsCounter(object):
     def compute_metrics_eval(self, epoch):
         key = 'eval'
         total_compute_time = np.sum(self.output[epoch]['compute'][key][1:])
-        if total_compute_time == 0.0:
-            au = -1
-        else:
-            au = 1.0 - (self.end_timestamp - self.start_timestamp - total_compute_time - self.output[epoch]['proc'][key][0]) / total_compute_time
+        total_time = self.end_timestamp - self.start_timestamp - self.output[epoch]['proc'][key][0]
+        au = total_compute_time / total_time
         throughput = len(self.output[epoch]['compute'][key])/(self.end_timestamp - self.start_timestamp)*self.batch_size_eval
         self.output[epoch]['au'][key] = au*100
         self.output[epoch]['throughput'][key] = throughput
