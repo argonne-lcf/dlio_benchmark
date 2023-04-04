@@ -19,17 +19,13 @@ from src.common.enumerations import Compression
 from src.data_generator.data_generator import DataGenerator
 import math
 import os
-from mpi4py import MPI
 
 from numpy import random
 import csv
 
 from shutil import copyfile
-from src.utils.utility import progress, Profile
+from src.utils.utility import progress
 import pandas as pd
-from src.common.constants import MODULE_DATA_GENERATOR
-
-dlp = Profile(MODULE_DATA_GENERATOR)
 
 """
 Generator for creating data in CSV format.
@@ -37,8 +33,6 @@ Generator for creating data in CSV format.
 class CSVGenerator(DataGenerator):
     def __init__(self):
         super().__init__()
-    
-    @dlp.log
     def generate(self):
         """
         Generate csv data for training. It generates a 2d dataset and writes it to file.
@@ -46,8 +40,8 @@ class CSVGenerator(DataGenerator):
         super().generate()
         random.seed(10)
         record_label = 0
-        for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
-            progress(i, self.total_files_to_generate, "Generating CSV Data")
+        for i in range(self.my_rank, int(self.total_files_to_generate), self.comm_size):
+            progress(i+1, self.total_files_to_generate, "Generating CSV Data")
             if (self._dimension_stdev>0):
                 dim1, dim2 = [max(int(d), 0) for d in random.normal( self._dimension, self._dimension_stdev, 2)]
             else:
