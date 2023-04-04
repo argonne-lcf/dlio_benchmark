@@ -47,6 +47,7 @@ class CSVGenerator(DataGenerator):
         random.seed(10)
         record_label = 0
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
+            progress(i, self.total_files_to_generate, "Generating CSV Data")
             if (self._dimension_stdev>0):
                 dim1, dim2 = [max(int(d), 0) for d in random.normal( self._dimension, self._dimension_stdev, 2)]
             else:
@@ -54,7 +55,7 @@ class CSVGenerator(DataGenerator):
             record = random.random(dim1*dim2)
             records = [record]*self.num_samples
             df = pd.DataFrame(data=records)
-            out_path_spec = self.storage.get_uri(self._file_list[0])
+            out_path_spec = self.storage.get_uri(self._file_list[i])
             compression = None
             if self.compression != Compression.NONE:
                 compression = {
