@@ -36,8 +36,9 @@ class TestDLIOPostProcessor(unittest.TestCase):
             'epochs': 2,
             'do_eval': False,
             'do_checkpoint': False,
-            'batch_size': 8,
+            'batch_size': 4,
             'batch_size_eval': 1,
+            'record_size':234560851
         }
         args = namedtuple('args', args.keys())(*args.values())
         postproc = self.create_DLIO_PostProcessor(args)
@@ -50,10 +51,9 @@ class TestDLIOPostProcessor(unittest.TestCase):
         #   'avg_process_loading_time': '21.00', 
         #   'avg_process_processing_time': '21.00'
         # }
-        self.assertEqual(postproc.overall_stats['samples/s']['mean'], '3.27')
-        self.assertEqual(postproc.overall_stats['sample_latency']['mean'], '3.27')
-        self.assertEqual(postproc.overall_stats['avg_process_loading_time'], '21.00')
-        self.assertEqual(postproc.overall_stats['avg_process_processing_time'], '21.00')
+        self.assertEqual(postproc.overall_stats['samples/s']['mean'], '4.88')
+        self.assertEqual(postproc.overall_stats['avg_process_loading_time'], '7.89')
+        self.assertEqual(postproc.overall_stats['avg_process_processing_time'], '69.10')
 
 
 

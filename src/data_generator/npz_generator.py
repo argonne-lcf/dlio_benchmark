@@ -41,6 +41,7 @@ class NPZGenerator(DataGenerator):
         Generator for creating data in NPZ format of 3d dataset.
         """
         super().generate()
+        random.seed(10)
         record_labels = [0] * self.num_samples
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
             if (self._dimension_stdev>0):
@@ -55,3 +56,4 @@ class NPZGenerator(DataGenerator):
                 np.savez(out_path_spec, x=records, y=record_labels)
             else:
                 np.savez_compressed(out_path_spec, x=records, y=record_labels)
+        random.seed()

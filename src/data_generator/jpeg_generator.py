@@ -43,8 +43,9 @@ class JPEGGenerator(DataGenerator):
         Generator for creating data in JPEG format of 3d dataset.
         """
         super().generate()
+        random.seed(10)
         dim = int(np.sqrt(self.record_size))
-        dim_stdev = np.sqrt(self.record_size_stdev)
+        dim_stdev = self.record_size_stdev /np.sqrt(self.record_size)/2.0
         record_labels = [0] 
         if self.my_rank==0:
             logging.info(f"{utcnow()} Dimension of images: {dim} x {dim}")
@@ -60,3 +61,4 @@ class JPEGGenerator(DataGenerator):
             out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating JPEG Data")
             img.save(out_path_spec, format='JPEG', bits=8)
+        random.seed()

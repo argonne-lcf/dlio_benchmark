@@ -39,6 +39,7 @@ class TFRecordGenerator(DataGenerator):
         TODO: Extend this to create accurate records for BERT, which does not use image/label pairs.
         """
         super().generate()
+        random.seed(10)
         # This creates a 2D image representing a single record
         record_label = 0
         for i in dlp.iter(range(self.my_rank, self.total_files_to_generate, self.comm_size)):
@@ -67,3 +68,4 @@ class TFRecordGenerator(DataGenerator):
                     serialized = example.SerializeToString()
                     # Write the serialized data to the TFRecords file.
                     writer.write(serialized)
+        random.seed()
