@@ -83,7 +83,7 @@ class StatsCounter(object):
         self.summary['metric']['train_throughput_stdev_samples_per_second'] = np.std(train_throughput)
         self.summary['metric']['train_io_mean_MB_per_second'] = np.mean(train_throughput)*self.record_size/1024./1024.
         self.summary['metric']['train_io_stdev_MB_per_second'] = np.std(train_throughput)*self.record_size/1024./1024.
-        if len(self.eval_au)>0:
+        if self.args.do_eval:
             eval_au = np.array(comm.allreduce(self.eval_au))/comm.size
             eval_throughput = comm.allreduce(self.eval_throughput)
             self.summary['metric']['eval_au_percentage'] = list(eval_au)
@@ -101,7 +101,7 @@ class StatsCounter(object):
             metric = metric + f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput):.4f} ({np.std(train_throughput):.4f})\n"
             metric = metric + f"[METRIC] Training I/O Throughput (MB/second): {np.mean(train_throughput)*self.record_size/1024/1024:.4f} ({np.std(train_throughput)*self.record_size/1024/1024:.4f})\n"
 
-            if len(self.eval_au)>0:
+            if self.args.do_eval:
                 metric = metric + f"[METRIC] Eval Accelerator Utilization (%): {np.mean(eval_au):.4f} ({np.std(eval_au):.4f})\n"
                 metric = metric + f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput):.6f} ({np.std(eval_throughput):.6f})\n"
                 metric = metric + f"[METRIC] Eval Throughput (MB/second): {np.mean(eval_throughput)*self.record_size/1024/1024:.6f} ({np.std(eval_throughput)*self.record_size/1024/1024:.6f})\n"
@@ -153,13 +153,13 @@ class StatsCounter(object):
         self.output[epoch]['load']['eval'] = []
         self.output[epoch]['proc']['eval'] = []
         self.output[epoch]['compute']['eval'] = []
-        self.output[epoch]['au']['eval'] = []
-        self.output[epoch]['throughput']['eval'] = []
+        self.output[epoch]['au']['eval'] = 0.0
+        self.output[epoch]['throughput']['eval'] = 0.0
     def end_eval(self, epoch):
         self.end_timestamp = time()
         self.compute_metrics_eval(epoch)
-        self.output[epoch]['eval_au'] = self.output[epoch]['au']['eval']
-        self.output[epoch]['eval_throughput'] = self.output[epoch]['throughput']['eval'] 
+        self.eval_au.append(self.output[epoch]['au']['eval'])
+        self.eval_throughput.append(self.output[epoch]['throughput']['eval'] )
         if self.my_rank == 0:
             ts = utcnow()
             duration = pd.to_datetime(ts)- pd.to_datetime(self.per_epoch_stats[epoch]['eval']['start'])
@@ -282,8 +282,13 @@ class StatsCounter(object):
         if self.my_rank == 0:
             with open(os.path.join(self.output_folder, 'per_epoch_stats.json'), 'w') as outfile:
                 json.dump(self.per_epoch_stats, outfile, indent=4)
+                outfile.flush()
             with open(os.path.join(self.output_folder, 'summary.json'), 'w') as outfile:
                 json.dump(self.summary, outfile, indent=4)
         self.output['hostname'] = socket.gethostname()
         with open(os.path.join(self.output_folder, f'{self.my_rank}_output.json'), 'w') as outfile:
             json.dump(self.output, outfile, indent=4)
+            outfile.flush()
+            logging.info(f"{utcnow()} Rank {self.my_rank} wrote json output")
+
+

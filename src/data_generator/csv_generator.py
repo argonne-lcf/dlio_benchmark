@@ -40,28 +40,27 @@ class CSVGenerator(DataGenerator):
         super().generate()
         random.seed(10)
         record_label = 0
-        for i in range(0, int(self.total_files_to_generate)):
+        for i in range(self.my_rank, int(self.total_files_to_generate), self.comm_size):
+            progress(i+1, self.total_files_to_generate, "Generating CSV Data")
             if (self._dimension_stdev>0):
                 dim1, dim2 = [max(int(d), 0) for d in random.normal( self._dimension, self._dimension_stdev, 2)]
             else:
                 dim1 = dim2 = self._dimension
             record = random.random(dim1*dim2)
-            if i % self.comm_size == self.my_rank:
-                progress(i+1, self.total_files_to_generate, "Generating CSV Data")
-                out_path_spec = self.storage.get_uri(self._file_list[i])
-                df = pd.DataFrame(data=records)
-                compression = None
-                if self.compression != Compression.NONE:
-                    compression = {
-                        "method": str(self.compression)
-                    }
-                    if self.compression == Compression.GZIP:
-                        out_path_spec = out_path_spec + ".gz"
-                    elif self.compression == Compression.BZIP2:
-                        out_path_spec = out_path_spec + ".bz2"
-                    elif self.compression == Compression.ZIP:
-                        out_path_spec = out_path_spec + ".zip"
-                    elif self.compression == Compression.XZ:
-                        out_path_spec = out_path_spec + ".xz"
-                df.to_csv(out_path_spec, compression=compression)
+            out_path_spec = self.storage.get_uri(self._file_list[i])
+            df = pd.DataFrame(data=records)
+            compression = None
+            if self.compression != Compression.NONE:
+                compression = {
+                    "method": str(self.compression)
+                }
+                if self.compression == Compression.GZIP:
+                    out_path_spec = out_path_spec + ".gz"
+                elif self.compression == Compression.BZIP2:
+                    out_path_spec = out_path_spec + ".bz2"
+                elif self.compression == Compression.ZIP:
+                    out_path_spec = out_path_spec + ".zip"
+                elif self.compression == Compression.XZ:
+                    out_path_spec = out_path_spec + ".xz"
+            df.to_csv(out_path_spec, compression=compression)
         random.seed()
