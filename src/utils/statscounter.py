@@ -24,17 +24,25 @@ import math
 import logging
 import pandas as pd
 from time import time
-
+import numpy as np
+from mpi4py import MPI
+comm = MPI.COMM_WORLD
+import socket
 class StatsCounter(object):
 
     def __init__(self):
         self.args = ConfigArguments.get_instance()
         self.my_rank = self.args.my_rank
+        self.comm_size = self.args.comm_size
         self.output_folder = self.args.output_folder
-
+        self.record_size = self.args.record_length
         self.batch_size = self.args.batch_size
         self.batch_size_eval = self.args.batch_size_eval
-        
+        self.summary = {}
+        self.summary['num_accelerators'] = self.comm_size
+        self.summary['hostname'] = socket.gethostname()
+        self.summary['metric'] = {}
+
         max_steps = math.floor(self.args.num_samples_per_file * self.args.num_files_train / self.args.batch_size / self.args.comm_size)
 
         if self.args.total_training_steps > 0:
@@ -52,11 +60,55 @@ class StatsCounter(object):
         if self.my_rank == 0:
             self.per_epoch_stats = {}
         # Each process keeps track of its loading and processing times independently
-        self.loading_times = {}
-        self.processing_times = {}
-        self.load_and_proc_times = {}
+        self.output = {}
+        self.train_au = []
+        self.eval_au = []
+        self.train_throughput = []
+        self.eval_throughput = []
+    def start_run(self):
+        self.start_run_timestamp = time()
+        self.summary['start'] = utcnow()
+    def end_run(self):
+        self.summary['end'] = utcnow()
+        self.end_run_timestamp = time()
+        if not self.args.generate_only:
+            total_elapsed_time = self.end_run_timestamp - self.start_run_timestamp
+            train_au = np.array(comm.allreduce(np.array(self.train_au)))/comm.size
+            train_throughput = comm.allreduce(np.array(self.train_throughput))
+            self.summary['epochs'] = len(train_au)
+            self.summary['metric']['train_au_percentage'] = list(train_au)
+            self.summary['metric']['train_au_mean_percentage'] = np.mean(train_au)
+            self.summary['metric']['train_au_stdev_percentage'] = np.std(train_au)
+            self.summary['metric']['train_throughput_samples_per_second'] = list(train_throughput)
+            self.summary['metric']['train_throughput_mean_samples_per_second'] = np.mean(train_throughput)
+            self.summary['metric']['train_throughput_stdev_samples_per_second'] = np.std(train_throughput)
+            self.summary['metric']['train_io_mean_MB_per_second'] = np.mean(train_throughput)*self.record_size/1024./1024.
+            self.summary['metric']['train_io_stdev_MB_per_second'] = np.std(train_throughput)*self.record_size/1024./1024.
+            if self.args.do_eval:
+                eval_au = np.array(comm.allreduce(self.eval_au))/comm.size
+                eval_throughput = comm.allreduce(self.eval_throughput)
+                self.summary['metric']['eval_au_percentage'] = list(eval_au)
+                self.summary['metric']['eval_au_mean_percentage'] = np.mean(eval_au)
+                self.summary['metric']['eval_au_stdev_percentage'] = np.std(eval_au)
+                self.summary['metric']['eval_throughput_samples_per_second'] = list(eval_throughput)
+                self.summary['metric']['eval_throughput_mean_samples_per_second'] = np.mean(eval_throughput)
+                self.summary['metric']['eval_throughput_stdev_samples_per_second'] = np.std(eval_throughput)
+                self.summary['metric']['eval_io_mean_MB_per_second'] = np.mean(eval_throughput)*self.record_size/1024./1024.
+                self.summary['metric']['eval_io_stdev_MB_per_second'] = np.std(eval_throughput)*self.record_size/1024./1024.
+            if self.my_rank==0:
+                logging.info(f"{utcnow()} Saved outputs in {self.output_folder}")   
+                metric="Averaged metric over all epochs\n[METRIC] ==========================================================\n"
+                metric = metric + f"[METRIC] Training Accelerator Utilization (%): {np.mean(train_au):.4f} ({np.std(train_au):.4f})\n"
+                metric = metric + f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput):.4f} ({np.std(train_throughput):.4f})\n"
+                metric = metric + f"[METRIC] Training I/O Throughput (MB/second): {np.mean(train_throughput)*self.record_size/1024/1024:.4f} ({np.std(train_throughput)*self.record_size/1024/1024:.4f})\n"
 
-    def start_epoch(self, epoch):
+                if self.args.do_eval:
+                    metric = metric + f"[METRIC] Eval Accelerator Utilization (%): {np.mean(eval_au):.4f} ({np.std(eval_au):.4f})\n"
+                    metric = metric + f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput):.6f} ({np.std(eval_throughput):.6f})\n"
+                    metric = metric + f"[METRIC] Eval Throughput (MB/second): {np.mean(eval_throughput)*self.record_size/1024/1024:.6f} ({np.std(eval_throughput)*self.record_size/1024/1024:.6f})\n"
+                metric+="[METRIC] ==========================================================\n"
+                logging.info(metric)   
+    def start_train(self, epoch):   
         if self.my_rank == 0:
             ts = utcnow()
             if self.steps_override:
@@ -67,32 +119,48 @@ class StatsCounter(object):
                 'start': ts,
             }
         # Initialize dicts for the current epoch
-        self.loading_times[epoch] = {}
-        self.processing_times[epoch] = {}
-        self.load_and_proc_times[epoch] = {}
-        self.load_and_proc_times[epoch]['load'] = {}
-        self.load_and_proc_times[epoch]['proc'] = {}
+        self.output[epoch] = {}
+        self.output[epoch]['load'] = {}
+        self.output[epoch]['proc'] = {}
+        self.output[epoch]['throughput'] = {}
+        self.output[epoch]['au'] = {}
+        self.output[epoch]['compute'] = {}
 
-    def end_epoch(self, epoch, steps):
+    def end_train(self, epoch, steps):
+        au = np.array([self.output[epoch]['au'][k] for k in self.output[epoch]['au']])
+        throughput = np.array([self.output[epoch]['throughput'][k] for k in self.output[epoch]['throughput']])
+        steps = np.array([len(self.output[epoch]['proc'][k]) for k in self.output[epoch]['throughput']])
+        au = np.sum(au*steps)/np.sum(steps)
+        throughput = np.sum(throughput*steps)/np.sum(steps)
+        self.train_au.append(au)
+        self.train_throughput.append(throughput)
+
         if self.my_rank == 0:
             ts = utcnow()
             duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch]['start'])
             duration = '{:.2f}'.format(duration.total_seconds())
             self.per_epoch_stats[epoch]['end'] = ts
             self.per_epoch_stats[epoch]['duration'] = duration
-            logging.info(f"{ts} Ending epoch {epoch} - {steps} steps completed in {duration} s")
+            logging.info(f"{ts} Ending epoch {epoch} - {np.sum(steps)} steps completed in {duration} s")
 
     def start_eval(self, epoch):
+        self.start_timestamp = time()
         if self.my_rank == 0:
             ts = utcnow()
             logging.info(f"{ts} Starting eval - {self.steps_eval} steps expected")
             self.per_epoch_stats[epoch]['eval'] = {
                 'start': ts
             }
-        self.load_and_proc_times[epoch]['load']['eval'] = []
-        self.load_and_proc_times[epoch]['proc']['eval'] = []
-
+        self.output[epoch]['load']['eval'] = []
+        self.output[epoch]['proc']['eval'] = []
+        self.output[epoch]['compute']['eval'] = []
+        self.output[epoch]['au']['eval'] = 0.0
+        self.output[epoch]['throughput']['eval'] = 0.0
     def end_eval(self, epoch):
+        self.end_timestamp = time()
+        self.compute_metrics_eval(epoch)
+        self.eval_au.append(self.output[epoch]['au']['eval'])
+        self.eval_throughput.append(self.output[epoch]['throughput']['eval'] )
         if self.my_rank == 0:
             ts = utcnow()
             duration = pd.to_datetime(ts)- pd.to_datetime(self.per_epoch_stats[epoch]['eval']['start'])
@@ -100,8 +168,16 @@ class StatsCounter(object):
             logging.info(f"{ts} Ending eval - {self.steps_eval} steps completed in {duration} s")
             self.per_epoch_stats[epoch]['eval']['end'] = ts
             self.per_epoch_stats[epoch]['eval']['duration'] = duration        
+            logging.info(f"{utcnow()} Epoch {epoch} [Eval] Accelerator Utilization (%): {self.output[epoch]['au']['eval']:.4f}")
+            logging.info(f"{utcnow()} Epoch {epoch} [Eval] Throughput (samples/second): {self.output[epoch]['throughput']['eval']*self.comm_size:.4f}")
 
     def start_block(self, epoch, block):
+        self.start_timestamp = time()
+        self.output[epoch]['load'][f'block{block}'] = []
+        self.output[epoch]['proc'][f'block{block}'] = []
+        self.output[epoch]['throughput'][f'block{block}'] = []
+        self.output[epoch]['au'][f'block{block}'] = []
+        self.output[epoch]['compute'][f'block{block}'] = []
         if self.my_rank == 0:
             ts = utcnow()
             logging.info(f"{ts} Starting block {block}")
@@ -110,6 +186,9 @@ class StatsCounter(object):
             }
 
     def end_block(self, epoch, block, steps_taken):
+        self.end_timestamp = time()
+        self.compute_metrics_train(epoch, block)
+        
         if self.my_rank == 0:
             # Block was possibly already ended. Need this to end blocks
             # still ongoing when data loader runs out of batches and
@@ -122,6 +201,8 @@ class StatsCounter(object):
             logging.info(f"{ts} Ending block {block} - {steps_taken} steps completed in {duration} s")
             self.per_epoch_stats[epoch][f'block{block}']['end'] = ts
             self.per_epoch_stats[epoch][f'block{block}']['duration'] = duration
+            logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Accelerator Utilization (%): {self.output[epoch]['au'][f'block{block}']:.4f}")
+            logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Throughput (samples/second): {self.output[epoch]['throughput'][f'block{block}']*self.comm_size:.4f}")
 
     def start_ckpt(self, epoch, block, steps_taken):
         if self.my_rank == 0:
@@ -144,32 +225,52 @@ class StatsCounter(object):
     def batch_loaded(self, epoch, step, block, t0):
         duration = time() - t0
         key = f'block{block}'
-        if key in self.load_and_proc_times[epoch]['load']:
-            self.load_and_proc_times[epoch]['load'][key].append(duration)
+        if key in self.output[epoch]['load']:
+            self.output[epoch]['load'][key].append(duration)
         else:
-            self.load_and_proc_times[epoch]['load'][key] = [duration]
+            self.output[epoch]['load'][key] = [duration]
         logging.debug(f"{utcnow()} Rank {self.my_rank} step {step}: loaded {self.batch_size} samples in {duration} s")
 
 
-    def batch_processed(self, epoch, step, block, t0):
+    def batch_processed(self, epoch, step, block, t0, computation_time):
         duration = time() - t0
         key = f'block{block}'
-        if key in self.load_and_proc_times[epoch]['proc']:
-            self.load_and_proc_times[epoch]['proc'][key].append(duration)
+        if key in self.output[epoch]['proc']:
+            self.output[epoch]['proc'][key].append(duration)
+            self.output[epoch]['compute'][key].append(computation_time)
         else:
-            self.load_and_proc_times[epoch]['proc'][key] = [duration]
+            self.output[epoch]['proc'] = [duration]
+            self.output[epoch]['compute']=[computation_time]
         logging.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size} samples in {duration} s")
 
+    def compute_metrics_train(self, epoch, block):
+        key = f"block{block}"
+        total_compute_time = np.sum(self.output[epoch]['compute'][key][1:])
+        total_time = self.end_timestamp - self.start_timestamp - self.output[epoch]['proc'][key][0]
+        au = total_compute_time / total_time
+        throughput = len(self.output[epoch]['compute'][key])/(self.end_timestamp - self.start_timestamp)*self.batch_size
+        self.output[epoch]['au'][key] = au*100
+        self.output[epoch]['throughput'][key] = throughput
+
+    def compute_metrics_eval(self, epoch):
+        key = 'eval'
+        total_compute_time = np.sum(self.output[epoch]['compute'][key][1:])
+        total_time = self.end_timestamp - self.start_timestamp - self.output[epoch]['proc'][key][0]
+        au = total_compute_time / total_time
+        throughput = len(self.output[epoch]['compute'][key])/(self.end_timestamp - self.start_timestamp)*self.batch_size_eval
+        self.output[epoch]['au'][key] = au*100
+        self.output[epoch]['throughput'][key] = throughput
 
     def eval_batch_loaded(self, epoch, step, t0):
         duration = time() - t0
-        self.load_and_proc_times[epoch]['load']['eval'].append(duration)
+        self.output[epoch]['load']['eval'].append(duration)
         logging.debug(f"{utcnow()} Rank {self.my_rank} step {step} loaded {self.batch_size_eval} samples in {duration} s")
 
 
-    def eval_batch_processed(self, epoch, step, t0):
+    def eval_batch_processed(self, epoch, step, t0, computation_time):
         duration = time() - t0
-        self.load_and_proc_times[epoch]['proc']['eval'].append(duration)
+        self.output[epoch]['proc']['eval'].append(duration)
+        self.output[epoch]['compute']['eval'].append(computation_time)
         logging.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size_eval} samples in {duration} s")
 
     def save_data(self):
@@ -179,8 +280,12 @@ class StatsCounter(object):
             with open(os.path.join(self.output_folder, 'per_epoch_stats.json'), 'w') as outfile:
                 json.dump(self.per_epoch_stats, outfile, indent=4)
                 outfile.flush()
-
-        with open(os.path.join(self.output_folder, f'{self.my_rank}_load_and_proc_times.json'), 'w') as outfile:
-            json.dump(self.load_and_proc_times, outfile, indent=4)
+            with open(os.path.join(self.output_folder, 'summary.json'), 'w') as outfile:
+                json.dump(self.summary, outfile, indent=4)
+        self.output['hostname'] = socket.gethostname()
+        with open(os.path.join(self.output_folder, f'{self.my_rank}_output.json'), 'w') as outfile:
+            json.dump(self.output, outfile, indent=4)
             outfile.flush()
             logging.info(f"{utcnow()} Rank {self.my_rank} wrote json output")
+
+
