@@ -47,8 +47,9 @@ class CSVGenerator(DataGenerator):
             else:
                 dim1 = dim2 = self._dimension
             record = random.random(dim1*dim2)
-            out_path_spec = self.storage.get_uri(self._file_list[i])
+            records = [record]*self.num_samples
             df = pd.DataFrame(data=records)
+            out_path_spec = self.storage.get_uri(self._file_list[i])
             compression = None
             if self.compression != Compression.NONE:
                 compression = {
