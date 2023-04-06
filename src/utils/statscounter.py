@@ -78,6 +78,10 @@ class StatsCounter(object):
             self.summary['epochs'] = len(train_au)
             self.summary['metric']['train_au_percentage'] = list(train_au)
             self.summary['metric']['train_au_mean_percentage'] = np.mean(train_au)
+            if self.summary['metric']['train_au_mean_percentage'] >=90:
+                self.summary['metric']['train_au_meet_expectation'] = 'success'
+            else:
+                self.summary['metric']['train_au_meet_expectation'] = 'fail'
             self.summary['metric']['train_au_stdev_percentage'] = np.std(train_au)
             self.summary['metric']['train_throughput_samples_per_second'] = list(train_throughput)
             self.summary['metric']['train_throughput_mean_samples_per_second'] = np.mean(train_throughput)
@@ -89,6 +93,10 @@ class StatsCounter(object):
                 eval_throughput = comm.allreduce(self.eval_throughput)
                 self.summary['metric']['eval_au_percentage'] = list(eval_au)
                 self.summary['metric']['eval_au_mean_percentage'] = np.mean(eval_au)
+                if self.summary['metric']['eval_au_mean_percentage'] >=90:
+                    self.summary['metric']['eval_au_meet_expectation'] = 'success'
+                else:
+                    self.summary['metric']['eval_au_meet_expectation'] = 'fail'
                 self.summary['metric']['eval_au_stdev_percentage'] = np.std(eval_au)
                 self.summary['metric']['eval_throughput_samples_per_second'] = list(eval_throughput)
                 self.summary['metric']['eval_throughput_mean_samples_per_second'] = np.mean(eval_throughput)
@@ -98,14 +106,16 @@ class StatsCounter(object):
             if self.my_rank==0:
                 logging.info(f"{utcnow()} Saved outputs in {self.output_folder}")   
                 metric="Averaged metric over all epochs\n[METRIC] ==========================================================\n"
-                metric = metric + f"[METRIC] Training Accelerator Utilization (%): {np.mean(train_au):.4f} ({np.std(train_au):.4f})\n"
+                metric = metric + f"[METRIC] Training Accelerator Utilization [AU] (%): {np.mean(train_au):.4f} ({np.std(train_au):.4f})\n"
                 metric = metric + f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput):.4f} ({np.std(train_throughput):.4f})\n"
                 metric = metric + f"[METRIC] Training I/O Throughput (MB/second): {np.mean(train_throughput)*self.record_size/1024/1024:.4f} ({np.std(train_throughput)*self.record_size/1024/1024:.4f})\n"
+                metric = metric + f"[METRIC] train_au_meet_expectation: {self.summary['metric']['train_au_meet_expectation']}\n"
 
                 if self.args.do_eval:
-                    metric = metric + f"[METRIC] Eval Accelerator Utilization (%): {np.mean(eval_au):.4f} ({np.std(eval_au):.4f})\n"
+                    metric = metric + f"[METRIC] Eval Accelerator Utilization [AU] (%): {np.mean(eval_au):.4f} ({np.std(eval_au):.4f})\n"
                     metric = metric + f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput):.6f} ({np.std(eval_throughput):.6f})\n"
                     metric = metric + f"[METRIC] Eval Throughput (MB/second): {np.mean(eval_throughput)*self.record_size/1024/1024:.6f} ({np.std(eval_throughput)*self.record_size/1024/1024:.6f})\n"
+                    metric = metric + f"[METRIC] eval_au_meet_expectation: {self.summary['metric']['eval_au_meet_expectation']}\n"
                 metric+="[METRIC] ==========================================================\n"
                 logging.info(metric)   
     def start_train(self, epoch):   
@@ -172,7 +182,7 @@ class StatsCounter(object):
             logging.info(f"{ts} Ending eval - {self.steps_eval} steps completed in {duration} s")
             self.per_epoch_stats[epoch]['eval']['end'] = ts
             self.per_epoch_stats[epoch]['eval']['duration'] = duration        
-            logging.info(f"{utcnow()} Epoch {epoch} [Eval] Accelerator Utilization (%): {self.output[epoch]['au']['eval']:.4f}")
+            logging.info(f"{utcnow()} Epoch {epoch} [Eval] Accelerator Utilization [AU] (%): {self.output[epoch]['au']['eval']:.4f}")
             logging.info(f"{utcnow()} Epoch {epoch} [Eval] Throughput (samples/second): {self.output[epoch]['throughput']['eval']*self.comm_size:.4f}")
 
     def start_block(self, epoch, block):
@@ -205,7 +215,7 @@ class StatsCounter(object):
             logging.info(f"{ts} Ending block {block} - {steps_taken} steps completed in {duration} s")
             self.per_epoch_stats[epoch][f'block{block}']['end'] = ts
             self.per_epoch_stats[epoch][f'block{block}']['duration'] = duration
-            logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Accelerator Utilization (%): {self.output[epoch]['au'][f'block{block}']:.4f}")
+            logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Accelerator Utilization [AU] (%): {self.output[epoch]['au'][f'block{block}']:.4f}")
             logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Throughput (samples/second): {self.output[epoch]['throughput'][f'block{block}']*self.comm_size:.4f}")
 
     def start_ckpt(self, epoch, block, steps_taken):
