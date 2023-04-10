@@ -75,7 +75,7 @@ class TFReader(FormatReader):
         size = dimension * dimension
         dlp.update(image_size=size)
         # image_tensor = tf.io.decode_image(image_raw)
-        resized_image = tf.convert_to_tensor(self._args.resized_image)
+        resized_image = tf.convert_to_tensor(self._args.resized_image, dtype=tf.uint8)
         return resized_image
 
     @dlp.log
@@ -87,7 +87,7 @@ class TFReader(FormatReader):
         self._dataset = tf.data.TFRecordDataset(filenames=_file_list, buffer_size=self._args.transfer_size)
         self._dataset = self._dataset.shard(num_shards=self._args.comm_size, index=self._args.my_rank)
         self._dataset = self._dataset.map(
-            lambda x: tf.py_function(func=self.parse_image, inp=[x], Tout=[tf.float64])
+            lambda x: tf.py_function(func=self.parse_image, inp=[x], Tout=[tf.uint8])
             , num_parallel_calls=self._args.computation_threads)
         self._dataset = self._dataset.batch(batch_size, drop_remainder=True)
         total = math.ceil(len(_file_list)/self._args.comm_size / batch_size * self._args.num_samples_per_file)

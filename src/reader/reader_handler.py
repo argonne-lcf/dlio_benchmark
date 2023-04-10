@@ -72,6 +72,8 @@ class FormatReader(ABC):
     @abstractmethod
     def next(self):
         random_image = np.random.rand(self._args.max_dimension, self._args.max_dimension)
+        random_image = random_image.astype(np.uint8)
+        batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
         batch = []
         image_processed = 0
         self.step = 1
@@ -110,7 +112,7 @@ class FormatReader(ABC):
         FormatReader.read_images += 1
         if self._args.read_type is ReadType.ON_DEMAND or filename not in self.open_file_map:
             self.open_file_map[filename] = self.open(filename)
-        self.get_sample(filename, sample_index)
+        image = self.get_sample(filename, sample_index)
         self.preprocess()
         if self._args.read_type is ReadType.ON_DEMAND:
             self.close(filename)

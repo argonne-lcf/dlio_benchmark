@@ -46,7 +46,7 @@ class Framework(ABC):
         pass
 
     @abstractmethod
-    def init_loader(self, format_type, data_loader=None):
+    def init_loader(self, format_type, epoch_number, data_loader=None):
         pass
 
     @abstractmethod 

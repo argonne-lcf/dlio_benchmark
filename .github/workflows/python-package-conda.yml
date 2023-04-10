@@ -39,17 +39,7 @@ jobs:
       run: |
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[png-tensorflow] -v
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[npz-tensorflow] -v
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[jpeg-tensorflow] -v
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[tfrecord-tensorflow] -v
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[hdf5-tensorflow] -v
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[csv-tensorflow] -v
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[png-pytorch] -v
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[npz-pytorch] -v
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[jpeg-pytorch] -v
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[hdf5-pytorch] -v
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[csv-pytorch] -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train -v
     - name: test_custom_storage_root_train
       run: |
         touch __init__.py

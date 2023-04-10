@@ -317,7 +317,7 @@ class DLIOBenchmark(object):
                 self.stats.start_train(epoch)
 
                 # Initialize the dataset
-                self.framework.init_loader(self.args.format, self.args.data_loader, epoch_number=epoch)
+                self.framework.init_loader(self.args.format, epoch=epoch, data_loader=self.args.data_loader)
                 steps = self._train(epoch)
                 self.stats.end_train(epoch, steps)
                 logging.debug(f"{utcnow()} Rank {self.my_rank} returned after {steps} steps.")
