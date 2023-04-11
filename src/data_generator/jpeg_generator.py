@@ -49,7 +49,7 @@ class JPEGGenerator(DataGenerator):
             if (self._dimension_stdev>0):
                 dim1, dim2 = [max(int(d), 0) for d in random.normal(self._dimension, self._dimension_stdev, 2)]
             else:
-                dim1 = dim2 = dim
+                dim1 = dim2 = self._dimension
             records = random.randint(255, size=(dim1, dim2), dtype=np.uint8)
             if self.my_rank==0:
                 logging.debug(f"{utcnow()} Dimension of images: {dim1} x {dim2}")

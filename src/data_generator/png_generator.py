@@ -45,7 +45,7 @@ class PNGGenerator(DataGenerator):
             if (self._dimension_stdev>0):
                 dim1, dim2 = [max(int(d), 0) for d in random.normal(self._dimension, self._dimension_stdev, 2)]
             else:
-                dim1 = dim2 = dim
+                dim1 = dim2 = self._dimension
             if self.my_rank==0:
                 logging.debug(f"{utcnow()} Dimension of images: {dim1} x {dim2}")
             out_path_spec = self.storage.get_uri(self._file_list[i])
