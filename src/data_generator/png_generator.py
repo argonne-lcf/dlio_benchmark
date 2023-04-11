@@ -42,7 +42,7 @@ class PNGGenerator(DataGenerator):
         random.seed(10)
         record_labels = [0] 
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
-            if (dim_stdev>0):
+            if (self._dimension_stdev>0):
                 dim1, dim2 = [max(int(d), 0) for d in random.normal(self._dimension, self._dimension_stdev, 2)]
             else:
                 dim1 = dim2 = dim
