@@ -44,17 +44,15 @@ class JPEGGenerator(DataGenerator):
         """
         super().generate()
         random.seed(10)
-        dim = int(np.sqrt(self.record_size))
-        dim_stdev = self.record_size_stdev /np.sqrt(self.record_size)/2.0
         record_labels = [0] 
-        if self.my_rank==0:
-            logging.info(f"{utcnow()} Dimension of images: {dim} x {dim}")
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
             if (dim_stdev>0):
-                dim1, dim2 = [max(int(d), 0) for d in random.normal(dim, dim_stdev, 2)]
+                dim1, dim2 = [max(int(d), 0) for d in random.normal(self._dimension, self._dimension_stdev, 2)]
             else:
                 dim1 = dim2 = dim
             records = random.randint(255, size=(dim1, dim2), dtype=np.uint8)
+            if self.my_rank==0:
+                logging.debug(f"{utcnow()} Dimension of images: {dim1} x {dim2}")
             img = im.fromarray(records)
             if self.my_rank == 0 and i % 100 == 0:
                 logging.info(f"Generated file {i}/{self.total_files_to_generate}")

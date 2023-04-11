@@ -196,6 +196,7 @@ class Profile(object):
         self.reset()
 
     def __enter__(self):
+        self._t1 = time()
         return self
 
     def update(self, epoch=None, step=None, image_idx=None, image_size=None):

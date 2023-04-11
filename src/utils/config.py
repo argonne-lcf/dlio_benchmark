@@ -109,6 +109,7 @@ class ConfigArguments:
     dimension: int = 1
     training_steps: int = 0
     eval_steps: int = 0
+    samples_per_thread: int = 1
     file_map = None
     global_index_map = None
 
@@ -159,11 +160,11 @@ class ConfigArguments:
         self.num_files_eval = len(file_list_eval)
         self.num_files_train = len(file_list_train)
         self.dimension = int(math.sqrt(self.record_length))
-        self.dimension_stdev = math.sqrt(self.record_length_stdev)
+        self.dimension_stdev = self.record_length_stdev/2.0/math.sqrt(self.record_length)
         self.max_dimension = self.dimension
         if (self.record_length_resize>0):
             self.max_dimension =  int(math.sqrt(self.record_length_resize))
-        self.resized_image = np.random.random((self.max_dimension, self.max_dimension), type=np.uint8)
+        self.resized_image = np.random.randint(255, size=(self.max_dimension, self.max_dimension), dtype=np.uint8)
         self.total_samples_train = self.num_samples_per_file * len(self.file_list_train)
         self.total_samples_eval = self.num_samples_per_file * len(self.file_list_eval)
         self.required_samples = self.comm_size * self.batch_size
@@ -174,12 +175,13 @@ class ConfigArguments:
 
     @dlp.log
     def build_sample_map(self, file_list, total_samples, epoch_number):
+        logging.debug(f"ranks {self.comm_size} threads {self.read_threads} tensors")
         from numpy import random
         num_files = len(file_list)
         num_threads = 1
-        if self.read_threads > 0:
+        if self.read_threads > 0 and self.data_loader is not DataLoaderType.DALI:
             num_threads = self.read_threads
-        samples_per_thread = total_samples / self.comm_size / num_threads
+        self.samples_per_thread = total_samples / self.comm_size / num_threads
         file_index = 0
         sample_index = 0
         sample_global_list = np.arange(total_samples)
@@ -190,22 +192,17 @@ class ConfigArguments:
                 random.seed(self.seed)
             random.shuffle(sample_global_list)
         process_thread_file_map = {}
-        read_threads = self.read_threads
-        if self.read_threads == 0:
-            read_threads = 1
-        logging.debug(f"ranks {self.comm_size} threads {self.read_threads} tensors")
         for rank in range(self.comm_size):
-            for thread_index in range(read_threads):
+            for thread_index in range(num_threads):
                 if rank not in process_thread_file_map:
                     process_thread_file_map[rank] = {}
                 if thread_index not in process_thread_file_map[rank]:
                     process_thread_file_map[rank][thread_index] = []
                 selected_samples = 0
-                while selected_samples < samples_per_thread:
-                    process_thread_file_map[rank][thread_index].append((sample_global_list[
-                                                                            sample_index], file_list[file_index],
-                                                                        sample_global_list[
-                                                                            sample_index] % self.num_samples_per_file))
+                while selected_samples < self.samples_per_thread:
+                    process_thread_file_map[rank][thread_index].append((sample_global_list[sample_index], 
+                                                                        file_list[file_index],
+                                                                        sample_global_list[sample_index] % self.num_samples_per_file))
                     sample_index += 1
                     selected_samples += 1
                     if sample_index >= self.num_samples_per_file:
@@ -235,7 +232,7 @@ class ConfigArguments:
             random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else random.shuffle(
                 self.file_list_eval)
 
-        if self.data_loader is DataLoaderType.TENSORFLOW:
+        if self.data_loader in [DataLoaderType.TENSORFLOW]:
             if dataset_type is DatasetType.TRAIN:
                 global_file_map = self.build_sample_map(self.file_list_train, self.total_samples_train,
                                                       epoch_number)

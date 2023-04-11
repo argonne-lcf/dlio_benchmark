@@ -48,7 +48,7 @@ class NPZGenerator(DataGenerator):
                 dim1, dim2 = [max(int(d), 0) for d in random.normal( self._dimension, self._dimension_stdev, 2)]
             else:
                 dim1 = dim2 = self._dimension
-            records = random.random((dim1, dim2, self.num_samples))
+            records = np.random.randint(255, size=(dim1, dim2, self.num_samples), dtype=np.uint8)
             out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating NPZ Data")
             prev_out_spec = out_path_spec

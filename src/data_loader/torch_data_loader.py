@@ -49,7 +49,6 @@ class TorchDataset(Dataset):
         logging.debug(f"{utcnow()} Rank {get_rank()} reading {image_idx} sample")
         return self.reader.read_index(image_idx, step)
 
-
 class TorchDataLoader(BaseDataLoader):
     @dlp.log_init
     def __init__(self, format_type, dataset_type, epoch_number):

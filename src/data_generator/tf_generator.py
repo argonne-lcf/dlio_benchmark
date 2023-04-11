@@ -17,6 +17,7 @@
 
 from src.data_generator.data_generator import DataGenerator
 from numpy import random
+import numpy as np
 import tensorflow as tf
 
 from src.utils.utility import progress, utcnow, Profile
@@ -49,12 +50,11 @@ class TFRecordGenerator(DataGenerator):
                 dim1, dim2 = [max(int(d), 0) for d in random.normal( self._dimension, self._dimension_stdev, 2)]
             else:
                 dim1 = dim2 = self._dimension
-            record = random.random((dim1, dim2))
             # Open a TFRecordWriter for the output-file.
             with tf.io.TFRecordWriter(out_path_spec) as writer:
                 for i in range(0, self.num_samples):
                     # This creates a 2D image representing a single record
-                    record = random.random((self._dimension, self._dimension))
+                    record = np.random.randint(255, size=(dim1, dim2), dtype=np.uint8)
                     img_bytes = record.tobytes()
                     data = {
                         'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img_bytes])),

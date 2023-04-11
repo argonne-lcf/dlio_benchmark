@@ -44,14 +44,14 @@ class DataGenerator(ABC):
         self.compression = self._args.compression
         self.compression_level = self._args.compression_level
         self._file_prefix = None
-        self._dimension = None
         self._file_list = None
         self.num_subfolders_train = self._args.num_subfolders_train
         self.num_subfolders_eval = self._args.num_subfolders_eval
         self.format = self._args.format
         self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root,
                                                                         self._args.framework)
-
+        self._dimension = int(math.sqrt(self.record_size))
+        self._dimension_stdev = self.record_size_stdev/2.0/math.sqrt(self.record_size)
     @abstractmethod
     def generate(self):
         if self.my_rank == 0:
@@ -70,10 +70,6 @@ class DataGenerator(ABC):
 
 
         MPI.COMM_WORLD.Barrier()
-        # What is the logic behind this formula? 
-        # Will probably have to adapt to generate non-images
-        self._dimension = int(math.sqrt(self.record_size/8))
-        self._dimension_stdev = self.record_size_stdev/math.sqrt(self.record_size)/2.0/math.sqrt(8.0)
         self.total_files_to_generate = self.num_files_train
 
         if self.num_files_eval > 0:

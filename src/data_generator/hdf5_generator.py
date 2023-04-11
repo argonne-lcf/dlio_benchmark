@@ -17,6 +17,7 @@
 
 import h5py
 from numpy import random
+import numpy as np
 
 from src.common.enumerations import Compression
 from src.data_generator.data_generator import DataGenerator
@@ -45,7 +46,7 @@ class HDF5Generator(DataGenerator):
         random.seed(10)
         samples_per_iter=1024
         dim1 = dim2 = self._dimension
-        records = random.random((samples_per_iter, dim1, dim2))
+        records = random.randint(255, size=(samples_per_iter, dim1, dim2), dtype=np.uint8)
         record_labels = [0] * self.num_samples
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
             progress(i, self.total_files_to_generate, "Generating HDF5 Data")

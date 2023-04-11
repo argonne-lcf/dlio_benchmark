@@ -292,13 +292,19 @@ def test_multi_threads(framework, nt) -> None:
 
 
 @pytest.mark.timeout(60, method="thread")
-@pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
-                                            ("jpeg", "tensorflow"), ("tfrecord", "tensorflow"),
-                                            ("hdf5", "tensorflow"), ("csv", "tensorflow"),
-                                            ("png", "pytorch"), ("npz", "pytorch"),
-                                            ("jpeg", "pytorch"), ("hdf5", "pytorch"), ("csv", "pytorch")
+@pytest.mark.parametrize("fmt, framework, dataloader", [("png", "tensorflow","tensorflow"), ("npz", "tensorflow","tensorflow"),
+                                            ("jpeg", "tensorflow","tensorflow"), ("tfrecord", "tensorflow","tensorflow"),
+                                            ("hdf5", "tensorflow","tensorflow"), ("csv", "tensorflow","tensorflow"),
+                                            ("png", "pytorch", "pytorch"), ("npz", "pytorch", "pytorch"),
+                                            ("jpeg", "pytorch", "pytorch"), ("hdf5", "pytorch", "pytorch"), ("csv", "pytorch", "pytorch"),
+                                            ("png", "tensorflow", "dali"), ("npz", "tensorflow", "dali"),
+                                            ("jpeg", "tensorflow", "dali"),
+                                            ("hdf5", "tensorflow", "dali"), ("csv", "tensorflow", "dali"),
+                                            ("png", "pytorch", "dali"), ("npz", "pytorch", "dali"),
+                                            ("jpeg", "pytorch", "dali"), ("hdf5", "pytorch", "dali"),
+                                            ("csv", "pytorch", "dali"),
                                             ])
-def test_train(fmt, framework) -> None:
+def test_train(fmt, framework, dataloader) -> None:
     clean()
     if comm.rank == 0:
         logging.info("")
@@ -309,7 +315,7 @@ def test_train(fmt, framework) -> None:
         cfg = compose(config_name='config', overrides=['++workload.workflow.train=True',
                                                        '++workload.workflow.generate_data=True',
                                                        f"++workload.framework={framework}", \
-                                                       f"++workload.reader.data_loader={framework}", \
+                                                       f"++workload.reader.data_loader={dataloader}", \
                                                        f"++workload.dataset.format={fmt}",
                                                        'workload.train.computation_time=0.01', \
                                                        'workload.evaluation.eval_time=0.005', \

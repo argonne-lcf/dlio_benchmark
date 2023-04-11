@@ -21,6 +21,7 @@ import math
 import os
 
 from numpy import random
+import numpy as np
 import csv
 
 from shutil import copyfile
@@ -46,7 +47,7 @@ class CSVGenerator(DataGenerator):
                 dim1, dim2 = [max(int(d), 0) for d in random.normal( self._dimension, self._dimension_stdev, 2)]
             else:
                 dim1 = dim2 = self._dimension
-            record = random.random(dim1*dim2)
+            record = np.random.randint(255, size=(dim1, dim2), dtype=np.uint8)
             records = [record]*self.num_samples
             df = pd.DataFrame(data=records)
             out_path_spec = self.storage.get_uri(self._file_list[i])

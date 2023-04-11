@@ -212,6 +212,7 @@ class DLIOBenchmark(object):
         t0 = time()
         for batch in dlp.iter(loader.next()):
             self.stats.eval_batch_loaded(epoch, step, t0)
+            eval_time = 0.0
             if self.eval_time > 0:
                 if self.eval_time_stdev > 0:
                     eval_time = random.normal(self.eval_time, self.eval_time_stdev)
@@ -248,7 +249,7 @@ class DLIOBenchmark(object):
             # Log a new block, unless it's the first one which we've already logged before the loop
             if block_step == 1 and block != 1:
                 self.stats.start_block(epoch, block)
-
+            computation_time = 0.0
             if self.computation_time > 0:
                 self.framework.trace_object("Train", overall_step, 1)
                 if self.computation_time_stdev > 0:
@@ -317,7 +318,7 @@ class DLIOBenchmark(object):
                 self.stats.start_train(epoch)
 
                 # Initialize the dataset
-                self.framework.init_loader(self.args.format, self.args.data_loader, epoch_number=epoch)
+                self.framework.init_loader(self.args.format, epoch=epoch, data_loader=self.args.data_loader)
                 steps = self._train(epoch)
                 self.stats.end_train(epoch, steps)
                 logging.debug(f"{utcnow()} Rank {self.my_rank} returned after {steps} steps.")
