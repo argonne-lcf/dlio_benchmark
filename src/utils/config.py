@@ -176,7 +176,6 @@ class ConfigArguments:
     @dlp.log
     def build_sample_map(self, file_list, total_samples, epoch_number):
         logging.debug(f"ranks {self.comm_size} threads {self.read_threads} tensors")
-        from numpy import random
         num_files = len(file_list)
         num_threads = 1
         if self.read_threads > 0 and self.data_loader is not DataLoaderType.DALI:
@@ -187,10 +186,10 @@ class ConfigArguments:
         sample_global_list = np.arange(total_samples)
         if self.file_shuffle is not Shuffle.OFF:
             if self.seed_change_epoch:
-                random.seed(self.seed + epoch_number)
+                np.random.seed(self.seed + epoch_number)
             else:
-                random.seed(self.seed)
-            random.shuffle(sample_global_list)
+                np.random.seed(self.seed)
+            np.random.shuffle(sample_global_list)
         process_thread_file_map = {}
         for rank in range(self.comm_size):
             for thread_index in range(num_threads):
@@ -223,13 +222,12 @@ class ConfigArguments:
 
     @dlp.log
     def reconfigure(self, epoch_number, dataset_type):
-        from numpy import random
         if self.file_shuffle is not Shuffle.OFF:
             if self.seed_change_epoch:
-                random.seed(self.seed + epoch_number)
+                np.random.seed(self.seed + epoch_number)
             else:
-                random.seed(self.seed)
-            random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else random.shuffle(
+                np.random.seed(self.seed)
+            np.random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else np.random.shuffle(
                 self.file_list_eval)
 
         if self.data_loader in [DataLoaderType.TENSORFLOW]:

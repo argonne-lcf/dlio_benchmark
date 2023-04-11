@@ -20,7 +20,6 @@ from src.data_generator.data_generator import DataGenerator
 
 import logging
 import numpy as np
-from numpy import random
 
 from src.utils.utility import progress, utcnow, Profile
 from shutil import copyfile
@@ -49,7 +48,7 @@ class PNGGenerator(DataGenerator):
             if self.my_rank==0:
                 logging.debug(f"{utcnow()} Dimension of images: {dim1} x {dim2}")
             out_path_spec = self.storage.get_uri(self._file_list[i])
-            records = random.randint(255, size=(dim1, dim2), dtype=np.uint8)
+            records = np.random.randint(255, size=(dim1, dim2), dtype=np.uint8)
             img = im.fromarray(records)
             if self.my_rank == 0 and i % 100 == 0:
                 logging.info(f"Generated file {i}/{self.total_files_to_generate}")

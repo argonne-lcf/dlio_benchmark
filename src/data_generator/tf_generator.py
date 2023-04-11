@@ -16,7 +16,6 @@
 """
 
 from src.data_generator.data_generator import DataGenerator
-from numpy import random
 import numpy as np
 import tensorflow as tf
 

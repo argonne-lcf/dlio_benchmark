@@ -20,7 +20,6 @@ from src.data_generator.data_generator import DataGenerator
 
 import logging
 import numpy as np
-from numpy import random
 
 from src.utils.utility import progress, utcnow, Profile
 from shutil import copyfile
@@ -50,7 +49,7 @@ class JPEGGenerator(DataGenerator):
                 dim1, dim2 = [max(int(d), 0) for d in random.normal(self._dimension, self._dimension_stdev, 2)]
             else:
                 dim1 = dim2 = self._dimension
-            records = random.randint(255, size=(dim1, dim2), dtype=np.uint8)
+            records = np.random.randint(255, size=(dim1, dim2), dtype=np.uint8)
             if self.my_rank==0:
                 logging.debug(f"{utcnow()} Dimension of images: {dim1} x {dim2}")
             img = im.fromarray(records)

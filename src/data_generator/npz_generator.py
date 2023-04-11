@@ -20,7 +20,6 @@ from src.data_generator.data_generator import DataGenerator
 
 import logging
 import numpy as np
-from numpy import random
 
 from src.utils.utility import progress, utcnow, Profile
 from shutil import copyfile

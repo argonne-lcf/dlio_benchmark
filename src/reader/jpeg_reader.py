@@ -16,7 +16,6 @@
 """
 
 import numpy as np
-from numpy import random
 from PIL import Image
 
 from src.common.constants import MODULE_DATA_READER

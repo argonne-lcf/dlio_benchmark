@@ -20,7 +20,6 @@ from src.data_generator.data_generator import DataGenerator
 import math
 import os
 
-from numpy import random
 import numpy as np
 import csv
 

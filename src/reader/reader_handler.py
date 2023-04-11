@@ -26,7 +26,6 @@ import numpy as np
 import os
 import math
 import logging
-from numpy import random
 from time import sleep
 import glob
 from src.common.constants import MODULE_DATA_READER
@@ -54,7 +53,7 @@ class FormatReader(ABC):
     @dlp.log
     def preprocess(self):
         if self._args.preprocess_time != 0. or self._args.preprocess_time_stdev != 0.:
-            t = random.normal(self._args.preprocess_time, self._args.preprocess_time_stdev)
+            t = np.random.normal(self._args.preprocess_time, self._args.preprocess_time_stdev)
             sleep(max(t, 0.0))
 
     @abstractmethod
