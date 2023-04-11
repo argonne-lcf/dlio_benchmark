@@ -40,11 +40,11 @@ class NPZGenerator(DataGenerator):
         Generator for creating data in NPZ format of 3d dataset.
         """
         super().generate()
-        random.seed(10)
+        np.random.seed(10)
         record_labels = [0] * self.num_samples
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
             if (self._dimension_stdev>0):
-                dim1, dim2 = [max(int(d), 0) for d in random.normal( self._dimension, self._dimension_stdev, 2)]
+                dim1, dim2 = [max(int(d), 0) for d in np.random.normal( self._dimension, self._dimension_stdev, 2)]
             else:
                 dim1 = dim2 = self._dimension
             records = np.random.randint(255, size=(dim1, dim2, self.num_samples), dtype=np.uint8)
@@ -55,4 +55,4 @@ class NPZGenerator(DataGenerator):
                 np.savez(out_path_spec, x=records, y=record_labels)
             else:
                 np.savez_compressed(out_path_spec, x=records, y=record_labels)
-        random.seed()
+        np.random.seed()

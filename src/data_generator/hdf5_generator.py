@@ -42,7 +42,7 @@ class HDF5Generator(DataGenerator):
         Generate hdf5 data for training. It generates a 3d dataset and writes it to file.
         """
         super().generate()
-        random.seed(10)
+        np.random.seed(10)
         samples_per_iter=1024
         dim1 = dim2 = self._dimension
         records = np.random.randint(255, size=(samples_per_iter, dim1, dim2), dtype=np.uint8)
@@ -75,4 +75,4 @@ class HDF5Generator(DataGenerator):
                 samples_written += samples_to_write
             hf.create_dataset('labels', data=record_labels)
             hf.close()
-        random.seed()
+        np.random.seed()
