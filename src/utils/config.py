@@ -158,12 +158,12 @@ class ConfigArguments:
         self.file_list_eval = file_list_eval
         self.num_files_eval = len(file_list_eval)
         self.num_files_train = len(file_list_train)
-        self.dimension = int(math.sqrt(self.record_length / 8))
-        self.dimension_stdev = math.sqrt(self.record_length_stdev / 8)
+        self.dimension = int(math.sqrt(self.record_length))
+        self.dimension_stdev = math.sqrt(self.record_length_stdev)
         self.max_dimension = self.dimension
         if (self.record_length_resize>0):
-            self.max_dimension =  int(math.sqrt(self.record_length_resize / 8))
-        self.resized_image = np.random.random((self.max_dimension, self.max_dimension))
+            self.max_dimension =  int(math.sqrt(self.record_length_resize))
+        self.resized_image = np.random.random((self.max_dimension, self.max_dimension), type=np.uint8)
         self.total_samples_train = self.num_samples_per_file * len(self.file_list_train)
         self.total_samples_eval = self.num_samples_per_file * len(self.file_list_eval)
         self.required_samples = self.comm_size * self.batch_size
