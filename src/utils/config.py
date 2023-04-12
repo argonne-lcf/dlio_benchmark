@@ -154,24 +154,25 @@ class ConfigArguments:
         ConfigArguments.__instance = None
 
     @dlp.log
-    def derive_configurations(self, file_list_train, file_list_eval):
-        self.file_list_train = file_list_train
-        self.file_list_eval = file_list_eval
-        self.num_files_eval = len(file_list_eval)
-        self.num_files_train = len(file_list_train)
+    def derive_configurations(self, file_list_train=None, file_list_eval=None):
         self.dimension = int(math.sqrt(self.record_length))
         self.dimension_stdev = self.record_length_stdev/2.0/math.sqrt(self.record_length)
         self.max_dimension = self.dimension
         if (self.record_length_resize>0):
             self.max_dimension =  int(math.sqrt(self.record_length_resize))
-        self.resized_image = np.random.randint(255, size=(self.max_dimension, self.max_dimension), dtype=np.uint8)
-        self.total_samples_train = self.num_samples_per_file * len(self.file_list_train)
-        self.total_samples_eval = self.num_samples_per_file * len(self.file_list_eval)
-        self.required_samples = self.comm_size * self.batch_size
-        if self.read_threads > 0:
-            self.required_samples *= self.read_threads
-        self.training_steps = int(math.ceil(self.total_samples_train / self.batch_size / self.comm_size))
-        self.eval_steps = int(math.ceil(self.total_samples_eval / self.batch_size_eval / self.comm_size))
+        if (file_list_train !=None and file_list_eval !=None):
+            self.resized_image = np.random.randint(255, size=(self.max_dimension, self.max_dimension), dtype=np.uint8)
+            self.file_list_train = file_list_train
+            self.file_list_eval = file_list_eval
+            self.num_files_eval = len(file_list_eval)
+            self.num_files_train = len(file_list_train)
+            self.total_samples_train = self.num_samples_per_file * len(self.file_list_train)
+            self.total_samples_eval = self.num_samples_per_file * len(self.file_list_eval)
+            self.required_samples = self.comm_size * self.batch_size
+            if self.read_threads > 0:
+                self.required_samples *= self.read_threads
+            self.training_steps = int(math.ceil(self.total_samples_train / self.batch_size / self.comm_size))
+            self.eval_steps = int(math.ceil(self.total_samples_eval / self.batch_size_eval / self.comm_size))
 
     @dlp.log
     def build_sample_map(self, file_list, total_samples, epoch_number):

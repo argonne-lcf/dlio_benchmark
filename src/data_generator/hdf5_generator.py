@@ -43,7 +43,7 @@ class HDF5Generator(DataGenerator):
         """
         super().generate()
         np.random.seed(10)
-        samples_per_iter=max(1, int(32*1024*1024/self.record_size))
+        samples_per_iter=max(1, int(32*1024*1024/self._args.record_length))
         record_labels = [0] * self.num_samples
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
             progress(i, self.total_files_to_generate, "Generating HDF5 Data")
