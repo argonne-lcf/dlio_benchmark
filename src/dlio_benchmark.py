@@ -182,6 +182,7 @@ class DLIOBenchmark(object):
         file_list_eval = []
         for dataset_type in [DatasetType.TRAIN, DatasetType.VALID]:
             filenames = self.storage.walk_node(os.path.join(self.args.data_folder, f"{dataset_type}"))
+            filenames = [f for f in filenames if f.find(f'{self.args.format}')!=-1]
             if (len(filenames)==0):
                 continue
             if self.storage.get_node(
