@@ -93,4 +93,3 @@ class DataGenerator(ABC):
             for i in range(self.num_files_eval):
                 file_spec = "{}/valid/{}_{}_of_{}.{}".format(self.data_dir, self.file_prefix, i, self.num_files_eval, self.format)
                 self._file_list.append(file_spec)
-        self._file_list = file_list_train + file_list_eval
