@@ -72,6 +72,7 @@ class FormatReader(ABC):
             self.file_acess = FileAccess.MULTI
         else:
             self.file_acess = FileAccess.SHARED
+        num_files = -1
         if self.dataset_type == DatasetType.TRAIN:
             filenames = self.storage.walk_node(os.path.join(self.data_dir,  "train"))
             if self.storage.get_node(os.path.join(self.data_dir, "train", filenames[0])) == MetadataType.DIRECTORY:
@@ -81,7 +82,6 @@ class FormatReader(ABC):
 
             num_files = self.num_files_train
             self.batch_size = self.batch_size_train
-            assert len(fullpaths) >= num_files, f"Expected {num_files} training files but {len(fullpaths)} found. Ensure enough data in the folder."            
         elif self.dataset_type == DatasetType.VALID:
             filenames = self.storage.walk_node(os.path.join(self.data_dir, "valid/"))
             if (len(filenames)>0):
@@ -91,11 +91,11 @@ class FormatReader(ABC):
                     fullpaths = [self.storage.get_uri(os.path.join(self.data_dir, "valid", entry)) for entry in filenames]
                 num_files = self.num_files_eval
                 self.batch_size = self.batch_size_eval
-                assert len(fullpaths) >= num_files, f"Expected {num_files} validation files but {len(fullpaths)} found. Ensure enough data in the folder."
             else:
                 fullpaths=[]
-        if (len(fullpaths) > num_files):
-            logging.warning(f"{num_files} files from {self.data_dir} will be selected.")
+        assert len(fullpaths) >= num_files, f"Expected {num_files} {dataset_type} files but {len(fullpaths)} found. Ensure enough data in the folder {self.data_dir}/{dataset_type}."            
+        if (len(fullpaths) > num_files and num_files !=-1):
+            logging.warning(f"{num_files} {dataset_type} files from {self.data_dir} will be selected.")
         self._file_list = fullpaths[:num_files]
         self._local_file_list = self._file_list[self.my_rank::self.comm_size]
 
