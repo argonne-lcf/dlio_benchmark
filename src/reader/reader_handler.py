@@ -81,7 +81,7 @@ class FormatReader(ABC):
 
             num_files = self.num_files_train
             self.batch_size = self.batch_size_train
-            assert len(fullpaths) == num_files, f"Expected {num_files} training files but {len(fullpaths)} found. Ensure data was generated correctly."            
+            assert len(fullpaths) >= num_files, f"Expected {num_files} training files but {len(fullpaths)} found. Ensure enough data in the folder."            
         elif self.dataset_type == DatasetType.VALID:
             filenames = self.storage.walk_node(os.path.join(self.data_dir, "valid/"))
             if (len(filenames)>0):
@@ -91,11 +91,12 @@ class FormatReader(ABC):
                     fullpaths = [self.storage.get_uri(os.path.join(self.data_dir, "valid", entry)) for entry in filenames]
                 num_files = self.num_files_eval
                 self.batch_size = self.batch_size_eval
-                assert len(fullpaths) == num_files, f"Expected {num_files} validation files but {len(fullpaths)} found. Ensure data was generated correctly."
+                assert len(fullpaths) >= num_files, f"Expected {num_files} validation files but {len(fullpaths)} found. Ensure enough data in the folder."
             else:
                 fullpaths=[]
-
-        self._file_list = fullpaths
+        if (len(fullpaths) > num_files):
+            logging.warning(f"{num_files} files from {self.data_dir} will be selected.")
+        self._file_list = fullpaths[:num_files]
         self._local_file_list = self._file_list[self.my_rank::self.comm_size]
 
 
