@@ -20,7 +20,6 @@ from src.data_generator.data_generator import DataGenerator
 
 import logging
 import numpy as np
-from numpy import random
 
 from src.utils.utility import progress, utcnow, Profile
 from shutil import copyfile
@@ -41,14 +40,11 @@ class NPZGenerator(DataGenerator):
         Generator for creating data in NPZ format of 3d dataset.
         """
         super().generate()
-        random.seed(10)
+        np.random.seed(10)
         record_labels = [0] * self.num_samples
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
-            if (self._dimension_stdev>0):
-                dim1, dim2 = [max(int(d), 0) for d in random.normal( self._dimension, self._dimension_stdev, 2)]
-            else:
-                dim1 = dim2 = self._dimension
-            records = random.random((dim1, dim2, self.num_samples))
+            dim1, dim2 = self.get_dimension()
+            records = np.random.randint(255, size=(dim1, dim2, self.num_samples), dtype=np.uint8)
             out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating NPZ Data")
             prev_out_spec = out_path_spec
@@ -56,4 +52,4 @@ class NPZGenerator(DataGenerator):
                 np.savez(out_path_spec, x=records, y=record_labels)
             else:
                 np.savez_compressed(out_path_spec, x=records, y=record_labels)
-        random.seed()
+        np.random.seed()

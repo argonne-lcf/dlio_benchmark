@@ -16,7 +16,7 @@
 """
 
 import h5py
-from numpy import random
+import numpy as np
 
 from src.common.enumerations import Compression
 from src.data_generator.data_generator import DataGenerator
@@ -42,13 +42,13 @@ class HDF5Generator(DataGenerator):
         Generate hdf5 data for training. It generates a 3d dataset and writes it to file.
         """
         super().generate()
-        random.seed(10)
-        samples_per_iter=1024
-        dim1 = dim2 = self._dimension
-        records = random.random((samples_per_iter, dim1, dim2))
+        np.random.seed(10)
+        samples_per_iter=max(1, int(32*1024*1024/self._args.record_length))
         record_labels = [0] * self.num_samples
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
             progress(i, self.total_files_to_generate, "Generating HDF5 Data")
+            dim1, dim2 = self.get_dimension()
+            records = np.random.randint(255, size=(samples_per_iter, dim1, dim2), dtype=np.uint8)
             out_path_spec = self.storage.get_uri(self._file_list[i])
             hf = h5py.File(out_path_spec, 'w')
             chunks = None
@@ -64,7 +64,7 @@ class HDF5Generator(DataGenerator):
                 if self.compression == Compression.GZIP:
                     compression_level = self.compression_level
             dset = hf.create_dataset('records', (self.num_samples, dim1, dim2), chunks=chunks, compression=compression,
-                                     compression_opts=compression_level)
+                                     compression_opts=compression_level, dtype=np.uint8)
             samples_written = 0
             while samples_written < self.num_samples:
                 if samples_per_iter < self.num_samples-samples_written:
@@ -75,4 +75,4 @@ class HDF5Generator(DataGenerator):
                 samples_written += samples_to_write
             hf.create_dataset('labels', data=record_labels)
             hf.close()
-        random.seed()
+        np.random.seed()

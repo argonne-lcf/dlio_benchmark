@@ -181,20 +181,33 @@ class DLIOBenchmark(object):
         file_list_train = []
         file_list_eval = []
         for dataset_type in [DatasetType.TRAIN, DatasetType.VALID]:
-            filenames = self.storage.walk_node(os.path.join(self.args.data_folder, f"{DatasetType.TRAIN}"))
+            filenames = self.storage.walk_node(os.path.join(self.args.data_folder, f"{dataset_type}"))
+            if (len(filenames)==0):
+                continue
             if self.storage.get_node(
-                    os.path.join(self.args.data_folder, f"{DatasetType.TRAIN}",
+                    os.path.join(self.args.data_folder, f"{dataset_type}",
                                  filenames[0])) == MetadataType.DIRECTORY:
-                fullpaths = self.storage.walk_node(os.path.join(self.args.data_folder, f"{DatasetType.TRAIN}/*/*"),
+                fullpaths = self.storage.walk_node(os.path.join(self.args.data_folder, f"{dataset_type}/*/*"),
                                                    use_pattern=True)
             else:
-                fullpaths = [self.storage.get_uri(os.path.join(self.args.data_folder, f"{DatasetType.TRAIN}", entry))
+                fullpaths = [self.storage.get_uri(os.path.join(self.args.data_folder, f"{dataset_type}", entry))
                              for entry
                              in filenames]
+            fullpaths = [f for f in fullpaths if f.find(f'{self.args.format}')!=-1]
             if dataset_type is DatasetType.TRAIN:
                 file_list_train = fullpaths
             elif dataset_type is DatasetType.VALID:
                 file_list_eval = fullpaths
+        if not self.generate_only:
+            assert(self.num_files_train <=len(file_list_train))
+        if self.do_eval:
+            assert(self.num_files_eval <=len(file_list_eval))
+        if (self.num_files_train < len(file_list_train)):
+            logging.warning(f"Number of files for training in {os.path.join(self.args.data_folder, f'{DatasetType.TRAIN}')} ({len(file_list_train)}) is more than requested ({self.num_files_train}). A subset of files will be used ")
+            file_list_train = file_list_train[:self.num_files_train]
+        if (self.num_files_eval < len(file_list_eval)):
+            logging.warning(f"Number of files for evaluation in {os.path.join(self.args.data_folder, f'{DatasetType.VALID}')} ({len(file_list_eval)}) is more than requested ({self.num_files_eval}). A subset of files will be used ")
+            file_list_eval = file_list_train[:self.num_files_eval]
         self.args.derive_configurations(file_list_train, file_list_eval)
         self.args.validate()
         self.framework.barrier()
@@ -212,6 +225,7 @@ class DLIOBenchmark(object):
         t0 = time()
         for batch in dlp.iter(loader.next()):
             self.stats.eval_batch_loaded(epoch, step, t0)
+            eval_time = 0.0
             if self.eval_time > 0:
                 if self.eval_time_stdev > 0:
                     eval_time = random.normal(self.eval_time, self.eval_time_stdev)
@@ -248,7 +262,7 @@ class DLIOBenchmark(object):
             # Log a new block, unless it's the first one which we've already logged before the loop
             if block_step == 1 and block != 1:
                 self.stats.start_block(epoch, block)
-
+            computation_time = 0.0
             if self.computation_time > 0:
                 self.framework.trace_object("Train", overall_step, 1)
                 if self.computation_time_stdev > 0:

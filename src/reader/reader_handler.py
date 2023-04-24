@@ -26,7 +26,6 @@ import numpy as np
 import os
 import math
 import logging
-from numpy import random
 from time import sleep
 import glob
 from src.common.constants import MODULE_DATA_READER
@@ -54,7 +53,7 @@ class FormatReader(ABC):
     @dlp.log
     def preprocess(self):
         if self._args.preprocess_time != 0. or self._args.preprocess_time_stdev != 0.:
-            t = random.normal(self._args.preprocess_time, self._args.preprocess_time_stdev)
+            t = np.random.normal(self._args.preprocess_time, self._args.preprocess_time_stdev)
             sleep(max(t, 0.0))
 
     @abstractmethod
@@ -71,8 +70,6 @@ class FormatReader(ABC):
 
     @abstractmethod
     def next(self):
-        random_image = np.random.rand(self._args.max_dimension, self._args.max_dimension)
-        random_image = random_image.astype(np.uint8)
         batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
         batch = []
         image_processed = 0
@@ -91,7 +88,7 @@ class FormatReader(ABC):
             is_last = 0 if image_processed < total_images else 1
             if is_last:
                 while len(batch) is not self.batch_size:
-                    batch.append(random_image)
+                    batch.append(self._args.resized_image)
             if len(batch) == self.batch_size:
                 self.step += 1
                 batch = np.array(batch)

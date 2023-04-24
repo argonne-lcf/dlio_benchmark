@@ -154,29 +154,29 @@ class ConfigArguments:
         ConfigArguments.__instance = None
 
     @dlp.log
-    def derive_configurations(self, file_list_train, file_list_eval):
-        self.file_list_train = file_list_train
-        self.file_list_eval = file_list_eval
-        self.num_files_eval = len(file_list_eval)
-        self.num_files_train = len(file_list_train)
-        self.dimension = int(math.sqrt(self.record_length / 8))
-        self.dimension_stdev = math.sqrt(self.record_length_stdev / 8)
+    def derive_configurations(self, file_list_train=None, file_list_eval=None):
+        self.dimension = int(math.sqrt(self.record_length))
+        self.dimension_stdev = self.record_length_stdev/2.0/math.sqrt(self.record_length)
         self.max_dimension = self.dimension
         if (self.record_length_resize>0):
-            self.max_dimension =  int(math.sqrt(self.record_length_resize / 8))
-        self.resized_image = np.random.random((self.max_dimension, self.max_dimension)).astype('uint8')
-        self.total_samples_train = self.num_samples_per_file * len(self.file_list_train)
-        self.total_samples_eval = self.num_samples_per_file * len(self.file_list_eval)
-        self.required_samples = self.comm_size * self.batch_size
-        if self.read_threads > 0:
-            self.required_samples *= self.read_threads
-        self.training_steps = int(math.ceil(self.total_samples_train / self.batch_size / self.comm_size))
-        self.eval_steps = int(math.ceil(self.total_samples_eval / self.batch_size_eval / self.comm_size))
+            self.max_dimension =  int(math.sqrt(self.record_length_resize))
+        if (file_list_train !=None and file_list_eval !=None):
+            self.resized_image = np.random.randint(255, size=(self.max_dimension, self.max_dimension), dtype=np.uint8)
+            self.file_list_train = file_list_train
+            self.file_list_eval = file_list_eval
+            self.num_files_eval = len(file_list_eval)
+            self.num_files_train = len(file_list_train)
+            self.total_samples_train = self.num_samples_per_file * len(self.file_list_train)
+            self.total_samples_eval = self.num_samples_per_file * len(self.file_list_eval)
+            self.required_samples = self.comm_size * self.batch_size
+            if self.read_threads > 0:
+                self.required_samples *= self.read_threads
+            self.training_steps = int(math.ceil(self.total_samples_train / self.batch_size / self.comm_size))
+            self.eval_steps = int(math.ceil(self.total_samples_eval / self.batch_size_eval / self.comm_size))
 
     @dlp.log
     def build_sample_map(self, file_list, total_samples, epoch_number):
         logging.debug(f"ranks {self.comm_size} threads {self.read_threads} tensors")
-        from numpy import random
         num_files = len(file_list)
         num_threads = 1
         if self.read_threads > 0 and self.data_loader is not DataLoaderType.DALI:
@@ -187,10 +187,10 @@ class ConfigArguments:
         sample_global_list = np.arange(total_samples)
         if self.file_shuffle is not Shuffle.OFF:
             if self.seed_change_epoch:
-                random.seed(self.seed + epoch_number)
+                np.random.seed(self.seed + epoch_number)
             else:
-                random.seed(self.seed)
-            random.shuffle(sample_global_list)
+                np.random.seed(self.seed)
+            np.random.shuffle(sample_global_list)
         process_thread_file_map = {}
         for rank in range(self.comm_size):
             for thread_index in range(num_threads):
@@ -223,13 +223,12 @@ class ConfigArguments:
 
     @dlp.log
     def reconfigure(self, epoch_number, dataset_type):
-        from numpy import random
         if self.file_shuffle is not Shuffle.OFF:
             if self.seed_change_epoch:
-                random.seed(self.seed + epoch_number)
+                np.random.seed(self.seed + epoch_number)
             else:
-                random.seed(self.seed)
-            random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else random.shuffle(
+                np.random.seed(self.seed)
+            np.random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else np.random.shuffle(
                 self.file_list_eval)
 
         if self.data_loader in [DataLoaderType.TENSORFLOW]:

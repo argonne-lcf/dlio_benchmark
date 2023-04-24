@@ -17,7 +17,6 @@
 import math
 import logging
 from time import time
-from numpy import random
 
 from src.common.constants import MODULE_DATA_READER
 from src.utils.utility import utcnow, PerfTrace, Profile
@@ -71,7 +70,7 @@ class TFReader(FormatReader):
         image_raw = parsed_example['image']
         dimension = tf.cast(parsed_example['size'], tf.int32).numpy()
         # Decode the raw bytes so it becomes a tensor with type.
-        image_tensor = tf.io.decode_raw(image_raw, tf.float64)
+        image_tensor = tf.io.decode_raw(image_raw, tf.uint8)
         size = dimension * dimension
         dlp.update(image_size=size)
         # image_tensor = tf.io.decode_image(image_raw)

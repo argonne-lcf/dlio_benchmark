@@ -15,7 +15,6 @@
    limitations under the License.
 """
 import numpy as np
-from numpy import random
 
 from src.common.constants import MODULE_DATA_READER
 from src.reader.reader_handler import FormatReader

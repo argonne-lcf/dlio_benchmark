@@ -17,7 +17,6 @@
 import logging
 
 import h5py
-from numpy import random
 
 from src.common.constants import MODULE_DATA_READER
 from src.utils.utility import Profile

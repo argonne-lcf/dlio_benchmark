@@ -20,7 +20,6 @@ from src.data_generator.data_generator import DataGenerator
 
 import logging
 import numpy as np
-from numpy import random
 
 from src.utils.utility import progress, utcnow, Profile
 from shutil import copyfile
@@ -43,22 +42,17 @@ class JPEGGenerator(DataGenerator):
         Generator for creating data in JPEG format of 3d dataset.
         """
         super().generate()
-        random.seed(10)
-        dim = int(np.sqrt(self.record_size))
-        dim_stdev = self.record_size_stdev /np.sqrt(self.record_size)/2.0
+        np.random.seed(10)
         record_labels = [0] 
-        if self.my_rank==0:
-            logging.info(f"{utcnow()} Dimension of images: {dim} x {dim}")
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
-            if (dim_stdev>0):
-                dim1, dim2 = [max(int(d), 0) for d in random.normal(dim, dim_stdev, 2)]
-            else:
-                dim1 = dim2 = dim
-            records = random.randint(255, size=(dim1, dim2), dtype=np.uint8)
+            dim1, dim2 = self.get_dimension()
+            records = np.random.randint(255, size=(dim1, dim2), dtype=np.uint8)
+            if self.my_rank==0:
+                logging.debug(f"{utcnow()} Dimension of images: {dim1} x {dim2}")
             img = im.fromarray(records)
             if self.my_rank == 0 and i % 100 == 0:
                 logging.info(f"Generated file {i}/{self.total_files_to_generate}")
             out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating JPEG Data")
             img.save(out_path_spec, format='JPEG', bits=8)
-        random.seed()
+        np.random.seed()
