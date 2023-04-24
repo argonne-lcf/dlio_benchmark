@@ -182,7 +182,6 @@ class DLIOBenchmark(object):
         file_list_eval = []
         for dataset_type in [DatasetType.TRAIN, DatasetType.VALID]:
             filenames = self.storage.walk_node(os.path.join(self.args.data_folder, f"{dataset_type}"))
-            filenames = [f for f in filenames if f.find(f'{self.args.format}')!=-1]
             if (len(filenames)==0):
                 continue
             if self.storage.get_node(
@@ -194,10 +193,15 @@ class DLIOBenchmark(object):
                 fullpaths = [self.storage.get_uri(os.path.join(self.args.data_folder, f"{dataset_type}", entry))
                              for entry
                              in filenames]
+            fullpaths = [f for f in fullpaths if f.find(f'{self.args.format}')!=-1]
             if dataset_type is DatasetType.TRAIN:
                 file_list_train = fullpaths
             elif dataset_type is DatasetType.VALID:
                 file_list_eval = fullpaths
+        if not self.generate_only:
+            assert(self.num_files_train <=len(file_list_train))
+        if self.do_eval:
+            assert(self.num_files_eval <=len(file_list_eval))
         if (self.num_files_train < len(file_list_train)):
             logging.warning(f"Number of files for training in {os.path.join(self.args.data_folder, f'{DatasetType.TRAIN}')} ({len(file_list_train)}) is more than requested ({self.num_files_train}). A subset of files will be used ")
             file_list_train = file_list_train[:self.num_files_train]
