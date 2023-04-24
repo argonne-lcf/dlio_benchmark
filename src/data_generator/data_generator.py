@@ -51,7 +51,7 @@ class DataGenerator(ABC):
         self.format = self._args.format
         self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root,
                                                                         self._args.framework)
-    def get_dimension():
+    def get_dimension(self):
         if (self._dimension_stdev>0):
             dim1, dim2 = [max(int(d), 0) for d in np.random.normal(self._dimension, self._dimension_stdev, 2)]
         else:
