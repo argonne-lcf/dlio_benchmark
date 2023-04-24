@@ -45,10 +45,7 @@ class JPEGGenerator(DataGenerator):
         np.random.seed(10)
         record_labels = [0] 
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
-            if (self._dimension_stdev>0):
-                dim1, dim2 = [max(int(d), 0) for d in np.random.normal(self._dimension, self._dimension_stdev, 2)]
-            else:
-                dim1 = dim2 = self._dimension
+            dim1, dim2 = self.get_dimension()
             records = np.random.randint(255, size=(dim1, dim2), dtype=np.uint8)
             if self.my_rank==0:
                 logging.debug(f"{utcnow()} Dimension of images: {dim1} x {dim2}")

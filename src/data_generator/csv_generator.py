@@ -42,10 +42,7 @@ class CSVGenerator(DataGenerator):
         record_label = 0
         for i in range(self.my_rank, int(self.total_files_to_generate), self.comm_size):
             progress(i+1, self.total_files_to_generate, "Generating CSV Data")
-            if (self._dimension_stdev>0):
-                dim1, dim2 = [max(int(d), 0) for d in np.random.normal( self._dimension, self._dimension_stdev, 2)]
-            else:
-                dim1 = dim2 = self._dimension
+            dim1, dim2 = self.get_dimension()
             record = np.random.randint(255, size=dim1*dim2, dtype=np.uint8)
             records = [record]*self.num_samples
             df = pd.DataFrame(data=records)

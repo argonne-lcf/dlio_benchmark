@@ -47,10 +47,7 @@ class HDF5Generator(DataGenerator):
         record_labels = [0] * self.num_samples
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
             progress(i, self.total_files_to_generate, "Generating HDF5 Data")
-            if (self._dimension_stdev>0):
-                dim1, dim2 = [max(int(d), 0) for d in np.random.normal(self._dimension, self._dimension_stdev, 2)]
-            else:
-                dim1 = dim2 = self._dimension
+            dim1, dim2 = self.get_dimension()
             records = np.random.randint(255, size=(samples_per_iter, dim1, dim2), dtype=np.uint8)
             out_path_spec = self.storage.get_uri(self._file_list[i])
             hf = h5py.File(out_path_spec, 'w')
