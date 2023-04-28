@@ -89,7 +89,8 @@ jobs:
           git clone https://github.com/hariharan-devarajan/dlio-profiler $GITHUB_WORKSPACE/dlio_profiler
           cd $GITHUB_WORKSPACE/dlio_profiler
           git submodule update --init --recursive
-          python -m pip install . 
+          cmake -DCMAKE_INSTALL_PREFIX= ../
+          make install -j
         fi
     - name: test_gen_data
       run: |
