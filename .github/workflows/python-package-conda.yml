@@ -92,7 +92,7 @@ jobs:
           mkdir build
           cd build
           cmake ../
-          make install -j
+          sudo make install -j
         fi
     - name: test_gen_data
       run: |
