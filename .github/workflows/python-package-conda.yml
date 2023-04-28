@@ -103,6 +103,11 @@ jobs:
         export PYTHONPATH=./:$PYTHONPATH
         export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_gen_data -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_gen_data[png-tensorflow] -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_gen_data[npz-tensorflow] -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_gen_data[jpeg-tensorflow] -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_gen_data[tfrecord-tensorflow] -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_gen_data[hdf5-tensorflow] -v
     - name: test_custom_storage_root_gen_data
       run: |
         touch __init__.py
