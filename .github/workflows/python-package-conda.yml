@@ -28,60 +28,10 @@ jobs:
       with:
         path: ${{ env.pythonLocation }}
         key: ${{ env.pythonLocation }}-${{ hashFiles('setup.py') }}-${{ hashFiles('dev-requirements.txt') }}
-    - name: Install Spack
-      uses: kzscisoft/install-spack@v1
-
-    - name: Set up packages.yaml
-      run: |
-        test -f $GITHUB_WORKSPACE/.spack/etc/spack/packages.yaml || cat > $GITHUB_WORKSPACE/.spack/etc/spack/packages.yaml << 'EOF'
-        packages:
-          all:
-            target: [x86_64]
-            providers:
-              mpi: [openmpi]
-          autoconf:
-            buildable: False
-            externals:
-            - spec: "autoconf@2.69"
-              prefix: /usr
-          automake:
-            buildable: False
-            externals:
-            - spec: "automake@1.16.1"
-              prefix: /usr
-          cmake:
-            buildable: False
-            externals:
-            - spec: "cmake@3.22.1"
-              prefix: /usr
-          libtool:
-            buildable: False
-            externals:
-            - spec: "libtool@2.4.6"
-              prefix: /usr
-          m4:
-            buildable: False
-            externals:
-            - spec: "m4@1.4.18"
-              prefix: /usr
-          openmpi:
-            buildable: False
-            externals:
-            - spec: "openmpi@4.0.3"
-              prefix: /usr
-          pkg-config:
-            buildable: False
-            externals:
-            - spec: "pkg-config@0.29.1"
-              prefix: /usr
-        EOF
-        spack compiler find --scope=user
-        if [[ $CC == 'gcc-10' ]]; then
-          spack config add "packages:all:compiler:[gcc@10.3.0]"
-        fi
-    - name: Install DLIO
+        - name: Install DLIO
       run: |
         echo "Profiler ${DLIO_PROFILER} gcc $CC"
+        sudo apt-get install $CC $CXX
         sudo apt-get install mpich
         python -m pip install --upgrade pip
         pip install --upgrade --upgrade-strategy eager -r dev-requirements.txt
