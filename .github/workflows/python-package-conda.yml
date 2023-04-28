@@ -89,6 +89,9 @@ jobs:
           git clone https://github.com/hariharan-devarajan/dlio-profiler /home/runner/work/dlio_profiler
           cd /home/runner/work/dlio_profiler
           git submodule update --init --recursive
+          pushd external/GOTCHA
+          git checkout tags/1.0.3 -b br-1.0.3
+          popd
           mkdir build
           cd build
           cmake ../
