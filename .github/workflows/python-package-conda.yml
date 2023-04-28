@@ -81,10 +81,11 @@ jobs:
         fi
     - name: Install DLIO
       run: |
+        echo "Profiler ${DLIO_PROFILER} gcc $CC"
         sudo apt-get install mpich
         python -m pip install --upgrade pip
         pip install --upgrade --upgrade-strategy eager -r dev-requirements.txt
-        if [[ $PROFILER == 'DLIO_PROFILER' ]]; then
+        if [[ $DLIO_PROFILER == 'DLIO_PROFILER' ]]; then
           git clone https://github.com/hariharan-devarajan/dlio-profiler $GITHUB_WORKSPACE/dlio_profiler
           cd $GITHUB_WORKSPACE/dlio_profiler
           git submodule update --init --recursive
