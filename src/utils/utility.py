@@ -26,9 +26,10 @@ from typing import Dict
 
 import numpy as np
 import inspect
-import dlio_profiler_py as dlio_logger
 
 # UTC timestamp format with microsecond precision
+from src.common.enumerations import LoggerType
+
 LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 from mpi4py import MPI
 
@@ -137,10 +138,13 @@ def create_dur_event(name, cat, ts, dur, args={}):
 
 class PerfTrace:
     __instance = None
-
+    logger_type = LoggerType.DEFAULT
+    logger = None
     def __init__(self):
         self.logfile = f"./.trace-{get_rank()}-of-{get_size()}" + ".pfw"
         self.log_file = None
+        self.logger = None
+        self.logger_type = LoggerType.DEFAULT
         PerfTrace.__instance = self
 
     @classmethod
@@ -157,10 +161,42 @@ class PerfTrace:
         instance.log_file = os.path.join(logdir, instance.logfile)
         if os.path.isfile(instance.log_file):
             os.remove(instance.log_file)
-        dlio_logger.initialize(instance.log_file, f"{data_dir}", process_id=get_rank())
+        if "PROFILER" in os.environ and os.environ["DLIO_PROFILER"] == "DLIO_PROFILER":
+            instance.logger_type = LoggerType.DLIO_PROFILER
+            import dlio_profiler_py as dlio_logger
+            instance.logger = dlio_logger
+            instance.logger.initialize(log_file, f"{data_dir}", process_id=get_rank())
+        else:
+            instance.logger = logging.getLogger("perftrace")
+            instance.logger.setLevel(logging.DEBUG)
+            instance.logger.propagate = False
+            fh = logging.FileHandler(log_file)
+            fh.setLevel(logging.DEBUG)
+            formatter = logging.Formatter("%(message)s")
+            fh.setFormatter(formatter)
+            instance.logger.addHandler(fh)
+            instance.logger.debug("[")
+
+    def get_time(self):
+        if self.logger_type == LoggerType.DLIO_PROFILER:
+            return self.logger.get_time()
+        else:
+            return time()
+
+    def log_event(self, name, cat, start_time, duration,  int_args=None):
+        if self.logger_type == LoggerType.DLIO_PROFILER:
+            self.logger.log_event(name=name, cat=cat, start_time=start_time, duration=duration, int_args=int_args)
+        else:
+            if int_args is None:
+                arguments = {}
+            event = create_dur_event(name, cat, start_time, duration, args=int_args)
+            self.logger.debug(json.dumps(event, cls=NpEncoder))
 
     def finalize(self):
-        dlio_logger.finalize()
+        if self.logger_type == LoggerType.DLIO_PROFILER:
+            self.logger.finalize()
+        else:
+            self.logger.debug("]")
 
 
 class Profile(object):
@@ -178,7 +214,7 @@ class Profile(object):
         self.reset()
 
     def __enter__(self):
-        self._t1 = dlio_logger.get_time()
+        self._t1 = PerfTrace.get_instance().get_time()
         return self
 
     def update(self, epoch=None, step=None, image_idx=None, image_size=None):
@@ -190,17 +226,17 @@ class Profile(object):
         return self
 
     def flush(self):
-        self._t2 = dlio_logger.get_time()
+        self._t2 = PerfTrace.get_instance().get_time()
         if len(self._arguments) > 0:
-            dlio_logger.log_event(name=self._name, cat=self._cat, start_time=self._t1, duration=self._t2 - self._t1,
+            PerfTrace.get_instance().log_event(name=self._name, cat=self._cat, start_time=self._t1, duration=self._t2 - self._t1,
                                   int_args=self._arguments)
         else:
-            dlio_logger.log_event(name=self._name, cat=self._cat, start_time=self._t1, duration=self._t2 - self._t1)
+            PerfTrace.get_instance().log_event(name=self._name, cat=self._cat, start_time=self._t1, duration=self._t2 - self._t1)
         self._flush = True
         return self
 
     def reset(self):
-        self._t1 = dlio_logger.get_time()
+        self._t1 = PerfTrace.get_instance().get_time()
         self._t2 = self._t1
         self._flush = False
         return self
@@ -234,14 +270,14 @@ class Profile(object):
                     elif name == "step":
                         self._arguments["image_size"] = int(value)
 
-            start = dlio_logger.get_time()
+            start = PerfTrace.get_instance().get_time()
             x = func(*args, **kwargs)
-            end = dlio_logger.get_time()
+            end = PerfTrace.get_instance().get_time()
             if len(self._arguments) > 0:
-                dlio_logger.log_event(name=func.__qualname__, cat=self._cat, start_time=start, duration=end - start,
+                PerfTrace.get_instance().log_event(name=func.__qualname__, cat=self._cat, start_time=start, duration=end - start,
                                       int_args=self._arguments)
             else:
-                dlio_logger.log_event(name=func.__qualname__, cat=self._cat, start_time=start, duration=end - start)
+                PerfTrace.get_instance().log_event(name=func.__qualname__, cat=self._cat, start_time=start, duration=end - start)
             return x
 
         return wrapper
@@ -250,21 +286,21 @@ class Profile(object):
         self._arguments[iter_name] = 1
         name = f"{inspect.stack()[1].function}.iter"
         kernal_name = f"{inspect.stack()[1].function}"
-        start = dlio_logger.get_time()
+        start = PerfTrace.get_instance().get_time()
         for v in func:
-            end = dlio_logger.get_time()
-            t0 = dlio_logger.get_time()
+            end = PerfTrace.get_instance().get_time()
+            t0 = PerfTrace.get_instance().get_time()
             yield v
-            t1 = dlio_logger.get_time()
+            t1 = PerfTrace.get_instance().get_time()
 
             if len(self._arguments) > 0:
-                dlio_logger.log_event(name=name, cat=self._cat, start_time=start, duration=end - start, int_args=self._arguments)
-                dlio_logger.log_event(name=kernal_name, cat=self._cat, start_time=t0, duration=t1 - t0, int_args=self._arguments)
+                PerfTrace.get_instance().log_event(name=name, cat=self._cat, start_time=start, duration=end - start, int_args=self._arguments)
+                PerfTrace.get_instance().log_event(name=kernal_name, cat=self._cat, start_time=t0, duration=t1 - t0, int_args=self._arguments)
             else:
-                dlio_logger.log_event(name=name, cat=self._cat, start_time=start, duration=end - start)
-                dlio_logger.log_event(name=kernal_name, cat=self._cat, start_time=t0, duration=t1 - t0)
+                PerfTrace.get_instance().log_event(name=name, cat=self._cat, start_time=start, duration=end - start)
+                PerfTrace.get_instance().log_event(name=kernal_name, cat=self._cat, start_time=t0, duration=t1 - t0)
             self._arguments[iter_name] += 1
-            start = dlio_logger.get_time()
+            start = PerfTrace.get_instance().get_time()
 
     def log_init(self, init):
         arg_names = inspect.getfullargspec(init)[0]
@@ -275,13 +311,13 @@ class Profile(object):
                 setattr(args, name, value)
                 if name == "epoch":
                     self._arguments["epoch"] = value
-            start = dlio_logger.get_time()
+            start = PerfTrace.get_instance().get_time()
             init(args, *kwargs)
-            end = dlio_logger.get_time()
+            end = PerfTrace.get_instance().get_time()
 
             if len(self._arguments) > 0:
-                dlio_logger.log_event(name=init.__qualname__, cat=self._cat, start_time=start, duration=end - start,
+                PerfTrace.get_instance().log_event(name=init.__qualname__, cat=self._cat, start_time=start, duration=end - start,
                                       int_args=self._arguments)
             else:
-                dlio_logger.log_event(name=init.__qualname__, cat=self._cat, start_time=start, duration=end - start)
+                PerfTrace.get_instance().log_event(name=init.__qualname__, cat=self._cat, start_time=start, duration=end - start)
         return new_init

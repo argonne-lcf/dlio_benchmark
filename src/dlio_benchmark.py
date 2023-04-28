@@ -30,10 +30,6 @@ from src.common.constants import MODULE_DLIO_BENCHMARK
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['AUTOGRAPH_VERBOSITY'] = '0'
-import tensorflow as tf
-
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
-
 # Remove PyTorch warning when libtorch_cuda_cu.so isn't found
 import warnings
 
