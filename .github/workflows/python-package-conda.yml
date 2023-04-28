@@ -99,52 +99,68 @@ jobs:
         fi
     - name: test_gen_data
       run: |
-        touch __init__.py
-        export PYTHONPATH=./:$PYTHONPATH
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_gen_data -v
+        if [[ $DLIO_PROFILER == 'DEFAULT' ]]; then
+          touch __init__.py
+          export PYTHONPATH=./:$PYTHONPATH
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+          RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_gen_data -v
+        fi
     - name: test_custom_storage_root_gen_data
       run: |
-        touch __init__.py
-        export PYTHONPATH=./:$PYTHONPATH
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_storage_root_gen_data  -v
+        if [[ $DLIO_PROFILER == 'DEFAULT' ]]; then
+          touch __init__.py
+          export PYTHONPATH=./:$PYTHONPATH
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+          RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_storage_root_gen_data  -v
+        fi
     - name: test_train
       run: |
-        touch __init__.py
-        export PYTHONPATH=./:$PYTHONPATH
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train -v
+        if [[ $DLIO_PROFILER == 'DEFAULT' ]]; then
+          touch __init__.py
+          export PYTHONPATH=./:$PYTHONPATH
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+          RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train -v
+        fi
     - name: test_custom_storage_root_train
       run: |
-        touch __init__.py
-        export PYTHONPATH=./:$PYTHONPATH
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_custom_storage_root_train -v
+        if [[ $DLIO_PROFILER == 'DEFAULT' ]]; then
+          touch __init__.py
+          export PYTHONPATH=./:$PYTHONPATH
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+          RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_custom_storage_root_train -v
+        fi
     - name: test_checkpoint_epoch
       run: |
-        touch __init__.py
-        export PYTHONPATH=./:$PYTHONPATH
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_checkpoint_epoch -v
+        if [[ $DLIO_PROFILER == 'DEFAULT' ]]; then
+          touch __init__.py
+          export PYTHONPATH=./:$PYTHONPATH
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+          RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_checkpoint_epoch -v
+        fi
     - name: test_checkpoint_step
       run: |
-        touch __init__.py
-        export PYTHONPATH=./:$PYTHONPATH
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_checkpoint_step -v
+        if [[ $DLIO_PROFILER == 'DEFAULT' ]]; then
+          touch __init__.py
+          export PYTHONPATH=./:$PYTHONPATH
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+          RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_checkpoint_step -v
+        fi
     - name: test_eval
       run: |
-        touch __init__.py
-        export PYTHONPATH=./:$PYTHONPATH
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_eval -v
+        if [[ $DLIO_PROFILER == 'DEFAULT' ]]; then
+          touch __init__.py
+          export PYTHONPATH=./:$PYTHONPATH
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+          RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_eval -v
+        fi
     - name: test_multi_threads
       run: |
-        touch __init__.py
-        export PYTHONPATH=./:$PYTHONPATH
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads -v
+        if [[ $DLIO_PROFILER == 'DEFAULT' ]]; then
+          touch __init__.py
+          export PYTHONPATH=./:$PYTHONPATH
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+          RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads -v
+        fi
     - name: test-tf-loader-tfrecord
       run: |
         touch __init__.py
