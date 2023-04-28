@@ -28,7 +28,7 @@ jobs:
       with:
         path: ${{ env.pythonLocation }}
         key: ${{ env.pythonLocation }}-${{ hashFiles('setup.py') }}-${{ hashFiles('dev-requirements.txt') }}
-        - name: Install DLIO
+    - name: Install DLIO
       run: |
         echo "Profiler ${DLIO_PROFILER} gcc $CC"
         sudo apt-get install $CC $CXX
