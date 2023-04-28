@@ -86,14 +86,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install --upgrade --upgrade-strategy eager -r dev-requirements.txt
         if [[ $DLIO_PROFILER == 'DLIO_PROFILER' ]]; then
-          git clone https://github.com/hariharan-devarajan/dlio-profiler $GITHUB_WORKSPACE/dlio_profiler
-          cd $GITHUB_WORKSPACE/dlio_profiler
+          git clone https://github.com/hariharan-devarajan/dlio-profiler /home/runner/work/dlio_profiler
+          cd /home/runner/work/dlio_profiler
           git submodule update --init --recursive
           mkdir build
           cd build
           cmake ../
           sudo make install -j
-          pip install pybind11 pybind11_tests
         fi
     - name: test_gen_data
       run: |
