@@ -184,11 +184,11 @@ class PerfTrace:
             return time()
 
     def log_event(self, name, cat, start_time, duration,  int_args=None):
+        if int_args is None:
+            int_args = {}
         if self.logger_type == LoggerType.DLIO_PROFILER:
             self.logger.log_event(name=name, cat=cat, start_time=start_time, duration=duration, int_args=int_args)
         else:
-            if int_args is None:
-                arguments = {}
             event = create_dur_event(name, cat, start_time, duration, args=int_args)
             self.logger.debug(json.dumps(event, cls=NpEncoder))
 
