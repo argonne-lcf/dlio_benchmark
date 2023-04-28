@@ -18,7 +18,6 @@ jobs:
       DLIO_PROFILER: ${{ matrix.profiler }}
       CC: gcc-${{ matrix.gcc }}
       CXX: g++-${{ matrix.gcc }}
-      PYTHON_ENV: $GITHUB_WORKSPACE/dlio_venv
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python 3.10
@@ -27,8 +26,8 @@ jobs:
         python-version: 3.10.5
     - uses: actions/cache@v2
       with:
-        path: ${{ env.PYTHON_ENV }}
-        key: ${{ env.PYTHON_ENV }}-${{ hashFiles('setup.py') }}-${{ hashFiles('dev-requirements.txt') }}
+        path: ${{ env.pythonLocation }}
+        key: ${{ env.pythonLocation }}-${{ hashFiles('setup.py') }}-${{ hashFiles('dev-requirements.txt') }}
     - name: Install Spack
       uses: kzscisoft/install-spack@v1
 
@@ -84,8 +83,6 @@ jobs:
       run: |
         echo "Profiler ${DLIO_PROFILER} gcc $CC"
         sudo apt-get install mpich
-        python -m venv $GITHUB_WORKSPACE/dlio_venv
-        source $GITHUB_WORKSPACE/dlio_venv/bin/activate
         python -m pip install --upgrade pip
         pip install --upgrade --upgrade-strategy eager -r dev-requirements.txt
         if [[ $DLIO_PROFILER == 'DLIO_PROFILER' ]]; then
@@ -96,73 +93,62 @@ jobs:
           cd build
           cmake ../
           sudo make install -j
+          pip install pybind11
         fi
     - name: test_gen_data
       run: |
-        source $GITHUB_WORKSPACE/dlio_venv/bin/activate
-        which python
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_gen_data -v
     - name: test_custom_storage_root_gen_data
       run: |
-        source $GITHUB_WORKSPACE/dlio_venv/bin/activate
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_storage_root_gen_data  -v
     - name: test_train
       run: |
-        source $GITHUB_WORKSPACE/dlio_venv/bin/activate
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train -v
     - name: test_custom_storage_root_train
       run: |
-        source $GITHUB_WORKSPACE/dlio_venv/bin/activate
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_custom_storage_root_train -v
     - name: test_checkpoint_epoch
       run: |
-        source $GITHUB_WORKSPACE/dlio_venv/bin/activate
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_checkpoint_epoch -v
     - name: test_checkpoint_step
       run: |
-        source $GITHUB_WORKSPACE/dlio_venv/bin/activate
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_checkpoint_step -v
     - name: test_eval
       run: |
-        source $GITHUB_WORKSPACE/dlio_venv/bin/activate
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_eval -v
     - name: test_multi_threads
       run: |
-        source $GITHUB_WORKSPACE/dlio_venv/bin/activate
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads -v
     - name: test-tf-loader-tfrecord
       run: |
-        source $GITHUB_WORKSPACE/dlio_venv/bin/activate
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
         RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=False ++workload.workflow.generate_data=True  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
         RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=True ++workload.workflow.generate_data=False  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
     - name: test-torch-loader-npz
       run: |
-        source $GITHUB_WORKSPACE/dlio_venv/bin/activate
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
         RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2 ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
         RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
     - name: test-tf-loader-npz
       run: |
-        source $GITHUB_WORKSPACE/dlio_venv/bin/activate
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
         RDMAV_FORK_SAFE=1 mpirun -np 2 python ./src/dlio_benchmark.py workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
