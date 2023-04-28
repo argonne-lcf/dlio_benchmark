@@ -165,12 +165,12 @@ class PerfTrace:
             instance.logger_type = LoggerType.DLIO_PROFILER
             import dlio_profiler_py as dlio_logger
             instance.logger = dlio_logger
-            instance.logger.initialize(log_file, f"{data_dir}", process_id=get_rank())
+            instance.logger.initialize(instance.log_file, f"{data_dir}", process_id=get_rank())
         else:
             instance.logger = logging.getLogger("perftrace")
             instance.logger.setLevel(logging.DEBUG)
             instance.logger.propagate = False
-            fh = logging.FileHandler(log_file)
+            fh = logging.FileHandler(instance.log_file)
             fh.setLevel(logging.DEBUG)
             formatter = logging.Formatter("%(message)s")
             fh.setFormatter(formatter)
