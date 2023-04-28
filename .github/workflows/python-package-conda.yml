@@ -77,7 +77,7 @@ jobs:
         EOF
         spack compiler find --scope=user
         if [[ $CC == 'gcc-10' ]]; then
-          spack config add "packages:all:compiler:[gcc@10.4.0]"
+          spack config add "packages:all:compiler:[gcc@10.3.0]"
         fi
     - name: Install DLIO
       run: |
