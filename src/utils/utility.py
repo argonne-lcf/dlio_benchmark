@@ -161,7 +161,7 @@ class PerfTrace:
         instance.log_file = os.path.join(logdir, instance.logfile)
         if os.path.isfile(instance.log_file):
             os.remove(instance.log_file)
-        if "PROFILER" in os.environ and os.environ["DLIO_PROFILER"] == "DLIO_PROFILER":
+        if "DLIO_PROFILER" in os.environ and os.environ["DLIO_PROFILER"] == "DLIO_PROFILER":
             instance.logger_type = LoggerType.DLIO_PROFILER
             import dlio_profiler_py as dlio_logger
             instance.logger = dlio_logger
