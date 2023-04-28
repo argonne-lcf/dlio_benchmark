@@ -93,7 +93,7 @@ jobs:
           cd build
           cmake ../
           sudo make install -j
-          pip install pybind11
+          pip install pybind11 pybind11_tests
         fi
     - name: test_gen_data
       run: |
