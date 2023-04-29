@@ -29,6 +29,14 @@ import inspect
 LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 from mpi4py import MPI
 
+def add_padding(n, num_digits=None):
+    str_out = str(n)
+    if num_digits!=None:
+        return str_out.rjust(num_digits, "0")
+    else:
+        return str_out
+
+
 
 def utcnow(format=LOG_TS_FORMAT):
     return datetime.now().strftime(format)
