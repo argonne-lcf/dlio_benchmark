@@ -69,7 +69,27 @@ jobs:
         touch __init__.py
         export PYTHONPATH=./:$PYTHONPATH
         export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[png-tensorflow-tensorflow]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[npz-tensorflow-tensorflow]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[jpeg-tensorflow-tensorflow]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[tfrecord-tensorflow-tensorflow]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[hdf5-tensorflow-tensorflow]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[csv-tensorflow-tensorflow]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[png-pytorch-pytorch]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[npz-pytorch-pytorch]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[jpeg-pytorch-pytorch]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[hdf5-pytorch-pytorch]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[csv-pytorch-pytorch]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[png-tensorflow-dali]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[npz-tensorflow-dali]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[jpeg-tensorflow-dali]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[hdf5-tensorflow-dali]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[csv-tensorflow-dali]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[png-pytorch-dali]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[npz-pytorch-dali]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[jpeg-pytorch-dali]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[hdf5-pytorch-dali]
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[csv-pytorch-dali]
     - name: test_custom_storage_root_train
       run: |
         touch __init__.py
