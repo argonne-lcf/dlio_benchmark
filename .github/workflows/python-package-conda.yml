@@ -41,7 +41,7 @@ jobs:
           cd /home/runner/work/dlio_profiler
           git submodule update --init --recursive
           pushd external/GOTCHA
-          git checkout br-1.0.3
+          git apply ../gotcha_glibc_workaround.patch 
           popd
           mkdir build
           cd build
