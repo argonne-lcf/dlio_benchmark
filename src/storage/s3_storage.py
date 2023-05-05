@@ -55,3 +55,6 @@ class S3Storage(DataStorage):
     @dlp.log
     def get_data(self, id, data, offset=None, length=None):
         return super().get_data(self.get_uri(id), data, offset, length)
+
+    def get_basename(self, id):
+        return os.path.basename(id)
