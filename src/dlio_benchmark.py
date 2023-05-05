@@ -121,6 +121,8 @@ class DLIOBenchmark(object):
 
             self.data_generator = None
             self.num_files_train = self.args.num_files_train
+            self.num_subfolders_train = self.args.num_subfolders_train
+            self.num_subfolders_eval = self.args.num_subfolders_eval
             self.num_samples = self.args.num_samples_per_file
             self.total_training_steps = self.args.total_training_steps
 
@@ -187,13 +189,16 @@ class DLIOBenchmark(object):
             if self.storage.get_node(
                     os.path.join(self.args.data_folder, f"{dataset_type}",
                                  filenames[0])) == MetadataType.DIRECTORY:
-                fullpaths = self.storage.walk_node(os.path.join(self.args.data_folder, f"{dataset_type}/*/*"),
+                assert(self.num_subfolders_train == len(filenames))
+                fullpaths = self.storage.walk_node(os.path.join(self.args.data_folder, f"{dataset_type}/*/*.{self.args.format}"),
                                                    use_pattern=True)
+                files = [self.storage.get_basename(f) for f in fullpaths]
+                idx = np.argsort(files)
+                fullpaths = [fullpaths[i] for i in idx]
             else:
                 fullpaths = [self.storage.get_uri(os.path.join(self.args.data_folder, f"{dataset_type}", entry))
-                             for entry
-                             in filenames]
-            fullpaths = [f for f in fullpaths if f.find(f'{self.args.format}')!=-1]
+                             for entry in filenames if entry.find(f'{self.args.format}')!=-1]
+                fullpaths = sorted(fullpaths)
             if dataset_type is DatasetType.TRAIN:
                 file_list_train = fullpaths
             elif dataset_type is DatasetType.VALID:
@@ -207,7 +212,7 @@ class DLIOBenchmark(object):
             file_list_train = file_list_train[:self.num_files_train]
         if (self.num_files_eval < len(file_list_eval)):
             logging.warning(f"Number of files for evaluation in {os.path.join(self.args.data_folder, f'{DatasetType.VALID}')} ({len(file_list_eval)}) is more than requested ({self.num_files_eval}). A subset of files will be used ")
-            file_list_eval = file_list_train[:self.num_files_eval]
+            file_list_eval = file_list_eval[:self.num_files_eval]
         self.args.derive_configurations(file_list_train, file_list_eval)
         self.args.validate()
         self.framework.barrier()

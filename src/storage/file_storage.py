@@ -77,3 +77,6 @@ class FileStorage(DataStorage):
         with open(self.get_uri(id), "r") as fd:
             data = fd.read()
         return data
+    
+    def get_basename(self, id):
+        return os.path.basename(id)
