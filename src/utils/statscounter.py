@@ -42,7 +42,9 @@ class StatsCounter(object):
         self.summary['num_accelerators'] = self.comm_size
         self.summary['hostname'] = socket.gethostname()
         self.summary['metric'] = {}
-
+        self.summary['num_files_train'] = self.args.num_files_train
+        self.summary['num_files_eval'] = self.args.num_files_eval
+        self.summary['num_samples_per_file'] = self.args.num_samples_per_file
         max_steps = math.floor(self.args.num_samples_per_file * self.args.num_files_train / self.args.batch_size / self.args.comm_size)
 
         if self.args.total_training_steps > 0:

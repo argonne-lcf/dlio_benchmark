@@ -25,6 +25,7 @@ from src.utils.config import ConfigArguments
 import os
 import math
 import logging
+import numpy as np
 from numpy import random
 import glob
 
@@ -46,20 +47,14 @@ class FormatReader(ABC):
         self.my_rank = self._args.my_rank
         self.comm_size = self._args.comm_size
         self.eval_enabled = self._args.do_eval
-        self.num_files_eval = self._args.num_files_eval
-        self.num_files_train = self._args.num_files_train
-        self.total_files = self.num_files_train + self.num_files_eval 
+        self.total_files = self._args.num_files_train + self._args.num_files_eval 
         self.num_samples = self._args.num_samples_per_file
         self._dimension = int(math.sqrt(self.record_size / 8))
 
         # Batch sizes
-        self.batch_size_train = self._args.batch_size
-        self.batch_size_eval = self._args.batch_size_eval
         self.batch_size = None
         self._local_file_list = None
         self._local_eval_file_list = None
-        self._file_list_train = None
-        self._file_list_eval = None
         self._file_list = None
         self._dataset = None
         self._debug = self._args.debug
@@ -68,34 +63,40 @@ class FormatReader(ABC):
                                                           self._args.do_profiling)
         self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root, self._args.framework)
         # We do this here so we keep the same evaluation files every epoch
-        if self.num_files_train > 1 or self.num_samples == 1:
+        if self._args.num_files_train > 1 or self.num_samples == 1:
             self.file_acess = FileAccess.MULTI
         else:
             self.file_acess = FileAccess.SHARED
-        num_files = -1
-        if self.dataset_type == DatasetType.TRAIN:
-            filenames = self.storage.walk_node(os.path.join(self.data_dir,  "train"))
-            if self.storage.get_node(os.path.join(self.data_dir, "train", filenames[0])) == MetadataType.DIRECTORY:
-                fullpaths=self.storage.walk_node(os.path.join(self.data_dir, "train/*/*"), use_pattern=True)
-            else:
-                fullpaths = [self.storage.get_uri(os.path.join(self.data_dir, "train", entry)) for entry in filenames]
+        if dataset_type == DatasetType.TRAIN:
+            num_files = self._args.num_files_train
+            num_subfolders = self._args.num_subfolders_train
+            self.batch_size = self._args.batch_size
+        else:
+            num_files = self._args.num_files_eval
+            num_subfolders = self._args.num_subfolders_eval
+            self.batch_size = self._args.batch_size_eval
 
-            num_files = self.num_files_train
-            self.batch_size = self.batch_size_train
-        elif self.dataset_type == DatasetType.VALID:
-            filenames = self.storage.walk_node(os.path.join(self.data_dir, "valid/"))
-            if (len(filenames)>0):
-                if self.storage.get_node(os.path.join(self.data_dir, "valid", filenames[0])) == MetadataType.DIRECTORY:
-                    fullpaths=self.storage.walk_node(os.path.join(self.data_dir, "valid/*/*"), use_pattern=True)
-                else:
-                    fullpaths = [self.storage.get_uri(os.path.join(self.data_dir, "valid", entry)) for entry in filenames]
-                num_files = self.num_files_eval
-                self.batch_size = self.batch_size_eval
+        filenames = self.storage.walk_node(os.path.join(self._args.data_folder, f"{dataset_type}"))
+        if (len(filenames)>0):
+            if self.storage.get_node(
+                    os.path.join(self._args.data_folder, f"{dataset_type}",
+                                    filenames[0])) == MetadataType.DIRECTORY:
+                assert(num_subfolders == len(filenames))
+                fullpaths = self.storage.walk_node(os.path.join(self._args.data_folder, f"{dataset_type}/*/*.{self._args.format}"),
+                                                    use_pattern=True)
+                files = [self.storage.get_basename(f) for f in fullpaths]
+                idx = np.argsort(files)
+                fullpaths = [fullpaths[i] for i in idx]
             else:
-                fullpaths=[]
-        assert len(fullpaths) >= num_files, f"Expected {num_files} {dataset_type} files but {len(fullpaths)} found. Ensure enough data in the folder {self.data_dir}/{dataset_type}."            
-        if (len(fullpaths) > num_files and num_files !=-1):
-            logging.warning(f"{num_files} {dataset_type} files from {self.data_dir} will be selected.")
+                fullpaths = [self.storage.get_uri(os.path.join(self._args.data_folder, f"{dataset_type}", entry))
+                                for entry in filenames if entry.find(f'{self._args.format}')!=-1]
+                fullpaths = sorted(fullpaths)
+            if not self._args.generate_only:
+                assert(num_files <=len(fullpaths))
+            if (num_files < len(fullpaths)):
+                logging.warning(f"Number of files in {os.path.join(self._args.data_folder, f'{dataset_type}')} ({len(fullpaths)}) is more than requested ({num_files}). A subset of files will be used ")
+        else:
+            fullpaths=[]
         self._file_list = fullpaths[:num_files]
         self._local_file_list = self._file_list[self.my_rank::self.comm_size]
 
