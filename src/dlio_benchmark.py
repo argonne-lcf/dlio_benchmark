@@ -189,7 +189,10 @@ class DLIOBenchmark(object):
             if self.storage.get_node(
                     os.path.join(self.args.data_folder, f"{dataset_type}",
                                  filenames[0])) == MetadataType.DIRECTORY:
-                assert(self.num_subfolders_train == len(filenames))
+                if dataset_type==DatasetType.TRAIN:
+                    assert(self.num_subfolders_train == len(filenames))
+                elif dataset_type==DatasetType.VALID:
+                    assert(self.num_subfolders_eval == len(filenames))
                 fullpaths = self.storage.walk_node(os.path.join(self.args.data_folder, f"{dataset_type}/*/*.{self.args.format}"),
                                                    use_pattern=True)
                 files = [self.storage.get_basename(f) for f in fullpaths]
