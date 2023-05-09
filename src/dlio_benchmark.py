@@ -30,10 +30,6 @@ from src.common.constants import MODULE_DLIO_BENCHMARK
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['AUTOGRAPH_VERBOSITY'] = '0'
-import tensorflow as tf
-
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
-
 # Remove PyTorch warning when libtorch_cuda_cu.so isn't found
 import warnings
 
@@ -76,7 +72,7 @@ class DLIOBenchmark(object):
             except:
                 self.args.output_folder = 'output/'
         self.output_folder = self.args.output_folder
-        PerfTrace.initialize_log(self.args.output_folder)
+        PerfTrace.initialize_log(self.args.output_folder, self.args.data_folder)
         with Profile(name=f"{self.__init__.__qualname__}", cat=MODULE_DLIO_BENCHMARK):
             self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
 

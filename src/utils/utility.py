@@ -22,10 +22,14 @@ from time import time
 from functools import wraps
 import threading
 import json
+from typing import Dict
+
 import numpy as np
 import inspect
 
 # UTC timestamp format with microsecond precision
+from src.common.enumerations import LoggerType
+
 LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 from mpi4py import MPI
 
@@ -142,11 +146,13 @@ def create_dur_event(name, cat, ts, dur, args={}):
 
 class PerfTrace:
     __instance = None
-
+    logger_type = LoggerType.DEFAULT
+    logger = None
     def __init__(self):
         self.logfile = f"./.trace-{get_rank()}-of-{get_size()}" + ".pfw"
         self.log_file = None
         self.logger = None
+        self.logger_type = LoggerType.DEFAULT
         PerfTrace.__instance = self
 
     @classmethod
@@ -157,36 +163,48 @@ class PerfTrace:
         return PerfTrace.__instance
 
     @staticmethod
-    def initialize_log(logdir):
+    def initialize_log(logdir, data_dir):
         instance = PerfTrace.get_instance()
+        os.makedirs(logdir, exist_ok=True)
         instance.log_file = os.path.join(logdir, instance.logfile)
         if os.path.isfile(instance.log_file):
             os.remove(instance.log_file)
-        os.makedirs(logdir, exist_ok=True)
-        instance.flush_log("")
-
-    def event_complete(self, name, cat, ts, dur, arguments=None):
-        if arguments is None:
-            arguments = {}
-        event = create_dur_event(name, cat, ts, dur, args=arguments)
-        self.flush_log(json.dumps(event, cls=NpEncoder))
-
-    def flush_log(self, s):
-        if self.logger is None:
-            self.logger = logging.getLogger("perftrace")
-            self.logger.setLevel(logging.DEBUG)
-            self.logger.propagate = False
-            fh = logging.FileHandler(self.log_file)
+        if "DLIO_PROFILER" in os.environ and os.environ["DLIO_PROFILER"] == "DLIO_PROFILER":
+            instance.logger_type = LoggerType.DLIO_PROFILER
+            import dlio_profiler_py as dlio_logger
+            instance.logger = dlio_logger
+            instance.logger.initialize(instance.log_file, f"{data_dir}", process_id=get_rank())
+        else:
+            instance.logger = logging.getLogger("perftrace")
+            instance.logger.setLevel(logging.DEBUG)
+            instance.logger.propagate = False
+            fh = logging.FileHandler(instance.log_file)
             fh.setLevel(logging.DEBUG)
             formatter = logging.Formatter("%(message)s")
             fh.setFormatter(formatter)
-            self.logger.addHandler(fh)
-            self.logger.debug("[")
-        if s != "":
-            self.logger.debug(f"{s}")
+            instance.logger.addHandler(fh)
+            instance.logger.debug("[")
+
+    def get_time(self):
+        if self.logger_type == LoggerType.DLIO_PROFILER:
+            return self.logger.get_time()
+        else:
+            return time()
+
+    def log_event(self, name, cat, start_time, duration,  int_args=None):
+        if int_args is None:
+            int_args = {}
+        if self.logger_type == LoggerType.DLIO_PROFILER:
+            self.logger.log_event(name=name, cat=cat, start_time=start_time, duration=duration, int_args=int_args)
+        else:
+            event = create_dur_event(name, cat, start_time, duration, args=int_args)
+            self.logger.debug(json.dumps(event, cls=NpEncoder))
 
     def finalize(self):
-        pass
+        if self.logger_type == LoggerType.DLIO_PROFILER:
+            self.logger.finalize()
+        else:
+            self.logger.debug("]")
 
 
 class Profile(object):
@@ -196,7 +214,7 @@ class Profile(object):
             name = inspect.stack()[1].function
         self._name = name
         self._cat = cat
-        self._arguments = {}
+        self._arguments:Dict[str, int] = {}
         if epoch is not None: self._arguments["epoch"] = epoch
         if step is not None: self._arguments["step"] = step
         if image_idx is not None: self._arguments["image_idx"] = image_idx
@@ -204,7 +222,7 @@ class Profile(object):
         self.reset()
 
     def __enter__(self):
-        self._t1 = time()
+        self._t1 = PerfTrace.get_instance().get_time()
         return self
 
     def update(self, epoch=None, step=None, image_idx=None, image_size=None):
@@ -216,14 +234,17 @@ class Profile(object):
         return self
 
     def flush(self):
-        self._t2 = time()
-        PerfTrace.get_instance().event_complete(name=self._name, cat=self._cat, ts=self._t1, dur=self._t2 - self._t1,
-                                                arguments=self._arguments)
+        self._t2 = PerfTrace.get_instance().get_time()
+        if len(self._arguments) > 0:
+            PerfTrace.get_instance().log_event(name=self._name, cat=self._cat, start_time=self._t1, duration=self._t2 - self._t1,
+                                  int_args=self._arguments)
+        else:
+            PerfTrace.get_instance().log_event(name=self._name, cat=self._cat, start_time=self._t1, duration=self._t2 - self._t1)
         self._flush = True
         return self
 
     def reset(self):
-        self._t1 = time()
+        self._t1 = PerfTrace.get_instance().get_time()
         self._t2 = self._t1
         self._flush = False
         return self
@@ -234,7 +255,6 @@ class Profile(object):
 
     def log(self, func):
         arg_names = inspect.getfullargspec(func)[0]
-
         @wraps(func)
         def wrapper(*args, **kwargs):
             if "self" == arg_names[0]:
@@ -250,20 +270,22 @@ class Profile(object):
                 if hasattr(args, name):
                     setattr(args, name, value)
                     if name == "epoch":
-                        self._arguments["epoch"] = value
+                        self._arguments["epoch"] = int(value)
                     elif name == "image_idx":
-                        self._arguments["image_idx"] = value
+                        self._arguments["image_idx"] = int(value)
                     elif name == "image_size":
-                        self._arguments["image_size"] = value
+                        self._arguments["image_size"] = int(value)
                     elif name == "step":
-                        self._arguments["image_size"] = value
+                        self._arguments["image_size"] = int(value)
 
-            start = time()
+            start = PerfTrace.get_instance().get_time()
             x = func(*args, **kwargs)
-            end = time()
-            instance = PerfTrace.get_instance()
-            event = create_dur_event(func.__qualname__, self._cat, start, dur=end - start, args=self._arguments)
-            instance.flush_log(json.dumps(event, cls=NpEncoder))
+            end = PerfTrace.get_instance().get_time()
+            if len(self._arguments) > 0:
+                PerfTrace.get_instance().log_event(name=func.__qualname__, cat=self._cat, start_time=start, duration=end - start,
+                                      int_args=self._arguments)
+            else:
+                PerfTrace.get_instance().log_event(name=func.__qualname__, cat=self._cat, start_time=start, duration=end - start)
             return x
 
         return wrapper
@@ -272,19 +294,21 @@ class Profile(object):
         self._arguments[iter_name] = 1
         name = f"{inspect.stack()[1].function}.iter"
         kernal_name = f"{inspect.stack()[1].function}"
-        start = time()
+        start = PerfTrace.get_instance().get_time()
         for v in func:
-            end = time()
-            t0 = time()
+            end = PerfTrace.get_instance().get_time()
+            t0 = PerfTrace.get_instance().get_time()
             yield v
-            instance = PerfTrace.get_instance()
-            event = create_dur_event(name, self._cat, start, dur=end - start, args=self._arguments)
-            instance.flush_log(json.dumps(event, cls=NpEncoder))
-            t1 = time()
-            event = create_dur_event(kernal_name, self._cat, t0, dur=t1 - t0, args=self._arguments)
-            instance.flush_log(json.dumps(event, cls=NpEncoder))
+            t1 = PerfTrace.get_instance().get_time()
+
+            if len(self._arguments) > 0:
+                PerfTrace.get_instance().log_event(name=name, cat=self._cat, start_time=start, duration=end - start, int_args=self._arguments)
+                PerfTrace.get_instance().log_event(name=kernal_name, cat=self._cat, start_time=t0, duration=t1 - t0, int_args=self._arguments)
+            else:
+                PerfTrace.get_instance().log_event(name=name, cat=self._cat, start_time=start, duration=end - start)
+                PerfTrace.get_instance().log_event(name=kernal_name, cat=self._cat, start_time=t0, duration=t1 - t0)
             self._arguments[iter_name] += 1
-            start = time()
+            start = PerfTrace.get_instance().get_time()
 
     def log_init(self, init):
         arg_names = inspect.getfullargspec(init)[0]
@@ -295,11 +319,13 @@ class Profile(object):
                 setattr(args, name, value)
                 if name == "epoch":
                     self._arguments["epoch"] = value
-            start = time()
+            start = PerfTrace.get_instance().get_time()
             init(args, *kwargs)
-            end = time()
-            instance = PerfTrace.get_instance()
-            event = create_dur_event(init.__qualname__, self._cat, start, dur=end - start, args=self._arguments)
-            instance.flush_log(json.dumps(event, cls=NpEncoder))
+            end = PerfTrace.get_instance().get_time()
 
+            if len(self._arguments) > 0:
+                PerfTrace.get_instance().log_event(name=init.__qualname__, cat=self._cat, start_time=start, duration=end - start,
+                                      int_args=self._arguments)
+            else:
+                PerfTrace.get_instance().log_event(name=init.__qualname__, cat=self._cat, start_time=start, duration=end - start)
         return new_init

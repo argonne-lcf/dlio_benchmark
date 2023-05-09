@@ -155,3 +155,4 @@ dmypy.json
 
 #Apple system files
 .DS_Store
+/.idea/
