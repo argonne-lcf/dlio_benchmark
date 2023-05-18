@@ -89,3 +89,8 @@ jobs:
         output=`ls -d ./hydra_log/unet3d/* | tail -1`
         python ./src/dlio_postprocessor.py --output-folder=${output}
         cat ${output}/*.txt
+    - name: test-subset
+      run: |
+        touch __init__.py
+        export PYTHONPATH=./:$PYTHONPATH
+        RDMAV_FORK_SAFE=1 mpirun -np 2 python3 tests/dlio_benchmark_test.py -k test_subset

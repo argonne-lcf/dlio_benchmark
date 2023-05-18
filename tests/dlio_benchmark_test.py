@@ -94,6 +94,18 @@ class TestDLIOBenchmark(unittest.TestCase):
                     self.clean()
 
     @pytest.mark.timeout(60, method="thread")
+    def test_subset(self) -> None:
+        self.clean()
+        with initialize(version_base=None, config_path="../configs"):
+            cfg = compose(config_name='config', overrides=['++workload.workflow.train=False', \
+                            '++workload.workflow.generate_data=True'])
+            benchmark=self.run_benchmark(cfg, verify=False)
+            cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', \
+                            '++workload.workflow.generate_data=False', '++workload.dataset.num_files_train=8'])
+            benchmark=self.run_benchmark(cfg, verify=True)
+        self.clean()
+
+    @pytest.mark.timeout(60, method="thread")
     def test_storage_root_gen_data(self) -> None:
         storage_root="runs"
         for fmt in "tfrecord", "jpeg", "png", "hdf5", "npz":

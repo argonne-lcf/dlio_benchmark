@@ -329,6 +329,7 @@ class DLIOBenchmark(object):
                         logging.info(f"{utcnow()} Deleted data files")
             
             # Save collected stats to disk
+            self.stats.finalize()
             self.stats.save_data()
         self.framework.barrier()  
 
