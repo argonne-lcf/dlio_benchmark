@@ -39,6 +39,7 @@ class StatsCounter(object):
         self.batch_size = self.args.batch_size
         self.batch_size_eval = self.args.batch_size_eval
         self.summary = {}
+        self.summary['start'] = utcnow()
         self.summary['num_accelerators'] = self.comm_size
         self.summary['hostname'] = socket.gethostname()
         self.summary['metric'] = {}
@@ -69,9 +70,7 @@ class StatsCounter(object):
         self.eval_throughput = []
     def start_run(self):
         self.start_run_timestamp = time()
-        self.summary['start'] = utcnow()
     def end_run(self):
-        self.summary['end'] = utcnow()
         self.end_run_timestamp = time()
         if not self.args.generate_only:
             total_elapsed_time = self.end_run_timestamp - self.start_run_timestamp
@@ -284,7 +283,8 @@ class StatsCounter(object):
         self.output[epoch]['proc']['eval'].append(duration)
         self.output[epoch]['compute']['eval'].append(computation_time)
         logging.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size_eval} samples in {duration} s")
-
+    def finalize(self):
+        self.summary['end'] = utcnow()
     def save_data(self):
         # Dump statistic counters to files for postprocessing
         # Overall stats
