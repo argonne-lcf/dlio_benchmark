@@ -105,6 +105,17 @@ def test_gen_data(fmt, framework) -> None:
             assert (len(valid_files) == cfg.workload.dataset.num_files_eval)
         clean()
 
+@pytest.mark.timeout(60, method="thread")
+def test_subset() -> None:
+    clean()
+    with initialize(version_base=None, config_path="../configs"):
+        cfg = compose(config_name='config', overrides=['++workload.workflow.train=False', \
+                    '++workload.workflow.generate_data=True'])
+        benchmark=run_benchmark(cfg, verify=False)
+        cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', \
+                        '++workload.workflow.generate_data=False', '++workload.dataset.num_files_train=8'])
+        benchmark=run_benchmark(cfg, verify=True)
+    clean()
 
 @pytest.mark.timeout(60, method="thread")
 @pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),

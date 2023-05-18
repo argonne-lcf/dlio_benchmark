@@ -182,23 +182,26 @@ class DLIOBenchmark(object):
         self.framework.barrier()
         file_list_train = []
         file_list_eval = []
+        num_subfolders = 0
         for dataset_type in [DatasetType.TRAIN, DatasetType.VALID]:
+            if dataset_type==DatasetType.TRAIN:
+                num_subfolders = self.num_subfolders_train
+            else:
+                num_subfolders = self.num_subfolders_eval
             filenames = self.storage.walk_node(os.path.join(self.args.data_folder, f"{dataset_type}"))
             if (len(filenames)==0):
                 continue
             if self.storage.get_node(
                     os.path.join(self.args.data_folder, f"{dataset_type}",
                                  filenames[0])) == MetadataType.DIRECTORY:
-                if dataset_type==DatasetType.TRAIN:
-                    assert(self.num_subfolders_train == len(filenames))
-                elif dataset_type==DatasetType.VALID:
-                    assert(self.num_subfolders_eval == len(filenames))
+                assert(num_subfolders == len(filenames))
                 fullpaths = self.storage.walk_node(os.path.join(self.args.data_folder, f"{dataset_type}/*/*.{self.args.format}"),
                                                    use_pattern=True)
                 files = [self.storage.get_basename(f) for f in fullpaths]
                 idx = np.argsort(files)
                 fullpaths = [fullpaths[i] for i in idx]
             else:
+                assert(num_subfolders==0)
                 fullpaths = [self.storage.get_uri(os.path.join(self.args.data_folder, f"{dataset_type}", entry))
                              for entry in filenames if entry.find(f'{self.args.format}')!=-1]
                 fullpaths = sorted(fullpaths)
@@ -375,6 +378,7 @@ class DLIOBenchmark(object):
                         logging.info(f"{utcnow()} Deleted data files")
 
             # Save collected stats to disk
+            self.stats.finalize()
             self.stats.save_data()
         self.framework.barrier()  
 
