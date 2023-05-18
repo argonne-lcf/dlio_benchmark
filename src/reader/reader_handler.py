@@ -78,7 +78,6 @@ class FormatReader(ABC):
 
         if not self._args.generate_only:
             filenames = self.storage.walk_node(os.path.join(self._args.data_folder, f"{dataset_type}"))
-            assert(len(filenames) > 0)
             if self.storage.get_node(
                     os.path.join(self._args.data_folder, f"{dataset_type}",
                                     filenames[0])) == MetadataType.DIRECTORY:
