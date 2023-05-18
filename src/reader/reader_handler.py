@@ -75,9 +75,8 @@ class FormatReader(ABC):
             num_files = self._args.num_files_eval
             num_subfolders = self._args.num_subfolders_eval
             self.batch_size = self._args.batch_size_eval
-
-        if not self._args.generate_only:
-            filenames = self.storage.walk_node(os.path.join(self._args.data_folder, f"{dataset_type}"))
+        filenames = self.storage.walk_node(os.path.join(self._args.data_folder, f"{dataset_type}"))
+        if not self._args.generate_only and len(filenames) > 0:
             if self.storage.get_node(
                     os.path.join(self._args.data_folder, f"{dataset_type}",
                                     filenames[0])) == MetadataType.DIRECTORY:
