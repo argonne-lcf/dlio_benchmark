@@ -77,26 +77,25 @@ class FormatReader(ABC):
             self.batch_size = self._args.batch_size_eval
 
         filenames = self.storage.walk_node(os.path.join(self._args.data_folder, f"{dataset_type}"))
-        if (len(filenames)>0):
-            if self.storage.get_node(
-                    os.path.join(self._args.data_folder, f"{dataset_type}",
-                                    filenames[0])) == MetadataType.DIRECTORY:
-                assert(num_subfolders == len(filenames))
-                fullpaths = self.storage.walk_node(os.path.join(self._args.data_folder, f"{dataset_type}/*/*.{self._args.format}"),
-                                                    use_pattern=True)
-                files = [self.storage.get_basename(f) for f in fullpaths]
-                idx = np.argsort(files)
-                fullpaths = [fullpaths[i] for i in idx]
-            else:
-                fullpaths = [self.storage.get_uri(os.path.join(self._args.data_folder, f"{dataset_type}", entry))
-                                for entry in filenames if entry.find(f'{self._args.format}')!=-1]
-                fullpaths = sorted(fullpaths)
-            if not self._args.generate_only:
-                assert(num_files <=len(fullpaths))
-            if (num_files < len(fullpaths)):
-                logging.warning(f"Number of files in {os.path.join(self._args.data_folder, f'{dataset_type}')} ({len(fullpaths)}) is more than requested ({num_files}). A subset of files will be used ")
+        assert(len(filenames) > 0)
+        if self.storage.get_node(
+                os.path.join(self._args.data_folder, f"{dataset_type}",
+                                filenames[0])) == MetadataType.DIRECTORY:
+            assert(num_subfolders == len(filenames))
+            fullpaths = self.storage.walk_node(os.path.join(self._args.data_folder, f"{dataset_type}/*/*.{self._args.format}"),
+                                                use_pattern=True)
+            files = [self.storage.get_basename(f) for f in fullpaths]
+            idx = np.argsort(files)
+            fullpaths = [fullpaths[i] for i in idx]
         else:
-            fullpaths=[]
+            assert(num_subfolders==0)
+            fullpaths = [self.storage.get_uri(os.path.join(self._args.data_folder, f"{dataset_type}", entry))
+                            for entry in filenames if entry.find(f'{self._args.format}')!=-1]
+            fullpaths = sorted(fullpaths)
+        if not self._args.generate_only:
+            assert(num_files <=len(fullpaths))
+        if (num_files < len(fullpaths)):
+            logging.warning(f"Number of files in {os.path.join(self._args.data_folder, f'{dataset_type}')} ({len(fullpaths)}) is more than requested ({num_files}). A subset of files will be used ")
         self._file_list = fullpaths[:num_files]
         self._local_file_list = self._file_list[self.my_rank::self.comm_size]
 
