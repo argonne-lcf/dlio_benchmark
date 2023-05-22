@@ -39,6 +39,7 @@ class StatsCounter(object):
         self.batch_size = self.args.batch_size
         self.batch_size_eval = self.args.batch_size_eval
         self.summary = {}
+        self.summary['model'] = self.args.model
         self.summary['start'] = utcnow()
         self.summary['num_accelerators'] = self.comm_size
         self.summary['hostname'] = socket.gethostname()
