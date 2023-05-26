@@ -14,6 +14,7 @@ dataset:
   num_samples_per_file: 1
   record_length: 234560851
   record_length_stdev: 109346892
+  record_length_resize: 2097152
   
 reader: 
   data_loader: pytorch

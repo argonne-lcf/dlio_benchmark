@@ -19,9 +19,8 @@ from src.common.enumerations import Compression
 from src.data_generator.data_generator import DataGenerator
 import math
 import os
-from mpi4py import MPI
 
-from numpy import random
+import numpy as np
 import csv
 
 from shutil import copyfile
@@ -39,15 +38,15 @@ class CSVGenerator(DataGenerator):
         Generate csv data for training. It generates a 2d dataset and writes it to file.
         """
         super().generate()
-        if self.my_rank == 0:
-            if self._dimension_stdev>0:
-                dim1, dim2 = [max(int(d), 0) for d in random.normal( self._dimension, self._dimension_stdev, 2)]
-            else:
-                dim1 = dim2 = self._dimension
-            record = random.random(dim1*dim2)
+        np.random.seed(10)
+        record_label = 0
+        for i in range(self.my_rank, int(self.total_files_to_generate), self.comm_size):
+            progress(i+1, self.total_files_to_generate, "Generating CSV Data")
+            dim1, dim2 = self.get_dimension()
+            record = np.random.randint(255, size=dim1*dim2, dtype=np.uint8)
             records = [record]*self.num_samples
             df = pd.DataFrame(data=records)
-            out_path_spec = self.storage.get_uri(self._file_list[0])
+            out_path_spec = self.storage.get_uri(self._file_list[i])
             compression = None
             if self.compression != Compression.NONE:
                 compression = {
@@ -62,10 +61,4 @@ class CSVGenerator(DataGenerator):
                 elif self.compression == Compression.XZ:
                     out_path_spec = out_path_spec + ".xz"
             df.to_csv(out_path_spec, compression=compression)
-        MPI.COMM_WORLD.Barrier()
-        source_out_path_spec = self.storage.get_uri(self._file_list[0])
-        for i in range(1, int(self.total_files_to_generate)):
-            if i % self.comm_size == self.my_rank:
-                progress(i+1, self.total_files_to_generate, "Generating CSV Data")
-                out_path_spec = self.storage.get_uri(self._file_list[i])
-                copyfile(source_out_path_spec, out_path_spec)
+        np.random.seed()

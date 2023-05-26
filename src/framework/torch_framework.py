@@ -19,19 +19,21 @@ from src.common.error_code import ErrorCodes
 from src.common.enumerations import FormatType, FrameworkType, DatasetType, DataLoaderType
 from src.data_loader.data_loader_factory import DataLoaderFactory
 from src.framework.framework import Framework, DummyTraceObject
-
+from src.common.constants import MODULE_AI_FRAMEWORK
 import os
 import torch
 import functools
 import logging
-from src.utils.utility import utcnow, perftrace
+from src.utils.utility import utcnow, PerfTrace, Profile
 
-from time import sleep
+from time import sleep, time
 
 from src.reader.reader_factory import ReaderFactory
 from src.storage.storage_factory import StorageFactory
 
 HANDLED_FUNCTIONS = {}
+dlp = Profile(MODULE_AI_FRAMEWORK)
+
 
 def implements(torch_function):
     """Register a torch function override for ScalarTensor"""
@@ -43,24 +45,33 @@ def implements(torch_function):
 
     return decorator
 
+
 # Does this annotation mean that torch.mean will be replaced by torch_sleep?
 @implements(torch.mean)
 def torch_sleep(sleep_time):
     return sleep(sleep_time)
 
+
 class TorchFramework(Framework):
     __instance = None
 
+    @dlp.log_init
     def __init__(self, profiling):
         super().__init__()
         self.profiling = profiling
         self.reader_handler = None
 
-    def init_loader(self, format_type, data_loader=None):
-        self.reader_train = DataLoaderFactory.get_loader(DataLoaderType.PYTORCH, format_type, dataset_type=DatasetType.TRAIN)
-        self.reader_valid = DataLoaderFactory.get_loader(DataLoaderType.PYTORCH, format_type, dataset_type=DatasetType.VALID)
+    @dlp.log
+    def init_loader(self, format_type, epoch=0, data_loader=None):
+        if data_loader is None:
+            data_loader = DataLoaderType.PYTORCH
+        self.reader_train = DataLoaderFactory.get_loader(data_loader, format_type,
+                                                         dataset_type=DatasetType.TRAIN, epoch=epoch)
+        self.reader_valid = DataLoaderFactory.get_loader(data_loader, format_type,
+                                                         dataset_type=DatasetType.VALID, epoch=epoch)
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
 
+    @dlp.log
     def get_type(self):
         return FrameworkType.PYTORCH
 
@@ -71,16 +82,19 @@ class TorchFramework(Framework):
             TorchFramework.__instance = TorchFramework(profiling)
         return TorchFramework.__instance
 
+    @dlp.log
     def start_framework_profiler(self):
         pass
 
+    @dlp.log
     def stop_framework_profiler(self):
         pass
 
+    @dlp.log
     def trace_object(self, string, step, r):
         return DummyTraceObject(string, step, r)
 
-    @perftrace.event_logging
+    @dlp.log
     def checkpoint(self, epoch, step_number):
         if self.rank() == 0:
             """
@@ -92,19 +106,21 @@ class TorchFramework(Framework):
             model_file = os.path.join(self.checkpoint_folder, f"model-{epoch}-{step_number}.bin")
 
             f = open(model_file, "w")
-            string_val = "x" * self.args.model_size 
+            string_val = "x" * self.args.model_size
             f.write(string_val)
             f.close()
 
-    @perftrace.event_logging
+    @dlp.log
     def compute(self, epoch_number, step, computation_time):
         torch_sleep(computation_time)
 
+    @dlp.log
     def get_loader(self, dataset_type=DatasetType.TRAIN):
         if dataset_type == DatasetType.TRAIN:
             return self.reader_train
         else:
             return self.reader_valid
 
+    @dlp.log
     def is_nativeio_available(self):
         return False

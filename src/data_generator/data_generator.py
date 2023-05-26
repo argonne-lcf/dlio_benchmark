@@ -24,16 +24,17 @@ from mpi4py import MPI
 from shutil import copyfile
 import numpy as np
 import logging
-from src.utils.utility import utcnow
+from src.utils.utility import utcnow, add_padding
 
 
 class DataGenerator(ABC):
 
     def __init__(self):
         self._args = ConfigArguments.get_instance()
+        self._args.derive_configurations()
+        self._dimension = self._args.dimension
+        self._dimension_stdev = self._args.dimension_stdev
         self.data_dir = self._args.data_folder
-        self.record_size = self._args.record_length
-        self.record_size_stdev = self._args.record_length_stdev
         self.file_prefix = self._args.file_prefix
         self.num_files_train = self._args.num_files_train
         self.do_eval = self._args.do_eval
@@ -44,13 +45,18 @@ class DataGenerator(ABC):
         self.compression = self._args.compression
         self.compression_level = self._args.compression_level
         self._file_prefix = None
-        self._dimension = None
         self._file_list = None
         self.num_subfolders_train = self._args.num_subfolders_train
         self.num_subfolders_eval = self._args.num_subfolders_eval
         self.format = self._args.format
         self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root,
                                                                         self._args.framework)
+    def get_dimension(self):
+        if (self._dimension_stdev>0):
+            dim1, dim2 = [max(int(d), 0) for d in np.random.normal(self._dimension, self._dimension_stdev, 2)]
+        else:
+            dim1 = dim2 = self._dimension
+        return dim1, dim2 
 
     @abstractmethod
     def generate(self):
@@ -72,28 +78,30 @@ class DataGenerator(ABC):
         MPI.COMM_WORLD.Barrier()
         # What is the logic behind this formula? 
         # Will probably have to adapt to generate non-images
-        self._dimension = int(math.sqrt(self.record_size/8))
-        self._dimension_stdev = math.sqrt(self.record_size_stdev/8)
         self.total_files_to_generate = self.num_files_train
-
         if self.num_files_eval > 0:
             self.total_files_to_generate += self.num_files_eval
         self._file_list = []
+        nd_f_train = len(str(self.num_files_train))
+        nd_f_eval = len(str(self.num_files_eval))
+        nd_sf_train = len(str(self.num_subfolders_train))
+        nd_sf_eval = len(str(self.num_subfolders_eval))
+
         if self.num_subfolders_train > 1:
             ns = np.ceil(self.num_files_train / self.num_subfolders_train)
             for i in range(self.num_files_train):
-                file_spec = "{}/train/{}/{}_{}_of_{}.{}".format(self.data_dir, int(i//ns), self.file_prefix, i, self.num_files_train, self.format)
+                file_spec = "{}/train/{}/{}_{}_of_{}.{}".format(self.data_dir, add_padding(i%self.num_subfolders_train, nd_sf_train), self.file_prefix, add_padding(i, nd_f_train), self.num_files_train, self.format)
                 self._file_list.append(file_spec)
         else:
             for i in range(self.num_files_train):
-                file_spec = "{}/train/{}_{}_of_{}.{}".format(self.data_dir, self.file_prefix, i, self.num_files_train, self.format)
+                file_spec = "{}/train/{}_{}_of_{}.{}".format(self.data_dir, self.file_prefix, add_padding(i, nd_f_train), self.num_files_train, self.format)
                 self._file_list.append(file_spec)
         if self.num_subfolders_eval > 1:
             ns = np.ceil(self.num_files_eval / self.num_subfolders_eval)
             for i in range(self.num_files_eval):
-                file_spec = "{}/valid/{}/{}_{}_of_{}.{}".format(self.data_dir, int(i//ns), self.file_prefix, i, self.num_files_eval, self.format)
+                file_spec = "{}/valid/{}/{}_{}_of_{}.{}".format(self.data_dir, add_padding(i%self.num_subfolders_eval, nd_sf_eval), self.file_prefix, add_padding(i, nd_f_eval), self.num_files_eval, self.format)
                 self._file_list.append(file_spec)
         else:
             for i in range(self.num_files_eval):
-                file_spec = "{}/valid/{}_{}_of_{}.{}".format(self.data_dir, self.file_prefix, i, self.num_files_eval, self.format)
-                self._file_list.append(file_spec)  
+                file_spec = "{}/valid/{}_{}_of_{}.{}".format(self.data_dir, self.file_prefix, add_padding(i, nd_f_eval), self.num_files_eval, self.format)
+                self._file_list.append(file_spec)

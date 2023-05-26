@@ -17,14 +17,12 @@
 import logging
 
 import h5py
-import math
-from numpy import random
-import numpy as np
-from time import sleep, time
 
-from src.utils.utility import progress, utcnow, perftrace
-from src.common.enumerations import Shuffle, FileAccess, ReadType, DatasetType
+from src.common.constants import MODULE_DATA_READER
+from src.utils.utility import Profile
 from src.reader.reader_handler import FormatReader
+
+dlp = Profile(MODULE_DATA_READER)
 
 """
 Reader for HDF5 files for training file.
@@ -32,55 +30,34 @@ Reader for HDF5 files for training file.
 
 
 class HDF5Reader(FormatReader):
-    classname = "HDF5Reader"
 
-    def __init__(self, dataset_type, thread_index, epoch_number):
-        t0 = time()
-        super().__init__(dataset_type, thread_index, epoch_number)
-        t1 = time()
-        perftrace.event_complete(
-            f"{self.classname}_{self.dataset_type}_init_{self.epoch_number}",
-            f"{self.classname}.init", t0, t1 - t0)
+    @dlp.log_init
+    def __init__(self, dataset_type, thread_index, epoch):
+        super().__init__(dataset_type, thread_index)
 
+    @dlp.log
     def open(self, filename):
-        t0 = time()
-        data = h5py.File(filename, 'r')
-        t1 = time()
-        perftrace.event_complete(f"{self.classname}_{self.dataset_type}_open_{filename}_epoch_{self.epoch_number}",
-                                 f"{self.classname}.open", t0, t1 - t0)
-        return data
+        super().open(filename)
+        return h5py.File(filename, 'r')
 
+    @dlp.log
     def close(self, filename):
-        t0 = time()
         self.open_file_map[filename].close()
-        t1 = time()
-        perftrace.event_complete(f"{self.classname}_{self.dataset_type}_close_{filename}_epoch_{self.epoch_number}",
-                                 f"{self.classname}.close", t0, t1 - t0)
-        pass
 
+    @dlp.log
     def get_sample(self, filename, sample_index):
-        t0 = time()
-        my_image = self.open_file_map[filename]['records'][sample_index]
-        t1 = time()
-        resized_image = np.resize(my_image, (self._args.max_dimension, self._args.max_dimension))
-        t2 = time()
-        perftrace.event_complete(
-            f"{self.classname}_{self.dataset_type}_get_{filename}_sample_{sample_index}_epoch_{self.epoch_number}",
-            f"{self.classname}.get_sample_read", t0, t1 - t0)
-        perftrace.event_complete(
-            f"{self.classname}_{self.dataset_type}_process_{filename}_sample_{sample_index}_epoch_{self.epoch_number}",
-            f"{self.classname}.get_sample_process", t1, t2 - t1)
-        return resized_image
+        super().get_sample(filename, sample_index)
+        image = self.open_file_map[filename]['records'][sample_index]
+        dlp.update(image_size=image.nbytes)
 
-    @perftrace.event_logging
     def next(self):
-        for is_last, batch in super().next():
-            yield is_last, batch
+        for batch in super().next():
+            yield batch
 
-    @perftrace.event_logging
-    def read_index(self, index):
-        return super().read_index(index)
+    @dlp.log
+    def read_index(self, image_idx, step):
+        return super().read_index(image_idx, step)
 
-    @perftrace.event_logging
+    @dlp.log
     def finalize(self):
         return super().finalize()

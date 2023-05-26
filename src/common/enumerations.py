@@ -123,8 +123,19 @@ class DataLoaderType(Enum):
     """
     TENSORFLOW='tensorflow'
     PYTORCH='pytorch'
+    DALI='dali'
     NONE='none'
     
+    def __str__(self):
+        return self.value
+
+class LoggerType(Enum):
+    """
+    Logger types supported by the benchmark.
+    """
+    DEFAULT = 'default'
+    DLIO_PROFILER = 'dlio_profiler'
+
     def __str__(self):
         return self.value
 

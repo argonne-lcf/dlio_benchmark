@@ -20,24 +20,41 @@ from src.common.enumerations import FrameworkType, Shuffle, FileAccess, DatasetT
     ReadType
 from src.framework.framework_factory import FrameworkFactory
 from src.storage.storage_factory import StorageFactory
-from src.utils.utility import utcnow
+from src.utils.utility import Profile, utcnow
 from src.utils.config import ConfigArguments
 import numpy as np
 import os
 import math
 import logging
-from numpy import random
+from time import sleep
 import glob
+from src.common.constants import MODULE_DATA_READER
 
+
+dlp = Profile(MODULE_DATA_READER)
 
 class FormatReader(ABC):
-    def __init__(self, dataset_type, thread_index, epoch_number):
+    read_images = None
+
+    def __init__(self, dataset_type, thread_index):
         self.thread_index = thread_index
         self._args = ConfigArguments.get_instance()
-        logging.debug(f"Loading {self.classname} reader on thread {self.thread_index} from rank {self._args.my_rank}")
+        logging.debug(
+            f"Loading {self.__class__.__qualname__} reader on thread {self.thread_index} from rank {self._args.my_rank}")
         self.dataset_type = dataset_type
         self.open_file_map = {}
-        self.epoch_number = epoch_number
+
+        if FormatReader.read_images is None:
+            FormatReader.read_images = 0
+        self.step = 1
+        self.image_idx = 0
+        self.batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
+
+    @dlp.log
+    def preprocess(self):
+        if self._args.preprocess_time != 0. or self._args.preprocess_time_stdev != 0.:
+            t = np.random.normal(self._args.preprocess_time, self._args.preprocess_time_stdev)
+            sleep(max(t, 0.0))
 
     @abstractmethod
     def open(self, filename):
@@ -49,50 +66,55 @@ class FormatReader(ABC):
 
     @abstractmethod
     def get_sample(self, filename, sample_index):
-        pass
+        return
 
     @abstractmethod
     def next(self):
-        random_image = np.random.rand(self._args.max_dimension, self._args.max_dimension)
         batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
         batch = []
         image_processed = 0
-        batches_processed = 0
+        self.step = 1
         total_images = len(self._args.file_map[self.thread_index])
         logging.debug(f"{utcnow()} Reading {total_images} images thread {self.thread_index} rank {self._args.my_rank}")
 
-        for filename, sample_index in self._args.file_map[self.thread_index]:
+        for global_sample_idx, filename, sample_index in self._args.file_map[self.thread_index]:
+            self.image_idx = global_sample_idx
             if filename not in self.open_file_map:
                 self.open_file_map[filename] = self.open(filename)
-            image = self.get_sample(filename, sample_index)
-            batch.append(image)
+            self.get_sample(filename, sample_index)
+            self.preprocess()
+            batch.append(self._args.resized_image)
             image_processed += 1
             is_last = 0 if image_processed < total_images else 1
             if is_last:
-                while len(batch) is not batch_size:
-                    batch.append(random_image)
-            if len(batch) == batch_size:
-                batches_processed += 1
+                while len(batch) is not self.batch_size:
+                    batch.append(self._args.resized_image)
+            if len(batch) == self.batch_size:
+                self.step += 1
                 batch = np.array(batch)
-                yield is_last, batch
+                yield batch
                 batch = []
             if image_processed % self._args.num_samples_per_file == 0:
                 self.close(filename)
                 self.open_file_map[filename] = None
-
+            if is_last:
+                break
 
     @abstractmethod
-    def read_index(self, index):
-        filename, sample_index = self._args.global_index_map[index]
+    def read_index(self, global_sample_idx, step):
+        self.step = step
+        self.image_idx = global_sample_idx
+        filename, sample_index = self._args.global_index_map[global_sample_idx]
         logging.debug(f"{utcnow()} read_index {filename}, {sample_index}")
-
+        FormatReader.read_images += 1
         if self._args.read_type is ReadType.ON_DEMAND or filename not in self.open_file_map:
             self.open_file_map[filename] = self.open(filename)
         image = self.get_sample(filename, sample_index)
+        self.preprocess()
         if self._args.read_type is ReadType.ON_DEMAND:
             self.close(filename)
             self.open_file_map[filename] = None
-        return image
+        return self._args.resized_image
 
     @abstractmethod
     def finalize(self):
@@ -100,3 +122,12 @@ class FormatReader(ABC):
             if filename in self.open_file_map:
                 self.close(filename)
                 self.open_file_map[filename] = None
+
+    def __del__(self):
+        self.thread_index = None
+        self._args = None
+        self.dataset_type = None
+        self.open_file_map = None
+        self.step = None
+        self.image_idx = None
+        self.batch_size = None

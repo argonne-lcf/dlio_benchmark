@@ -14,70 +14,47 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-
-import math
-import logging
 import numpy as np
-from numpy import random
 
+from src.common.constants import MODULE_DATA_READER
 from src.reader.reader_handler import FormatReader
-from src.common.enumerations import Shuffle, FileAccess, ReadType, DatasetType
-from src.utils.utility import utcnow, perftrace
-from time import time
+from src.utils.utility import Profile
+
+dlp = Profile(MODULE_DATA_READER)
 
 
 class NPZReader(FormatReader):
     """
     Reader for NPZ files
     """
-    classname = "NPZReader"
 
-    def __init__(self, dataset_type, thread_index, epoch_number):
-        t0 = time()
-        super().__init__(dataset_type, thread_index, epoch_number)
-        t1 = time()
-        perftrace.event_complete(
-            f"{self.classname}_{self.dataset_type}_init_{self.epoch_number}",
-            f"{self.classname}.init", t0, t1 - t0)
+    @dlp.log_init
+    def __init__(self, dataset_type, thread_index, epoch):
+        super().__init__(dataset_type, thread_index)
 
+    @dlp.log
     def open(self, filename):
-        t0 = time()
-        data = np.load(filename, allow_pickle=True)["x"]
-        t1 = time()
-        perftrace.event_complete(f"{self.classname}_{self.dataset_type}_open_{filename}_epoch_{self.epoch_number}",
-                                 f"{self.classname}.open", t0, t1 - t0)
-        return data
+        super().open(filename)
+        return np.load(filename, allow_pickle=True)["x"]
 
+    @dlp.log
     def close(self, filename):
-        t0 = time()
-        t1 = time()
-        perftrace.event_complete(f"{self.classname}_{self.dataset_type}_close_{filename}_epoch_{self.epoch_number}",
-                                 f"{self.classname}.close", t0, t1 - t0)
-        pass
+        super().close(filename)
 
+    @dlp.log
     def get_sample(self, filename, sample_index):
-        t0 = time()
-        my_image = self.open_file_map[filename][..., sample_index]
-        t1 = time()
-        resized_image = np.resize(my_image, (self._args.max_dimension, self._args.max_dimension))
-        t2 = time()
-        perftrace.event_complete(
-            f"{self.classname}_{self.dataset_type}_get_{filename}_sample_{sample_index}_epoch_{self.epoch_number}",
-            f"{self.classname}.get_sample_read", t0, t1 - t0)
-        perftrace.event_complete(
-            f"{self.classname}_{self.dataset_type}_process_{filename}_sample_{sample_index}_epoch_{self.epoch_number}",
-            f"{self.classname}.get_sample_process", t1, t2 - t1)
-        return resized_image
+        super().get_sample(filename, sample_index)
+        image = self.open_file_map[filename][..., sample_index]
+        dlp.update(image_size=image.nbytes)
 
-    @perftrace.event_logging
     def next(self):
-        for is_last, batch in super().next():
-            yield is_last, batch
+        for batch in super().next():
+            yield batch
 
-    @perftrace.event_logging
-    def read_index(self, index):
-        return super().read_index(index)
+    @dlp.log
+    def read_index(self, image_idx, step):
+        return super().read_index(image_idx, step)
 
-    @perftrace.event_logging
+    @dlp.log
     def finalize(self):
         return super().finalize()

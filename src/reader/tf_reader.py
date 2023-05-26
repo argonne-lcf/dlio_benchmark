@@ -18,49 +18,43 @@ import math
 import logging
 from time import time
 
-from src.utils.utility import utcnow, perftrace
+from src.common.constants import MODULE_DATA_READER
+from src.utils.utility import utcnow, PerfTrace, Profile
 from src.common.enumerations import DatasetType
 from src.reader.reader_handler import FormatReader
 import tensorflow as tf
+
+dlp = Profile(MODULE_DATA_READER)
 
 
 class TFReader(FormatReader):
     """
     Reader for TFRecord files.
     """
-    classname = "TFReader"
 
-    def __init__(self, dataset_type, thread_index, epoch_number):
-        t0 = time()
-        super().__init__(dataset_type, thread_index, epoch_number)
+    @dlp.log_init
+    def __init__(self, dataset_type, thread_index, epoch):
+        super().__init__(dataset_type, thread_index)
         self._dataset = None
-        t1 = time()
-        perftrace.event_complete(
-            f"{self.classname}_{self.dataset_type}_init_{self.epoch_number}",
-            f"{self.classname}.init", t0, t1 - t0)
 
+    @dlp.log
     def open(self, filename):
         pass
 
+    @dlp.log
     def close(self, filename):
         pass
 
+    @dlp.log
     def get_sample(self, filename, sample_index):
         pass
 
-    @perftrace.event_logging
-    def _decode_image(self, parsed_example):
-        # Get the image as raw bytes.
-        image_raw = parsed_example['image']
-        dimension = parsed_example['size']
-        # Decode the raw bytes so it becomes a tensor with type.
-        image_tensor = tf.io.decode_raw(image_raw, tf.float64)
-        # image_tensor = tf.io.decode_image(image_raw)
-        resized_image = tf.reshape(image_tensor, [dimension, dimension])
-        return tf.pad(resized_image, ((0, self._args.max_dimension - dimension), (0, self._args.max_dimension - dimension)))
+    @dlp.log
+    def resize_sample(self, filename, sample_index):
+        pass
 
-    @perftrace.event_logging
-    def _tf_parse_function(self, serialized):
+    @dlp.log
+    def parse_image(self, serialized):
         """
         performs deserialization of the tfrecord.
         :param serialized: is the serialized version using protobuf
@@ -71,34 +65,43 @@ class TFReader(FormatReader):
                 'image': tf.io.FixedLenFeature([], tf.string),
                 'size': tf.io.FixedLenFeature([], tf.int64)
             }
-        return tf.io.parse_example(serialized=serialized, features=features)
+        parsed_example = tf.io.parse_example(serialized=serialized, features=features)
+        # Get the image as raw bytes.
+        image_raw = parsed_example['image']
+        dimension = tf.cast(parsed_example['size'], tf.int32).numpy()
+        # Decode the raw bytes so it becomes a tensor with type.
+        image_tensor = tf.io.decode_raw(image_raw, tf.uint8)
+        size = dimension * dimension
+        dlp.update(image_size=size)
+        # image_tensor = tf.io.decode_image(image_raw)
+        resized_image = tf.convert_to_tensor(self._args.resized_image, dtype=tf.uint8)
+        return resized_image
 
-    @perftrace.event_logging
+    @dlp.log
     def next(self):
         _file_list = self._args.file_list_train if self.dataset_type is DatasetType.TRAIN else self._args.file_list_eval
         batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
-        logging.debug(f"{utcnow()} Reading {len(_file_list)} files thread {self.thread_index} rank {self._args.my_rank}")
+        logging.debug(
+            f"{utcnow()} Reading {len(_file_list)} files thread {self.thread_index} rank {self._args.my_rank}")
         self._dataset = tf.data.TFRecordDataset(filenames=_file_list, buffer_size=self._args.transfer_size)
         self._dataset = self._dataset.shard(num_shards=self._args.comm_size, index=self._args.my_rank)
-        self._dataset = self._dataset.map(self._tf_parse_function, num_parallel_calls=self._args.computation_threads)
-        self._dataset = self._dataset.map(self._decode_image, num_parallel_calls=self._args.computation_threads)
+        self._dataset = self._dataset.map(
+            lambda x: tf.py_function(func=self.parse_image, inp=[x], Tout=[tf.uint8])
+            , num_parallel_calls=self._args.computation_threads)
         self._dataset = self._dataset.batch(batch_size, drop_remainder=True)
-        total = math.ceil(len(_file_list) / batch_size)
-        count = 0
-        t0 = time()
+        total = math.ceil(len(_file_list)/self._args.comm_size / batch_size * self._args.num_samples_per_file)
+        step = 1
         for batch in self._dataset:
-            t1 = time()
-            perftrace.event_complete(f"{self.classname}_{self.dataset_type}_step_{count}",
-                                     "{self.classname}.next", t0, t1 - t0)
-            count += 1
-            is_last = 0 if count < total else 1
-            yield is_last, batch
-            t0 = time()
+            is_last = 0 if step <= total else 1
+            yield batch[0]
+            step += 1
+            if is_last:
+                break
 
-    @perftrace.event_logging
-    def read_index(self, index):
-        return super().read_index(index)
+    @dlp.log
+    def read_index(self, image_idx, step):
+        return super().read_index(image_idx, step)
 
-    @perftrace.event_logging
+    @dlp.log
     def finalize(self):
         return super().finalize()
