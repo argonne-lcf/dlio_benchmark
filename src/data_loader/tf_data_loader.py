@@ -10,6 +10,8 @@ from src.data_loader.base_data_loader import BaseDataLoader
 from src.reader.reader_factory import ReaderFactory
 from src.utils.utility import utcnow, Profile
 
+import numpy as np
+
 dlp = Profile(MODULE_DATA_LOADER)
 
 
@@ -55,11 +57,15 @@ class TFDataLoader(BaseDataLoader):
             read_threads = 1
 
         options = tf.data.Options()
-        options.threading.private_threadpool_size = read_threads
-        options.threading.max_intra_op_parallelism = read_threads
+        if "threading" in dir(options):
+            options.threading.private_threadpool_size = read_threads
+            options.threading.max_intra_op_parallelism = read_threads
+        elif "experimental_threading" in dir(options):
+            options.experimental_threading.private_threadpool_size = read_threads
+            options.experimental_threading.max_intra_op_parallelism = read_threads
 
         batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
-        self._dataset = tf.data.Dataset.from_tensor_slices(range(read_threads)).with_options(options)
+        self._dataset = tf.data.Dataset.from_tensor_slices(np.arange(read_threads)).with_options(options)
 
         self._dataset = self._dataset.interleave(lambda x: TensorflowDataset(self.format_type, self.dataset_type,
                                                                              self.epoch_number, (

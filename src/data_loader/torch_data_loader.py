@@ -1,7 +1,7 @@
 from time import time
 import logging
 import math
-
+import torch
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler
 
 from src.common.constants import MODULE_DATA_LOADER
@@ -76,8 +76,17 @@ class TorchDataLoader(BaseDataLoader):
             if self._args.my_rank == 0:
                 logging.debug(
                     f"{utcnow()} Prefetch size is 0; a default prefetch factor of 2 will be set to Torch DataLoader.")
-        logging.debug(f"{utcnow()} Setup dataloader with {self._args.read_threads} workers")
-        self._dataset = DataLoader(dataset,
+        logging.debug(f"{utcnow()} Setup dataloader with {self._args.read_threads} workers {torch.__version__}")
+        if torch.__version__ == '1.3.1':
+            self._dataset = DataLoader(dataset,
+                                   batch_size=batch_size,
+                                   sampler=sampler,
+                                   num_workers=self._args.read_threads,
+                                   pin_memory=True,
+                                   drop_last=True,
+                                   worker_init_fn=dataset.worker_init)
+        else: 
+            self._dataset = DataLoader(dataset,
                                    batch_size=batch_size,
                                    sampler=sampler,
                                    num_workers=self._args.read_threads,

@@ -131,11 +131,17 @@ class NpEncoder(json.JSONEncoder):
 
 
 def create_dur_event(name, cat, ts, dur, args={}):
+    if "get_native_id" in dir(threading):
+        tid = threading.get_native_id()
+    elif "get_ident" in dir(threading):
+        tid = threading.get_ident()
+    else:
+        tid = 0
     d = {
         "name": name,
         "cat": cat,
         "pid": get_rank(),
-        "tid": threading.get_native_id(),
+        "tid": tid,
         "ts": ts * 1000000,
         "dur": dur * 1000000,
         "ph": "X",
