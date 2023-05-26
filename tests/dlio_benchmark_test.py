@@ -28,7 +28,7 @@ import time
 import subprocess
 import logging
 import os
-from src.utils.config import ConfigArguments
+from dlio_benchmark.utils.config import ConfigArguments
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,7 +39,7 @@ logging.basicConfig(
     # logging's max timestamp resolution is msecs, we will pass in usecs in the message
 )
 
-from src.dlio_benchmark import DLIOBenchmark
+from dlio_benchmark.dlio_benchmark import DLIOBenchmark
 import glob
 
 

@@ -18,7 +18,7 @@
 from collections import namedtuple
 import unittest
 
-from src.dlio_postprocessor import DLIOPostProcessor
+from dlio_benchmark.dlio_postprocessor import DLIOPostProcessor
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['AUTOGRAPH_VERBOSITY'] = '0'

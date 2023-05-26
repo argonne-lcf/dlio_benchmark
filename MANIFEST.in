@@ -1,2 +1,2 @@
-graft configs
-graft tests
+include requirements.txt
+recursive-include configs *
