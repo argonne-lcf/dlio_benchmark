@@ -20,7 +20,8 @@ setup(
         'tensorflow == 2.11',
         'torch == 1.13.0',
         'torchaudio == 0.13.0',
-        'torchvision == 0.14.0'
+        'torchvision == 0.14.0',
+        'nvidia-dali-cuda110'
     ],
     tests_require=['pytest'],
     entry_points={
