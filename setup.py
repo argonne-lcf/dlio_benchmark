@@ -13,7 +13,7 @@ setup(
     ],
     install_requires=[
         'mpi4py',
-        'numpy',
+        'numpy == 1.23.5',
         'h5py',
         'pandas',
         'hydra-core == 1.2.0',
@@ -21,7 +21,8 @@ setup(
         'torch == 1.13.0',
         'torchaudio == 0.13.0',
         'torchvision == 0.14.0',
-        'nvidia-dali-cuda110'
+        'nvidia-dali-cuda110',
+        'pytest'
     ],
     tests_require=['pytest'],
     entry_points={
