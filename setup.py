@@ -2,6 +2,12 @@ from setuptools import setup, find_packages
 from glob import glob
 configs = glob('dlio_benchmark/configs/**/*', recursive=True)
 print(configs)
+test_deps = [
+    'pytest',
+]
+extras = {
+    'test': test_deps,
+}
 setup(
     name='dlio_benchmark',
     version='0.0.1',
@@ -21,10 +27,10 @@ setup(
         'torch == 1.13.0',
         'torchaudio == 0.13.0',
         'torchvision == 0.14.0',
-        'nvidia-dali-cuda110',
-        'pytest'
+        'nvidia-dali-cuda110'
     ],
-    tests_require=['pytest'],
+    tests_require=test_deps,
+    extras_require=extras,
     entry_points={
         'console_scripts': [
             'dlio_benchmark = dlio_benchmark.benchmark:main',

@@ -35,7 +35,7 @@ jobs:
         sudo apt-get install $CC $CXX libc6 
         sudo apt-get install mpich
         python -m pip install --upgrade pip
-        pip install .
+        pip install .[test]
         if [[ $DLIO_PROFILER == 'DLIO_PROFILER' ]]; then
           git clone https://github.com/hariharan-devarajan/dlio-profiler /home/runner/work/dlio_profiler
           cd /home/runner/work/dlio_profiler
@@ -102,8 +102,6 @@ jobs:
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_eval -v
     - name: test_multi_threads
       run: |
-        touch __init__.py
-        export PYTHONPATH=./:$PYTHONPATH
         export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads -v
     - name: test-tf-loader-tfrecord
@@ -113,15 +111,11 @@ jobs:
         RDMAV_FORK_SAFE=1 mpirun -np 2 python dlio_benchmark/benchmark.py workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=True ++workload.workflow.generate_data=False  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
     - name: test-torch-loader-npz
       run: |
-        touch __init__.py
-        export PYTHONPATH=./:$PYTHONPATH
         export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
         RDMAV_FORK_SAFE=1 mpirun -np 2 python dlio_benchmark workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2 ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
         RDMAV_FORK_SAFE=1 mpirun -np 2 python dlio_benchmark workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
     - name: test-tf-loader-npz
       run: |
-        touch __init__.py
-        export PYTHONPATH=./:$PYTHONPATH
         export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
         RDMAV_FORK_SAFE=1 mpirun -np 2 python dlio_benchmark workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
         RDMAV_FORK_SAFE=1 mpirun -np 2 python dlio_benchmark workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
