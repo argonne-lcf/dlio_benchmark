@@ -79,12 +79,13 @@ class TFFramework(Framework):
 
     @dlp.log
     def stop_framework_profiler(self):
-        if self.profiling:
-            self.tensorboard.stop()
-
+        #if self.profiling:
+        #    self.tensorboard.stop()
+        pass
+ 
     @dlp.log
     def trace_object(self, string, step, r):
-        return tf.profiler.experimental.Trace(string, step_num=step, _r=r)
+        pass #tf.profiler.experimental.Trace(string, step_num=step, _r=r)
 
     @dlp.log
     def checkpoint(self, epoch, step_number):

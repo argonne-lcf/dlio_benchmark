@@ -40,6 +40,25 @@ docker run -t docker.io/zhenghh04/dlio:latest /bin/bash
 root@30358dd47935:/workspace/dlio$ python ./src/dlio_benchmark.py ++workload.workflow.generate_data=True
 ```
 
+## PowerPC
+PowerPC requires installation through anaconda.
+```bash
+# Setup required channels
+conda config --prepend channels conda-forge
+conda config --prepend channels https://public.dhe.ibm.com/ibmdl/export/pub/software/server/ibm-ai/conda/
+
+# create and activate environment
+conda env create --prefix ./dlio_env_ppc --file environment-ppc.yaml --force
+conda activate ./dlio_env_ppc
+
+# install hydra dependency by source
+mkdir external
+cd external
+git clone git@github.com:facebookresearch/hydra.git
+cd hydra
+python -m pip install .
+```
+
 ## Running the benchmark
 
 A DLIO run is split in 3 phases: 
