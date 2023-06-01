@@ -16,7 +16,7 @@ Generate data
 
 .. code-block:: bash
 
-    mpirun -np 8 python src/dlio_benchmark.py workload=unet3d ++workload.workflow.generate_data=True ++workload.workflow.train=False 
+    mpirun -np 8 python dlio_benchmark/benchmark.py workload=unet3d ++workload.workflow.generate_data=True ++workload.workflow.train=False
 
 In this case, we override ```workflow.generate_data``` and ```workflow.train``` in the configuration to perform the data generation.  
 
@@ -26,7 +26,7 @@ Running benchmark
 
 .. code-block:: bash 
 
-    mpirun -np 8 python src/dlio_benchmark.py workload=unet3d ++workload.workflow.generate_data=False ++workload.workflow.train=True ++workload.workflow.evaluation=True
+    mpirun -np 8 python dlio_benchmark/benchmark.py workload=unet3d ++workload.workflow.generate_data=False ++workload.workflow.train=True ++workload.workflow.evaluation=True
 
 In this case, we set ```workflow.generate_data=False```, so it will perform training and evaluation with the data generated previously. 
 
@@ -39,7 +39,7 @@ To post process the data, one only need to specify the output folder. All the ot
 
 .. code-block:: bash 
 
-    python3 src/dlio_postprocessor.py --output_folder=hydra_log/unet3d/$DATE-$TIME
+    python3 dlio_benchmark/dlio_postprocessor.py --output_folder=hydra_log/unet3d/$DATE-$TIME
 
 This will generate DLIO_$model_report.txt inside the output folder.
 
