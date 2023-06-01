@@ -374,7 +374,7 @@ class DLIOBenchmark(object):
             self.stats.save_data()
         self.framework.barrier()  
 
-@hydra.main(version_base=None, config_path="./configs", config_name="config")
+@hydra.main(version_base=None, config_path="configs", config_name="config")
 def main(cfg: DictConfig) -> None:
     """
     The main method to start the benchmark runtime.
