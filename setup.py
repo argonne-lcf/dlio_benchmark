@@ -28,6 +28,7 @@ setup(
     entry_points={
         'console_scripts': [
             'dlio_benchmark = dlio_benchmark.benchmark:main',
+            'dlio_postprocesser = dlio_benchmark.dlio_postprocesser:main',
         ]
     }
 )
