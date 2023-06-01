@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup, find_namespace_packages
 from glob import glob
 configs = glob('dlio_benchmark/configs/**/*', recursive=True)
 print(configs)
@@ -11,8 +11,13 @@ extras = {
 setup(
     name='dlio_benchmark',
     version='0.0.1',
-    packages=find_packages(include=['dlio_benchmark', 'dlio_benchmark.*']),
-    package_data={'dlio_benchmark/configs': configs},
+    packages=find_namespace_packages(where="."),
+    package_dir={"dlio_benchmark": "dlio_benchmark"},
+    package_data={'dlio_benchmark.configs': ['*.yaml'],
+                  'dlio_benchmark.configs.hydra.help': ['*.yaml'],
+                  'dlio_benchmark.configs.hydra.job_logging': ['*.yaml'],
+                  'dlio_benchmark.configs.workload': ['*.yaml'],
+                  },
     dependency_links=[
         'https://download.pytorch.org/whl/cpu',
         'https://developer.download.nvidia.com/compute/redist'
