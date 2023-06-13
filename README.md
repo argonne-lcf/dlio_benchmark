@@ -48,12 +48,7 @@ conda config --prepend channels https://public.dhe.ibm.com/ibmdl/export/pub/soft
 # create and activate environment
 conda env create --prefix ./dlio_env_ppc --file environment-ppc.yaml --force
 conda activate ./dlio_env_ppc
-
-# install hydra dependency by source
-mkdir external
-cd external
-git clone git@github.com:facebookresearch/hydra.git
-cd hydra
+# install other dependencies
 python -m pip install .
 ```
 
