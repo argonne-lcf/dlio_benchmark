@@ -345,7 +345,7 @@ We support following I/O profiling using following profilers:
   * ``pytorch`` (torch.profiler): https://pytorch.org/docs/stable/profiler.html. This works only for pytorch framework (and data loader).
 
 The YAML files are stored in the `workload`_ folder. 
-It then can be loaded by ```dlio_benchmark.py``` through hydra (https://hydra.cc/). This will override the default settings. One can override the configurations through command line (https://hydra.cc/docs/advanced/override_grammar/basic/). 
+It then can be loaded by ```dlio_benchmark``` through hydra (https://hydra.cc/). This will override the default settings. One can override the configurations through command line (https://hydra.cc/docs/advanced/override_grammar/basic/).
 
 
 .. _workload: https://github.com/argonne-lcf/dlio_benchmark/tree/main/configs/workload
