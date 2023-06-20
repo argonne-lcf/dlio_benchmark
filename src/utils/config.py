@@ -51,7 +51,7 @@ class ConfigArguments:
     generate_data: bool = False
     generate_only: bool = False
     data_folder: str = "./data/"
-    output_folder: str = "./output"
+    output_folder: str = None
     checkpoint_folder: str = "./checkpoints/"
     log_file: str  = "dlio.log"
     file_prefix: str = "img"
@@ -232,6 +232,12 @@ def LoadConfig(args, config):
         if 'model_size' in config['checkpoint']:
             args.model_size = config['checkpoint']['model_size']
 
+    if 'output' in config:
+        if 'folder' in config['output']:
+            args.output_folder = config['output']['folder']
+        if 'log_file' in config['output']:
+            args.log_file = config['output']['log_file']
+            
     if 'workflow' in config:
         if 'generate_data' in config['workflow']:
             args.generate_data = config['workflow']['generate_data']
