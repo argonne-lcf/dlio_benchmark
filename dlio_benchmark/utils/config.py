@@ -149,6 +149,13 @@ class ConfigArguments:
         if len(self.file_list_eval) != self.num_files_eval:
             raise Exception(
                 f"Expected {self.num_files_eval} evaluation files but {len(self.file_list_eval)} found. Ensure data was generated correctly.")
+        if self.read_threads > 1:
+            import psutil
+            p = psutil.Process()
+            cores_available = len(p.cpu_affinity())
+            if cores_available < self.read_threads:
+                logging.warning(f"Running DLIO with {self.read_threads} threads for I/O but core available {cores_available} "
+                                f"are insufficient and can lead to lower performance.")
 
     def reset(self):
         ConfigArguments.__instance = None
