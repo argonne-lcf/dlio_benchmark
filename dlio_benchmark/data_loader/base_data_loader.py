@@ -11,11 +11,12 @@ from dlio_benchmark.utils.config import ConfigArguments
 
 
 class BaseDataLoader(ABC):
-    def __init__(self, format_type, dataset_type, epoch_number):
+    def __init__(self, format_type, dataset_type, epoch_number, data_loader_type):
         self._args = ConfigArguments.get_instance()
         self.dataset_type = dataset_type
         self.format_type = format_type
         self.epoch_number = epoch_number
+        self.data_loader_type = data_loader_type
 
     @abstractmethod
     def read(self):
