@@ -30,13 +30,13 @@ docker run -t dlio dlio_benchmark ++workload.workflow.generate_data=True
 You can also pull rebuilt container from docker hub (might not reflect the most recent change of the code): 
 ```bash
 docker docker.io/zhenghh04/dlio:latest
-docker run -t docker.io/zhenghh04/dlio:latest python ./dlio_benchmark/benchmark.py ++workload.workflow.generate_data=True
+docker run -t docker.io/zhenghh04/dlio:latest python ./dlio_benchmark/main.py ++workload.workflow.generate_data=True
 ```
 
 One can also run interactively inside the container
 ```bash
 docker run -t docker.io/zhenghh04/dlio:latest /bin/bash
-root@30358dd47935:/workspace/dlio$ python ./dlio_benchmark/benchmark.py ++workload.workflow.generate_data=True
+root@30358dd47935:/workspace/dlio$ python ./dlio_benchmark/main.py ++workload.workflow.generate_data=True
 ```
 
 ## PowerPC
@@ -78,7 +78,7 @@ Finally, run the benchmark with ```iostat``` profiling, listing the io devices y
 
 All the outputs will be stored in ```hydra_log/unet3d/$DATE-$TIME``` folder. To post process the data, one can do
 ```bash 
-python3 dlio_postprocesser --output-folder hydra_log/unet3d/$DATE-$TIME
+dlio_postprocessor --output-folder hydra_log/unet3d/$DATE-$TIME
 ```
 This will generate ```DLIO_$model_report.txt``` in the output folder. 
 

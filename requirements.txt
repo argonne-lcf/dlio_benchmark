@@ -55,3 +55,4 @@ urllib3==1.26.12
 Werkzeug==2.2.2
 wrapt==1.14.1
 nvidia-dali-cuda110
+psutil

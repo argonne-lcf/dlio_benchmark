@@ -52,19 +52,19 @@ First, we generate the dataset with ```++workload.workflow.generate=False```
 
 .. code-block :: bash
     
-    mpirun -np 8 python dlio_benchmark/benchmark.py workload=unet3d ++workload.workflow.generate_data=True ++workload.workflow.train=False
+    mpirun -np 8 python dlio_benchmark workload=unet3d ++workload.workflow.generate_data=True ++workload.workflow.train=False
 
 Then, we run the appliation with iostat profiling
 
 .. code-block:: bash
     
-    python dlio_benchmark/benchmark.py workload=unet3d ++workload.workflow.profiling=iostat
+    dlio_benchmark workload=unet3d ++workload.workflow.profiling=iostat
 
 To run in data parallel mode, one can do
 
 .. code-block:: bash
 
-    mpirun -np 8 dlio_benchmark/benchmark.py workload=unet3d ++workload.workflow.profiling=iostat
+    mpirun -np 8 dlio_benchmark workload=unet3d ++workload.workflow.profiling=iostat
 
 This will run the benchmark and produce the following logging output: 
 
@@ -144,7 +144,7 @@ One can then post processing the data with dlio_postprocessor.py
 
 .. code-block:: bash 
 
-    python dlio_benchmark/dlio_postprocessor.py --output-folder hydra_log/unet3d/2022-11-09-17-55-44/
+    python postprocessor --output-folder hydra_log/unet3d/2022-11-09-17-55-44/
 
 The output is
 

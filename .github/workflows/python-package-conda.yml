@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest ]
+        os: [ ubuntu-20.04 ]
         profiler: [ DEFAULT, DLIO_PROFILER ]
         gcc: [10]
     name: ${{ matrix.os }}-${{ matrix.profiler }}-${{ matrix.gcc }}
@@ -37,12 +37,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install .[test]
         if [[ $DLIO_PROFILER == 'DLIO_PROFILER' ]]; then
+          sudo apt-get install libhwloc-dev
           git clone https://github.com/hariharan-devarajan/dlio-profiler /home/runner/work/dlio_profiler
           cd /home/runner/work/dlio_profiler
           git submodule update --init --recursive
-          pushd external/GOTCHA
-          git apply ../gotcha_glibc_workaround.patch 
-          popd
           mkdir build
           cd build
           cmake ../

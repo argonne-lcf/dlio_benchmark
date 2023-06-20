@@ -59,3 +59,4 @@ pytest-mpi
 pytest-subtests
 pytest-timeout
 nvidia-dali-cuda110
+psutil

@@ -39,7 +39,7 @@ logging.basicConfig(
     # logging's max timestamp resolution is msecs, we will pass in usecs in the message
 )
 
-from dlio_benchmark.benchmark import DLIOBenchmark
+from dlio_benchmark.main import DLIOBenchmark
 import glob
 
 
@@ -181,7 +181,7 @@ def test_iostat_profiling() -> None:
             with open(f"{hydra}/overrides.yaml", "w") as f:
                 f.write('[]')
             subprocess.run(["ls", "-l", "/dev/null"], capture_output=True)
-            cmd = f"python dlio_benchmark/dlio_postprocessor.py --output-folder={benchmark.output_folder}"
+            cmd = f"dlio_postprocessor --output-folder={benchmark.output_folder}"
             cmd = cmd.split()
             subprocess.run(cmd, capture_output=True, timeout=10)
         clean()

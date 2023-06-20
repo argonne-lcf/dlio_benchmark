@@ -10,7 +10,8 @@ core_deps = [
  'mpi4py',
  'numpy',
  'h5py',
- 'pandas'
+ 'pandas',
+ 'psutil'
 ]
 x86_deps = [
  'hydra-core == 1.2.0',
@@ -51,8 +52,8 @@ setup(
     extras_require=extras,
     entry_points={
         'console_scripts': [
-            'dlio_benchmark = dlio_benchmark.benchmark:main',
-            'dlio_postprocesser = dlio_benchmark.dlio_postprocesser:main',
+            'dlio_benchmark = dlio_benchmark.main:main',
+            'dlio_postprocessor = dlio_benchmark.postprocessor:main',
         ]
     }
 )

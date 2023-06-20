@@ -26,13 +26,13 @@ template: |-
 
   DLIO - an IO benchmark for deep learning applications. 
 
-  Running the benchmark: python dlio_benchmark/benchmark.py workload=unet3d
+  Running the benchmark: dlio_benchmark workload=unet3d
 
   One can select the workload configuration using "workload={WORKLOAD}". 
   The corresponding YAML file is ./configs/workload/{WORKLOAD}.yaml folder. 
   Available choise for $APP_CONFIG_GROUPS
   One can override everything in the command line, for example:
-  python dlio_benchmark/benchmark.py workload.framework=tensorflow
+  dlio_benchmark workload.framework=tensorflow
 
   One can also create a custom YAML file for a specific workload. 
   An example of a YAML file is as follows. 
