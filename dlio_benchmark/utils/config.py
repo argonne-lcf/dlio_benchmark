@@ -238,7 +238,7 @@ class ConfigArguments:
                 selected_samples = 0
                 while selected_samples < self.samples_per_thread:
                     process_thread_file_map[rank][thread_index].append((sample_global_list[sample_index], 
-                                                                        file_list[file_index],
+                                                                        os.path.abspath(file_list[file_index]),
                                                                         sample_global_list[sample_index] % self.num_samples_per_file))
                     sample_index += 1
                     selected_samples += 1
@@ -255,7 +255,7 @@ class ConfigArguments:
         for global_sample_index in range(total_samples):
             file_index = int(math.floor(global_sample_index / self.num_samples_per_file))
             sample_index = global_sample_index % self.num_samples_per_file
-            process_thread_file_map[global_sample_index] = (file_list[file_index], sample_index)
+            process_thread_file_map[global_sample_index] = (os.path.abspath(file_list[file_index]), sample_index)
         return process_thread_file_map
 
     @dlp.log
