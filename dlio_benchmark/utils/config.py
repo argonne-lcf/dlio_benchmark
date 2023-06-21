@@ -163,7 +163,14 @@ class ConfigArguments:
         if self.data_loader_classname is not None and self.data_loader_sampler is None:
             raise Exception(
                 f"For custom data loaders workload.reader.data_loader_sampler needs to be defined as iter or index.")
-
+        if self.read_threads > 1:
+            import psutil
+            p = psutil.Process()
+            cores_available = len(p.cpu_affinity())
+            if cores_available < self.read_threads:
+                logging.warning(
+                    f"Running DLIO with {self.read_threads} threads for I/O but core available {cores_available} "
+                    f"are insufficient and can lead to lower performance.")
     def reset(self):
         ConfigArguments.__instance = None
 
