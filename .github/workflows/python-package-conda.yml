@@ -27,7 +27,7 @@ jobs:
     - uses: actions/cache@v2
       with:
         path: ${{ env.pythonLocation }}
-        key: ${{ env.pythonLocation }}-${{ hashFiles('setup.py') }}-${{ hashFiles('dev-requirements.txt') }}
+        key: ${{ env.pythonLocation }}-${{env.DLIO_PROFILER}}-${{ hashFiles('setup.py') }}-${{ hashFiles('dev-requirements.txt') }}
     - name: Install DLIO
       run: |
         echo "Profiler ${DLIO_PROFILER} gcc $CC"
@@ -117,9 +117,3 @@ jobs:
         export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
         RDMAV_FORK_SAFE=1 mpirun -np 2 dlio_benchmark workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
         RDMAV_FORK_SAFE=1 mpirun -np 2  dlio_benchmark workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
-    - name: test-torch-loader-npz-custom
-      run: |
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
-        RDMAV_FORK_SAFE=1 mpirun -np 2 dlio_benchmark workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2 ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
-        RDMAV_FORK_SAFE=1 mpirun -np 2 dlio_benchmark workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0 ++workload.reader.data_loader_classname=tests.plugins.data_loader.custom_torch_data_loader.ClustomTorchDataLoader ++workload.reader.data_loader_sampler="index" ++workload.reader.reader_classname=tests.plugins.reader.custom_npz_reader.CustomNPZReader
-    
