@@ -115,7 +115,12 @@ jobs:
     - name: test_multi_threads
       run: |
         export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads[tensorflow-0]  -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads[tensorflow-1]  -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads[tensorflow-2]  -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads[pytorch-0]  -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads[pytorch-1]  -v
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads[pytorch-2]  -v
     - name: test-tf-loader-tfrecord
       run: |
         export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
