@@ -330,9 +330,10 @@ def test_train(fmt, framework, dataloader) -> None:
 @pytest.mark.timeout(60, method="thread")
 @pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
                                             ("jpeg", "tensorflow"), ("tfrecord", "tensorflow"),
-                                            ("hdf5", "tensorflow"), ("csv", "pytorch"),
+                                            ("hdf5", "tensorflow"), ("csv", "tensorflow"),
                                             ("png", "pytorch"), ("npz", "pytorch"),
-                                            ("jpeg", "pytorch"), ("hdf5", "pytorch"), ("csv", "pytorch")
+                                            ("jpeg", "pytorch"), ("hdf5", "pytorch"),
+                                            ("csv", "pytorch")
                                             ])
 def test_custom_storage_root_train(fmt, framework) -> None:
     storage_root = "root_dir"
