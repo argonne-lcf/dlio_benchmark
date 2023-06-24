@@ -14,7 +14,7 @@ core_deps = [
  'psutil'
 ]
 dlio_profiler_deps = [
- 'dlio_profiler_py @ git+https://github.com/hariharan-devarajan/dlio-profiler.git@dev#egg=dlio_profiler_py'
+ 'dlio_profiler_py @ git+https://github.com/hariharan-devarajan/dlio-profiler.git@dev'
 ]
 x86_deps = [
  'hydra-core == 1.2.0',
