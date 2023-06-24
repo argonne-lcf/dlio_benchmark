@@ -112,10 +112,12 @@ jobs:
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_checkpoint_epoch -v
     - name: test_checkpoint_step
       run: |
+        source ${VENV}/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_checkpoint_step -v
         source ${VENV}/bin/activate
     - name: test_eval
       run: |
+        source ${VENV}/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_eval -v
         source ${VENV}/bin/activate
     - name: test_multi_threads
