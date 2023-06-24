@@ -35,11 +35,14 @@ jobs:
         sudo apt-get install $CC $CXX libc6 
         sudo apt-get install mpich
         python -m pip install --upgrade pip
+        pip install virtualenv
+        python -m venv ./venv
+        source ./venv/bin/activate
         if [[ $DLIO_PROFILER == 'DLIO_PROFILER' ]]; then
           sudo apt-get install libhwloc-dev
-          pip install -v --user .[test,dlio_profiler]
+          pip install .[test,dlio_profiler]
         else
-          sudo pip install .[test] 
+          pip install .[test] 
         fi
     - name: test_gen_data
       run: |
