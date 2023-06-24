@@ -38,7 +38,7 @@ jobs:
         sudo apt-get install $CC $CXX libc6 
         sudo apt-get install mpich
         python -m pip install --upgrade pip
-        sudo chmod 777 /usr
+        sudo chmod 777 /usr -R
         if [[ $DLIO_PROFILER == 'DLIO_PROFILER' ]]; then
           sudo apt-get install libhwloc-dev
           pip install .[test,dlio_profiler]
