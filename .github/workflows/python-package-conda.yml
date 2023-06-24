@@ -37,7 +37,7 @@ jobs:
         python -m pip install --upgrade pip
         if [[ $DLIO_PROFILER == 'DLIO_PROFILER' ]]; then
           sudo apt-get install libhwloc-dev
-          pip install --user .[test,dlio_profiler]
+          pip install -v --user .[test,dlio_profiler]
         else
           sudo pip install .[test] 
         fi
