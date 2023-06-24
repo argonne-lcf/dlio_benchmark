@@ -122,6 +122,7 @@ jobs:
     - name: test-tf-loader-tfrecord
       run: |
         source ./venv/bin/activate
+        ls ./venv/lib
         RDMAV_FORK_SAFE=1 mpirun -np 2 dlio_benchmark workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=False ++workload.workflow.generate_data=True  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
         RDMAV_FORK_SAFE=1 mpirun -np 2 dlio_benchmark workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=True ++workload.workflow.generate_data=False  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
     - name: test-torch-loader-npz
