@@ -46,6 +46,7 @@ jobs:
         fi
     - name: test_gen_data
       run: |
+        source ./venv/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_gen_data[png-tensorflow] -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_gen_data[npz-tensorflow] -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_gen_data[jpeg-tensorflow] -v
@@ -53,6 +54,7 @@ jobs:
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_gen_data[hdf5-tensorflow] -v
     - name: test_custom_storage_root_gen_data
       run: |
+        source ./venv/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_storage_root_gen_data[png-tensorflow] -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_storage_root_gen_data[npz-tensorflow] -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_storage_root_gen_data[jpeg-tensorflow] -v
@@ -60,6 +62,7 @@ jobs:
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_storage_root_gen_data[hdf5-tensorflow] -v
     - name: test_train
       run: |
+        source ./venv/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[png-tensorflow-tensorflow] -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[npz-tensorflow-tensorflow] -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[jpeg-tensorflow-tensorflow] -v
@@ -83,6 +86,7 @@ jobs:
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[csv-pytorch-dali] -v
     - name: test_custom_storage_root_train
       run: |
+        source ./venv/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_custom_storage_root_train[png-tensorflow] -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_custom_storage_root_train[npz-tensorflow] -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_custom_storage_root_train[jpeg-tensorflow] -v
@@ -96,15 +100,19 @@ jobs:
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_custom_storage_root_train[csv-pytorch] -v
     - name: test_checkpoint_epoch
       run: |
+        source ./venv/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_checkpoint_epoch -v
     - name: test_checkpoint_step
       run: |
+        source ./venv/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_checkpoint_step -v
     - name: test_eval
       run: |
+        source ./venv/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_eval -v
     - name: test_multi_threads
       run: |
+        source ./venv/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads[tensorflow-0]  -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads[tensorflow-1]  -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads[tensorflow-2]  -v
@@ -113,13 +121,16 @@ jobs:
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads[pytorch-2]  -v
     - name: test-tf-loader-tfrecord
       run: |
+        source ./venv/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 dlio_benchmark workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=False ++workload.workflow.generate_data=True  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
         RDMAV_FORK_SAFE=1 mpirun -np 2 dlio_benchmark workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=True ++workload.workflow.generate_data=False  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
     - name: test-torch-loader-npz
       run: |
+        source ./venv/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 dlio_benchmark workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2 ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
         RDMAV_FORK_SAFE=1 mpirun -np 2 dlio_benchmark workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
     - name: test-tf-loader-npz
       run: |
+        source ./venv/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 dlio_benchmark workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
         RDMAV_FORK_SAFE=1 mpirun -np 2  dlio_benchmark workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
