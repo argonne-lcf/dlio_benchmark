@@ -29,8 +29,8 @@ jobs:
       id: cache-modules
       uses: actions/cache@v2
       with:
-        path: ${{ /home/runner/work }}
-        key: ${{ /home/runner/work }}-${{env.DLIO_PROFILER}}-${{ hashFiles('setup.py') }}
+        path: ${{ env.VENV }}
+        key: ${{env.VENV }}-${{env.DLIO_PROFILER}}-${{ hashFiles('setup.py') }}
     - name: Install DLIO
       if: steps.cache-modules.outputs.cache-hit != 'true'
       run: |
