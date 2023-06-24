@@ -184,11 +184,6 @@ class PerfTrace:
             os.remove(instance.log_file)
         spec = importlib.util.find_spec('dlio_profiler_py')
         if spec:
-            module_so = spec.origin
-            lib = str(pathlib.Path(module_so).parent.parent.parent.resolve())
-            ld_path = os.environ.get('LD_LIBRARY_PATH', "") + ":" + lib
-            os.environ['LD_LIBRARY_PATH'] = ld_path 
-            print(f"ld_path {ld_path}")
             instance.logger_type = LoggerType.DLIO_PROFILER
             import dlio_profiler_py as dlio_logger
             instance.logger = dlio_logger
