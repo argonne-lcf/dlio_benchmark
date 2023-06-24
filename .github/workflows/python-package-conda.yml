@@ -15,7 +15,7 @@ jobs:
     name: ${{ matrix.os }}-${{ matrix.profiler }}-${{ matrix.gcc }}
     runs-on: ${{ matrix.os }}
     env:
-      VENV: '/home/runner/work/venv'
+      VENV: "/home/runner/work/venv"
       DLIO_PROFILER: ${{ matrix.profiler }}
       CC: gcc-${{ matrix.gcc }}
       CXX: g++-${{ matrix.gcc }}
