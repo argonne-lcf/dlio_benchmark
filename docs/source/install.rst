@@ -7,7 +7,6 @@ DLIO itself should run directly after installing dependence python packages spec
     git clone https://github.com/argonne-lcf/dlio_benchmark
     cd dlio_benchmark/
     pip install .
-    dlio_benchmark
     
 One can build docker image run DLIO inside a docker container.  
 

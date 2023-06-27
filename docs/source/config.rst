@@ -20,8 +20,8 @@ The characteristics of a workload is specified through a YAML file. This file wi
     format: npz
     num_files_train: 168
     num_samples_per_file: 1
-    record_length: 234560851
-    record_length_stdev: 109346892
+    record_length: 146600628
+    record_length_stdev: 68341808
     record_length_resize: 2097152
     
   reader: 
@@ -32,7 +32,7 @@ The characteristics of a workload is specified through a YAML file. This file wi
     sample_shuffle: seed
 
   train:
-    epochs: 10
+    epochs: 5
     computation_time: 1.3604
 
   checkpoint:
