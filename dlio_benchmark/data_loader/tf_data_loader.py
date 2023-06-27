@@ -44,7 +44,7 @@ class TFDataLoader(BaseDataLoader):
 
     @dlp.log_init
     def __init__(self, format_type, dataset_type, epoch):
-        super().__init__(format_type, dataset_type, epoch)
+        super().__init__(format_type, dataset_type, epoch, DataLoaderType.TENSORFLOW)
         self._dataset = None
 
     @dlp.log

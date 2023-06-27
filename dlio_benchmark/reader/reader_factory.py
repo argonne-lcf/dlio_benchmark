@@ -14,6 +14,10 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+import logging
+from dlio_benchmark.utils.utility import utcnow
+
+from dlio_benchmark.utils.config import ConfigArguments
 
 from dlio_benchmark.common.enumerations import FormatType, DataLoaderType
 from dlio_benchmark.common.error_code import ErrorCodes
@@ -29,7 +33,11 @@ class ReaderFactory(object):
         This function set the data reader based on the data format and the data loader specified. 
         """
 
-        if type == FormatType.HDF5:
+        _args = ConfigArguments.get_instance()
+        if _args.reader_class is not None:
+            logging.info(f"{utcnow()} Running DLIO with custom data loader class {_args.reader_class.__name__}")
+            return _args.reader_class(dataset_type, thread_index, epoch_number)
+        elif type == FormatType.HDF5:
             from dlio_benchmark.reader.hdf5_reader import HDF5Reader
             return HDF5Reader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.CSV:

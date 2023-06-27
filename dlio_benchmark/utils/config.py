@@ -14,13 +14,19 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+import importlib
+import inspect
+
 import logging
 from time import time
+
+
 from typing import List, ClassVar
 
 from dlio_benchmark.common.constants import MODULE_CONFIG
-from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, FrameworkType, \
-    DataLoaderType, Profiler, DatasetType
+from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
+    FrameworkType, \
+    DataLoaderType, Profiler, DatasetType, DataLoaderSampler
 from dataclasses import dataclass
 import math
 import os
@@ -92,10 +98,13 @@ class ConfigArguments:
     eval_after_epoch: int = 1
     epochs_between_evals: int = 1
     model_size: int = 10240
-    data_loader: DataLoaderType = DataLoaderType.TENSORFLOW
+    data_loader: DataLoaderType = DataLoaderType.TENSORFLOW.value
     num_subfolders_train: int = 0
     num_subfolders_eval: int = 0
     iostat_devices: ClassVar[List[str]] = []
+    data_loader_classname = None
+    data_loader_sampler: DataLoaderSampler = None
+    reader_classname: str = None
 
     # derived fields
     required_samples: int = 1
@@ -112,6 +121,8 @@ class ConfigArguments:
     samples_per_thread: int = 1
     file_map = None
     global_index_map = None
+    data_loader_class = None
+    reader_class = None
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -149,6 +160,9 @@ class ConfigArguments:
         if len(self.file_list_eval) != self.num_files_eval:
             raise Exception(
                 f"Expected {self.num_files_eval} evaluation files but {len(self.file_list_eval)} found. Ensure data was generated correctly.")
+        if self.data_loader_classname is not None and self.data_loader_sampler is None:
+            raise Exception(
+                f"For custom data loaders workload.reader.data_loader_sampler needs to be defined as iter or index.")
         if self.read_threads > 1:
             import psutil
             p = psutil.Process()
@@ -180,9 +194,32 @@ class ConfigArguments:
                 self.required_samples *= self.read_threads
             self.training_steps = int(math.ceil(self.total_samples_train / self.batch_size / self.comm_size))
             self.eval_steps = int(math.ceil(self.total_samples_eval / self.batch_size_eval / self.comm_size))
+        if self.data_loader_sampler is None and self.data_loader_classname is None:
+            if self.data_loader == DataLoaderType.TENSORFLOW:
+                self.data_loader_sampler = DataLoaderSampler.ITERATIVE
+            elif self.data_loader in [DataLoaderType.PYTORCH, DataLoaderType.DALI]:
+                self.data_loader_sampler = DataLoaderSampler.INDEX
+        if self.data_loader_classname is not None:
+            from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
+            classname = self.data_loader_classname.split(".")[-1]
+            module = importlib.import_module(".".join(self.data_loader_classname.split(".")[:-1]))
+            for class_name, obj in inspect.getmembers(module):
+                if class_name == classname and issubclass(obj, BaseDataLoader):
+                    logging.info(f"Discovered custom data loader {class_name}")
+                    self.data_loader_class = obj
+                    break
+        if self.reader_classname is not None:
+            from dlio_benchmark.reader.reader_handler import FormatReader
+            classname = self.reader_classname.split(".")[-1]
+            module = importlib.import_module(".".join(self.reader_classname.split(".")[:-1]))
+            for class_name, obj in inspect.getmembers(module):
+                if class_name == classname and issubclass(obj, FormatReader):
+                    logging.info(f"Discovered custom data reader {class_name}")
+                    self.reader_class = obj
+                    break
 
     @dlp.log
-    def build_sample_map(self, file_list, total_samples, epoch_number):
+    def build_sample_map_iter(self, file_list, total_samples, epoch_number):
         logging.debug(f"ranks {self.comm_size} threads {self.read_threads} tensors")
         num_files = len(file_list)
         num_threads = 1
@@ -208,7 +245,7 @@ class ConfigArguments:
                 selected_samples = 0
                 while selected_samples < self.samples_per_thread:
                     process_thread_file_map[rank][thread_index].append((sample_global_list[sample_index], 
-                                                                        file_list[file_index],
+                                                                        os.path.abspath(file_list[file_index]),
                                                                         sample_global_list[sample_index] % self.num_samples_per_file))
                     sample_index += 1
                     selected_samples += 1
@@ -220,12 +257,12 @@ class ConfigArguments:
         return process_thread_file_map
 
     @dlp.log
-    def get_global_map(self, file_list, total_samples):
+    def get_global_map_index(self, file_list, total_samples):
         process_thread_file_map = {}
         for global_sample_index in range(total_samples):
             file_index = int(math.floor(global_sample_index / self.num_samples_per_file))
             sample_index = global_sample_index % self.num_samples_per_file
-            process_thread_file_map[global_sample_index] = (file_list[file_index], sample_index)
+            process_thread_file_map[global_sample_index] = (os.path.abspath(file_list[file_index]), sample_index)
         return process_thread_file_map
 
     @dlp.log
@@ -238,18 +275,18 @@ class ConfigArguments:
             np.random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else np.random.shuffle(
                 self.file_list_eval)
 
-        if self.data_loader in [DataLoaderType.TENSORFLOW]:
+        if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
             if dataset_type is DatasetType.TRAIN:
-                global_file_map = self.build_sample_map(self.file_list_train, self.total_samples_train,
-                                                      epoch_number)
+                global_file_map = self.build_sample_map_iter(self.file_list_train, self.total_samples_train,
+                                                             epoch_number)
             else:
-                global_file_map = self.build_sample_map(self.file_list_eval, self.total_samples_eval, epoch_number)
+                global_file_map = self.build_sample_map_iter(self.file_list_eval, self.total_samples_eval, epoch_number)
             self.file_map = global_file_map[self.my_rank]
-        else:
+        elif self.data_loader_sampler == DataLoaderSampler.INDEX:
             if dataset_type is DatasetType.TRAIN:
-                self.global_index_map = self.get_global_map(self.file_list_train, self.total_samples_train)
+                self.global_index_map = self.get_global_map_index(self.file_list_train, self.total_samples_train)
             else:
-                self.global_index_map = self.get_global_map(self.file_list_eval, self.total_samples_eval)
+                self.global_index_map = self.get_global_map_index(self.file_list_eval, self.total_samples_eval)
 def LoadConfig(args, config):
     '''
     Override the args by a system config (typically loaded from a YAML file)
@@ -312,8 +349,14 @@ def LoadConfig(args, config):
     elif 'reader' in config:
         reader = config['reader']
     if reader is not None:
+        if 'reader_classname' in reader:
+            args.reader_classname = reader['reader_classname']
         if 'data_loader' in reader:
             args.data_loader = DataLoaderType(reader['data_loader'])
+        if 'data_loader_classname' in reader:
+            args.data_loader_classname = reader['data_loader_classname']
+        if 'data_loader_sampler' in reader:
+            args.data_loader_sampler = DataLoaderSampler(reader['data_loader_sampler'])
         if 'read_threads' in reader:
             args.read_threads = reader['read_threads']
         if 'computatation_threads' in reader:

@@ -14,8 +14,12 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+import logging
+from dlio_benchmark.utils.config import ConfigArguments
 
-from dlio_benchmark.common.enumerations import FormatType, DataLoaderType
+from dlio_benchmark.utils.utility import utcnow
+
+from dlio_benchmark.common.enumerations import DataLoaderType
 from dlio_benchmark.common.error_code import ErrorCodes
 
 
@@ -28,8 +32,11 @@ class DataLoaderFactory(object):
         """
         This function set the data reader based on the data format and the data loader specified.
         """
-
-        if type == DataLoaderType.PYTORCH:
+        _args = ConfigArguments.get_instance()
+        if _args.data_loader_class is not None:
+            logging.info(f"{utcnow()} Running DLIO with custom data loader class {_args.data_loader_class.__name__}")
+            return _args.data_loader_class(format_type, dataset_type, epoch)
+        elif type == DataLoaderType.PYTORCH:
             from dlio_benchmark.data_loader.torch_data_loader import TorchDataLoader
             return TorchDataLoader(format_type, dataset_type, epoch)
         elif type == DataLoaderType.TENSORFLOW:
@@ -39,5 +46,5 @@ class DataLoaderFactory(object):
             from dlio_benchmark.data_loader.dali_data_loader import DaliDataLoader
             return DaliDataLoader(format_type, dataset_type, epoch)
         else:
-            print("Data Loader %s not supported" %type)
+            print("Data Loader %s not supported or plugins not found" % type)
             raise Exception(str(ErrorCodes.EC1004))
