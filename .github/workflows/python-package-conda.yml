@@ -15,6 +15,7 @@ jobs:
     name: ${{ matrix.os }}-${{ matrix.profiler }}-${{ matrix.gcc }}
     runs-on: ${{ matrix.os }}
     env:
+      VENV: "/home/runner/work/venv"
       DLIO_PROFILER: ${{ matrix.profiler }}
       CC: gcc-${{ matrix.gcc }}
       CXX: g++-${{ matrix.gcc }}
@@ -24,31 +25,36 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: 3.10.5
-    - uses: actions/cache@v2
+    - name: Cache install modules
+      id: cache-modules
+      uses: actions/cache@v2
       with:
-        path: ${{ env.pythonLocation }}
-        key: ${{ env.pythonLocation }}-${{env.DLIO_PROFILER}}-${{ hashFiles('setup.py') }}-${{ hashFiles('dev-requirements.txt') }}
-    - name: Install DLIO
+        path: ${{ env.VENV }}
+        key: ${{env.VENV }}-${{env.DLIO_PROFILER}}-${{ hashFiles('setup.py') }}
+    - name: Install System Tools
       run: |
-        echo "Profiler ${DLIO_PROFILER} gcc $CC"
-        sudo apt update 
-        sudo apt-get install $CC $CXX libc6 
+        sudo apt update
+        sudo apt-get install $CC $CXX libc6
         sudo apt-get install mpich
-        python -m pip install --upgrade pip
-        pip install .[test]
         if [[ $DLIO_PROFILER == 'DLIO_PROFILER' ]]; then
           sudo apt-get install libhwloc-dev
-          git clone https://github.com/hariharan-devarajan/dlio-profiler /home/runner/work/dlio_profiler
-          cd /home/runner/work/dlio_profiler
-          git submodule update --init --recursive
-          mkdir build
-          cd build
-          cmake ../
-          sudo make install -j
+        fi
+    - name: Install DLIO
+      if: steps.cache-modules.outputs.cache-hit != 'true'
+      run: |
+        echo "Profiler ${DLIO_PROFILER} gcc $CC"
+        python -m pip install --upgrade pip
+        pip install virtualenv
+        python -m venv ${VENV}
+        source ${VENV}/bin/activate
+        if [[ $DLIO_PROFILER == 'DLIO_PROFILER' ]]; then
+          pip install .[test,dlio_profiler]
+        else
+          pip install .[test] 
         fi
     - name: test_gen_data
       run: |
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+        source ${VENV}/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_gen_data[png-tensorflow] -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_gen_data[npz-tensorflow] -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_gen_data[jpeg-tensorflow] -v
@@ -56,7 +62,7 @@ jobs:
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_gen_data[hdf5-tensorflow] -v
     - name: test_custom_storage_root_gen_data
       run: |
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+        source ${VENV}/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_storage_root_gen_data[png-tensorflow] -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_storage_root_gen_data[npz-tensorflow] -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_storage_root_gen_data[jpeg-tensorflow] -v
@@ -64,7 +70,7 @@ jobs:
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_storage_root_gen_data[hdf5-tensorflow] -v
     - name: test_train
       run: |
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+        source ${VENV}/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[png-tensorflow-tensorflow] -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[npz-tensorflow-tensorflow] -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[jpeg-tensorflow-tensorflow] -v
@@ -88,7 +94,7 @@ jobs:
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_train[csv-pytorch-dali] -v
     - name: test_custom_storage_root_train
       run: |
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+        source ${VENV}/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_custom_storage_root_train[png-tensorflow] -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_custom_storage_root_train[npz-tensorflow] -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_custom_storage_root_train[jpeg-tensorflow] -v
@@ -102,19 +108,21 @@ jobs:
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_custom_storage_root_train[csv-pytorch] -v
     - name: test_checkpoint_epoch
       run: |
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+        source ${VENV}/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_checkpoint_epoch -v
     - name: test_checkpoint_step
       run: |
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+        source ${VENV}/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_checkpoint_step -v
+        source ${VENV}/bin/activate
     - name: test_eval
       run: |
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+        source ${VENV}/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_eval -v
+        source ${VENV}/bin/activate
     - name: test_multi_threads
       run: |
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+        source ${VENV}/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads[tensorflow-0]  -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads[tensorflow-1]  -v
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads[tensorflow-2]  -v
@@ -123,16 +131,16 @@ jobs:
         RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k  test_multi_threads[pytorch-2]  -v
     - name: test-tf-loader-tfrecord
       run: |
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+        source ${VENV}/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 dlio_benchmark workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=False ++workload.workflow.generate_data=True  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
         RDMAV_FORK_SAFE=1 mpirun -np 2 dlio_benchmark workload=resnet50 ++workload.dataset.num_files_train=64 ++workload.workflow.train=True ++workload.workflow.generate_data=False  ++workload.dataset.num_files_train=16 ++workload.dataset.num_samples_per_file=16
     - name: test-torch-loader-npz
       run: |
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+        source ${VENV}/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 dlio_benchmark workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2 ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
         RDMAV_FORK_SAFE=1 mpirun -np 2 dlio_benchmark workload=unet3d ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
     - name: test-tf-loader-npz
       run: |
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+        source ${VENV}/bin/activate
         RDMAV_FORK_SAFE=1 mpirun -np 2 dlio_benchmark workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
         RDMAV_FORK_SAFE=1 mpirun -np 2  dlio_benchmark workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0

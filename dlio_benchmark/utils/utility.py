@@ -23,11 +23,13 @@ from functools import wraps
 import threading
 import json
 from typing import Dict
+import pathlib
 
 import numpy as np
 import inspect
 import psutil
 import socket
+import importlib.util
 # UTC timestamp format with microsecond precision
 from dlio_benchmark.common.enumerations import LoggerType
 
@@ -180,7 +182,8 @@ class PerfTrace:
         instance.log_file = os.path.abspath(os.path.join(logdir, instance.logfile))
         if os.path.isfile(instance.log_file):
             os.remove(instance.log_file)
-        if "DLIO_PROFILER" in os.environ and os.environ["DLIO_PROFILER"] == "DLIO_PROFILER":
+        spec = importlib.util.find_spec('dlio_profiler_py')
+        if spec:
             instance.logger_type = LoggerType.DLIO_PROFILER
             import dlio_profiler_py as dlio_logger
             instance.logger = dlio_logger
