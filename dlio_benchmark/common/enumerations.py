@@ -124,8 +124,21 @@ class DataLoaderType(Enum):
     TENSORFLOW='tensorflow'
     PYTORCH='pytorch'
     DALI='dali'
+    CUSTOM='custom'
     NONE='none'
     
+    def __str__(self):
+        return self.value
+
+
+class DataLoaderSampler(Enum):
+    """
+    Framework DataLoader Sampler Type
+    """
+    ITERATIVE = 'iterative'
+    INDEX = 'index'
+    NONE = 'none'
+
     def __str__(self):
         return self.value
 
