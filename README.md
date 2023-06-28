@@ -13,9 +13,8 @@ DLIO is an I/O benchmark for Deep Learning. DLIO is aimed at emulating the I/O b
 ```bash
 git clone https://github.com/argonne-lcf/dlio_benchmark
 cd dlio_benchmark/
-pip install -r requirements.txt
-export PYTHONPATH=$PWD/:$PYTHONPATH
-python ./src/dlio_benchmark.py ++workload.workflow.generate_data=True
+pip install .
+dlio_benchmark ++workload.workflow.generate_data=True
 ```
 Additionally, to generate the report `iostat` is needed and can be installed from the `sysstat` package using your package manager.
 
@@ -25,19 +24,32 @@ Additionally, to generate the report `iostat` is needed and can be installed fro
 git clone https://github.com/argonne-lcf/dlio_benchmark
 cd dlio_benchmark/
 docker build -t dlio .
-docker run -t dlio python ./src/dlio_benchmark.py ++workload.workflow.generate_data=True
+docker run -t dlio dlio_benchmark ++workload.workflow.generate_data=True
 ``` 
 
 You can also pull rebuilt container from docker hub (might not reflect the most recent change of the code): 
 ```bash
 docker docker.io/zhenghh04/dlio:latest
-docker run -t docker.io/zhenghh04/dlio:latest python ./src/dlio_benchmark.py ++workload.workflow.generate_data=True
+docker run -t docker.io/zhenghh04/dlio:latest python ./dlio_benchmark/main.py ++workload.workflow.generate_data=True
 ```
 
 One can also run interactively inside the container
 ```bash
 docker run -t docker.io/zhenghh04/dlio:latest /bin/bash
-root@30358dd47935:/workspace/dlio$ python ./src/dlio_benchmark.py ++workload.workflow.generate_data=True
+root@30358dd47935:/workspace/dlio$ python ./dlio_benchmark/main.py ++workload.workflow.generate_data=True
+```
+
+## PowerPC
+PowerPC requires installation through anaconda.
+```bash
+# Setup required channels
+conda config --prepend channels https://public.dhe.ibm.com/ibmdl/export/pub/software/server/ibm-ai/conda/
+
+# create and activate environment
+conda env create --prefix ./dlio_env_ppc --file environment-ppc.yaml --force
+conda activate ./dlio_env_ppc
+# install other dependencies
+python -m pip install .
 ```
 
 ## Running the benchmark
@@ -53,7 +65,7 @@ One can specify the workload through the ```workload=``` option on the command l
 
 First, generate the data
   ```bash
-  mpirun -np 8 python3 src/dlio_benchmark.py workload=unet3d ++workload.workflow.generate_data=True ++workload.workflow.train=False
+  mpirun -np 8 dlio_benchmark workload=unet3d ++workload.workflow.generate_data=True ++workload.workflow.train=False
   ```
 If possible, one can flush the filesystem caches in order to properly capture device I/O
   ```bash
@@ -61,12 +73,12 @@ If possible, one can flush the filesystem caches in order to properly capture de
   ```
 Finally, run the benchmark with ```iostat``` profiling, listing the io devices you would like to trace.
   ```bash
-  mpirun -np 8 python3 src/dlio_benchmark.py workload=unet3d ++workload.workflow.profiling=True ++workload.profiling.profiler=iostat ++workload.profiling.iostat_devices=[sda,sdb]
+  mpirun -np 8 dlio_benchmark workload=unet3d ++workload.workflow.profiling=True ++workload.profiling.profiler=iostat ++workload.profiling.iostat_devices=[sda,sdb]
   ```
 
 All the outputs will be stored in ```hydra_log/unet3d/$DATE-$TIME``` folder. To post process the data, one can do
 ```bash 
-python3 src/dlio_postprocessor.py --output-folder hydra_log/unet3d/$DATE-$TIME
+dlio_postprocessor --output-folder hydra_log/unet3d/$DATE-$TIME
 ```
 This will generate ```DLIO_$model_report.txt``` in the output folder. 
 
