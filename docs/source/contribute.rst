@@ -3,7 +3,7 @@ Contributing Guide
 
 Testing
 ------------------------
-All help is appreciated! If you're in a position to run the latest code, consider helping us by reporting any functional problems, performance regressions, or other suspected issues. By running the latest code on a wide range of realistic workloads, configurations, and architectures we're better able to quickly identify and resolve issues.
+Any help is appreciated! If you're in a position to run the latest code, consider helping us by reporting any functional problems, performance regressions, or other suspected issues. By running the latest code on a wide range of realistic workloads, configurations, and architectures we're better able to quickly identify and resolve issues.
 
 Reporting Bugs
 -----------------
@@ -32,7 +32,7 @@ We welcome the contribution from the community for developing new features of th
 
 If there are other features that you think would be great to have in DLIO, please submit an issue with label ``feature request``. 
 
-For developing all these features, if you think that it will have significant impact on the original structure of the code, please submit an issue to the `issue tracker`_ first, and contact ALCF DLIO `mailing list`_ to discuss before proceeding further. This is to minize the effort involved in merging the pull request. 
+For developing all these features, if you think that it will have significant impact on the original structure of the code, please submit an issue to the `issue tracker`_ first, and contact ALCF DLIO `mailing list`_ to discuss before proceeding further. This is to minimize the effort involved in merging the pull request. 
 
 Pull Requests
 ------------------------

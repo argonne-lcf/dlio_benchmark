@@ -2,7 +2,8 @@
 
 DLIO Configuration
 ==============================================
-The characteristics of a workload is specified through a YAML file. This file will then be read by `DLIO` to setup the benchmark. Below is an example of such a YAML file. More examples can be found in the `workload`_ folder. 
+The characteristics of a workload are specified through a YAML file. This file will then be read by `DLIO` to setup the benchmark. 
+Below is an example of such a YAML file. More examples can be found in the `workload`_ folder. 
 
 .. code-block:: yaml
   
@@ -66,7 +67,7 @@ No other parameters under this section.
 
 framework
 -------------------
-Specify the frameork (tensorflow or pytorch) as 
+Specify the framework (tensorflow or pytorch) as 
 
 .. code-block:: yaml
 
@@ -104,7 +105,7 @@ workflow
 
   If ``train`` is set to be ```False```, ``evaluation``, ``checkpoint``, ``profiling`` will be set to ```False``` automatically. 
 
-  Even though ``generate_data`` and ``train`` can be performed together in one job, we suggest to perform them seperately. One can generate the data first by running DLIO with ```generate_data=True``` and ```train=False```, and then run training benchmark with ```generate_data=False``` and ```train=True```. 
+  Even though ``generate_data`` and ``train`` can be performed together in one job, we suggest to perform them separately. One can generate the data first by running DLIO with ```generate_data=True``` and ```train=False```, and then run training benchmark with ```generate_data=False``` and ```train=True```. 
 
 dataset
 ------------------
@@ -162,7 +163,7 @@ dataset
      - the chunk size for hdf5. 
    * - keep_files
      - True
-     - whether to keep the dataset files afer the simulation.    
+     - whether to keep the dataset files after the simulation.    
 
 .. note :: 
   The training and validation datasets will be put in ```${data_folder}/train``` and ```${data_folder}/valid``` respectively. If ``num_subfolders_train`` and ``num_subfolders_eval`` are larger than one, the datasets will be split into multiple subfolders within ```${data_folder}/train``` and ```${data_folder}/valid```. 
@@ -213,7 +214,7 @@ reader
 .. note:: 
 
 TensorFlow and PyTorch behave differently for some parameters. For ``read_threads``, tensorflow does 
-not support ``read_threads=0``, but pytorch does, in which case, the main thread will be doing data loader and no overlap between I/O and compute. 
+not support ``read_threads=0``, but pytorch does, in which case, the main thread will be doing data loading and no overlap between I/O and compute. 
 
 For pytorch, ``prefetch_size`` is set to be 0, it will be changed to 2. In other words, the default value for ``prefetch_size`` in pytorch is 2. 
 

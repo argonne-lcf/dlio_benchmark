@@ -11,7 +11,7 @@ a significant bottleneck on large-scale distributed deep learning training.
 
 The `DLIO` benchmark aims to provide a detailed representation of
 the data access pattern of deep learning workloads, to 
-to accurately emulate the I/O behavior in the training process. 
+accurately emulate the I/O behavior in the training process. 
 Using `DLIO`, application developers and system
 software solution architects can identify potential I/O bottlenecks
 in their applications and guide optimizations to boost the I/O
@@ -25,9 +25,9 @@ First, we assume that one can replace the computation part
 (training and validation) with a sleep of the same amount of time, 
 while keeping the I/O pattern / behavior the same. 
 The logic behind this is demonstrated as shown in the figure. 
-In a typical deep leanring training process, a batch of data is 
+In a typical deep learning training process, a batch of data is 
 loaded from the storage to host memory at each time step, 
-and then transfered to the accelerator to perform the training. 
+and then transferred to the accelerator to perform the training. 
 There might be some hardware supporting loading data from storage 
 directly to the accelerators such as GPU Direct. In either case, 
 the I/O (data access in the storage) should likely be independent of 
@@ -36,15 +36,17 @@ frequency of the I/O requests remains the same.
 
   .. figure:: ./images/training.png
 
-    Typical process of AI training. The dataset is loaded from the storage to the host RAM and then feed into the accelerators for training. The storage benchmarks will focus on data loading from the storage to the host RAM. 
+    Typical process of AI training. The dataset is loaded from the storage to the host RAM and then fed into the accelerators for training. The storage benchmarks will focus on data loading from the storage to the host RAM. 
 
-We have validated this in various cases. For example, in the figure shown below, we replace the computation with a sleep of different amounts corresponding to the training time in Nvidia A100, V100, and P100 GPUs, we were able to reproduce the I/O timeline trace of the real workload running on different GPUs. More results from distributed training were presented in our CCGrid paper. 
+We have validated this in various cases. For example, in the figure shown below, we replace the computation with a sleep of various time intervals corresponding to the training time in Nvidia A100, V100, and P100 GPUs, we were able to reproduce the I/O timeline trace of the real workload running on different GPUs. More results from distributed training were presented in our CCGrid paper. 
 
   .. figure:: ./images/validation.png
 
     Upper panel: I/O timeline on A100, V100, P100; Lower panel: I/O timeline on Skylake with training replaced by sleep of different amounts of time equal to the training time on A100, V100 and P100 respectively. 
 
-Second, one can have certain extent of abstraction of the dataset and igore the low level details. We assume that as long as the number of files, number of samples per file, size of each sample, batch size, are the same, the I/O behavior should be similar regardless of the details of each sample. We incorporate built-in data loaders such as tf.data, and torch DataLoader to incorporate advance features such as prefetch, and multithreaded data loading. 
+Second, one can have certain extent of abstraction of the dataset and ignore the low level details. 
+We assume that as long as the number of files, number of samples per file, size of each sample, batch size, are the same, the I/O behavior should be similar regardless of the details of each sample. 
+We incorporate built-in data loaders such as tf.data, and torch DataLoader to provide advanced features such as prefetch, and multithreaded data loading. 
 
 High-level Design
 =======================
@@ -100,7 +102,7 @@ Benchmark Execution
 
 **Simulation**: Once the session has started successfully, the benchmark Run() is invoked, which runs the benchmark. In the run phase, we run the benchmark for multiple epochs. During each epoch, the whole data is read once using n steps. During an epoch, checkpoint operations are performed every c steps as well. 
 
-Additionally, an inter-step computation is performed to emulate computation (through a sleep function) and I/O phases by deep learning application. Replacing computaiton with sleep allows the user to perform the benchmark in a acclerator absence environement. Different accelerators will have different amounts of computation time. 
+Additionally, an inter-step computation is performed to emulate computation (through a sleep function) and I/O phases by deep learning application. Replacing computation with sleep allows the user to perform the benchmark in a accelerator absence environment. Different accelerators will have different amounts of computation time. 
 
 Finally, once the benchmark run finishes, the finalize is called, which stops the profiler, saves its results, and exits the benchmark.
 

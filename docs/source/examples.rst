@@ -1,7 +1,9 @@
 Examples
 =============
 
-We here list a set of example workloads. In the first example, we show the benchmarking process, including generating the dataset, running the benchmark with profiling, and processing the logs and profiling data. For the rest of the workloads, we list the YAML configure files.
+Here we list a set of example workloads. In the first example, we show the benchmarking process, 
+including generating the dataset, running the benchmark with profiling, and processing the logs and profiling data. 
+For the rest of the workloads, we list the YAML configure files.
 
 UNET3D: 3D Medical Image Segmentation
 ---------------------------------------
@@ -54,7 +56,7 @@ First, we generate the dataset with ```++workload.workflow.generate=False```
     
     mpirun -np 8 python dlio_benchmark workload=unet3d ++workload.workflow.generate_data=True ++workload.workflow.train=False
 
-Then, we run the appliation with iostat profiling
+Then, we run the application with iostat profiling
 
 .. code-block:: bash
     
@@ -140,13 +142,13 @@ This will generate the logs and profiling data inside hydra_log/${model}/${data}
     1_load_and_proc_times.json  4_load_and_proc_times.json  7_load_and_proc_times.json  per_epoch_stats.json
     2_load_and_proc_times.json  5_load_and_proc_times.json  dlio.log
 
-One can then post processing the data with dlio_postprocessor.py
+One can then post process the data with dlio_postprocessor.py
 
 .. code-block:: bash 
 
     python postprocessor --output-folder hydra_log/unet3d/2022-11-09-17-55-44/
 
-The output is
+The output is:
 
 .. code-block:: text
 
