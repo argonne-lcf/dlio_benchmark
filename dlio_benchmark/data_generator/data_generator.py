@@ -48,7 +48,7 @@ class DataGenerator(ABC):
         self._file_list = None
         self.num_subfolders_train = self._args.num_subfolders_train
         self.num_subfolders_eval = self._args.num_subfolders_eval
-        self.format = self._args.format
+        self.format = self._args.format_ext
         self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root,
                                                                         self._args.framework)
     def get_dimension(self):

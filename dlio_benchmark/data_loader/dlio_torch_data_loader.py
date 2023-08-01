@@ -13,7 +13,7 @@ from dlio_benchmark.utils.utility import utcnow, get_rank, Profile
 dlp = Profile(MODULE_DATA_LOADER)
 
 
-class TorchDataset(Dataset):
+class DLIOTorchDataset(Dataset):
     """
     Currently, we only support loading one sample per file
     TODO: support multiple samples per file
@@ -49,17 +49,17 @@ class TorchDataset(Dataset):
         logging.debug(f"{utcnow()} Rank {get_rank()} reading {image_idx} sample")
         return self.reader.read_index(image_idx, step)
 
-class TorchDataLoader(BaseDataLoader):
+class DLIOTorchDataLoader(BaseDataLoader):
     @dlp.log_init
     def __init__(self, format_type, dataset_type, epoch_number):
-        super().__init__(format_type, dataset_type, epoch_number, DataLoaderType.PYTORCH)
+        super().__init__(format_type, dataset_type, epoch_number, DataLoaderType.DLIO_PYTORCH)
 
     @dlp.log
     def read(self):
         do_shuffle = True if self._args.sample_shuffle != Shuffle.OFF else False
         num_samples = self._args.total_samples_train if self.dataset_type is DatasetType.TRAIN else self._args.total_samples_eval
         batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
-        dataset = TorchDataset(self.format_type, self.dataset_type, self.epoch_number, num_samples, self._args.read_threads, batch_size)
+        dataset = DLIOTorchDataset(self.format_type, self.dataset_type, self.epoch_number, num_samples, self._args.read_threads, batch_size)
         if do_shuffle:
             sampler = RandomSampler(dataset)
         else:

@@ -9,7 +9,7 @@ workflow:
 
 dataset: 
   data_folder: data/unet3d/
-  format: npz
+  format: dlio_npz
   num_files_train: 168
   num_samples_per_file: 1
   record_length: 146600628
@@ -17,7 +17,7 @@ dataset:
   record_length_resize: 2097152
   
 reader: 
-  data_loader: pytorch
+  data_loader: dlio_pytorch
   batch_size: 4
   read_threads: 4
   file_shuffle: seed

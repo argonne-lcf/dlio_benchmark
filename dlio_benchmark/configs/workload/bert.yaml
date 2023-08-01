@@ -10,7 +10,7 @@ workflow:
  
 dataset: 
   data_folder: data/bert
-  format: tfrecord
+  format: dlio_tfrecord
   num_files_train: 500
   num_samples_per_file: 313532
   record_length: 2500
@@ -22,7 +22,7 @@ train:
   total_training_steps: 1000
  
 reader:
-  data_loader: tensorflow
+  data_loader: dlio_tensorflow
   read_threads: 1
   computation_threads: 1
   transfer_size: 262144

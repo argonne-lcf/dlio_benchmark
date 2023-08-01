@@ -14,6 +14,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+import os
+from subprocess import call
 
 from dlio_benchmark.data_generator.data_generator import DataGenerator
 import numpy as np
@@ -64,4 +66,14 @@ class TFRecordGenerator(DataGenerator):
                     serialized = example.SerializeToString()
                     # Write the serialized data to the TFRecords file.
                     writer.write(serialized)
+            tfrecord2idx_script = "tfrecord2idx"
+            folder = "train"
+            if "valid" in out_path_spec:
+                folder = "valid"
+            index_folder = f"{self._args.data_folder}/index/{folder}"
+            filename = os.path.basename(out_path_spec)
+            self.storage.create_node(index_folder, exist_ok=True)
+            tfrecord_idx = f"{index_folder}/{filename}.idx"
+            if not os.path.isfile(tfrecord_idx):
+                call([tfrecord2idx_script, out_path_spec, tfrecord_idx])
         np.random.seed()

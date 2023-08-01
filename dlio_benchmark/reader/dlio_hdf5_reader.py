@@ -20,7 +20,7 @@ import h5py
 
 from dlio_benchmark.common.constants import MODULE_DATA_READER
 from dlio_benchmark.utils.utility import Profile
-from dlio_benchmark.reader.reader_handler import FormatReader
+from dlio_benchmark.reader.dlio_base_reader import DLIOBaseReader
 
 dlp = Profile(MODULE_DATA_READER)
 
@@ -29,7 +29,7 @@ Reader for HDF5 files for training file.
 """
 
 
-class HDF5Reader(FormatReader):
+class DLIOHDF5Reader(DLIOBaseReader):
 
     @dlp.log_init
     def __init__(self, dataset_type, thread_index, epoch):

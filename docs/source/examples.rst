@@ -25,14 +25,14 @@ UNET3D: 3D Medical Image Segmentation
 
     dataset: 
         data_folder: data/unet3d/
-        format: npz
+        format: dlio_npz
         num_files_train: 168
         num_samples_per_file: 1
         record_length: 234560851
         record_length_stdev: 109346892
     
     reader: 
-        data_loader: pytorch
+        data_loader: dlio_pytorch
         batch_size: 4
         read_threads: 4
         file_shuffle: seed
@@ -286,7 +286,7 @@ BERT: Natural Language Processing Model
     
     dataset: 
         data_folder: data/bert
-        format: tfrecord
+        format: dlio_tfrecord
         num_files_train: 500
         num_samples_per_file: 313532
         record_length: 2500
@@ -297,7 +297,7 @@ BERT: Natural Language Processing Model
         total_training_steps: 5000
     
     reader:
-        data_loader: tensorflow
+        data_loader: dlio_tensorflow
         read_threads: 1
         computation_threads: 1
         transfer_size: 262144
@@ -335,7 +335,7 @@ CosmoFlow: 3D CNN to Learn the Universe at Scale
         record_length: 131072
 
     reader:
-        data_loader: tensorflow
+        data_loader: dlio_tensorflow
         computation_threads: 8
         read_threads: 8
         batch_size: 1
@@ -366,9 +366,9 @@ ResNet50: 3D Image classification
         num_samples_per_file: 1024
         record_length: 150528
         data_folder: data/resnet50
-        format: tfrecord
+        format: dlio_tfrecord
         
     data_loader:
-        data_loader: tensorflow
+        data_loader: dlio_tensorflow
         read_threads: 8
         computation_threads: 8

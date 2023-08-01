@@ -15,7 +15,7 @@ import numpy as np
 dlp = Profile(MODULE_DATA_LOADER)
 
 
-class TensorflowDataset(tf.data.Dataset):
+class DLIOTensorflowDataset(tf.data.Dataset):
     @staticmethod
     @dlp.log
     def _generator(format_type, dataset_type, epoch_number, thread_index):
@@ -40,11 +40,11 @@ class TensorflowDataset(tf.data.Dataset):
         return dataset
 
 
-class TFDataLoader(BaseDataLoader):
+class DLIOTFDataLoader(BaseDataLoader):
 
     @dlp.log_init
     def __init__(self, format_type, dataset_type, epoch):
-        super().__init__(format_type, dataset_type, epoch, DataLoaderType.TENSORFLOW)
+        super().__init__(format_type, dataset_type, epoch, DataLoaderType.DLIO_TENSORFLOW)
         self._dataset = None
 
     @dlp.log
@@ -67,8 +67,8 @@ class TFDataLoader(BaseDataLoader):
         batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
         self._dataset = tf.data.Dataset.from_tensor_slices(np.arange(read_threads)).with_options(options)
 
-        self._dataset = self._dataset.interleave(lambda x: TensorflowDataset(self.format_type, self.dataset_type,
-                                                                             self.epoch_number, (
+        self._dataset = self._dataset.interleave(lambda x: DLIOTensorflowDataset(self.format_type, self.dataset_type,
+                                                                                 self.epoch_number, (
                                                                                  batch_size,
                                                                                  self._args.max_dimension,
                                                                                  self._args.max_dimension), x),

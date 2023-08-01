@@ -17,7 +17,7 @@ The characteristics of a workload is specified through a YAML file. This file wi
 
   dataset: 
     data_folder: data/unet3d/
-    format: npz
+    format: dlio_npz
     num_files_train: 168
     num_samples_per_file: 1
     record_length: 234560851
@@ -25,7 +25,7 @@ The characteristics of a workload is specified through a YAML file. This file wi
     record_length_resize: 2097152
     
   reader: 
-    data_loader: pytorch
+    data_loader: dlio_pytorch
     batch_size: 4
     read_threads: 4
     file_shuffle: seed
@@ -126,7 +126,7 @@ dataset
      - resized sample size 
    * - format
      - tfrecord
-     - data format [tfrecord|csv|npz|jpeg|png]
+     - data format [dlio_tfrecord|dlio_csv|dlio_npz|dlio_jpeg|dlio_png]
    * - num_files_train
      - 1
      - number of files for the training set
@@ -179,7 +179,7 @@ reader
      - Description
    * - data_loader
      - tensorflow
-     - select the data loader to use [tensorflow|pytorch]. 
+     - select the data loader to use [dlio_tensorflow|dlio_pytorch|dlio_dali].
    * - batch_size
      - 1 
      - batch size for training

@@ -14,7 +14,7 @@ dataset:
 
 
 reader:
- data_loader: tensorflow
+ data_loader: dlio_tensorflow
  computation_threads: 8
  read_threads: 8
  batch_size: 1
