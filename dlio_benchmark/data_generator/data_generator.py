@@ -60,16 +60,21 @@ class DataGenerator(ABC):
 
     @abstractmethod
     def generate(self):
+        nd_f_train = len(str(self.num_files_train))
+        nd_f_eval = len(str(self.num_files_eval))
+        nd_sf_train = len(str(self.num_subfolders_train))
+        nd_sf_eval = len(str(self.num_subfolders_eval))
+
         if self.my_rank == 0:
             self.storage.create_node(self.data_dir, exist_ok=True)
             self.storage.create_node(self.data_dir + "/train/", exist_ok=True)
             self.storage.create_node(self.data_dir + "/valid/", exist_ok=True)
             if self.num_subfolders_train > 1: 
                 for i in range(self.num_subfolders_train):
-                    self.storage.create_node(self.data_dir + "/train/%d"%i, exist_ok=True)
+                    self.storage.create_node(self.data_dir + f"/train/{add_padding(i, nd_sf_train)}", exist_ok=True)
             if self.num_subfolders_eval > 1: 
                 for i in range(self.num_subfolders_eval):
-                    self.storage.create_node(self.data_dir + "/valid/%d"%i, exist_ok=True)
+                    self.storage.create_node(self.data_dir + f"/valid/{add_padding(i, nd_sf_eval)}", exist_ok=True)
             logging.info(f"{utcnow()} Generating dataset in {self.data_dir}/train and {self.data_dir}/valid")
             logging.info(f"{utcnow()} Number of files for training dataset: {self.num_files_train}")
             logging.info(f"{utcnow()} Number of files for validation dataset: {self.num_files_eval}")
@@ -82,10 +87,7 @@ class DataGenerator(ABC):
         if self.num_files_eval > 0:
             self.total_files_to_generate += self.num_files_eval
         self._file_list = []
-        nd_f_train = len(str(self.num_files_train))
-        nd_f_eval = len(str(self.num_files_eval))
-        nd_sf_train = len(str(self.num_subfolders_train))
-        nd_sf_eval = len(str(self.num_subfolders_eval))
+
 
         if self.num_subfolders_train > 1:
             ns = np.ceil(self.num_files_train / self.num_subfolders_train)
