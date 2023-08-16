@@ -2,7 +2,7 @@
 
 DLIO Configuration
 ==============================================
-The characteristics of a workload is specified through a YAML file. This file will then be read by `DLIO` to setup the benchmark. Below is an example of such a YAML file. More examples can be found in the `workload`_ folder. 
+The characteristics of a workload is specified through a YAML file. This file will then be read by `DLIO` to setup the benchmark. Below is an example of such a YAML file. 
 
 .. code-block:: yaml
   
@@ -40,6 +40,8 @@ The characteristics of a workload is specified through a YAML file. This file wi
     checkpoint_after_epoch: 5
     epochs_between_checkpoints: 2
     model_size: 499153191
+
+More examples can be found in the `workload`_ folder. One can also create custom configuration file. How to load custom configuration file can be found in :ref:`run`. 
 
 A `DLIO` YAML configuration file contains following sections: 
 
@@ -348,4 +350,4 @@ The YAML files are stored in the `workload`_ folder.
 It then can be loaded by ```dlio_benchmark``` through hydra (https://hydra.cc/). This will override the default settings. One can override the configurations through command line (https://hydra.cc/docs/advanced/override_grammar/basic/).
 
 
-.. _workload: https://github.com/argonne-lcf/dlio_benchmark/tree/main/configs/workload
+.. _workload: https://github.com/argonne-lcf/dlio_benchmark/tree/main/dlio_benchmark/configs/workload

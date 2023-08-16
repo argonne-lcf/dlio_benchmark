@@ -12,7 +12,7 @@ UNET3D: 3D Medical Image Segmentation
 
 .. code-block:: yaml
 
-    # contents of unet3d.yaml
+    # contents of unßet3d.yaml
 
     model: unet3d
 
