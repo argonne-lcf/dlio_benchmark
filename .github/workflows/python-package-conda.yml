@@ -148,4 +148,4 @@ jobs:
       run: |
         touch __init__.py
         source ${VENV}/bin/activate
-        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_subset
+        RDMAV_FORK_SAFE=1 mpirun -np 2 pytest -k test_subset -v

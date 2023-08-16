@@ -108,7 +108,12 @@ def test_gen_data(fmt, framework) -> None:
 @pytest.mark.timeout(60, method="thread")
 def test_subset() -> None:
     clean()
-    with initialize(version_base=None, config_path="../configs"):
+    if comm.rank == 0:
+        logging.info("")
+        logging.info("=" * 80)
+        logging.info(f" DLIO training test for subset")
+        logging.info("=" * 80)
+    with initialize(version_base=None, config_path="../dlio_benchmark/configs/"):
         cfg = compose(config_name='config', overrides=['++workload.workflow.train=False', \
                     '++workload.workflow.generate_data=True'])
         benchmark=run_benchmark(cfg, verify=False)
