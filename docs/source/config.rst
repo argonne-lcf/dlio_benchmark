@@ -214,10 +214,10 @@ reader
      - The standard deviation of the amount of emulated preprocess time (sleep) in second. 
 .. note:: 
 
-TensorFlow and PyTorch behave differently for some parameters. For ``read_threads``, tensorflow does 
-not support ``read_threads=0``, but pytorch does, in which case, the main thread will be doing data loader and no overlap between I/O and compute. 
+  TensorFlow and PyTorch behave differently for some parameters. For ``read_threads``, tensorflow does 
+  not support ``read_threads=0``, but pytorch does, in which case, the main thread will be doing data loader and no overlap between I/O and compute. 
 
-For pytorch, ``prefetch_size`` is set to be 0, it will be changed to 2. In other words, the default value for ``prefetch_size`` in pytorch is 2. 
+  For pytorch, ``prefetch_size`` is set to be 0, it will be changed to 2. In other words, the default value for ``prefetch_size`` in pytorch is 2. 
 
 
 train
@@ -337,14 +337,14 @@ profiling
 
 .. note::
    
-We support following I/O profiling using following profilers: 
+   We support following I/O profiling using following profilers: 
 
-  * ``darshan``: https://www.mcs.anl.gov/research/projects/darshan/. ``LD_PRELOAD`` has to be set for the darshan runtime library (libdarshan.so) to be loaded properly. 
+    * ``darshan``: https://www.mcs.anl.gov/research/projects/darshan/. ``LD_PRELOAD`` has to be set for the darshan runtime library (libdarshan.so) to be loaded properly. 
 
-  * ``iostat``: https://linux.die.net/man/1/iostat. One can specify the command to use for profiling in order to get the profiling for specific disk.   
-  * ``tensorflow`` (tf.profiler): https://www.tensorflow.org/api_docs/python/tf/profiler. This works only for tensorflow framework (and data loader)
+    * ``iostat``: https://linux.die.net/man/1/iostat. One can specify the command to use for profiling in order to get the profiling for specific disk.   
+    * ``tensorflow`` (tf.profiler): https://www.tensorflow.org/api_docs/python/tf/profiler. This works only for tensorflow framework (and data loader)
 
-  * ``pytorch`` (torch.profiler): https://pytorch.org/docs/stable/profiler.html. This works only for pytorch framework (and data loader).
+    * ``pytorch`` (torch.profiler): https://pytorch.org/docs/stable/profiler.html. This works only for pytorch framework (and data loader).
 
 The YAML files are stored in the `workload`_ folder. 
 It then can be loaded by ```dlio_benchmark``` through hydra (https://hydra.cc/). This will override the default settings. One can override the configurations through command line (https://hydra.cc/docs/advanced/override_grammar/basic/).

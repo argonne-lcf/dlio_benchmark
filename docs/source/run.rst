@@ -10,13 +10,11 @@ A DLIO run is split in 3 phases:
 
 One can specify the workload through ```workload=WORKLOAD``` option in the command line. This will read in corresponding configuration file that provided in the `workload`_ folder. All the configuration will be installed in ``INSTALL_PREFIX_DIR/dlio_benchmark/configs/workload/`` The configuration can be overridden through command line following the hyra syntax (e.g.++workload.framework=tensorflow). 
 
-.. note :: 
+.. note::
 
-**Custom configuration file**
-If one would like to use custom configuration file, one can save the file in ```CUSTOM_CONFIG_FOLDER/workload/custom_workload.yaml``, and then pass the command line ```--config-dir CUSTOM_CONFIG_FOLDER workload=custom_workload```. It will then load the configuration from custom_workload.yaml. 
+   **Custom configuration file**: If one would like to use custom configuration file, one can save the file in ```CUSTOM_CONFIG_FOLDER/workload/custom_workload.yaml``, and then pass the command line ```--config-dir CUSTOM_CONFIG_FOLDER workload=custom_workload```. It will then load the configuration from custom_workload.yaml. 
 
-**Output folder**
-By default the logs and results will be saved in the```hydra_log/unet3d/$DATE-$TIME``` folder. One can change the output folder to a different one by setting ```--hydra.run.dir=OUTPUT_FOLDER````
+   **Output folder**: By default the logs and results will be saved in the```hydra_log/unet3d/$DATE-$TIME``` folder. One can change the output folder to a different one by setting ```--hydra.run.dir=OUTPUT_FOLDER```
 
 
 
