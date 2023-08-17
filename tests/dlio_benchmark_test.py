@@ -29,6 +29,8 @@ import subprocess
 import logging
 import os
 from dlio_benchmark.utils.config import ConfigArguments
+import dlio_benchmark
+config_path=os.path.dirname(dlio_benchmark.__file__)+"/configs/"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -82,7 +84,7 @@ def test_gen_data(fmt, framework) -> None:
         logging.info("=" * 80)
         logging.info(f" DLIO test for generating {fmt} dataset")
         logging.info("=" * 80)
-    with initialize(version_base=None, config_path="configs"):
+    with initialize(version_base=None, config_path=config_path):
         cfg = compose(config_name='config', overrides=[f'++workload.framework={framework}',
                                                        f'++workload.reader.data_loader={framework}',
                                                        '++workload.workflow.train=False',
@@ -135,7 +137,7 @@ def test_storage_root_gen_data(fmt, framework) -> None:
         logging.info("=" * 80)
         logging.info(f" DLIO test for generating {fmt} dataset")
         logging.info("=" * 80)
-    with initialize(version_base=None, config_path="configs"):
+    with initialize(version_base=None, config_path=config_path):
         cfg = compose(config_name='config', overrides=[f'++workload.framework={framework}',
                                                        f'++workload.reader.data_loader={framework}',
                                                        '++workload.workflow.train=False',
@@ -173,7 +175,7 @@ def test_iostat_profiling() -> None:
         logging.info("=" * 80)
         logging.info(f" DLIO test for iostat profiling")
         logging.info("=" * 80)
-    with initialize(version_base=None, config_path="configs"):
+    with initialize(version_base=None, config_path=config_path):
         cfg = compose(config_name='config', overrides=['++workload.workflow.train=False',
                                                        '++workload.workflow.generate_data=True'])
 
@@ -211,7 +213,7 @@ def test_checkpoint_epoch() -> None:
         logging.info("=" * 80)
         logging.info(f" DLIO test for checkpointing at the end of epochs")
         logging.info("=" * 80)
-    with initialize(version_base=None, config_path="configs"):
+    with initialize(version_base=None, config_path=config_path):
         cfg = compose(config_name='config',
                       overrides=['++workload.workflow.train=True', \
                                  '++workload.workflow.generate_data=True', \
@@ -238,7 +240,7 @@ def test_checkpoint_step() -> None:
         logging.info("=" * 80)
         logging.info(f" DLIO test for checkpointing at the end of steps")
         logging.info("=" * 80)
-    with initialize(version_base=None, config_path="configs"):
+    with initialize(version_base=None, config_path=config_path):
         cfg = compose(config_name='config',
                       overrides=['++workload.workflow.train=True', \
                                  '++workload.workflow.generate_data=True', \
@@ -269,7 +271,7 @@ def test_eval() -> None:
         logging.info("=" * 80)
         logging.info(f" DLIO test for evaluation")
         logging.info("=" * 80)
-    with initialize(version_base=None, config_path="configs"):
+    with initialize(version_base=None, config_path=config_path):
         cfg = compose(config_name='config',
                       overrides=['++workload.workflow.train=True', \
                                  '++workload.workflow.generate_data=True', \
@@ -292,7 +294,7 @@ def test_multi_threads(framework, nt) -> None:
         logging.info(f" DLIO test for generating multithreading read_threads={nt} {framework} framework")
         logging.info("=" * 80)
         # with subTest(f"Testing full benchmark for format: {framework}-NT{nt}", nt=nt, framework=framework):
-    with initialize(version_base=None, config_path="configs"):
+    with initialize(version_base=None, config_path=config_path):
         cfg = compose(config_name='config', overrides=['++workload.workflow.train=True',
                                                        '++workload.workflow.generate_data=True',
                                                        f"++workload.framework={framework}",
@@ -327,7 +329,7 @@ def test_train(fmt, framework, dataloader) -> None:
         logging.info("=" * 80)
         logging.info(f" DLIO training test: Generating data for {fmt} format")
         logging.info("=" * 80)
-    with initialize(version_base=None, config_path="configs"):
+    with initialize(version_base=None, config_path=config_path):
         cfg = compose(config_name='config', overrides=['++workload.workflow.train=True',
                                                        '++workload.workflow.generate_data=True',
                                                        f"++workload.framework={framework}", \
@@ -359,7 +361,7 @@ def test_custom_storage_root_train(fmt, framework) -> None:
         logging.info("=" * 80)
         logging.info(f" DLIO training test for {fmt} format in {framework} framework")
         logging.info("=" * 80)
-    with initialize(version_base=None, config_path="configs"):
+    with initialize(version_base=None, config_path=config_path):
         cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', \
                                                        '++workload.workflow.generate_data=True', \
                                                        f"++workload.framework={framework}", \
