@@ -12,7 +12,7 @@ UNET3D: 3D Medical Image Segmentation
 
 .. code-block:: yaml
 
-    # contents of unet3d.yaml
+    # contents of unßet3d.yaml
 
     model: unet3d
 
@@ -51,7 +51,7 @@ UNET3D: 3D Medical Image Segmentation
 
 First, we generate the dataset with ```++workload.workflow.generate=False```
 
-.. code-block :: bash
+.. code-block:: bash
     
     mpirun -np 8 dlio_benchmark workload=unet3d ++workload.workflow.generate_data=True ++workload.workflow.train=False
 

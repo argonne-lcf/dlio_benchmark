@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'DLIO'
-copyright = '2021 UChicago Argonne, LLC'
+copyright = '2022 UChicago Argonne, LLC'
 author = 'H. Devarajan, H. Zheng, A. Kougkas, X.-H. Sun and V. Vishwanath'
 
 

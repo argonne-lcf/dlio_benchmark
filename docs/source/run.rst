@@ -1,3 +1,5 @@
+.. _run: 
+
 Running DLIO
 ======================
 A DLIO run is split in 3 phases:
@@ -6,10 +8,17 @@ A DLIO run is split in 3 phases:
 2. Run the benchmark using the previously generated data
 3. Post-process the results to generate a report
 
-One can specify the workload through ```workload=WORKLOAD``` option in the command line. This will read in corresponding configuration files that provided in the `workload`_ folder.  The configuration can be overridden through command line following the hyra syntax (e.g.++workload.framework=tensorflow).
+One can specify the workload through ```workload=WORKLOAD``` option in the command line. This will read in corresponding configuration file that provided in the `workload`_ folder. All the configuration will be installed in ``INSTALL_PREFIX_DIR/dlio_benchmark/configs/workload/`` The configuration can be overridden through command line following the hyra syntax (e.g.++workload.framework=tensorflow). 
+
+.. note::
+
+   **Custom configuration file**: If one would like to use custom configuration file, one can save the file in ```CUSTOM_CONFIG_FOLDER/workload/custom_workload.yaml``, and then pass the command line ```--config-dir CUSTOM_CONFIG_FOLDER workload=custom_workload```. It will then load the configuration from custom_workload.yaml. 
+
+   **Output folder**: By default the logs and results will be saved in the```hydra_log/unet3d/$DATE-$TIME``` folder. One can change the output folder to a different one by setting ```--hydra.run.dir=OUTPUT_FOLDER```
 
 
-1 and 2 can be done either together or in separate. This is controlled by ```workflow.generate_data``` and ```workload.train``` in the configure file. If ```workflow.generate_data```, ```workflow.train```are all set to be ``True``, it will generate the data and then run the benchark. However, we always suggest to run it seperately, to avoid caching effect, and to avoid I/O profiling in the data generation part. 
+
+1 and 2 can be done either together or in separate. This is controlled by ```workflow.generate_data``` and ```workflow.train``` in the configure file. If ```workflow.generate_data```, ```workflow.train```are all set to be ``True``, it will generate the data and then run the benchark. However, we always suggest to run it seperately, to avoid caching effect, and to avoid I/O profiling in the data generation part. 
 
 '''''''''''''''''''''''
 Generate data

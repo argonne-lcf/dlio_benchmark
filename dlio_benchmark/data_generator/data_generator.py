@@ -53,7 +53,7 @@ class DataGenerator(ABC):
                                                                         self._args.framework)
     def get_dimension(self):
         if (self._dimension_stdev>0):
-            dim1, dim2 = [max(int(d), 0) for d in np.random.normal(self._dimension, self._dimension_stdev, 2)]
+            dim1, dim2 = [max(int(d), 1) for d in np.random.normal(self._dimension, self._dimension_stdev, 2)]
         else:
             dim1 = dim2 = self._dimension
         return dim1, dim2 

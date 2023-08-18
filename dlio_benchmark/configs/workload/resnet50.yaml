@@ -1,6 +1,6 @@
 model: resnet50
 
-framework: tensorflow
+framework: pytorch
 
 workflow:
  generate_data: False
@@ -8,15 +8,15 @@ workflow:
 
 dataset:
  num_files_train: 1024
- num_samples_per_file: 1024
+ num_samples_per_file: 1
  record_length: 150528
  data_folder: data/resnet50
- format: tfrecord
+ format: jpeg
 
 train: 
  computation_time: 0.1
  
 reader:
- data_loader: tensorflow
+ data_loader: pytorch
  read_threads: 8
  computation_threads: 8
