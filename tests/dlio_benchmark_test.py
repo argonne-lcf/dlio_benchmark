@@ -114,7 +114,7 @@ def test_subset() -> None:
         logging.info("=" * 80)
         logging.info(f" DLIO training test for subset")
         logging.info("=" * 80)
-    with initialize_config_dir(version_base=None, config_dir="configs/"):
+    with initialize_config_dir(version_base=None, config_dir=config_dir):
         cfg = compose(config_name='config', overrides=['++workload.workflow.train=False', \
                     '++workload.workflow.generate_data=True'])
         benchmark=run_benchmark(cfg, verify=False)
