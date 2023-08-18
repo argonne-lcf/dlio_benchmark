@@ -144,7 +144,8 @@ jobs:
         source ${VENV}/bin/activate
         mpirun -np 2 dlio_benchmark workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
         mpirun -np 2 dlio_benchmark workload=unet3d ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
-    - name: test-subset
+    - name: test_subset
       run: |
         source ${VENV}/bin/activate
-        mpirun -np 2 pytest -k test_subset -v
+        mpirun -np 2 dlio_benchmark ++workload.workflow.generate_data=True ++workload.workflow.train=False
+        mpirun -np 2 dlio_benchmark ++workload.workflow.generate_data=False ++workload.workflow.train=True ++workload.dataset.num_files_train=8
