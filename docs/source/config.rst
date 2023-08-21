@@ -2,7 +2,7 @@
 
 DLIO Configuration
 ==============================================
-The characteristics of a workload is specified through a YAML file. This file will then be read by `DLIO` to setup the benchmark. Below is an example of such a YAML file. More examples can be found in the `workload`_ folder. 
+The characteristics of a workload is specified through a YAML file. This file will then be read by `DLIO` to setup the benchmark. Below is an example of such a YAML file. 
 
 .. code-block:: yaml
   
@@ -20,8 +20,8 @@ The characteristics of a workload is specified through a YAML file. This file wi
     format: dlio_npz
     num_files_train: 168
     num_samples_per_file: 1
-    record_length: 234560851
-    record_length_stdev: 109346892
+    record_length: 146600628
+    record_length_stdev: 68341808
     record_length_resize: 2097152
     
   reader: 
@@ -32,7 +32,7 @@ The characteristics of a workload is specified through a YAML file. This file wi
     sample_shuffle: seed
 
   train:
-    epochs: 10
+    epochs: 5
     computation_time: 1.3604
 
   checkpoint:
@@ -40,6 +40,8 @@ The characteristics of a workload is specified through a YAML file. This file wi
     checkpoint_after_epoch: 5
     epochs_between_checkpoints: 2
     model_size: 499153191
+
+More examples can be found in the `workload`_ folder. One can also create custom configuration file. How to load custom configuration file can be found in :ref:`run`. 
 
 A `DLIO` YAML configuration file contains following sections: 
 
@@ -212,10 +214,10 @@ reader
      - The standard deviation of the amount of emulated preprocess time (sleep) in second. 
 .. note:: 
 
-TensorFlow and PyTorch behave differently for some parameters. For ``read_threads``, tensorflow does 
-not support ``read_threads=0``, but pytorch does, in which case, the main thread will be doing data loader and no overlap between I/O and compute. 
+  TensorFlow and PyTorch behave differently for some parameters. For ``read_threads``, tensorflow does 
+  not support ``read_threads=0``, but pytorch does, in which case, the main thread will be doing data loader and no overlap between I/O and compute. 
 
-For pytorch, ``prefetch_size`` is set to be 0, it will be changed to 2. In other words, the default value for ``prefetch_size`` in pytorch is 2. 
+  For pytorch, ``prefetch_size`` is set to be 0, it will be changed to 2. In other words, the default value for ``prefetch_size`` in pytorch is 2. 
 
 
 train
@@ -335,17 +337,17 @@ profiling
 
 .. note::
    
-We support following I/O profiling using following profilers: 
+   We support following I/O profiling using following profilers: 
 
-  * ``darshan``: https://www.mcs.anl.gov/research/projects/darshan/. ``LD_PRELOAD`` has to be set for the darshan runtime library (libdarshan.so) to be loaded properly. 
+    * ``darshan``: https://www.mcs.anl.gov/research/projects/darshan/. ``LD_PRELOAD`` has to be set for the darshan runtime library (libdarshan.so) to be loaded properly. 
 
-  * ``iostat``: https://linux.die.net/man/1/iostat. One can specify the command to use for profiling in order to get the profiling for specific disk.   
-  * ``tensorflow`` (tf.profiler): https://www.tensorflow.org/api_docs/python/tf/profiler. This works only for tensorflow framework (and data loader)
+    * ``iostat``: https://linux.die.net/man/1/iostat. One can specify the command to use for profiling in order to get the profiling for specific disk.   
+    * ``tensorflow`` (tf.profiler): https://www.tensorflow.org/api_docs/python/tf/profiler. This works only for tensorflow framework (and data loader)
 
-  * ``pytorch`` (torch.profiler): https://pytorch.org/docs/stable/profiler.html. This works only for pytorch framework (and data loader).
+    * ``pytorch`` (torch.profiler): https://pytorch.org/docs/stable/profiler.html. This works only for pytorch framework (and data loader).
 
 The YAML files are stored in the `workload`_ folder. 
 It then can be loaded by ```dlio_benchmark``` through hydra (https://hydra.cc/). This will override the default settings. One can override the configurations through command line (https://hydra.cc/docs/advanced/override_grammar/basic/).
 
 
-.. _workload: https://github.com/argonne-lcf/dlio_benchmark/tree/main/configs/workload
+.. _workload: https://github.com/argonne-lcf/dlio_benchmark/tree/main/dlio_benchmark/configs/workload
