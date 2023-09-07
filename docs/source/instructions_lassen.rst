@@ -8,14 +8,14 @@ On Lassen on the login node:
 
 * **Clone the github repository**:
 
-.. code block:: bash
+.. code-block:: bash
 
 	git clone https://github.com/argonne-lcf/dlio_benchmark
 	cd dlio_benchmark/
 
 * **Use conda**:
 
-.. code block:: bash
+.. code-block:: bash
 
 	# Setup the required channels:
 	conda config --prepend channels https://public.dhe.ibm.com/ibmdl/export/pub/software/server/ibm-ai/conda/
@@ -32,14 +32,14 @@ On Lassen on the login node:
 Do not install packages using the $conda install command but rather install all required versions of packages.
 To check versions of mpicc and gcc:
 
-.. code block:: bash
+.. code-block:: bash
 
 	gcc --version
 	mpicc --version
 
 To specify a new link for gcc:
 
-.. code block:: bash
+.. code-block:: bash
 
 	which mpicc
 	export CC='which mpicc'
@@ -69,13 +69,13 @@ You can use the already existing workloads (.yaml files) located at "/path/to/yo
 
 * To allocate a compute node for 1 hr in the queue pdebug run:
 
-.. code block:: bash
+.. code-block:: bash
 
 	lalloc 1 -W 60 -q pdebug
 
 **Example**: in order to generate data having 1 compute node and 4 processes per node and using the configurations of the resnet50 workload you would run the following command:
 
-.. code block:: bash
+.. code-block:: bash
 
 	jsrun --bind packed:4 --smpiargs="-gpu" --nrs 1 --rs_per_host 1 --tasks_per_rs 4 --launch_distribution packed --cpu_per_rs ALL_CPUS --gpu_per_rs ALL_GPUS dlio_benchmark workload=resnet50 ++workload.workflow.generate_data=True ++workload.workflow.train=False
 
@@ -93,13 +93,13 @@ Running the Benchmark
 
 **Example**: in order to run the benchmark with 1 compute node and 4 processes per node and using the configurations of the resnet50 workload you would run the following command:
 
-.. code block:: bash
+.. code-block:: bash
 
 	jsrun --bind packed:4 --smpiargs="-gpu" --nrs 1 --rs_per_host 1 --tasks_per_rs 4 --launch_distribution packed --cpu_per_rs ALL_CPUS --gpu_per_rs ALL_GPUS dlio_benchmark workload=resnet50 ++workload.workflow.generate_data=False ++workload.workflow.train=True
 
 If you want to use a profiler: Same example with using iostat profiler, isting the io devices you would like to trace:
 
-.. code block:: bash
+.. code-block:: bash
 
 	jsrun --bind packed:4 --smpiargs="-gpu" --nrs 1 --rs_per_host 1 --tasks_per_rs 4 --launch_distribution packed --cpu_per_rs ALL_CPUS --gpu_per_rs ALL_GPUS dlio_benchmark workload=resnet50 ++workload.workflow.generate_data=False ++workload.workflow.profiling=True ++workload.profiling.profiler=iostat ++workload.profiling.iostat_devices=[sda,sdb]
 
@@ -109,7 +109,7 @@ All the outputs will be stored in hydra_log/WORKLOAD/$DATE-$TIME folder, where W
 To post process the data
 '''''''''''''''''''''''
 
-.. code block:: bash
+.. code-block:: bash
 
 	dlio_postprocessor --output-folder hydra_log/WORKLOAD/$DATE-$TIME
 
