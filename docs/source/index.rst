@@ -59,6 +59,12 @@ GitHub repo: https://github.com/argonne-lcf/dlio_benchmark.
 
    copyright
    license
+
+.. toctree::
+   :maxdepth: 2
+   :caption: How to install and run DLIO benchmark on Lassen
+
+   instructions_Lassen.rst
    
 Indices and tables
 ==================
