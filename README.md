@@ -52,6 +52,9 @@ conda activate ./dlio_env_ppc
 python -m pip install .
 ```
 
+## Lassen, LLNL
+For specific instructions on how to install and run the benchmark on Lassen please refer to: /docs/source/instructions_Lassen.md
+
 ## Running the benchmark
 
 A DLIO run is split in 3 phases: 
