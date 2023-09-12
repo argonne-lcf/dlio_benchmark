@@ -1,9 +1,3 @@
-Tested systems
-================
-So far we have tested DLIO on the following systems: 
-  * Personal workstation, laptops including both MacOSX and Linux OS system. 
-  * Supercomputers (Linux), such as Theta @ ALCF, Summit @ OLCF
-
 Limitations and future works
 ===================================
 
