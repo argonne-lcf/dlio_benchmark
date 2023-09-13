@@ -57,14 +57,15 @@ Generate synthetic data that DLIO will use
 
 
 Arguments to use:
-* 1) --bind packed:4 (to bind tasks with 4 GPUs)
-* 2) --smpiargs="-gpu" (enables gpu support)
-* 3) --nrs x (allocation of x node, it can be set to to 1, 2, 4 etc On Lassen we have 756 compute nodes)
-* 4) --rs_per_host 1 (resources per node)
-* 5) --tasks_per_rs y (y processes per resourse set/per node, it can be set to to 1, 2, 4 as on Lassen we have 4 GPUs per node)
-* 6) --launch_distribution packed (specify how tasks are started on the available resource sets within the allocation. Packed assigns task to the first resource set until each CPU in the resource set is assigned to a task, and then starts assigning tasks to the second resource set, third resource set, fourth resource set (and so on))
-* 7) --cpu_per_rs ALL_CPUS (each resource set contains the number of CPUs that are available on each compute node)
-* 8) --gpu_per_rs ALL_GPUS (each resource set contains the number of GPUs that are available on each compute node)
+
+1. --bind packed:4 (to bind tasks with 4 GPUs)
+2. --smpiargs="-gpu" (enables gpu support)
+3. --nrs x (allocation of x node, it can be set to to 1, 2, 4 etc On Lassen we have 756 compute nodes)
+4. --rs_per_host 1 (resources per node)
+5. --tasks_per_rs y (y processes per resourse set/per node, it can be set to to 1, 2, 4 as on Lassen we have 4 GPUs per node)
+6. --launch_distribution packed (specify how tasks are started on the available resource sets within the allocation. Packed assigns task to the first resource set until each CPU in the resource set is assigned to a task, and then starts assigning tasks to the second resource set, third resource set, fourth resource set (and so on))
+7. --cpu_per_rs ALL_CPUS (each resource set contains the number of CPUs that are available on each compute node)
+8. --gpu_per_rs ALL_GPUS (each resource set contains the number of GPUs that are available on each compute node)
 
 For more information on these arguments please turn to: https://www.ibm.com/docs/en/spectrum-lsf/10.1.0?topic=SSWRJV_10.1.0/jsm/jsrun.htm
 
