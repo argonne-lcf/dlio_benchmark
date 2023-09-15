@@ -77,23 +77,29 @@ class TorchDataLoader(BaseDataLoader):
                 logging.debug(
                     f"{utcnow()} Prefetch size is 0; a default prefetch factor of 2 will be set to Torch DataLoader.")
         logging.debug(f"{utcnow()} Setup dataloader with {self._args.read_threads} workers {torch.__version__}")
+        if self._args.read_threads==0:
+            prefetch_factor=None
         if torch.__version__ == '1.3.1':
             self._dataset = DataLoader(dataset,
-                                   batch_size=batch_size,
-                                   sampler=sampler,
-                                   num_workers=self._args.read_threads,
-                                   pin_memory=True,
-                                   drop_last=True,
-                                   worker_init_fn=dataset.worker_init)
+                                       batch_size=batch_size,
+                                       sampler=sampler,
+                                       num_workers=self._args.read_threads,
+                                       pin_memory=True,
+                                       drop_last=True,
+                                       multiprocessing_context = self._args.multiprocessing_context,
+                                       persistent_workers = True,
+                                       worker_init_fn=dataset.worker_init)
         else: 
             self._dataset = DataLoader(dataset,
-                                   batch_size=batch_size,
-                                   sampler=sampler,
-                                   num_workers=self._args.read_threads,
-                                   pin_memory=True,
-                                   drop_last=True,
-                                   worker_init_fn=dataset.worker_init,
-                                   prefetch_factor=prefetch_factor if prefetch_factor > 0 else 2)  # 2 is the default value
+                                       batch_size=batch_size,
+                                       sampler=sampler,
+                                       num_workers=self._args.read_threads,
+                                       pin_memory=True,
+                                       drop_last=True,
+                                       multiprocessing_context = self._args.multiprocessing_context,
+                                       persistent_workers = True, 
+                                       worker_init_fn=dataset.worker_init,
+                                       prefetch_factor=prefetch_factor)  # 2 is the default value
         logging.debug(f"{utcnow()} Rank {self._args.my_rank} will read {len(self._dataset) * batch_size} files")
 
         # self._dataset.sampler.set_epoch(epoch_number)
