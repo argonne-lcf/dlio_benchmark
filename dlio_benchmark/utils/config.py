@@ -105,6 +105,7 @@ class ConfigArguments:
     data_loader_classname = None
     data_loader_sampler: DataLoaderSampler = None
     reader_classname: str = None
+    multiprocessing_context: str = "fork"
 
     # derived fields
     required_samples: int = 1
@@ -123,6 +124,7 @@ class ConfigArguments:
     global_index_map = None
     data_loader_class = None
     reader_class = None
+    
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -351,6 +353,8 @@ def LoadConfig(args, config):
     if reader is not None:
         if 'reader_classname' in reader:
             args.reader_classname = reader['reader_classname']
+        if 'multiprocessing_context' in reader:
+            args.multiprocessing_context = reader['multiprocessing_context']
         if 'data_loader' in reader:
             args.data_loader = DataLoaderType(reader['data_loader'])
         if 'data_loader_classname' in reader:
