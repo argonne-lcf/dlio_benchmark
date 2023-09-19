@@ -1,11 +1,11 @@
 .. _instructions_lassen
 
 Instructions for DLIO Benchmark on Lassen, LLNL.
-=============
+================================================
 
-'''''''''''''''''''''''
+''''''''''''
 Installation
-'''''''''''''''''''''''
+''''''''''''
 On Lassen on the login node: 
 
 * **Clone the github repository**:
@@ -49,9 +49,9 @@ To specify a new link for gcc:
 	export CC='which mpicc'
 	export CXX=mpic++
 
-'''''''''''''''''''''''
+''''''''''''''''''''''''''''''''''''''''''
 Generate synthetic data that DLIO will use
-'''''''''''''''''''''''
+''''''''''''''''''''''''''''''''''''''''''
 
 **On Lassen generate data with the use of JSRUN scheduler**:
 
@@ -100,9 +100,9 @@ Your data will be generated in the following folder if you are using the existin
 
 If you run a custom workload file provide the path to that by adding the following argument in your jsrun command: ```--config-dir /path/to/your/custom/workload/```.
 
-'''''''''''''''''''''''
+'''''''''''''''''''''
 Running the Benchmark
-'''''''''''''''''''''''
+'''''''''''''''''''''
 
 * To avoid cached results you can allocate a different compute node and run the benchmark from there.
 
@@ -120,9 +120,9 @@ If you want to use a profiler: Same example with using iostat profiler, isting t
 
 All the outputs will be stored in ```hydra_log/WORKLOAD/$DATE-$TIME``` folder, where WORKLOAD could be `cosmoflow` etc or in our examples resnet50 if you are using the existing workloads. If you are using a custom workload this will be in the absolute path that you specified in your .yaml file.
 
-'''''''''''''''''''''''
+''''''''''''''''''''''''
 To post process the data
-'''''''''''''''''''''''
+''''''''''''''''''''''''
 
 .. code-block:: bash
 
