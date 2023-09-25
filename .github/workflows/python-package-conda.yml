@@ -22,8 +22,9 @@ jobs:
       CC: gcc-${{ matrix.gcc }}
       CXX: g++-${{ matrix.gcc }}
       RDMAV_FORK_SAFE: "1"
-      DLIO_PROFILER_LOG_LEVEL: "INFO"
       PYTHON_VER: ${{ matrix.python }}
+      DLIO_PROFILER_LOG_LEVEL: "INFO"
+      GOTCHA_DEBUG: 3
     steps:
     - name: Push checkout
       if: github.event_name == 'push'
