@@ -33,10 +33,6 @@ jobs:
       uses: actions/checkout@v3
       with:
         ref: ${{ github.event.pull_request.head.sha }}
-    - name: Set up Python ${{ env.PYTHON_VER }}
-      uses: actions/setup-python@v3
-      with:
-        python-version: ${{ env.PYTHON_VER }}
     - name: Cache install modules
       id: cache-modules
       uses: actions/cache@v2
@@ -46,7 +42,7 @@ jobs:
     - name: Install System Tools
       run: |
         sudo apt update
-        sudo apt-get install $CC $CXX libc6
+        sudo apt-get install $CC $CXX libc6 python${PYTHON_VER} python3-pip
         sudo apt-get install mpich
         if [[ $DLIO_PROFILER == 'DLIO_PROFILER' ]]; then
           sudo apt-get install libhwloc-dev
