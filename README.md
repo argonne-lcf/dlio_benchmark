@@ -53,7 +53,7 @@ python -m pip install .
 ```
 
 ## Lassen, LLNL
-For specific instructions on how to install and run the benchmark on Lassen please refer to: ![/docs/source/instructions_Lassen.rst](/docs/source/instructions_Lassen.rst)
+For specific instructions on how to install and run the benchmark on Lassen please refer to: [Install Lassen](https://dlio-benchmark.readthedocs.io/en/latest/instruction_lassen.html)
 
 ## Running the benchmark
 
