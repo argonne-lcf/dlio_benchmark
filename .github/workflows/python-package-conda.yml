@@ -20,6 +20,7 @@ jobs:
       CC: gcc-${{ matrix.gcc }}
       CXX: g++-${{ matrix.gcc }}
       RDMAV_FORK_SAFE: "1"
+      DLIO_PROFILER_LOG_LEVEL: "INFO"
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python 3.10
@@ -57,7 +58,7 @@ jobs:
     - name: test_gen_data
       run: |
         source ${VENV}/bin/activate
-        pytest -k test_gen_data[png-tensorflow] -v
+        mpirun -np 2 pytest -k test_gen_data[png-tensorflow] -v
         mpirun -np 2 pytest -k test_gen_data[npz-tensorflow] -v
         mpirun -np 2 pytest -k test_gen_data[jpeg-tensorflow] -v
         mpirun -np 2 pytest -k test_gen_data[tfrecord-tensorflow] -v
