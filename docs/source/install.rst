@@ -16,6 +16,11 @@ One can also build and install the package as follows
     python setup.py build
     python setup.py install
 
+One can also install the package directly from gtihub
+.. code-block:: bash
+
+    pip install git+https://github.com/argonne-lcf/dlio_benchmark.git@main
+
     
 One can build docker image run DLIO inside a docker container.  
 
