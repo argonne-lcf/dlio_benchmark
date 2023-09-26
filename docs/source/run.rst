@@ -40,6 +40,10 @@ Running benchmark
 
 In this case, we set ```workflow.generate_data=False```, so it will perform training and evaluation with the data generated previously. 
 
+.. note::
+    DLIO Benchmark will show a warning when you have core affinity set to less than number of workers spawned by each GPU process. 
+    Core affinity is set using MPI execution wrappers such as `mpirun`, `jsrun`, `lrun`, or `srun`.
+
 '''''''''''''''''
 Post processing
 '''''''''''''''''
