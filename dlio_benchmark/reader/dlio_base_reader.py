@@ -33,7 +33,7 @@ from dlio_benchmark.common.constants import MODULE_DATA_READER
 
 dlp = Profile(MODULE_DATA_READER)
 
-class FormatReader(ABC):
+class DLIOBaseReader(ABC):
     read_images = None
 
     def __init__(self, dataset_type, thread_index):
@@ -44,8 +44,8 @@ class FormatReader(ABC):
         self.dataset_type = dataset_type
         self.open_file_map = {}
 
-        if FormatReader.read_images is None:
-            FormatReader.read_images = 0
+        if DLIOBaseReader.read_images is None:
+            DLIOBaseReader.read_images = 0
         self.step = 1
         self.image_idx = 0
         self.batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
@@ -106,7 +106,7 @@ class FormatReader(ABC):
         self.image_idx = global_sample_idx
         filename, sample_index = self._args.global_index_map[global_sample_idx]
         logging.debug(f"{utcnow()} read_index {filename}, {sample_index}")
-        FormatReader.read_images += 1
+        DLIOBaseReader.read_images += 1
         if self._args.read_type is ReadType.ON_DEMAND or filename not in self.open_file_map:
             self.open_file_map[filename] = self.open(filename)
         image = self.get_sample(filename, sample_index)

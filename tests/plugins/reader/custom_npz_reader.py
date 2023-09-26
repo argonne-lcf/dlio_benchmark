@@ -17,13 +17,13 @@
 import numpy as np
 
 from dlio_benchmark.common.constants import MODULE_DATA_READER
-from dlio_benchmark.reader.reader_handler import FormatReader
+from dlio_benchmark.reader.dlio_base_reader import DLIOBaseReader
 from dlio_benchmark.utils.utility import Profile
 
 dlp = Profile(MODULE_DATA_READER)
 
 
-class CustomNPZReader(FormatReader):
+class CustomNPZReader(DLIOBaseReader):
     """
     Reader for NPZ files
     """

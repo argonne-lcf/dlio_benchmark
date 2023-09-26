@@ -89,41 +89,66 @@ class FormatType(Enum):
     """
     Format Type supported by the benchmark.
     """
-    TFRECORD = 'tfrecord'
-    HDF5 = 'hdf5'
-    CSV = 'csv'
-    NPZ = 'npz'
-    HDF5_OPT = 'hdf5_opt'
-    JPEG = 'jpeg'
-    PNG = 'png'
+    DLIO_TFRECORD = 'dlio_tfrecord'
+    DLIO_HDF5 = 'dlio_hdf5'
+    DLIO_CSV = 'dlio_csv'
+    DLIO_NPZ = 'dlio_npz'
+    DLIO_HDF5_OPT = 'dlio_hdf5_opt'
+    DLIO_JPEG = 'dlio_jpeg'
+    DLIO_PNG = 'dlio_png'
+    TF_TFRECORD = 'tf_tfrecord'
+    DALI_TFRECORD = 'dali_tfrecord'
+    DALI_NPZ = 'dali_npz'
 
     def __str__(self):
         return self.value
 
+    @staticmethod
+    def getextension(value):
+        if value in [FormatType.DLIO_TFRECORD.value,FormatType.DALI_TFRECORD.value] :
+            return "tfrecord"
+        elif FormatType.DLIO_HDF5.value == value:
+            return "hdf5"
+        elif FormatType.DLIO_CSV.value == value:
+            return "csv"
+        elif value in [FormatType.DLIO_NPZ.value] :
+            return "npz"
+        elif value == FormatType.DALI_NPZ.value:
+            return "npy"
+        elif FormatType.DLIO_HDF5_OPT.value == value:
+            return "hdf5"
+        elif FormatType.DLIO_JPEG.value == value:
+            return "jpeg"
+        elif FormatType.DLIO_PNG.value == value:
+            return "png"
+
     @ staticmethod
     def get_enum(value):
-        if FormatType.TFRECORD.value == value:
-            return FormatType.TFRECORD
-        elif FormatType.HDF5.value == value:
-            return FormatType.HDF5
-        elif FormatType.CSV.value == value:
-            return FormatType.CSV
-        elif FormatType.NPZ.value == value:
-            return FormatType.NPZ
-        elif FormatType.HDF5_OPT.value == value:
-            return FormatType.HDF5_OPT
-        elif FormatType.JPEG.value == value:
-            return FormatType.JPEG
-        elif FormatType.PNG.value == value:
-            return FormatType.PNG
+        if FormatType.DLIO_TFRECORD.value == value:
+            return FormatType.DLIO_TFRECORD
+        elif FormatType.DLIO_HDF5.value == value:
+            return FormatType.DLIO_HDF5
+        elif FormatType.DLIO_CSV.value == value:
+            return FormatType.DLIO_CSV
+        elif FormatType.DLIO_NPZ.value == value:
+            return FormatType.DLIO_NPZ
+        elif FormatType.DLIO_HDF5_OPT.value == value:
+            return FormatType.DLIO_HDF5_OPT
+        elif FormatType.DLIO_JPEG.value == value:
+            return FormatType.DLIO_JPEG
+        elif FormatType.DLIO_PNG.value == value:
+            return FormatType.DLIO_PNG
 
 class DataLoaderType(Enum):
     """
     Framework DataLoader Type
     """
-    TENSORFLOW='tensorflow'
-    PYTORCH='pytorch'
-    DALI='dali'
+    DLIO_TENSORFLOW='dlio_tensorflow'
+    DLIO_PYTORCH='dlio_pytorch'
+    DLIO_DALI='dlio_dali'
+    NATIVE_TENSORFLOW = 'native_tensorflow'
+    NATIVE_PYTORCH = 'native_pytorch'
+    NATIVE_DALI = 'native_dali'
     CUSTOM='custom'
     NONE='none'
     

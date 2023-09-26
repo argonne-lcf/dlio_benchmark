@@ -26,22 +26,25 @@ class GeneratorFactory(object):
 
     @staticmethod
     def get_generator(type):
-        if type == FormatType.TFRECORD:
+        if type in [FormatType.DLIO_TFRECORD, FormatType.DALI_TFRECORD, FormatType.TF_TFRECORD]:
             from dlio_benchmark.data_generator.tf_generator import TFRecordGenerator
             return TFRecordGenerator()
-        elif type == FormatType.HDF5:
+        elif type == FormatType.DLIO_HDF5:
             from dlio_benchmark.data_generator.hdf5_generator import HDF5Generator
             return HDF5Generator()
-        elif type == FormatType.CSV:
+        elif type == FormatType.DLIO_CSV:
             from dlio_benchmark.data_generator.csv_generator import CSVGenerator
             return CSVGenerator()
-        elif type == FormatType.NPZ:
+        elif type == FormatType.DLIO_NPZ:
             from dlio_benchmark.data_generator.npz_generator import NPZGenerator
             return NPZGenerator()
-        elif type == FormatType.JPEG:
+        elif type == FormatType.DALI_NPZ:
+            from dlio_benchmark.data_generator.npy_generator import NPYGenerator
+            return NPYGenerator()
+        elif type == FormatType.DLIO_JPEG:
             from dlio_benchmark.data_generator.jpeg_generator import JPEGGenerator
             return JPEGGenerator()
-        elif type == FormatType.PNG:
+        elif type == FormatType.DLIO_PNG:
             from dlio_benchmark.data_generator.png_generator import PNGGenerator
             return PNGGenerator()
         else:

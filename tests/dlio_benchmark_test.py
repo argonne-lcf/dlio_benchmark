@@ -27,8 +27,9 @@ import time
 import subprocess
 import logging
 import os
-from dlio_benchmark.utils.config import ConfigArguments
 import dlio_benchmark
+from dlio_benchmark.utils.config import ConfigArguments
+from dlio_benchmark.common.enumerations import FormatType
 config_dir=os.path.dirname(dlio_benchmark.__file__)+"/configs/"
 
 logging.basicConfig(
@@ -74,10 +75,10 @@ def run_benchmark(cfg, storage_root="./", verify=True):
 
 
 @pytest.mark.timeout(60, method="thread")
-@pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
-                                            ("jpeg", "tensorflow"), ("tfrecord", "tensorflow"),
-                                            ("hdf5", "tensorflow")])
-def test_gen_data(fmt, framework) -> None:
+@pytest.mark.parametrize("fmt, framework, dataloader", [("dlio_png", "tensorflow", "dlio_tensorflow"), ("dlio_npz", "tensorflow", "dlio_tensorflow"),
+                                            ("dlio_jpeg", "tensorflow", "dlio_tensorflow"), ("dlio_tfrecord", "tensorflow", "dlio_tensorflow"),
+                                            ("dlio_hdf5", "tensorflow", "dlio_tensorflow"), ("dali_npz", "pytorch", "native_dali")])
+def test_gen_data(fmt, framework, dataloader) -> None:
     if (comm.rank == 0):
         logging.info("")
         logging.info("=" * 80)
@@ -85,23 +86,24 @@ def test_gen_data(fmt, framework) -> None:
         logging.info("=" * 80)
     with initialize_config_dir(version_base=None, config_dir=config_dir):
         cfg = compose(config_name='config', overrides=[f'++workload.framework={framework}',
-                                                       f'++workload.reader.data_loader={framework}',
+                                                       f'++workload.reader.data_loader={dataloader}',
                                                        '++workload.workflow.train=False',
                                                        '++workload.workflow.generate_data=True',
                                                        f"++workload.dataset.format={fmt}"])
+        ext = FormatType.getextension(fmt)
         benchmark = run_benchmark(cfg, verify=False)
         if benchmark.args.num_subfolders_train <= 1:
             train = pathlib.Path(f"{cfg.workload.dataset.data_folder}/train")
-            train_files = list(train.glob(f"*.{fmt}"))
+            train_files = list(train.glob(f"*.{ext}"))
             valid = pathlib.Path(f"{cfg.workload.dataset.data_folder}/valid")
-            valid_files = list(valid.glob(f"*.{fmt}"))
+            valid_files = list(valid.glob(f"*.{ext}"))
             assert (len(train_files) == cfg.workload.dataset.num_files_train)
             assert (len(valid_files) == cfg.workload.dataset.num_files_eval)
         else:
             train = pathlib.Path(f"{cfg.workload.dataset.data_folder}/train")
-            train_files = list(train.rglob(f"**/*.{fmt}"))
+            train_files = list(train.rglob(f"**/*.{ext}"))
             valid = pathlib.Path(f"{cfg.workload.dataset.data_folder}/valid")
-            valid_files = list(valid.rglob(f"**/*.{fmt}"))
+            valid_files = list(valid.rglob(f"**/*.{ext}"))
             assert (len(train_files) == cfg.workload.dataset.num_files_train)
             assert (len(valid_files) == cfg.workload.dataset.num_files_eval)
         clean()
@@ -124,10 +126,10 @@ def test_subset() -> None:
     clean()
 
 @pytest.mark.timeout(60, method="thread")
-@pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
-                                            ("jpeg", "tensorflow"), ("tfrecord", "tensorflow"),
-                                            ("hdf5", "tensorflow")])
-def test_storage_root_gen_data(fmt, framework) -> None:
+@pytest.mark.parametrize("fmt, framework, dataloader", [("dlio_png", "tensorflow", "dlio_tensorflow"), ("dlio_npz", "tensorflow", "dlio_tensorflow"),
+                                            ("dlio_jpeg", "tensorflow", "dlio_tensorflow"), ("dlio_tfrecord", "tensorflow", "dlio_tensorflow"),
+                                            ("dlio_hdf5", "tensorflow", "dlio_tensorflow")])
+def test_storage_root_gen_data(fmt, framework, dataloader) -> None:
     storage_root = "runs"
 
     clean(storage_root)
@@ -138,30 +140,31 @@ def test_storage_root_gen_data(fmt, framework) -> None:
         logging.info("=" * 80)
     with initialize_config_dir(version_base=None, config_dir=config_dir):
         cfg = compose(config_name='config', overrides=[f'++workload.framework={framework}',
-                                                       f'++workload.reader.data_loader={framework}',
+                                                       f'++workload.reader.data_loader={dataloader}',
                                                        '++workload.workflow.train=False',
                                                        '++workload.workflow.generate_data=True',
                                                        f"++workload.storage.storage_root={storage_root}",
                                                        f"++workload.dataset.format={fmt}"])
+        ext = FormatType.getextension(fmt)
         benchmark = run_benchmark(cfg, verify=False)
         if benchmark.args.num_subfolders_train <= 1:
             assert (
                     len(glob.glob(
-                        os.path.join(storage_root, cfg.workload.dataset.data_folder, f"train/*.{fmt}"))) ==
+                        os.path.join(storage_root, cfg.workload.dataset.data_folder, f"train/*.{ext}"))) ==
                     cfg.workload.dataset.num_files_train)
             assert (
                     len(glob.glob(
-                        os.path.join(storage_root, cfg.workload.dataset.data_folder, f"valid/*.{fmt}"))) ==
+                        os.path.join(storage_root, cfg.workload.dataset.data_folder, f"valid/*.{ext}"))) ==
                     cfg.workload.dataset.num_files_eval)
         else:
-            logging.info(os.path.join(storage_root, cfg.workload.dataset.data_folder, f"train/*/*.{fmt}"))
+            logging.info(os.path.join(storage_root, cfg.workload.dataset.data_folder, f"train/*/*.{ext}"))
             assert (
                     len(glob.glob(
-                        os.path.join(storage_root, cfg.workload.dataset.data_folder, f"train/*/*.{fmt}"))) ==
+                        os.path.join(storage_root, cfg.workload.dataset.data_folder, f"train/*/*.{ext}"))) ==
                     cfg.workload.dataset.num_files_train)
             assert (
                     len(glob.glob(
-                        os.path.join(storage_root, cfg.workload.dataset.data_folder, f"valid/*/*.{fmt}"))) ==
+                        os.path.join(storage_root, cfg.workload.dataset.data_folder, f"valid/*/*.{ext}"))) ==
                     cfg.workload.dataset.num_files_eval)
         clean(storage_root)
 
@@ -283,9 +286,9 @@ def test_eval() -> None:
 
 @pytest.mark.timeout(60, method="thread")
 
-@pytest.mark.parametrize("framework, nt", [("tensorflow", 0), ("tensorflow", 1),("tensorflow", 2),
-                                           ("pytorch", 0), ("pytorch", 1), ("pytorch", 2)])
-def test_multi_threads(framework, nt) -> None:
+@pytest.mark.parametrize("framework, nt, dataloader", [("tensorflow", 0, "dlio_tensorflow"), ("tensorflow", 1, "dlio_tensorflow"),("tensorflow", 2, "dlio_tensorflow"),
+                                           ("pytorch", 0, "dlio_pytorch"), ("pytorch", 1, "dlio_pytorch"), ("pytorch", 2, "dlio_pytorch")])
+def test_multi_threads(framework, nt, dataloader) -> None:
     clean()
     if (comm.rank == 0):
         logging.info("")
@@ -297,7 +300,7 @@ def test_multi_threads(framework, nt) -> None:
         cfg = compose(config_name='config', overrides=['++workload.workflow.train=True',
                                                        '++workload.workflow.generate_data=True',
                                                        f"++workload.framework={framework}",
-                                                       f"++workload.reader.data_loader={framework}",
+                                                       f"++workload.reader.data_loader={dataloader}",
                                                        f"++workload.reader.read_threads={nt}",
                                                        'workload.train.computation_time=0.01',
                                                        'workload.evaluation.eval_time=0.005',
@@ -309,18 +312,19 @@ def test_multi_threads(framework, nt) -> None:
 
 
 @pytest.mark.timeout(60, method="thread")
-@pytest.mark.parametrize("fmt, framework, dataloader", [("png", "tensorflow","tensorflow"), ("npz", "tensorflow","tensorflow"),
-                                            ("jpeg", "tensorflow","tensorflow"), ("tfrecord", "tensorflow","tensorflow"),
-                                            ("hdf5", "tensorflow","tensorflow"), ("csv", "tensorflow","tensorflow"),
-                                            ("png", "pytorch", "pytorch"), ("npz", "pytorch", "pytorch"),
-                                            ("jpeg", "pytorch", "pytorch"), ("hdf5", "pytorch", "pytorch"), ("csv", "pytorch", "pytorch"),
-                                            ("png", "tensorflow", "dali"), ("npz", "tensorflow", "dali"),
-                                            ("jpeg", "tensorflow", "dali"),
-                                            ("hdf5", "tensorflow", "dali"), ("csv", "tensorflow", "dali"),
-                                            ("png", "pytorch", "dali"), ("npz", "pytorch", "dali"),
-                                            ("jpeg", "pytorch", "dali"), ("hdf5", "pytorch", "dali"),
-                                            ("csv", "pytorch", "dali"),
-                                            ])
+@pytest.mark.parametrize("fmt, framework, dataloader", [("dlio_png", "tensorflow","dlio_tensorflow"), ("dlio_npz", "tensorflow", "dlio_tensorflow"),
+                                            ("dlio_jpeg", "tensorflow", "dlio_tensorflow"), ("dlio_tfrecord", "tensorflow", "dlio_tensorflow"),
+                                            ("dlio_hdf5", "tensorflow", "dlio_tensorflow"), ("dlio_csv", "tensorflow", "dlio_tensorflow"),
+                                            ("dlio_png", "pytorch", "dlio_pytorch"), ("dlio_npz", "pytorch", "dlio_pytorch"),
+                                            ("dlio_jpeg", "pytorch", "dlio_pytorch"), ("dlio_hdf5", "pytorch", "dlio_pytorch"), ("dlio_csv", "pytorch", "dlio_pytorch"),
+                                            ("dlio_png", "tensorflow", "dlio_dali"), ("dlio_npz", "tensorflow", "dlio_dali"),
+                                            ("dlio_jpeg", "tensorflow", "dlio_dali"),
+                                            ("dlio_hdf5", "tensorflow", "dlio_dali"), ("dlio_csv", "tensorflow", "dlio_dali"),
+                                            ("dlio_png", "pytorch", "dlio_dali"), ("dlio_npz", "pytorch", "dlio_dali"),
+                                            ("dlio_jpeg", "pytorch", "dlio_dali"), ("dlio_hdf5", "pytorch", "dlio_dali"),
+                                            ("dlio_csv", "pytorch", "dlio_dali"),
+                                            ("dlio_png", "tensorflow", "dlio_tensorflow"), ("tf_tfrecord", "tensorflow", "native_tensorflow"),
+                                            ("dali_tfrecord", "pytorch", "native_dali"), ("dali_npz", "pytorch", "native_dali")])
 def test_train(fmt, framework, dataloader) -> None:
     clean()
     if comm.rank == 0:
@@ -345,14 +349,14 @@ def test_train(fmt, framework, dataloader) -> None:
 
 
 @pytest.mark.timeout(60, method="thread")
-@pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
-                                            ("jpeg", "tensorflow"), ("tfrecord", "tensorflow"),
-                                            ("hdf5", "tensorflow"), ("csv", "tensorflow"),
-                                            ("png", "pytorch"), ("npz", "pytorch"),
-                                            ("jpeg", "pytorch"), ("hdf5", "pytorch"),
-                                            ("csv", "pytorch")
+@pytest.mark.parametrize("fmt, framework, dataloader", [("dlio_png", "tensorflow", "dlio_tensorflow"), ("dlio_npz", "tensorflow", "dlio_tensorflow"),
+                                            ("dlio_jpeg", "tensorflow", "dlio_tensorflow"), ("dlio_tfrecord", "tensorflow", "dlio_tensorflow"),
+                                            ("dlio_hdf5", "tensorflow", "dlio_tensorflow"), ("dlio_csv", "tensorflow", "dlio_tensorflow"),
+                                            ("dlio_png", "pytorch", "dlio_pytorch"), ("dlio_npz", "pytorch", "dlio_pytorch"),
+                                            ("dlio_jpeg", "pytorch", "dlio_pytorch"), ("dlio_hdf5", "pytorch", "dlio_pytorch"),
+                                            ("dlio_csv", "pytorch", "dlio_pytorch")
                                             ])
-def test_custom_storage_root_train(fmt, framework) -> None:
+def test_custom_storage_root_train(fmt, framework, dataloader) -> None:
     storage_root = "root_dir"
     clean(storage_root)
     if (comm.rank == 0):
@@ -364,7 +368,7 @@ def test_custom_storage_root_train(fmt, framework) -> None:
         cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', \
                                                        '++workload.workflow.generate_data=True', \
                                                        f"++workload.framework={framework}", \
-                                                       f"++workload.reader.data_loader={framework}", \
+                                                       f"++workload.reader.data_loader={dataloader}", \
                                                        f"++workload.dataset.format={fmt}",
                                                        f"++workload.storage.storage_root={storage_root}", \
                                                        'workload.train.computation_time=0.01', \

@@ -18,12 +18,12 @@ import pandas as pd
 
 from dlio_benchmark.common.constants import MODULE_DATA_READER
 from dlio_benchmark.utils.utility import Profile
-from dlio_benchmark.reader.reader_handler import FormatReader
+from dlio_benchmark.reader.dlio_base_reader import DLIOBaseReader
 
 dlp = Profile(MODULE_DATA_READER)
 
 
-class CSVReader(FormatReader):
+class DLIOCSVReader(DLIOBaseReader):
     """
     CSV Reader reader and iterator logic.
     """

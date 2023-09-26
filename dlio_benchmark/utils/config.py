@@ -43,7 +43,7 @@ class ConfigArguments:
     model: str = "default"
     framework: FrameworkType = FrameworkType.TENSORFLOW
     # Dataset format, such as PNG, JPEG
-    format: FormatType = FormatType.TFRECORD
+    format: FormatType = FormatType.DLIO_TFRECORD
     # Shuffle type
     file_shuffle: Shuffle = Shuffle.OFF
     shuffle_size: int = 1024
@@ -98,7 +98,7 @@ class ConfigArguments:
     eval_after_epoch: int = 1
     epochs_between_evals: int = 1
     model_size: int = 10240
-    data_loader: DataLoaderType = DataLoaderType.TENSORFLOW.value
+    data_loader: DataLoaderType = DataLoaderType.DLIO_TENSORFLOW.value
     num_subfolders_train: int = 0
     num_subfolders_eval: int = 0
     iostat_devices: ClassVar[List[str]] = []
@@ -147,12 +147,12 @@ class ConfigArguments:
         if (self.do_profiling == True) and (self.profiler == Profiler('darshan')):
             if ('LD_PRELOAD' not in os.environ or os.environ["LD_PRELOAD"].find("libdarshan") == -1):
                 raise Exception("Please set darshan runtime library in LD_PRELOAD")
-        if self.format is FormatType.TFRECORD and self.framework is not FrameworkType.TENSORFLOW:
+        if self.format is FormatType.DLIO_TFRECORD and self.framework is not FrameworkType.TENSORFLOW:
             raise Exception("Imcompatible between format and framework setup.")
-        if self.format is FormatType.TFRECORD and self.data_loader is not DataLoaderType.TENSORFLOW:
+        if self.format is FormatType.DLIO_TFRECORD and self.data_loader is not DataLoaderType.DLIO_TENSORFLOW:
             raise Exception("Imcompatible between format and data loader setup.")
-        if (self.framework == FrameworkType.TENSORFLOW and self.data_loader == DataLoaderType.PYTORCH) or (
-                self.framework == FrameworkType.PYTORCH and self.data_loader == DataLoaderType.TENSORFLOW):
+        if (self.framework == FrameworkType.TENSORFLOW and self.data_loader == DataLoaderType.DLIO_PYTORCH) or (
+                self.framework == FrameworkType.PYTORCH and self.data_loader == DataLoaderType.DLIO_TENSORFLOW):
             raise Exception("Imcompatible between framework and data_loader setup.")
         if len(self.file_list_train) != self.num_files_train:
             raise Exception(
@@ -177,11 +177,11 @@ class ConfigArguments:
     @dlp.log
     def derive_configurations(self, file_list_train=None, file_list_eval=None):
         self.dimension = int(math.sqrt(self.record_length))
-        self.dimension_stdev = self.record_length_stdev/2.0/math.sqrt(self.record_length)
+        self.dimension_stdev = self.record_length_stdev / 2.0 / math.sqrt(self.record_length)
         self.max_dimension = self.dimension
-        if (self.record_length_resize>0):
-            self.max_dimension =  int(math.sqrt(self.record_length_resize))
-        if (file_list_train !=None and file_list_eval !=None):
+        if self.record_length_resize > 0:
+            self.max_dimension = int(math.sqrt(self.record_length_resize))
+        if file_list_train is not None and file_list_eval is not None:
             self.resized_image = np.random.randint(255, size=(self.max_dimension, self.max_dimension), dtype=np.uint8)
             self.file_list_train = file_list_train
             self.file_list_eval = file_list_eval
@@ -195,9 +195,9 @@ class ConfigArguments:
             self.training_steps = int(math.ceil(self.total_samples_train / self.batch_size / self.comm_size))
             self.eval_steps = int(math.ceil(self.total_samples_eval / self.batch_size_eval / self.comm_size))
         if self.data_loader_sampler is None and self.data_loader_classname is None:
-            if self.data_loader == DataLoaderType.TENSORFLOW:
+            if self.data_loader == DataLoaderType.DLIO_TENSORFLOW:
                 self.data_loader_sampler = DataLoaderSampler.ITERATIVE
-            elif self.data_loader in [DataLoaderType.PYTORCH, DataLoaderType.DALI]:
+            elif self.data_loader in [DataLoaderType.DLIO_PYTORCH, DataLoaderType.DLIO_DALI]:
                 self.data_loader_sampler = DataLoaderSampler.INDEX
         if self.data_loader_classname is not None:
             from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
@@ -209,11 +209,17 @@ class ConfigArguments:
                     self.data_loader_class = obj
                     break
         if self.reader_classname is not None:
-            from dlio_benchmark.reader.reader_handler import FormatReader
+            from dlio_benchmark.reader.dlio_base_reader import DLIOBaseReader
+            from dlio_benchmark.reader.tf_base_reader import TFBaseReader
+            from dlio_benchmark.reader.pytorch_base_reader import PytorchBaseReader
+            from dlio_benchmark.reader.dali_base_reader import DaliBaseReader
             classname = self.reader_classname.split(".")[-1]
             module = importlib.import_module(".".join(self.reader_classname.split(".")[:-1]))
             for class_name, obj in inspect.getmembers(module):
-                if class_name == classname and issubclass(obj, FormatReader):
+                if class_name == classname and (issubclass(obj, DLIOBaseReader) or
+                                                issubclass(obj, TFBaseReader) or
+                                                issubclass(obj, PytorchBaseReader) or
+                                                issubclass(obj, DaliBaseReader)):
                     logging.info(f"Discovered custom data reader {class_name}")
                     self.reader_class = obj
                     break
@@ -223,7 +229,7 @@ class ConfigArguments:
         logging.debug(f"ranks {self.comm_size} threads {self.read_threads} tensors")
         num_files = len(file_list)
         num_threads = 1
-        if self.read_threads > 0 and self.data_loader is not DataLoaderType.DALI:
+        if self.read_threads > 0 and self.data_loader is not DataLoaderType.DLIO_DALI:
             num_threads = self.read_threads
         self.samples_per_thread = total_samples / self.comm_size / num_threads
         file_index = 0
@@ -244,7 +250,7 @@ class ConfigArguments:
                     process_thread_file_map[rank][thread_index] = []
                 selected_samples = 0
                 while selected_samples < self.samples_per_thread:
-                    process_thread_file_map[rank][thread_index].append((sample_global_list[sample_index], 
+                    process_thread_file_map[rank][thread_index].append((sample_global_list[sample_index],
                                                                         os.path.abspath(file_list[file_index]),
                                                                         sample_global_list[sample_index] % self.num_samples_per_file))
                     sample_index += 1
@@ -305,7 +311,7 @@ def LoadConfig(args, config):
             args.storage_type = StorageType(config['storage']['storage_type'])
         if 'storage_root' in config['storage']:
             args.storage_root = config['storage']['storage_root']
-        
+
     # dataset related settings
     if 'dataset' in config:
         if 'record_length' in config['dataset']:
@@ -339,6 +345,7 @@ def LoadConfig(args, config):
             args.file_prefix = config['dataset']['file_prefix']
         if 'format' in config['dataset']:
             args.format = FormatType(config['dataset']['format'])
+            args.format_ext = FormatType.getextension(config['dataset']['format'])
         if 'keep_files' in config['dataset']:
             args.keep_files = config['dataset']['keep_files']
 
@@ -379,7 +386,7 @@ def LoadConfig(args, config):
             args.transfer_size = reader['transfer_size']
         if 'preprocess_time' in reader:
             args.preprocess_time = reader['preprocess_time']
-        if 'preprocess_time_stdev' in reader: 
+        if 'preprocess_time_stdev' in reader:
             args.preprocess_time_stdev = reader['preprocess_time_stdev']
 
     # training relevant setting
@@ -424,7 +431,7 @@ def LoadConfig(args, config):
             args.output_folder = config['output']['folder']
         if 'log_file' in config['output']:
             args.log_file = config['output']['log_file']
-            
+
     if 'workflow' in config:
         if 'generate_data' in config['workflow']:
             args.generate_data = config['workflow']['generate_data']

@@ -45,10 +45,10 @@ class DaliDataset(object):
         return image, np.uint8([sample_idx])
 
 
-class DaliDataLoader(BaseDataLoader):
+class DLIODaliDataLoader(BaseDataLoader):
     @dlp.log_init
     def __init__(self, format_type, dataset_type, epoch):
-        super().__init__(format_type, dataset_type, epoch, DataLoaderType.DALI)
+        super().__init__(format_type, dataset_type, epoch, DataLoaderType.DLIO_DALI)
         self.pipelines = []
 
     @dlp.log

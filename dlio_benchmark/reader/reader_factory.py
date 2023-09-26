@@ -37,24 +37,33 @@ class ReaderFactory(object):
         if _args.reader_class is not None:
             logging.info(f"{utcnow()} Running DLIO with custom data loader class {_args.reader_class.__name__}")
             return _args.reader_class(dataset_type, thread_index, epoch_number)
-        elif type == FormatType.HDF5:
-            from dlio_benchmark.reader.hdf5_reader import HDF5Reader
-            return HDF5Reader(dataset_type, thread_index, epoch_number)
-        elif type == FormatType.CSV:
-            from dlio_benchmark.reader.csv_reader import CSVReader
-            return CSVReader(dataset_type, thread_index, epoch_number)
-        elif type == FormatType.JPEG:
-            from dlio_benchmark.reader.jpeg_reader import JPEGReader
-            return JPEGReader(dataset_type, thread_index, epoch_number)
-        elif type == FormatType.PNG:
-            from dlio_benchmark.reader.png_reader import PNGReader
-            return PNGReader(dataset_type, thread_index, epoch_number)
-        elif type == FormatType.NPZ:
-            from dlio_benchmark.reader.npz_reader import NPZReader
-            return NPZReader(dataset_type, thread_index, epoch_number)
-        elif type == FormatType.TFRECORD:
-            from dlio_benchmark.reader.tf_reader import TFReader
-            return TFReader(dataset_type, thread_index, epoch_number)
+        elif type == FormatType.DLIO_HDF5:
+            from dlio_benchmark.reader.dlio_hdf5_reader import DLIOHDF5Reader
+            return DLIOHDF5Reader(dataset_type, thread_index, epoch_number)
+        elif type == FormatType.DLIO_CSV:
+            from dlio_benchmark.reader.dlio_csv_reader import DLIOCSVReader
+            return DLIOCSVReader(dataset_type, thread_index, epoch_number)
+        elif type == FormatType.DLIO_JPEG:
+            from dlio_benchmark.reader.dlio_jpeg_reader import DLIOJPEGReader
+            return DLIOJPEGReader(dataset_type, thread_index, epoch_number)
+        elif type == FormatType.DLIO_PNG:
+            from dlio_benchmark.reader.dlio_png_reader import DLIOPNGReader
+            return DLIOPNGReader(dataset_type, thread_index, epoch_number)
+        elif type == FormatType.DLIO_NPZ:
+            from dlio_benchmark.reader.dlio_npz_reader import DLIONPZReader
+            return DLIONPZReader(dataset_type, thread_index, epoch_number)
+        elif type == FormatType.DLIO_TFRECORD:
+            from dlio_benchmark.reader.dlio_tfrecord_reader import DLIOTFRecordReader
+            return DLIOTFRecordReader(dataset_type, thread_index, epoch_number)
+        elif type == FormatType.TF_TFRECORD:
+            from dlio_benchmark.reader.tf_tfrecord_reader import TFTFRecordReader
+            return TFTFRecordReader(dataset_type)
+        elif type == FormatType.DALI_TFRECORD:
+            from dlio_benchmark.reader.dali_tfrecord_reader import DaliTFRecordReader
+            return DaliTFRecordReader(dataset_type)
+        elif type == FormatType.DALI_NPZ:
+            from dlio_benchmark.reader.dali_npz_reader import DaliNPZReader
+            return DaliNPZReader(dataset_type)
         else:
             print("Loading data of %s format is not supported without framework data loader" %type)
             raise Exception(type)

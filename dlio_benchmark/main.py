@@ -191,7 +191,7 @@ class DLIOBenchmark(object):
                     os.path.join(self.args.data_folder, f"{dataset_type}",
                                  filenames[0])) == MetadataType.DIRECTORY:
                 assert(num_subfolders == len(filenames))
-                fullpaths = self.storage.walk_node(os.path.join(self.args.data_folder, f"{dataset_type}/*/*.{self.args.format}"),
+                fullpaths = self.storage.walk_node(os.path.join(self.args.data_folder, f"{dataset_type}/*/*.{self.args.format_ext}"),
                                                    use_pattern=True)
                 files = [self.storage.get_basename(f) for f in fullpaths]
                 idx = np.argsort(files)
@@ -199,14 +199,14 @@ class DLIOBenchmark(object):
             else:
                 assert(num_subfolders==0)
                 fullpaths = [self.storage.get_uri(os.path.join(self.args.data_folder, f"{dataset_type}", entry))
-                             for entry in filenames if entry.find(f'{self.args.format}')!=-1]
+                             for entry in filenames if entry.find(f'{self.args.format_ext}')!=-1]
                 fullpaths = sorted(fullpaths)
             if dataset_type is DatasetType.TRAIN:
                 file_list_train = fullpaths
             elif dataset_type is DatasetType.VALID:
                 file_list_eval = fullpaths
         if not self.generate_only:
-            assert(self.num_files_train <=len(file_list_train))
+            assert(self.num_files_train <= len(file_list_train))
         if self.do_eval:
             assert(self.num_files_eval <=len(file_list_eval))
         if (self.num_files_train < len(file_list_train)):
