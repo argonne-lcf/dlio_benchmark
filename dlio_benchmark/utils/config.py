@@ -373,6 +373,8 @@ def LoadConfig(args, config):
             args.prefetch_size = reader['prefetch_size']
         if 'file_shuffle' in reader:
             args.file_shuffle = reader['file_shuffle']
+        if 'file_access' in reader:
+            args.file_access = FileAccess(reader['file_access'])  
         if 'shuffle_size' in reader:
             args.shuffle_size = reader['shuffle_size']
         if 'sample_shuffle' in reader:
