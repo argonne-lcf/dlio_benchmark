@@ -33,6 +33,8 @@ GitHub repo: https://github.com/argonne-lcf/dlio_benchmark.
    :maxdepth: 2
    :caption: Tested systems and Known issues
 
+   testedsystems
+   instructions_lassen
    knownissues
    
 .. toctree::
