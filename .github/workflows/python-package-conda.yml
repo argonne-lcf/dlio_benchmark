@@ -1,18 +1,20 @@
 name: Python Package using Conda
 
 on:
-  push:
   pull_request:
-
+    branches: [ main, dev ]
+  push:
+  
 jobs:
   build-and-test:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-20.04 ]
+        os: [ ubuntu-20.04, ubuntu-22.04 ]
         profiler: [ DEFAULT, DLIO_PROFILER ]
         gcc: [10]
-    name: ${{ matrix.os }}-${{ matrix.profiler }}-${{ matrix.gcc }}
+        python: ["3.8", "3.9", "3.10" ]
+    name: ${{ matrix.os }}-${{ matrix.profiler }}-${{ matrix.gcc }}-${{ matrix.python }}
     runs-on: ${{ matrix.os }}
     env:
       VENV: "/home/runner/work/venv"
@@ -20,18 +22,28 @@ jobs:
       CC: gcc-${{ matrix.gcc }}
       CXX: g++-${{ matrix.gcc }}
       RDMAV_FORK_SAFE: "1"
+      PYTHON_VER: ${{ matrix.python }}
+      DLIO_PROFILER_LOG_LEVEL: "INFO"
+      GOTCHA_DEBUG: 3
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python 3.10
+    - name: Push checkout
+      if: github.event_name == 'push'
+      uses: actions/checkout@v3
+    - name: PR checkout
+      if: github.event_name == 'pull_request'
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+    - name: Set up Python ${{ matrix.python }}
       uses: actions/setup-python@v3
       with:
-        python-version: 3.10.5
+        python-version: ${{ matrix.python }}
     - name: Cache install modules
       id: cache-modules
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ env.VENV }}
-        key: ${{env.VENV }}-${{env.DLIO_PROFILER}}-${{ hashFiles('setup.py') }}
+        key: ${{env.VENV }}-${{env.DLIO_PROFILER}}-${{ matrix.gcc }}-${{ matrix.python }}-${{ hashFiles('setup.py') }}
     - name: Install System Tools
       run: |
         sudo apt update
