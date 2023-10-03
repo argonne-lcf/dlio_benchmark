@@ -35,7 +35,7 @@ class DaliDataset(object):
     def __call__(self, sample_info):
         sample_idx = sample_info.idx_in_epoch * self.num_samples + self.worker_index
         step = int(math.ceil(sample_idx / self.batch_size))
-        logging.info(f"{utcnow()} Reading {sample_idx} {sample_info.iteration} {self.num_samples} {self.worker_index}")
+        logging.info(f"{utcnow()} Reading {sample_idx} by worker {self.worker_index}")
         if sample_info.iteration >= self.num_samples:
             # Indicate end of the epoch
             raise StopIteration()
@@ -54,19 +54,18 @@ class DaliDataLoader(BaseDataLoader):
     def read(self):
         num_samples = self._args.total_samples_train if self.dataset_type is DatasetType.TRAIN else self._args.total_samples_eval
         batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
-        parallel = True if self._args.read_threads > 0 else False
-        self.pipelines = []
         num_threads = 1
         if self._args.read_threads > 0:
             num_threads = self._args.read_threads
         prefetch_size = 2
         if self._args.prefetch_size > 0:
             prefetch_size = self._args.prefetch_size
-        samples_per_worker = num_samples // batch_size // num_threads
+        samples_per_worker = num_samples // num_threads // self._args.comm_size
         for worker_index in range(num_threads):
+            global_worker_index = self._args.my_rank * num_threads + worker_index
             # None executes pipeline on CPU and the reader does the batching
             dataset = DaliDataset(self.format_type, self.dataset_type, self.epoch_number, samples_per_worker,
-                                  batch_size, worker_index)
+                                  batch_size, global_worker_index)
             pipeline = Pipeline(batch_size=batch_size, num_threads=1, device_id=None, py_num_workers=1,
                                 prefetch_queue_depth=prefetch_size, py_start_method='fork', exec_async=True)
             with pipeline:
@@ -82,6 +81,7 @@ class DaliDataLoader(BaseDataLoader):
             pipe.schedule_run()
         logging.debug(f"{utcnow()} Starting {num_threads} pipelines by {self._args.my_rank} rank ")
 
+
     @dlp.log
     def next(self):
         super().next()
@@ -94,13 +94,14 @@ class DaliDataLoader(BaseDataLoader):
         while step <= num_samples // batch_size:
             for pipe in self.pipelines:
                 outputs = pipe.share_outputs()
-                logging.info(f"{utcnow()} Output batch {step} {len(outputs)}")
+                logging.debug(f"{utcnow()} Output batch {step} {len(outputs)}")
                 for batch in outputs:
                     yield batch
                     step += 1
                 pipe.release_outputs()
                 pipe.schedule_run()
-
+                
+                
     @dlp.log
     def finalize(self):
         pass
