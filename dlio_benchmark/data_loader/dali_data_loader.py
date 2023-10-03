@@ -5,9 +5,6 @@ import numpy as np
 from nvidia.dali.pipeline import Pipeline
 import nvidia.dali.fn as fn
 import nvidia.dali.types as types
-import nvidia.dali as dali
-from nvidia.dali.plugin.base_iterator import LastBatchPolicy
-from nvidia.dali.plugin.pytorch import DALIGenericIterator
 
 from dlio_benchmark.common.constants import MODULE_DATA_LOADER
 from dlio_benchmark.common.enumerations import Shuffle, DataLoaderType, DatasetType
@@ -36,10 +33,12 @@ class DaliDataset(object):
                                                epoch_number=self.epoch)
 
     def __call__(self, sample_info):
-        logging.info(
+        logging.debug(
             f"{utcnow()} Reading {sample_info.idx_in_epoch} out of {self.samples_per_worker} by worker {self.worker_index}")
         sample_idx = sample_info.idx_in_epoch * self.total_num_workers + self.worker_index
-        if sample_info.iteration >= self.samples_per_worker or sample_idx > self.total_num_samples:
+        logging.debug(
+            f"{utcnow()} Reading {sample_idx} on {sample_info.iteration} by worker {self.worker_index}")
+        if sample_info.iteration >= self.samples_per_worker or sample_idx >= self.total_num_samples:
             # Indicate end of the epoch
             raise StopIteration()
 
@@ -65,13 +64,15 @@ class DaliDataLoader(BaseDataLoader):
         prefetch_size = 2
         if self._args.prefetch_size > 0:
             prefetch_size = self._args.prefetch_size
-        samples_per_worker = num_samples // num_threads // self._args.comm_size
-        for worker_index in range(num_threads):
-            global_worker_index = self._args.my_rank * num_threads + worker_index
+        num_pipelines = 1
+        samples_per_worker = num_samples // num_pipelines // self._args.comm_size
+
+        for worker_index in range(num_pipelines):
+            global_worker_index = self._args.my_rank * num_pipelines + worker_index
             # None executes pipeline on CPU and the reader does the batching
             dataset = DaliDataset(self.format_type, self.dataset_type, self.epoch_number, global_worker_index,
-                                  self._args.comm_size * num_threads, num_samples, samples_per_worker, batch_size)
-            pipeline = Pipeline(batch_size=batch_size, num_threads=1, device_id=None, py_num_workers=1,
+                                  self._args.comm_size * num_pipelines, num_samples, samples_per_worker, batch_size)
+            pipeline = Pipeline(batch_size=batch_size, num_threads=num_threads, device_id=None, py_num_workers=num_threads//num_pipelines,
                                 prefetch_queue_depth=prefetch_size, py_start_method='fork', exec_async=True)
             with pipeline:
                 images, labels = fn.external_source(source=dataset, num_outputs=2, dtype=[types.UINT8, types.UINT8],
