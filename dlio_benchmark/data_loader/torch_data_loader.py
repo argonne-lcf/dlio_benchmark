@@ -57,9 +57,7 @@ class TorchDataLoader(BaseDataLoader):
     @dlp.log
     def read(self):
         do_shuffle = True if self._args.sample_shuffle != Shuffle.OFF else False
-        num_samples = self._args.total_samples_train if self.dataset_type is DatasetType.TRAIN else self._args.total_samples_eval
-        batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
-        dataset = TorchDataset(self.format_type, self.dataset_type, self.epoch_number, num_samples, self._args.read_threads, batch_size)
+        dataset = TorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples, self._args.read_threads, self.batch_size)
         if do_shuffle:
             sampler = RandomSampler(dataset)
         else:

@@ -17,6 +17,8 @@ class BaseDataLoader(ABC):
         self.format_type = format_type
         self.epoch_number = epoch_number
         self.data_loader_type = data_loader_type
+        self.num_samples = self._args.total_samples_train if self.dataset_type is DatasetType.TRAIN else self._args.total_samples_eval
+        self.batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
 
     @abstractmethod
     def read(self):

@@ -53,16 +53,14 @@ class DaliDataLoader(BaseDataLoader):
 
     @dlp.log
     def read(self):
-        num_samples = self._args.total_samples_train if self.dataset_type is DatasetType.TRAIN else self._args.total_samples_eval
-        batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
         parallel = True if self._args.read_threads > 0 else False
         self.pipelines = []
         num_threads = 1
         if self._args.read_threads > 0:
             num_threads = self._args.read_threads
-        dataset = DaliDataset(self.format_type, self.dataset_type, self.epoch_number, num_samples, batch_size, 0)
+        dataset = DaliDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples, self.batch_size, 0)
         # None executes pipeline on CPU and the reader does the batching
-        pipeline = Pipeline(batch_size=batch_size, num_threads=num_threads, device_id=None, py_num_workers=num_threads)
+        pipeline = Pipeline(batch_size=self.batch_size, num_threads=num_threads, device_id=None, py_num_workers=num_threads)
         with pipeline:
             images, labels = fn.external_source(source=dataset, num_outputs=2, dtype=[types.UINT8, types.UINT8],
                                                 parallel=parallel, batch=False)
@@ -73,9 +71,7 @@ class DaliDataLoader(BaseDataLoader):
     @dlp.log
     def next(self):
         super().next()
-        num_samples = self._args.total_samples_train if self.dataset_type is DatasetType.TRAIN else self._args.total_samples_eval
-        batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
-        for step in range(num_samples // batch_size):
+        for step in range(self.num_samples // self.batch_size):
             _dataset = DALIGenericIterator(self.pipelines, ['data', 'label'], size=1)
             for batch in _dataset:
                 yield batch
