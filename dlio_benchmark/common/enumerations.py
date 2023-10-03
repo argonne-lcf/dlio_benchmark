@@ -199,17 +199,25 @@ class FileAccess(Enum):
     SHARED = 'shared'
     # TO(HZ): I see currently, this collective mode is not used. It might be good to separate it out
     COLLECTIVE = 'collective'
+    MPIO = 'mpio'
+    POSIX = 'posix'
 
     def __str__(self):
         return self.value
 
     @staticmethod
     def get_enum(value):
-        if DatasetType.TRAIN.value == value:
-            return DatasetType.TRAIN
-        elif DatasetType.VALID.value == value:
-            return DatasetType.VALID
-
+        if FileAccess.MPIO.value == value:
+            return FileAccess.MPIO
+        elif FileAccess.POSIX.value == value:
+            return FileAccess.POSIX
+        elif FileAccess.MULTI.value == value:
+            return FileAccess.MULTI
+        elif FileAccess.SHARED.value == value:
+            return FileAccess.SHARED
+        elif FileAccess.COLLECTIVE.value == value:
+            return FileAccess.COLLECTIVE
+                   
 class Compression(Enum):
     """
     Different Compression Libraries.

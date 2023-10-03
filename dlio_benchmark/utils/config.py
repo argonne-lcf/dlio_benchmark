@@ -69,7 +69,7 @@ class ConfigArguments:
     log_file: str = "dlio.log"
     file_prefix: str = "img"
     keep_files: bool = True
-    do_profiling: bool = True
+    do_profiling: bool = False
     profiler: Profiler = Profiler.IOSTAT
     seed: int = 123
     do_checkpoint: bool = False
@@ -105,6 +105,7 @@ class ConfigArguments:
     data_loader_classname = None
     data_loader_sampler: DataLoaderSampler = None
     reader_classname: str = None
+    multiprocessing_context: str = "fork"
 
     # derived fields
     required_samples: int = 1
@@ -123,6 +124,7 @@ class ConfigArguments:
     global_index_map = None
     data_loader_class = None
     reader_class = None
+    
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -351,6 +353,8 @@ def LoadConfig(args, config):
     if reader is not None:
         if 'reader_classname' in reader:
             args.reader_classname = reader['reader_classname']
+        if 'multiprocessing_context' in reader:
+            args.multiprocessing_context = reader['multiprocessing_context']
         if 'data_loader' in reader:
             args.data_loader = DataLoaderType(reader['data_loader'])
         if 'data_loader_classname' in reader:
@@ -369,6 +373,8 @@ def LoadConfig(args, config):
             args.prefetch_size = reader['prefetch_size']
         if 'file_shuffle' in reader:
             args.file_shuffle = reader['file_shuffle']
+        if 'file_access' in reader:
+            args.file_access = FileAccess(reader['file_access'])  
         if 'shuffle_size' in reader:
             args.shuffle_size = reader['shuffle_size']
         if 'sample_shuffle' in reader:

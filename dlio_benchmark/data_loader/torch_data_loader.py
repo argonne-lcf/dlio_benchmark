@@ -1,3 +1,19 @@
+"""
+   Copyright (c) 2022, UChicago Argonne, LLC
+   All Rights Reserved
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+"""
 from time import time
 import logging
 import math
@@ -57,9 +73,7 @@ class TorchDataLoader(BaseDataLoader):
     @dlp.log
     def read(self):
         do_shuffle = True if self._args.sample_shuffle != Shuffle.OFF else False
-        num_samples = self._args.total_samples_train if self.dataset_type is DatasetType.TRAIN else self._args.total_samples_eval
-        batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
-        dataset = TorchDataset(self.format_type, self.dataset_type, self.epoch_number, num_samples, self._args.read_threads, batch_size)
+        dataset = TorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples, self._args.read_threads, self.batch_size)
         if do_shuffle:
             sampler = RandomSampler(dataset)
         else:
@@ -77,23 +91,29 @@ class TorchDataLoader(BaseDataLoader):
                 logging.debug(
                     f"{utcnow()} Prefetch size is 0; a default prefetch factor of 2 will be set to Torch DataLoader.")
         logging.debug(f"{utcnow()} Setup dataloader with {self._args.read_threads} workers {torch.__version__}")
+        if self._args.read_threads==0:
+            prefetch_factor=None
         if torch.__version__ == '1.3.1':
             self._dataset = DataLoader(dataset,
-                                   batch_size=batch_size,
-                                   sampler=sampler,
-                                   num_workers=self._args.read_threads,
-                                   pin_memory=True,
-                                   drop_last=True,
-                                   worker_init_fn=dataset.worker_init)
+                                       batch_size=batch_size,
+                                       sampler=sampler,
+                                       num_workers=self._args.read_threads,
+                                       pin_memory=True,
+                                       drop_last=True,
+                                       multiprocessing_context = self._args.multiprocessing_context,
+                                       persistent_workers = True,
+                                       worker_init_fn=dataset.worker_init)
         else: 
             self._dataset = DataLoader(dataset,
-                                   batch_size=batch_size,
-                                   sampler=sampler,
-                                   num_workers=self._args.read_threads,
-                                   pin_memory=True,
-                                   drop_last=True,
-                                   worker_init_fn=dataset.worker_init,
-                                   prefetch_factor=prefetch_factor if prefetch_factor > 0 else 2)  # 2 is the default value
+                                       batch_size=batch_size,
+                                       sampler=sampler,
+                                       num_workers=self._args.read_threads,
+                                       pin_memory=True,
+                                       drop_last=True,
+                                       multiprocessing_context = self._args.multiprocessing_context,
+                                       persistent_workers = True, 
+                                       worker_init_fn=dataset.worker_init,
+                                       prefetch_factor=prefetch_factor)  # 2 is the default value
         logging.debug(f"{utcnow()} Rank {self._args.my_rank} will read {len(self._dataset) * batch_size} files")
 
         # self._dataset.sampler.set_epoch(epoch_number)
