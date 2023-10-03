@@ -35,7 +35,7 @@ class DaliDataset(object):
     def __call__(self, sample_info):
         sample_idx = sample_info.idx_in_epoch * self.num_samples + self.worker_index
         step = int(math.ceil(sample_idx / self.batch_size))
-        logging.info(f"{utcnow()} Reading {sample_idx} {sample_info.iteration} {self.num_samples} {self.worker_index}")
+        logging.debug(f"{utcnow()} Reading {sample_idx} {sample_info.iteration} {self.num_samples} {self.worker_index}")
         if sample_info.iteration >= self.num_samples:
             # Indicate end of the epoch
             raise StopIteration()
@@ -48,7 +48,7 @@ class DaliDataLoader(BaseDataLoader):
     @dlp.log_init
     def __init__(self, format_type, dataset_type, epoch):
         super().__init__(format_type, dataset_type, epoch, DataLoaderType.DALI)
-        self.pipelines = []
+        self.pipeline = None
 
     @dlp.log
     def read(self):
@@ -82,6 +82,7 @@ class DaliDataLoader(BaseDataLoader):
             pipe.schedule_run()
         logging.debug(f"{utcnow()} Starting {num_threads} pipelines by {self._args.my_rank} rank ")
 
+
     @dlp.log
     def next(self):
         super().next()
@@ -94,13 +95,14 @@ class DaliDataLoader(BaseDataLoader):
         while step <= num_samples // batch_size:
             for pipe in self.pipelines:
                 outputs = pipe.share_outputs()
-                logging.info(f"{utcnow()} Output batch {step} {len(outputs)}")
+                logging.debug(f"{utcnow()} Output batch {step} {len(outputs)}")
                 for batch in outputs:
                     yield batch
                     step += 1
                 pipe.release_outputs()
                 pipe.schedule_run()
-
+                
+                
     @dlp.log
     def finalize(self):
         pass
