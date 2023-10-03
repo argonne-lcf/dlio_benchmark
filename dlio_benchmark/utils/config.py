@@ -69,7 +69,7 @@ class ConfigArguments:
     log_file: str = "dlio.log"
     file_prefix: str = "img"
     keep_files: bool = True
-    do_profiling: bool = True
+    do_profiling: bool = False
     profiler: Profiler = Profiler.IOSTAT
     seed: int = 123
     do_checkpoint: bool = False
