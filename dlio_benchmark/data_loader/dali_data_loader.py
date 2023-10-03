@@ -20,11 +20,14 @@ dlp = Profile(MODULE_DATA_LOADER)
 
 class DaliDataset(object):
 
-    def __init__(self, format_type, dataset_type, epoch, num_samples, batch_size, thread_index):
+    def __init__(self, format_type, dataset_type, epoch, thread_index,
+                 total_num_workers, total_num_samples, samples_per_worker, batch_size):
         self.format_type = format_type
         self.dataset_type = dataset_type
         self.epoch = epoch
-        self.num_samples = num_samples
+        self.total_num_workers = total_num_workers
+        self.total_num_samples = total_num_samples
+        self.samples_per_worker = samples_per_worker
         self.batch_size = batch_size
         self.worker_index = thread_index
         self.reader = ReaderFactory.get_reader(type=self.format_type,
@@ -33,12 +36,14 @@ class DaliDataset(object):
                                                epoch_number=self.epoch)
 
     def __call__(self, sample_info):
-        sample_idx = sample_info.idx_in_epoch * self.num_samples + self.worker_index
-        step = int(math.ceil(sample_idx / self.batch_size))
-        logging.info(f"{utcnow()} Reading {sample_idx} by worker {self.worker_index}")
-        if sample_info.iteration >= self.num_samples:
+        logging.info(
+            f"{utcnow()} Reading {sample_info.idx_in_epoch} out of {self.samples_per_worker} by worker {self.worker_index}")
+        sample_idx = sample_info.idx_in_epoch * self.total_num_workers + self.worker_index
+        if sample_info.iteration >= self.samples_per_worker or sample_idx > self.total_num_samples:
             # Indicate end of the epoch
             raise StopIteration()
+
+        step = int(math.ceil(sample_idx / self.batch_size))
         with Profile(MODULE_DATA_LOADER, epoch=self.epoch, image_idx=sample_idx, step=step):
             image = self.reader.read_index(sample_idx, step)
         return image, np.uint8([sample_idx])
@@ -64,8 +69,8 @@ class DaliDataLoader(BaseDataLoader):
         for worker_index in range(num_threads):
             global_worker_index = self._args.my_rank * num_threads + worker_index
             # None executes pipeline on CPU and the reader does the batching
-            dataset = DaliDataset(self.format_type, self.dataset_type, self.epoch_number, samples_per_worker,
-                                  batch_size, global_worker_index)
+            dataset = DaliDataset(self.format_type, self.dataset_type, self.epoch_number, global_worker_index,
+                                  self._args.comm_size * num_threads, num_samples, samples_per_worker, batch_size)
             pipeline = Pipeline(batch_size=batch_size, num_threads=1, device_id=None, py_num_workers=1,
                                 prefetch_queue_depth=prefetch_size, py_start_method='fork', exec_async=True)
             with pipeline:
