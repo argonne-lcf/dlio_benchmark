@@ -308,6 +308,7 @@ class StatsCounter(object):
         with open(os.path.join(self.output_folder, f'{self.my_rank}_output.json'), 'w') as outfile:
             json.dump(self.output, outfile, indent=4)
             outfile.flush()
-            logging.info(f"{utcnow()} Rank {self.my_rank} wrote json output")
+        if self.my_rank == 0:
+            logging.info(f"{utcnow()} outputs saved in RANKID_output.json")
 
 

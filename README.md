@@ -52,6 +52,9 @@ conda activate ./dlio_env_ppc
 python -m pip install .
 ```
 
+## Lassen, LLNL
+For specific instructions on how to install and run the benchmark on Lassen please refer to: [Install Lassen](https://dlio-benchmark.readthedocs.io/en/latest/instruction_lassen.html)
+
 ## Running the benchmark
 
 A DLIO run is split in 3 phases: 
@@ -101,8 +104,8 @@ dataset:
   format: npz
   num_files_train: 168
   num_samples_per_file: 1
-  record_length: 234560851
-  record_length_stdev: 109346892
+  record_length: 146600628
+  record_length_stdev: 68341808
   record_length_resize: 2097152
   
 reader: 
@@ -113,7 +116,7 @@ reader:
   sample_shuffle: seed
 
 train:
-  epochs: 10
+  epochs: 5
   computation_time: 1.3604
 
 checkpoint:
