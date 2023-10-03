@@ -95,7 +95,7 @@ class TorchDataLoader(BaseDataLoader):
             prefetch_factor=None
         if torch.__version__ == '1.3.1':
             self._dataset = DataLoader(dataset,
-                                       batch_size=batch_size,
+                                       batch_size=self.batch_size,
                                        sampler=sampler,
                                        num_workers=self._args.read_threads,
                                        pin_memory=True,
@@ -105,7 +105,7 @@ class TorchDataLoader(BaseDataLoader):
                                        worker_init_fn=dataset.worker_init)
         else: 
             self._dataset = DataLoader(dataset,
-                                       batch_size=batch_size,
+                                       batch_size=self.batch_size,
                                        sampler=sampler,
                                        num_workers=self._args.read_threads,
                                        pin_memory=True,
@@ -114,7 +114,7 @@ class TorchDataLoader(BaseDataLoader):
                                        persistent_workers = True, 
                                        worker_init_fn=dataset.worker_init,
                                        prefetch_factor=prefetch_factor)  # 2 is the default value
-        logging.debug(f"{utcnow()} Rank {self._args.my_rank} will read {len(self._dataset) * batch_size} files")
+        logging.debug(f"{utcnow()} Rank {self._args.my_rank} will read {len(self._dataset) * self.batch_size} files")
 
         # self._dataset.sampler.set_epoch(epoch_number)
 
