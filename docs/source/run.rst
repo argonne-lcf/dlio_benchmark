@@ -40,6 +40,10 @@ Running benchmark
 
 In this case, we set ```workflow.generate_data=False```, so it will perform training and evaluation with the data generated previously. 
 
+.. note::
+    DLIO Benchmark will show a warning when you have core affinity set to less than number of workers spawned by each GPU process. 
+    Core affinity is set using MPI execution wrappers such as `mpirun`, `jsrun`, `lrun`, or `srun`.
+
 '''''''''''''''''
 Post processing
 '''''''''''''''''
@@ -55,3 +59,43 @@ This will generate DLIO_$model_report.txt inside the output folder.
 
 .. _workload: https://github.com/argonne-lcf/dlio_benchmark/blob/main/dlio_benchmark/configs/workload
 .. _unet3d.yaml: https://github.com/argonne-lcf/dlio_benchmark/blob/main/dlio_benchmark/configs/workload/unet3d.yaml
+
+
+'''''''''
+Profiling
+'''''''''
+
+Application Profiling
+'''''''''''''''''''''
+
+DLIO_Benchmark has an application level profiler by default. The profiler outputs all application level python function calls in <OUTPUT_FOLDER>/.trace*.pfw files.
+These files are in chrome tracing's json line format. This can be visualized using `perfetto UI https://ui.perfetto.dev/`_
+
+
+Full Stack Profiling
+'''''''''''''''''''''
+
+DLIO_Benchmark has a optional full stack profiler called `dlio-profiler https://github.com/hariharan-devarajan/dlio-profiler`_. 
+
+Installing Profiler
+*******************
+
+Installing just dlio-profiler
+
+.. code-block:: bash
+
+    pip install git+https://github.com/hariharan-devarajan/dlio-profiler.git@dev
+
+
+Installing just dlio-profiler along with dlio_benchmark
+
+.. code-block:: bash
+
+    cd <DLIO_BENCHMARK_SRC>
+    pip install .[dlio_profiler]
+
+The profiler outputs all profiling output in <OUTPUT_FOLDER>/.trace*.pfw files.
+It contains application level profiling as well as low-level I/O calls from POSIX and STDIO layers.
+The low-level I/O events are only way to understand I/O pattern from internal framework functions such as TFRecordDataset or DaliDataLoader.
+These files are in chrome tracing's json line format. This can be visualized using `perfetto UI https://ui.perfetto.dev/`_
+

@@ -37,6 +37,7 @@ class DaliDataset(object):
         self.num_images_read += 1
         step = int(math.ceil(self.num_images_read / self.batch_size))
         sample_idx = sample_info.idx_in_epoch
+        logging.debug(f"{utcnow()} Reading {sample_idx} {sample_info.iteration} {self.num_samples} {self.batch_size}")
         if sample_info.iteration >= self.num_samples // self.batch_size:
             # Indicate end of the epoch
             raise StopIteration()
@@ -49,7 +50,7 @@ class DaliDataLoader(BaseDataLoader):
     @dlp.log_init
     def __init__(self, format_type, dataset_type, epoch):
         super().__init__(format_type, dataset_type, epoch, DataLoaderType.DALI)
-        self.pipelines = []
+        self.pipeline = None
 
     @dlp.log
     def read(self):
@@ -58,23 +59,34 @@ class DaliDataLoader(BaseDataLoader):
         num_threads = 1
         if self._args.read_threads > 0:
             num_threads = self._args.read_threads
-        dataset = DaliDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples, self.batch_size, 0)
+        prefetch_size = 2
+        if self._args.prefetch_size > 0:
+            prefetch_size = self._args.prefetch_size
         # None executes pipeline on CPU and the reader does the batching
-        pipeline = Pipeline(batch_size=self.batch_size, num_threads=num_threads, device_id=None, py_num_workers=num_threads)
-        with pipeline:
+        dataset = DaliDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples, self.batch_size, 0)
+        self.pipeline = Pipeline(batch_size=self.batch_size, num_threads=num_threads, device_id=None, py_num_workers=num_threads,
+                            prefetch_queue_depth=prefetch_size, py_start_method='fork', exec_async=True)
+        with self.pipeline:
             images, labels = fn.external_source(source=dataset, num_outputs=2, dtype=[types.UINT8, types.UINT8],
-                                                parallel=parallel, batch=False)
-            pipeline.set_outputs(images, labels)
-        self.pipelines.append(pipeline)
-        logging.info(f"{utcnow()} Creating {num_threads} pipelines by {self._args.my_rank} rank ")
+                                                parallel=True, batch=False)
+            self.pipeline.set_outputs(images, labels)
+
+        self.pipeline.build()
+        logging.debug(f"{utcnow()} Starting {num_threads} pipelines by {self._args.my_rank} rank ")
+
 
     @dlp.log
     def next(self):
         super().next()
+        #DALIGenericIterator(self.pipelines, ['data', 'label'])
+        logging.debug(f"{utcnow()} Iterating pipelines by {self._args.my_rank} rank ")
         for step in range(self.num_samples // self.batch_size):
-            _dataset = DALIGenericIterator(self.pipelines, ['data', 'label'], size=1)
-            for batch in _dataset:
-                yield batch
+            outputs = self.pipeline.run()
+            logging.debug(f"{utcnow()} Output batch {step} {len(outputs)}")
+            for batch in outputs:
+                yield outputs
+
+
 
     @dlp.log
     def finalize(self):

@@ -169,6 +169,8 @@ dataset
 .. note :: 
   The training and validation datasets will be put in ```${data_folder}/train``` and ```${data_folder}/valid``` respectively. If ``num_subfolders_train`` and ``num_subfolders_eval`` are larger than one, the datasets will be split into multiple subfolders within ```${data_folder}/train``` and ```${data_folder}/valid```. 
 
+.. note :: 
+  The DALI data loader configuration needs to be coupled with pytorch framework otherwise will fail.
 
 reader 
 ------------------
@@ -181,7 +183,7 @@ reader
      - Description
    * - data_loader
      - tensorflow
-     - select the data loader to use [tensorflow|pytorch]. 
+     - select the data loader to use [tensorflow|pytorch|dali]. 
    * - batch_size
      - 1 
      - batch size for training
