@@ -87,6 +87,7 @@ class TorchDataLoader(BaseDataLoader):
                 logging.debug(
                     f"{utcnow()} Prefetch size is {self._args.prefetch_size}; prefetch factor of {prefetch_factor} will be set to Torch DataLoader.")
         else:
+            prefetch_factor = 2
             if self._args.my_rank == 0:
                 logging.debug(
                     f"{utcnow()} Prefetch size is 0; a default prefetch factor of 2 will be set to Torch DataLoader.")
