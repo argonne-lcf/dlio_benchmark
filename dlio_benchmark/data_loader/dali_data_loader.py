@@ -51,7 +51,7 @@ class DaliDataset(object):
     def __call__(self, sample_info):
         logging.debug(
             f"{utcnow()} Reading {sample_info.idx_in_epoch} out of {self.samples_per_worker} by worker {self.worker_index}")
-        sample_idx = sample_info.idx_in_epoch * self.total_num_workers + self.worker_index
+        sample_idx = sample_info.idx_in_epoch + self.total_num_workers * self.worker_index
         logging.debug(
             f"{utcnow()} Reading {sample_idx} on {sample_info.iteration} by worker {self.worker_index}")
         if sample_info.iteration >= self.samples_per_worker or sample_idx >= self.total_num_samples:
@@ -82,13 +82,14 @@ class DaliDataLoader(BaseDataLoader):
             prefetch_size = self._args.prefetch_size
         num_pipelines = 1
         samples_per_worker = self.num_samples // num_pipelines // self._args.comm_size
+
         for worker_index in range(num_pipelines):
             global_worker_index = self._args.my_rank * num_pipelines + worker_index
             # None executes pipeline on CPU and the reader does the batching
             dataset = DaliDataset(self.format_type, self.dataset_type, self.epoch_number, global_worker_index,
                                   self._args.comm_size * num_pipelines, self.num_samples, samples_per_worker, self.batch_size)
             pipeline = Pipeline(batch_size=self.batch_size, num_threads=num_threads, device_id=None, py_num_workers=num_threads//num_pipelines,
-                                prefetch_queue_depth=prefetch_size, py_start_method='fork', exec_async=True)
+                                prefetch_queue_depth=prefetch_size, py_start_method=self._args.multiprocessing_context, exec_async=True)
             with pipeline:
                 images, labels = fn.external_source(source=dataset, num_outputs=2, dtype=[types.UINT8, types.UINT8],
                                                     parallel=True, batch=False)
@@ -114,9 +115,8 @@ class DaliDataLoader(BaseDataLoader):
             for pipe in self.pipelines:
                 outputs = pipe.share_outputs()
                 logging.debug(f"{utcnow()} Output batch {step} {len(outputs)}")
-                for batch in outputs:
-                    yield batch
-                    step += 1
+                yield outputs
+                step += 1
                 pipe.release_outputs()
                 pipe.schedule_run()
                 
