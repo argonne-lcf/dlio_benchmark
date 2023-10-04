@@ -61,8 +61,7 @@ class DaliDataset(object):
         step = int(math.ceil(sample_idx / self.batch_size))
         with Profile(MODULE_DATA_LOADER, epoch=self.epoch, image_idx=sample_idx, step=step):
             image = self.reader.read_index(sample_idx, step)
-        return np.uint8([sample_idx]), np.uint8([sample_idx])
-
+        return image, np.uint8([sample_idx])
 
 class DaliDataLoader(BaseDataLoader):
     @dlp.log_init
