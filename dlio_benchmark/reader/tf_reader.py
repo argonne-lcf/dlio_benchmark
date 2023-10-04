@@ -48,7 +48,8 @@ class TFReader(FormatReader):
 
     @dlp.log
     def get_sample(self, filename, sample_index):
-        pass
+        return self.next()
+        #pass
 
     @dlp.log
     def resize_sample(self, filename, sample_index):
@@ -99,7 +100,9 @@ class TFReader(FormatReader):
 
     @dlp.log
     def read_index(self, image_idx, step):
-        return super().read_index(image_idx, step)
+        batch = self.next()
+        return batch
+        #return super().read_index(image_idx, step)
 
     @dlp.log
     def finalize(self):
