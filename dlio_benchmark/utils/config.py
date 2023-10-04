@@ -69,7 +69,7 @@ class ConfigArguments:
     log_file: str = "dlio.log"
     file_prefix: str = "img"
     keep_files: bool = True
-    do_profiling: bool = True
+    do_profiling: bool = False
     profiler: Profiler = Profiler.IOSTAT
     seed: int = 123
     do_checkpoint: bool = False
@@ -105,6 +105,7 @@ class ConfigArguments:
     data_loader_classname = None
     data_loader_sampler: DataLoaderSampler = None
     reader_classname: str = None
+    multiprocessing_context: str = "fork"
 
     # derived fields
     required_samples: int = 1
@@ -123,6 +124,7 @@ class ConfigArguments:
     global_index_map = None
     data_loader_class = None
     reader_class = None
+    
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -148,9 +150,9 @@ class ConfigArguments:
             if ('LD_PRELOAD' not in os.environ or os.environ["LD_PRELOAD"].find("libdarshan") == -1):
                 raise Exception("Please set darshan runtime library in LD_PRELOAD")
         if self.format is FormatType.TFRECORD and self.framework is not FrameworkType.TENSORFLOW:
-            raise Exception("Imcompatible between format and framework setup.")
+            raise Exception(f"{self.framework} support for tfrecord is not implemented.")
         if self.format is FormatType.TFRECORD and self.data_loader is not DataLoaderType.TENSORFLOW:
-            raise Exception("Imcompatible between format and data loader setup.")
+            raise Exception(f"{self.data_loader} support for tfrecord is not implemented.")
         if (self.framework == FrameworkType.TENSORFLOW and self.data_loader == DataLoaderType.PYTORCH) or (
                 self.framework == FrameworkType.PYTORCH and self.data_loader == DataLoaderType.TENSORFLOW):
             raise Exception("Imcompatible between framework and data_loader setup.")
@@ -351,6 +353,8 @@ def LoadConfig(args, config):
     if reader is not None:
         if 'reader_classname' in reader:
             args.reader_classname = reader['reader_classname']
+        if 'multiprocessing_context' in reader:
+            args.multiprocessing_context = reader['multiprocessing_context']
         if 'data_loader' in reader:
             args.data_loader = DataLoaderType(reader['data_loader'])
         if 'data_loader_classname' in reader:
@@ -369,6 +373,8 @@ def LoadConfig(args, config):
             args.prefetch_size = reader['prefetch_size']
         if 'file_shuffle' in reader:
             args.file_shuffle = reader['file_shuffle']
+        if 'file_access' in reader:
+            args.file_access = FileAccess(reader['file_access'])  
         if 'shuffle_size' in reader:
             args.shuffle_size = reader['shuffle_size']
         if 'sample_shuffle' in reader:

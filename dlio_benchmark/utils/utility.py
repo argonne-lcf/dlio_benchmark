@@ -188,6 +188,8 @@ class PerfTrace:
             import dlio_profiler_py as dlio_logger
             instance.logger = dlio_logger
             instance.logger.initialize(instance.log_file, f"{data_dir}", process_id=get_rank())
+            with open(instance.log_file, 'w') as f:
+                f.write("[")
         else:
             instance.logger = logging.getLogger("perftrace")
             instance.logger.setLevel(logging.DEBUG)
@@ -198,7 +200,7 @@ class PerfTrace:
             fh.setFormatter(formatter)
             instance.logger.addHandler(fh)
             instance.logger.debug("[")
-
+            
     def get_time(self):
         if self.logger_type == LoggerType.DLIO_PROFILER:
             return self.logger.get_time()
@@ -217,6 +219,8 @@ class PerfTrace:
     def finalize(self):
         if self.logger_type == LoggerType.DLIO_PROFILER:
             self.logger.finalize()
+            with open(self.log_file, 'a') as f:
+                f.write("]")
         else:
             self.logger.debug("]")
 

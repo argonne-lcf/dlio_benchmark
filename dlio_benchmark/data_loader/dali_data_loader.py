@@ -1,3 +1,19 @@
+"""
+   Copyright (c) 2022, UChicago Argonne, LLC
+   All Rights Reserved
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+"""
 from time import time
 import logging
 import math
@@ -47,7 +63,6 @@ class DaliDataset(object):
             image = self.reader.read_index(sample_idx, step)
         return image, np.uint8([sample_idx])
 
-
 class DaliDataLoader(BaseDataLoader):
     @dlp.log_init
     def __init__(self, format_type, dataset_type, epoch):
@@ -56,8 +71,8 @@ class DaliDataLoader(BaseDataLoader):
 
     @dlp.log
     def read(self):
-        num_samples = self._args.total_samples_train if self.dataset_type is DatasetType.TRAIN else self._args.total_samples_eval
-        batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
+        parallel = True if self._args.read_threads > 0 else False
+        self.pipelines = []
         num_threads = 1
         if self._args.read_threads > 0:
             num_threads = self._args.read_threads
@@ -65,15 +80,15 @@ class DaliDataLoader(BaseDataLoader):
         if self._args.prefetch_size > 0:
             prefetch_size = self._args.prefetch_size
         num_pipelines = 1
-        samples_per_worker = num_samples // num_pipelines // self._args.comm_size
+        samples_per_worker = self.num_samples // num_pipelines // self._args.comm_size
 
         for worker_index in range(num_pipelines):
             global_worker_index = self._args.my_rank * num_pipelines + worker_index
             # None executes pipeline on CPU and the reader does the batching
             dataset = DaliDataset(self.format_type, self.dataset_type, self.epoch_number, global_worker_index,
-                                  self._args.comm_size * num_pipelines, num_samples, samples_per_worker, batch_size)
-            pipeline = Pipeline(batch_size=batch_size, num_threads=num_threads, device_id=None, py_num_workers=num_threads//num_pipelines,
-                                prefetch_queue_depth=prefetch_size, py_start_method='fork', exec_async=True)
+                                  self._args.comm_size * num_pipelines, self.num_samples, samples_per_worker, self.batch_size)
+            pipeline = Pipeline(batch_size=self.batch_size, num_threads=num_threads, device_id=None, py_num_workers=num_threads//num_pipelines,
+                                prefetch_queue_depth=prefetch_size, py_start_method=self._args.multiprocessing_context, exec_async=True)
             with pipeline:
                 images, labels = fn.external_source(source=dataset, num_outputs=2, dtype=[types.UINT8, types.UINT8],
                                                     parallel=True, batch=False)
@@ -91,13 +106,11 @@ class DaliDataLoader(BaseDataLoader):
     @dlp.log
     def next(self):
         super().next()
-        num_samples = self._args.total_samples_train if self.dataset_type is DatasetType.TRAIN else self._args.total_samples_eval
-        batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
         # DALIGenericIterator(self.pipelines, ['data', 'label'])
 
         logging.debug(f"{utcnow()} Iterating pipelines by {self._args.my_rank} rank ")
         step = 0
-        while step <= num_samples // batch_size:
+        while step <= self.num_samples // self.batch_size:
             for pipe in self.pipelines:
                 outputs = pipe.share_outputs()
                 logging.debug(f"{utcnow()} Output batch {step} {len(outputs)}")
