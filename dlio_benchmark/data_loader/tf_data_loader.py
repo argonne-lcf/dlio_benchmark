@@ -80,12 +80,11 @@ class TFDataLoader(BaseDataLoader):
             options.experimental_threading.private_threadpool_size = read_threads
             options.experimental_threading.max_intra_op_parallelism = read_threads
 
-        batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
         self._dataset = tf.data.Dataset.from_tensor_slices(np.arange(read_threads)).with_options(options)
 
         self._dataset = self._dataset.interleave(lambda x: TensorflowDataset(self.format_type, self.dataset_type,
                                                                              self.epoch_number, (
-                                                                                 batch_size,
+                                                                                 self.batch_size,
                                                                                  self._args.max_dimension,
                                                                                  self._args.max_dimension), x),
                                                  cycle_length=read_threads,
