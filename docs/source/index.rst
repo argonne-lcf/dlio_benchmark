@@ -31,6 +31,13 @@ GitHub repo: https://github.com/argonne-lcf/dlio_benchmark.
 
 .. toctree::
    :maxdepth: 2
+   :caption: Defining Plugins
+
+   custom_data_loader
+   custom_reader
+
+.. toctree::
+   :maxdepth: 2
    :caption: Tested systems and Known issues
 
    testedsystems
