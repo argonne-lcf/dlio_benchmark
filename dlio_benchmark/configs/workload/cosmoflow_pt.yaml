@@ -11,8 +11,8 @@ dataset:
  num_files_train: 524288
  num_files_eval: 65536
  num_samples_per_file: 1
- record_length: 2898688.13
- record_length_stdev: 79243.96
+ record_length: 16777488
+ record_length_stdev: 0
  format: npz
 
 reader:

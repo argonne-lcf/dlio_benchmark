@@ -107,6 +107,8 @@ class TorchDataLoader(BaseDataLoader):
                                        num_workers=self._args.read_threads,
                                        pin_memory=True,
                                        drop_last=True,
+                                       worker_init_fn=dataset.worker_init,
+                                       **kwargs)
         else: 
             self._dataset = DataLoader(dataset,
                                        batch_size=self.batch_size,
