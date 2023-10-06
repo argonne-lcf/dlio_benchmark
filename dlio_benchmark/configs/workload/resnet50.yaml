@@ -14,7 +14,7 @@ dataset:
  format: tfrecord
  
 train:
- computation_time: 0.01
+ computation_time: 0.098
  
 reader:
  data_loader: tensorflow
