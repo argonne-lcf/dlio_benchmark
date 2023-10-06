@@ -238,7 +238,7 @@ class DLIOBenchmark(object):
                     eval_time = random.normal(self.eval_time, self.eval_time_stdev)
                 else:
                     eval_time = self.eval_time
-                self.framework.compute(epoch, step, eval_time)
+                self.framework.compute(batch, epoch, step, eval_time)
             self.stats.eval_batch_processed(epoch, step, t0, eval_time)
 
             step += 1
@@ -276,7 +276,7 @@ class DLIOBenchmark(object):
                     computation_time = random.normal(self.computation_time, self.computation_time_stdev)
                 else:
                     computation_time = self.computation_time
-                self.framework.compute(epoch, block_step, computation_time)
+                self.framework.compute(batch, epoch, block_step, computation_time)
             self.framework.barrier()
             self.stats.batch_processed(epoch, overall_step, block, t0, computation_time)
             if self.do_checkpoint and (
