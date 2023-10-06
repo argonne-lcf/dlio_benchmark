@@ -111,7 +111,7 @@ class TFFramework(Framework):
             self.storage.put_data(meta_file, string_val)
 
     @dlp.log
-    def compute(self, epoch_number, step, computation_time):
+    def compute(self, x, epoch_number, step, computation_time):
         sleep(computation_time)
         #tf.function(self.model)(epoch_number, step, computation_time)
 

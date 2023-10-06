@@ -81,7 +81,7 @@ class Framework(ABC):
         sleep(computation_time)
 
     @abstractmethod
-    def compute(self, epoch_number, step, computation_time):
+    def compute(self, x, epoch_number, step, computation_time):
         pass
 
     @abstractmethod
