@@ -172,6 +172,12 @@ dataset
 .. note :: 
   The DALI data loader configuration needs to be coupled with pytorch framework otherwise will fail.
 
+.. attention::
+  
+  For `format: jpeg`, it is not recommended to generate data due to its lossy compression nature. Instead, provide the path to original dataset in the `data_folder` parameter. 
+  More information on JPEG image generator analysis is provided at :ref:`jpeg_generator_issue` section. 
+  Follow the original dataset directory structure as described in :ref:`directory structure <directory-structure-label>`
+  
 reader 
 ------------------
 .. list-table:: 
