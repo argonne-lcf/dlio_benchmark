@@ -81,7 +81,7 @@ class FileStorage(DataStorage):
         if not use_pattern:
             return os.listdir(self.get_uri(id))
         else:
-            return filefiles(self.get_uri(id))
+            return findfiles(self.get_uri(id))
 
     @dlp.log
     def delete_node(self, id):
