@@ -25,9 +25,16 @@ import glob
 import shutil
 
 from dlio_benchmark.utils.utility import Profile
+from fnmatch import fnmatch
 
 dlp = Profile(MODULE_STORAGE)
+import re
 
+def findfiles(which, where='.'):
+    '''Returns list of filenames from `where` path matched by 'which'
+       shell pattern. Matching is case-insensitive.'''
+    rule = re.compile(fnmatch.translate(which), re.IGNORECASE)
+    return [name for name in os.listdir(where) if rule.match(name)]
 
 class FileStorage(DataStorage):
     """
@@ -75,7 +82,7 @@ class FileStorage(DataStorage):
         if not use_pattern:
             return os.listdir(self.get_uri(id))
         else:
-            return glob.glob(self.get_uri(id))
+            return findfiles(self.get_uri(id))
 
     @dlp.log
     def delete_node(self, id):

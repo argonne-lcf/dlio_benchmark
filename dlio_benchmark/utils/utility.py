@@ -199,7 +199,8 @@ class PerfTrace:
             formatter = logging.Formatter("%(message)s")
             fh.setFormatter(formatter)
             instance.logger.addHandler(fh)
-
+            instance.logger.debug("[")
+            
     def get_time(self):
         if self.logger_type == LoggerType.DLIO_PROFILER:
             return self.logger.get_time()

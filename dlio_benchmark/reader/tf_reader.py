@@ -36,7 +36,8 @@ class TFReader(FormatReader):
     def __init__(self, dataset_type, thread_index, epoch):
         super().__init__(dataset_type, thread_index)
         self._dataset = None
-
+        self._file_list = self._args.file_list_train if self.dataset_type is DatasetType.TRAIN else self._args.file_list_eval
+        self.batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
     @dlp.log
     def open(self, filename):
         pass
@@ -79,17 +80,15 @@ class TFReader(FormatReader):
 
     @dlp.log
     def next(self):
-        _file_list = self._args.file_list_train if self.dataset_type is DatasetType.TRAIN else self._args.file_list_eval
-        batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
         logging.debug(
-            f"{utcnow()} Reading {len(_file_list)} files thread {self.thread_index} rank {self._args.my_rank}")
-        self._dataset = tf.data.TFRecordDataset(filenames=_file_list, buffer_size=self._args.transfer_size)
+            f"{utcnow()} Reading {len(self._file_list)} files thread {self.thread_index} rank {self._args.my_rank}")
+        self._dataset = tf.data.TFRecordDataset(filenames=self._file_list, buffer_size=self._args.transfer_size)
         self._dataset = self._dataset.shard(num_shards=self._args.comm_size, index=self._args.my_rank)
         self._dataset = self._dataset.map(
             lambda x: tf.py_function(func=self.parse_image, inp=[x], Tout=[tf.uint8])
             , num_parallel_calls=self._args.computation_threads)
-        self._dataset = self._dataset.batch(batch_size, drop_remainder=True)
-        total = math.ceil(len(_file_list)/self._args.comm_size / batch_size * self._args.num_samples_per_file)
+        self._dataset = self._dataset.batch(self.batch_size, drop_remainder=True)
+        total = math.ceil(len(self._file_list)/self._args.comm_size / self.batch_size * self._args.num_samples_per_file)
         step = 1
         for batch in self._dataset:
             is_last = 0 if step <= total else 1
