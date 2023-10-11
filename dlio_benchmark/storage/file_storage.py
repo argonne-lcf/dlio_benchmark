@@ -25,6 +25,7 @@ import glob
 import shutil
 
 from dlio_benchmark.utils.utility import Profile
+from fnmatch import fnmatch
 
 dlp = Profile(MODULE_STORAGE)
 import re
