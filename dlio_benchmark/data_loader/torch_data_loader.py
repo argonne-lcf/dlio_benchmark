@@ -99,7 +99,7 @@ class TorchDataLoader(BaseDataLoader):
                     'prefetch_factor': prefetch_factor, 
                     'persistent_workers': True}
         if torch.__version__ == '1.3.1':
-            if 'prefetch_factor' in kargs:
+            if 'prefetch_factor' in kwargs:
                 del kwargs['prefetch_factor']
             self._dataset = DataLoader(dataset,
                                        batch_size=self.batch_size,
