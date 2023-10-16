@@ -96,10 +96,11 @@ class TorchDataLoader(BaseDataLoader):
             kwargs={}
         else:
             kwargs={'multiprocessing_context':self._args.multiprocessing_context,
-                    'prefetch_factor': prefetch_factor, 
-                    'persistent_workers': True}
+                    'prefetch_factor': prefetch_factor}
+            if torch.__version__ != '1.3.1':       
+                kwargs['persistent_workers'] = True
         if torch.__version__ == '1.3.1':
-            if 'prefetch_factor' in kargs:
+            if 'prefetch_factor' in kwargs:
                 del kwargs['prefetch_factor']
             self._dataset = DataLoader(dataset,
                                        batch_size=self.batch_size,
@@ -107,7 +108,7 @@ class TorchDataLoader(BaseDataLoader):
                                        num_workers=self._args.read_threads,
                                        pin_memory=True,
                                        drop_last=True,
-                                       worker_init_fn=dataset.worker_init,
+                                       worker_init_fn=dataset.worker_init, 
                                        **kwargs)
         else: 
             self._dataset = DataLoader(dataset,

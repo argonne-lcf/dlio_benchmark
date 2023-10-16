@@ -48,6 +48,7 @@ class JPEGReader(FormatReader):
         super().get_sample(filename, sample_index)
         image = self.open_file_map[filename]
         dlp.update(image_size=image.nbytes)
+        return image
 
     def next(self):
         for batch in super().next():
