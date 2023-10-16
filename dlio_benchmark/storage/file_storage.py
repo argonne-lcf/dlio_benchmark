@@ -77,7 +77,10 @@ class FileStorage(DataStorage):
             format= self.get_uri(id).split(".")[-1]
             upper_case = self.get_uri(id).replace(format, format.upper())
             lower_case = self.get_uri(id).replace(format, format.lower())
-            return glob.glob(self.get_uri(id))+glob.glob(upper_case)+glob.glob(lower_case)
+            if format != format.lower():
+                raise Exception(f"Unknown file format {format}")
+            return glob.glob(self.get_uri(id)) + glob.glob(upper_case)
+
 
     @dlp.log
     def delete_node(self, id):
