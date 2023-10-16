@@ -94,6 +94,7 @@ class TFDataLoader(BaseDataLoader):
 
     @dlp.log
     def next(self):
+        super().next()
         for batch in self._dataset:
             yield batch
 
