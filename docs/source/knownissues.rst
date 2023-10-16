@@ -12,3 +12,6 @@ Limitations and future works
   - For npz, png, jpeg, we currently only support one sample per file case. Multiple samples per file case will be supported in future. We have limited support for hdf5 format for multiple samples per file cases. 
 
 * Profiler support: Darshan is only supported in LINUX system, and might not work well within container. 
+
+* JPEG image generator : It is not recommended to generate `format: jpeg` data due to its lossy compression nature. Instead, provide the path to original dataset in the `data_folder` parameter. More information at :ref:`jpeg_generator_issue` section. 
+
