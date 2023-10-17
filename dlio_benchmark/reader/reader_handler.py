@@ -79,7 +79,7 @@ class FormatReader(ABC):
 
         for global_sample_idx, filename, sample_index in self._args.file_map[self.thread_index]:
             self.image_idx = global_sample_idx
-            if filename not in self.open_file_map:
+            if filename not in self.open_file_map or self.open_file_map[filename] is None:
                 self.open_file_map[filename] = self.open(filename)
             self.get_sample(filename, sample_index)
             self.preprocess()
@@ -107,9 +107,9 @@ class FormatReader(ABC):
         filename, sample_index = self._args.global_index_map[global_sample_idx]
         logging.debug(f"{utcnow()} read_index {filename}, {sample_index}")
         FormatReader.read_images += 1
-        if self._args.read_type is ReadType.ON_DEMAND or filename not in self.open_file_map:
+        if self._args.read_type is ReadType.ON_DEMAND or filename not in self.open_file_map or self.open_file_map[filename] is None:
             self.open_file_map[filename] = self.open(filename)
-        image = self.get_sample(filename, sample_index)
+        self.get_sample(filename, sample_index)
         self.preprocess()
         if self._args.read_type is ReadType.ON_DEMAND:
             self.close(filename)

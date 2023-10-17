@@ -111,7 +111,7 @@ class TorchFramework(Framework):
             f.close()
 
     @dlp.log
-    def compute(self, epoch_number, step, computation_time):
+    def compute(self, x, epoch_number, step, computation_time):
         torch_sleep(computation_time)
 
     @dlp.log
