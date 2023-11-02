@@ -49,8 +49,10 @@ class DataGenerator(ABC):
         self.num_subfolders_train = self._args.num_subfolders_train
         self.num_subfolders_eval = self._args.num_subfolders_eval
         self.format = self._args.format
-        self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root,
-                                                                        self._args.framework)
+        self.storage = StorageFactory().get_storage(self._args.storage_type,
+                                self._args.storage_root, self._args.framework,
+                                self._args.fsspec_plugin,
+                                self._args.fsspec_extra_params)
     def get_dimension(self):
         if (self._dimension_stdev>0):
             dim1, dim2 = [max(int(d), 1) for d in np.random.normal(self._dimension, self._dimension_stdev, 2)]

@@ -24,7 +24,7 @@ from time import time
 from typing import List, ClassVar
 
 from dlio_benchmark.common.constants import MODULE_CONFIG
-from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
+from dlio_benchmark.common.enumerations import StorageType, FsspecPlugin, FormatType, Shuffle, ReadType, FileAccess, Compression, \
     FrameworkType, \
     DataLoaderType, Profiler, DatasetType, DataLoaderSampler
 from dataclasses import dataclass
@@ -53,6 +53,9 @@ class ConfigArguments:
     # Set root as the current directory by default
     storage_root: str = "./"
     storage_type: StorageType = StorageType.LOCAL_FS
+    # fsspec options ignored if storage_type != StorageType.FSSPEC_FS
+    fsspec_plugin: FsspecPlugin = FsspecPlugin.LOCAL_FS
+    fsspec_extra_params = {}
     record_length: int = 64 * 1024
     record_length_stdev: int = 0
     record_length_resize: int = 0
@@ -307,6 +310,10 @@ def LoadConfig(args, config):
             args.storage_type = StorageType(config['storage']['storage_type'])
         if 'storage_root' in config['storage']:
             args.storage_root = config['storage']['storage_root']
+        if 'fsspec_plugin' in config['storage']:
+            args.fsspec_plugin = FsspecPlugin(config['storage']['fsspec_plugin'])
+        if 'fsspec_extra_params' in config['storage']:
+            args.fsspec_extra_params = config['storage']['fsspec_extra_params']
         
     # dataset related settings
     if 'dataset' in config:

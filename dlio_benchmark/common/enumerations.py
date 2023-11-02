@@ -24,6 +24,18 @@ class StorageType(Enum):
     LOCAL_FS = 'local_fs'
     PARALLEL_FS = 'parallel_fs'
     S3 = 's3'
+    FSSPEC_FS = 'fsspec_fs'
+
+    def __str__(self):
+        return self.value
+
+class FsspecPlugin(Enum):
+    """
+    Different plugins of fsspec implementations
+    """
+    LOCAL_FS = 'local_fs'
+    S3 = 's3'
+    DAOS_FS = 'daos_fs'
 
     def __str__(self):
         return self.value
