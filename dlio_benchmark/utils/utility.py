@@ -162,7 +162,7 @@ class PerfTrace:
     logger_type = LoggerType.DEFAULT
     logger = None
     def __init__(self):
-        self.logfile = f"./.trace-{get_rank()}-of-{get_size()}" + ".pfw"
+        self.logfile = f"./trace-{get_rank()}-of-{get_size()}" + ".pfw"
         self.log_file = None
         self.logger = None
         self.logger_type = LoggerType.DEFAULT
