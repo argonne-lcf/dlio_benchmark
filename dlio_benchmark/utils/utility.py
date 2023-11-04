@@ -184,11 +184,13 @@ class PerfTrace:
             os.remove(instance.log_file)
         spec = importlib.util.find_spec('dlio_profiler_py')
         if spec:
+            logging.info(f"{utcnow()} Using DLIO Profiler")
             instance.logger_type = LoggerType.DLIO_PROFILER
             import dlio_profiler_py as dlio_logger
             instance.logger = dlio_logger
             instance.logger.initialize(instance.log_file, f"{data_dir}", process_id=get_rank())
         else:
+            logging.info(f"{utcnow()} Using Internal Profiler.")
             instance.logger = logging.getLogger("perftrace")
             instance.logger.setLevel(logging.DEBUG)
             instance.logger.propagate = False
