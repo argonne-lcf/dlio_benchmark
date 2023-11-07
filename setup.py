@@ -11,9 +11,7 @@ core_deps = [
  'numpy',
  'h5py',
  'pandas',
- 'psutil'
-]
-dlio_profiler_deps = [
+ 'psutil',
  'dlio_profiler_py @ git+https://github.com/hariharan-devarajan/dlio-profiler.git@dev'
 ]
 x86_deps = [
@@ -35,7 +33,6 @@ else:
 print(deps)
 extras = {
     'test': test_deps,
-    'dlio_profiler': dlio_profiler_deps
 }
 import pathlib
 here = pathlib.Path(__file__).parent.resolve()
