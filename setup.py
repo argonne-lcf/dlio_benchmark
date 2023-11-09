@@ -12,7 +12,7 @@ core_deps = [
  'h5py',
  'pandas',
  'psutil',
- 'dlio_profiler_py @ git+https://github.com/hariharan-devarajan/dlio-profiler.git@dev'
+ 'dlio_profiler_py @ git+https://github.com/hariharan-devarajan/dlio-profiler.git@v0.0.2'
 ]
 x86_deps = [
  'hydra-core == 1.2.0',
