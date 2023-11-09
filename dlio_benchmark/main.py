@@ -72,7 +72,7 @@ class DLIOBenchmark(object):
             except:
                 self.args.output_folder = 'output/'
         self.output_folder = self.args.output_folder
-        PerfTrace.initialize_log(self.args.output_folder, os.path.abspath(self.args.data_folder))
+        PerfTrace.initialize_log(self.args.output_folder, f"{os.path.abspath(self.args.data_folder)}:{self.args.data_folder}:./{self.args.data_folder}")
         with Profile(name=f"{self.__init__.__qualname__}", cat=MODULE_DLIO_BENCHMARK):
             self.storage = StorageFactory().get_storage(self.args.storage_type,
                                     self.args.storage_root, self.args.framework,
