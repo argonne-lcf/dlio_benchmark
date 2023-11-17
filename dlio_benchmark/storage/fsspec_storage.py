@@ -97,25 +97,21 @@ class FsspecStorage(DataStorage):
     # Namespace APIs
     @dlp.log
     def create_namespace(self, exist_ok=False):
-        pdb.set_trace()
         self.fs.makedirs(self.get_uri(), exist_ok=exist_ok)
         return True
 
     @dlp.log
     def get_namespace(self):
-        pdb.set_trace()
         return self.namespace.name
 
     # Metadata APIs
     @dlp.log
     def create_node(self, id, exist_ok=False):
-        pdb.set_trace()
         self.fs.makedirs(self.get_uri(id), exist_ok=exist_ok)
         return True
 
     @dlp.log
     def get_node(self, id=None):
-        pdb.set_trace()
         path = self.get_uri(id)
         if self.fs.exists(path):
             if self.fs.isdir(path):
@@ -129,28 +125,24 @@ class FsspecStorage(DataStorage):
     def walk_node(self, id, use_pattern=False):
 # rehm: I need to test the NotFoundError logic here that exists for S3 and
 # maybe duplicate it.  Is the exception the same?
-        pdb.set_trace()
         if not use_pattern:
-            return self.fs.listdir(self.get_uri(id))
+            return self.fs.listdir(self.get_uri(id, detail=False))
         else:
             return self.fs.glob(self.get_uri(id))
 
     @dlp.log
     def delete_node(self, id):
-        pdb.set_trace()
         self.fs.rm(self.get_uri(id), recursive=True)
         return True
 
     # TODO Handle partial read and writes
     @dlp.log
     def put_data(self, id, data, offset=None, length=None):
-        pdb.set_trace()
         with self.fs.open(self.get_uri(id), mode="w") as fd:
             fd.write(data)
 
     @dlp.log
     def get_data(self, id, data, offset=None, length=None):
-        pdb.set_trace()
         with self.fs.open(self.get_uri(id), mode="r") as fd:
             data = fd.read()
         return data
@@ -179,5 +171,4 @@ class FsspecStorage(DataStorage):
         return self.fs.open(self.get_uri(id), mode=mode)
     
     def get_basename(self, id):
-        pdb.set_trace()
         return os.path.basename(id)

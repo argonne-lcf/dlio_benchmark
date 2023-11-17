@@ -18,6 +18,7 @@
 from dlio_benchmark.common.enumerations import Compression
 from dlio_benchmark.data_generator.data_generator import DataGenerator
 
+import fsspec
 import logging
 import numpy as np
 
@@ -54,5 +55,7 @@ class JPEGGenerator(DataGenerator):
                 logging.info(f"Generated file {i}/{self.total_files_to_generate}")
             out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating JPEG Data")
-            img.save(out_path_spec, format='JPEG', bits=8)
+            # rehm: should non-fsspec filesystem types be allowed?
+            with fsspec.open(out_path_spec, 'w') as f:
+                img.save(f, format='JPEG', bits=8)
         np.random.seed()

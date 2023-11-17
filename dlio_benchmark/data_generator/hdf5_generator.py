@@ -15,6 +15,7 @@
    limitations under the License.
 """
 
+import fsspec
 import h5py
 import numpy as np
 
@@ -50,29 +51,29 @@ class HDF5Generator(DataGenerator):
             dim1, dim2 = self.get_dimension()
             records = np.random.randint(255, size=(samples_per_iter, dim1, dim2), dtype=np.uint8)
             out_path_spec = self.storage.get_uri(self._file_list[i])
-            hf = h5py.File(out_path_spec, 'w')
-            chunks = None
-            if self.enable_chunking:
-                chunk_dimension = int(math.ceil(math.sqrt(self.chunk_size)))
-                if chunk_dimension > self._dimension:
-                    chunk_dimension = self._dimension
-                chunks = (1, chunk_dimension, chunk_dimension)
-            compression = None
-            compression_level = None
-            if self.compression != Compression.NONE:
-                compression = str(self.compression)
-                if self.compression == Compression.GZIP:
-                    compression_level = self.compression_level
-            dset = hf.create_dataset('records', (self.num_samples, dim1, dim2), chunks=chunks, compression=compression,
+            # rehm: should non-fsspec filesystem types be allowed?
+            with fsspec.open(out_path_spec, 'w') as hf:
+                chunks = None
+                if self.enable_chunking:
+                    chunk_dimension = int(math.ceil(math.sqrt(self.chunk_size)))
+                    if chunk_dimension > self._dimension:
+                        chunk_dimension = self._dimension
+                    chunks = (1, chunk_dimension, chunk_dimension)
+                compression = None
+                compression_level = None
+                if self.compression != Compression.NONE:
+                    compression = str(self.compression)
+                    if self.compression == Compression.GZIP:
+                        compression_level = self.compression_level
+                dset = hf.create_dataset('records', (self.num_samples, dim1, dim2), chunks=chunks, compression=compression,
                                      compression_opts=compression_level, dtype=np.uint8)
-            samples_written = 0
-            while samples_written < self.num_samples:
-                if samples_per_iter < self.num_samples-samples_written:
-                    samples_to_write = samples_per_iter
-                else:
-                    samples_to_write = self.num_samples-samples_written
-                dset[samples_written:samples_written+samples_to_write] = records[:samples_to_write]
-                samples_written += samples_to_write
-            hf.create_dataset('labels', data=record_labels)
-            hf.close()
+                samples_written = 0
+                while samples_written < self.num_samples:
+                    if samples_per_iter < self.num_samples-samples_written:
+                        samples_to_write = samples_per_iter
+                    else:
+                        samples_to_write = self.num_samples-samples_written
+                    dset[samples_written:samples_written+samples_to_write] = records[:samples_to_write]
+                    samples_written += samples_to_write
+                hf.create_dataset('labels', data=record_labels)
         np.random.seed()

@@ -16,6 +16,7 @@
 """
 
 from dlio_benchmark.data_generator.data_generator import DataGenerator
+import fsspec
 import numpy as np
 import tensorflow as tf
 
@@ -47,21 +48,22 @@ class TFRecordGenerator(DataGenerator):
             out_path_spec = self.storage.get_uri(self._file_list[i])
             dim1, dim2 = self.get_dimension()
             # Open a TFRecordWriter for the output-file.
-            with tf.io.TFRecordWriter(out_path_spec) as writer:
-                for i in range(0, self.num_samples):
-                    # This creates a 2D image representing a single record
-                    record = np.random.randint(255, size=(dim1, dim2), dtype=np.uint8)
-                    img_bytes = record.tobytes()
-                    data = {
-                        'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img_bytes])),
-                        'size': tf.train.Feature(int64_list=tf.train.Int64List(value=[self._dimension]))
-                    }
-                    # Wrap the data as TensorFlow Features.
-                    feature = tf.train.Features(feature=data)
-                    # Wrap again as a TensorFlow Example.
-                    example = tf.train.Example(features=feature)
-                    # Serialize the data.
-                    serialized = example.SerializeToString()
-                    # Write the serialized data to the TFRecords file.
-                    writer.write(serialized)
+            with fsspec.open(out_path_spec, 'wb') as f:
+                with tf.io.TFRecordWriter(f) as writer:
+                    for i in range(0, self.num_samples):
+                        # This creates a 2D image representing a single record
+                        record = np.random.randint(255, size=(dim1, dim2), dtype=np.uint8)
+                        img_bytes = record.tobytes()
+                        data = {
+                            'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img_bytes])),
+                            'size': tf.train.Feature(int64_list=tf.train.Int64List(value=[self._dimension]))
+                        }
+                        # Wrap the data as TensorFlow Features.
+                        feature = tf.train.Features(feature=data)
+                        # Wrap again as a TensorFlow Example.
+                        example = tf.train.Example(features=feature)
+                        # Serialize the data.
+                        serialized = example.SerializeToString()
+                        # Write the serialized data to the TFRecords file.
+                        writer.write(serialized)
         np.random.seed()
