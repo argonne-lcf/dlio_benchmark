@@ -18,7 +18,6 @@
 from dlio_benchmark.data_generator.data_generator import DataGenerator
 import numpy as np
 import tensorflow as tf
-
 from dlio_benchmark.utils.utility import progress, utcnow
 from dlio_profiler.logger import fn_interceptor as Profile
 from shutil import copyfile
