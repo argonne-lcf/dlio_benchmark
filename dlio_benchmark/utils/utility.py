@@ -158,4 +158,4 @@ def create_dur_event(name, cat, ts, dur, args={}):
 
 
 def get_trace_name(output_folder):
-    return f"{output_folder}/.trace-{get_rank()}-of-{get_size()}.pfw"
+    return f"{output_folder}/trace-{get_rank()}-of-{get_size()}.pfw"
