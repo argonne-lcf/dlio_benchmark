@@ -11,10 +11,8 @@ core_deps = [
  'numpy',
  'h5py',
  'pandas',
- 'psutil'
-]
-dlio_profiler_deps = [
- 'dlio_profiler_py @ git+https://github.com/hariharan-devarajan/dlio-profiler.git@dev'
+ 'psutil',
+ 'dlio_profiler_py @ git+https://github.com/hariharan-devarajan/dlio-profiler.git@v0.0.2'
 ]
 x86_deps = [
  'hydra-core == 1.2.0',
@@ -35,7 +33,6 @@ else:
 print(deps)
 extras = {
     'test': test_deps,
-    'dlio_profiler': dlio_profiler_deps
 }
 import pathlib
 here = pathlib.Path(__file__).parent.resolve()

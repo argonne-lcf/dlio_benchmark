@@ -20,7 +20,8 @@ from dlio_benchmark.common.enumerations import FrameworkType, Shuffle, FileAcces
     ReadType
 from dlio_benchmark.framework.framework_factory import FrameworkFactory
 from dlio_benchmark.storage.storage_factory import StorageFactory
-from dlio_benchmark.utils.utility import Profile, utcnow
+from dlio_benchmark.utils.utility import utcnow
+from dlio_profiler.logger import fn_interceptor as Profile
 from dlio_benchmark.utils.config import ConfigArguments
 import numpy as np
 import os
