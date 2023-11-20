@@ -24,7 +24,8 @@ import os
 import torch
 import functools
 import logging
-from dlio_benchmark.utils.utility import utcnow, PerfTrace, Profile
+from dlio_benchmark.utils.utility import utcnow
+from dlio_profiler.logger import fn_interceptor as Profile
 
 from time import sleep, time
 

@@ -20,7 +20,7 @@ from PIL import Image
 
 from dlio_benchmark.common.constants import MODULE_DATA_READER
 from dlio_benchmark.reader.reader_handler import FormatReader
-from dlio_benchmark.utils.utility import Profile
+from dlio_profiler.logger import fn_interceptor as Profile
 
 dlp = Profile(MODULE_DATA_READER)
 

@@ -21,7 +21,8 @@ from time import time, sleep
 
 from dlio_benchmark.common.constants import MODULE_AI_FRAMEWORK
 from dlio_benchmark.data_loader.data_loader_factory import DataLoaderFactory
-from dlio_benchmark.utils.utility import utcnow, Profile
+from dlio_benchmark.utils.utility import utcnow
+from dlio_profiler.logger import fn_interceptor as Profile
 from dlio_benchmark.common.error_code import ErrorCodes
 from dlio_benchmark.framework.framework import Framework
 from dlio_benchmark.reader.reader_factory import ReaderFactory
