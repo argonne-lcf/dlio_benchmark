@@ -20,7 +20,7 @@ import hydra
 import logging
 import pandas as pd
 from time import time, sleep
-import json 
+import json
 import numpy as np
 
 # Reduce TF and CUDA logging
@@ -36,7 +36,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 from dataclasses import dataclass
-from dlio_benchmark.utils.utility import utcnow, measure_performance, PerfTrace, Profile
+from dlio_benchmark.utils.utility import utcnow, measure_performance, get_trace_name, get_rank
 from omegaconf import DictConfig, OmegaConf
 from dlio_benchmark.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
@@ -46,7 +46,11 @@ from dlio_benchmark.profiler.profiler_factory import ProfilerFactory
 from dlio_benchmark.framework.framework_factory import FrameworkFactory
 from dlio_benchmark.data_generator.generator_factory import GeneratorFactory
 from dlio_benchmark.storage.storage_factory import StorageFactory
+from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile
+
 dlp = Profile(MODULE_DLIO_BENCHMARK)
+
+
 class DLIOBenchmark(object):
     """
     The Benchmark represents the I/O behavior of deep learning applications.
@@ -72,12 +76,31 @@ class DLIOBenchmark(object):
             except:
                 self.args.output_folder = 'output/'
         self.output_folder = self.args.output_folder
-        PerfTrace.initialize_log(self.args.output_folder, os.path.abspath(self.args.data_folder))
-        with Profile(name=f"{self.__init__.__qualname__}", cat=MODULE_DLIO_BENCHMARK):
-            self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
+        self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root,
+                                                    self.args.framework)
 
-            self.output_folder = self.args.output_folder
-            self.logfile = os.path.join(self.output_folder, self.args.log_file)
+        self.output_folder = self.args.output_folder
+        self.output = StorageFactory().get_storage(self.args.storage_type, self.args.output_folder,
+                                                   self.args.framework)
+        self.output.create_namespace(exist_ok=True)
+        self.logfile = os.path.join(self.output_folder, self.args.log_file)
+        # Configure the logging library
+        log_level = logging.DEBUG if self.args.debug else logging.INFO
+        logging.basicConfig(
+            level=log_level,
+            handlers=[
+                logging.FileHandler(self.logfile, mode="a", encoding='utf-8'),
+                logging.StreamHandler()
+            ],
+            format='[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'
+            # logging's max timestamp resolution is msecs, we will pass in usecs in the message
+        )
+        dlp_trace = get_trace_name(self.args.output_folder)
+        logging.info(f"{utcnow()} Profiling DLIO {dlp_trace}")
+        self.dlp_logger = PerfTrace.initialize_log(logfile=dlp_trace,
+                                                     data_dir=f"{os.path.abspath(self.args.data_folder)}:{self.args.data_folder}:./{self.args.data_folder}",
+                                                     process_id=get_rank())
+        with Profile(name=f"{self.__init__.__qualname__}", cat=MODULE_DLIO_BENCHMARK):
             self.data_folder = self.args.data_folder
             self.storage_root = self.args.storage_root
             if self.args.storage_root:
@@ -92,18 +115,6 @@ class DLIOBenchmark(object):
                 if os.path.isfile(self.logfile):
                     os.remove(self.logfile)
             self.framework.barrier()
-            # Configure the logging library
-            log_level = logging.DEBUG if self.args.debug else logging.INFO
-            logging.basicConfig(
-                level=log_level,
-                handlers=[
-                    logging.FileHandler(self.logfile, mode="a", encoding='utf-8'),
-                    logging.StreamHandler()
-                ],
-                format='[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'
-                # logging's max timestamp resolution is msecs, we will pass in usecs in the message
-            )
-
             if self.args.my_rank == 0:
                 logging.info(f"{utcnow()} Running DLIO with {self.args.comm_size} process(es)")
                 try:
@@ -149,6 +160,7 @@ class DLIOBenchmark(object):
             self.eval_after_epoch = self.args.eval_after_epoch
             self.epochs_between_evals = self.args.epochs_between_evals
         self.stats = StatsCounter()
+
     @dlp.log
     def initialize(self):
         """
@@ -180,40 +192,45 @@ class DLIOBenchmark(object):
         file_list_eval = []
         num_subfolders = 0
         for dataset_type in [DatasetType.TRAIN, DatasetType.VALID]:
-            if dataset_type==DatasetType.TRAIN:
+            if dataset_type == DatasetType.TRAIN:
                 num_subfolders = self.num_subfolders_train
             else:
                 num_subfolders = self.num_subfolders_eval
             filenames = self.storage.walk_node(os.path.join(self.args.data_folder, f"{dataset_type}"))
-            if (len(filenames)==0):
+            if (len(filenames) == 0):
                 continue
             if self.storage.get_node(
                     os.path.join(self.args.data_folder, f"{dataset_type}",
                                  filenames[0])) == MetadataType.DIRECTORY:
-                assert(num_subfolders == len(filenames))
-                fullpaths = self.storage.walk_node(os.path.join(self.args.data_folder, f"{dataset_type}/*/*.{self.args.format}"),
-                                                   use_pattern=True)
+                assert (num_subfolders == len(filenames))
+                fullpaths = self.storage.walk_node(
+                    os.path.join(self.args.data_folder, f"{dataset_type}/*/*.{self.args.format}"),
+                    use_pattern=True)
                 files = [self.storage.get_basename(f) for f in fullpaths]
                 idx = np.argsort(files)
                 fullpaths = [fullpaths[i] for i in idx]
             else:
-                assert(num_subfolders==0)
+                assert (num_subfolders == 0)
                 fullpaths = [self.storage.get_uri(os.path.join(self.args.data_folder, f"{dataset_type}", entry))
-                             for entry in filenames if entry.find(f'{self.args.format}')!=-1]
+                             for entry in filenames if entry.find(f'{self.args.format}') != -1]
                 fullpaths = sorted(fullpaths)
             if dataset_type is DatasetType.TRAIN:
                 file_list_train = fullpaths
             elif dataset_type is DatasetType.VALID:
                 file_list_eval = fullpaths
         if not self.generate_only and self.num_files_train > len(file_list_train):
-            raise Exception("Not enough training dataset is found; Please run the code with ++workload.workflow.generate_data=True")
+            raise Exception(
+                "Not enough training dataset is found; Please run the code with ++workload.workflow.generate_data=True")
         if self.do_eval and self.num_files_eval > len(file_list_eval):
-            raise Exception("Not enough evaluation dataset is found; Please run the code with ++workload.workflow.generate_data=True")
+            raise Exception(
+                "Not enough evaluation dataset is found; Please run the code with ++workload.workflow.generate_data=True")
         if (self.num_files_train < len(file_list_train)):
-            logging.warning(f"Number of files for training in {os.path.join(self.args.data_folder, f'{DatasetType.TRAIN}')} ({len(file_list_train)}) is more than requested ({self.num_files_train}). A subset of files will be used ")
+            logging.warning(
+                f"Number of files for training in {os.path.join(self.args.data_folder, f'{DatasetType.TRAIN}')} ({len(file_list_train)}) is more than requested ({self.num_files_train}). A subset of files will be used ")
             file_list_train = file_list_train[:self.num_files_train]
         if (self.num_files_eval < len(file_list_eval)):
-            logging.warning(f"Number of files for evaluation in {os.path.join(self.args.data_folder, f'{DatasetType.VALID}')} ({len(file_list_eval)}) is more than requested ({self.num_files_eval}). A subset of files will be used ")
+            logging.warning(
+                f"Number of files for evaluation in {os.path.join(self.args.data_folder, f'{DatasetType.VALID}')} ({len(file_list_eval)}) is more than requested ({self.num_files_eval}). A subset of files will be used ")
             file_list_eval = file_list_eval[:self.num_files_eval]
         self.args.derive_configurations(file_list_train, file_list_eval)
         self.args.validate()
@@ -246,6 +263,7 @@ class DLIOBenchmark(object):
                 break
             t0 = time()
         return step - 1
+
     @dlp.log
     def _train(self, epoch):
         """
@@ -334,7 +352,7 @@ class DLIOBenchmark(object):
             self.next_checkpoint_epoch = self.checkpoint_after_epoch
 
             for epoch in range(1, self.epochs + 1):
-                self.next_checkpoint_step = self.steps_between_checkpoints                
+                self.next_checkpoint_step = self.steps_between_checkpoints
                 self.stats.start_train(epoch)
 
                 # Initialize the dataset
@@ -352,6 +370,7 @@ class DLIOBenchmark(object):
                     self.stats.end_eval(epoch)
                     self.framework.get_loader(DatasetType.VALID).finalize()
         self.stats.end_run()
+
     @dlp.log
     def finalize(self):
         """
@@ -376,7 +395,9 @@ class DLIOBenchmark(object):
             # Save collected stats to disk
             self.stats.finalize()
             self.stats.save_data()
-        self.framework.barrier()  
+        self.framework.barrier()
+        self.dlp_logger.finalize()
+
 
 @hydra.main(version_base=None, config_path="configs", config_name="config")
 def main(cfg: DictConfig) -> None:
@@ -388,7 +409,6 @@ def main(cfg: DictConfig) -> None:
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()
-    PerfTrace.get_instance().finalize()
 
 
 if __name__ == '__main__':
