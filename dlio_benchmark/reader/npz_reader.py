@@ -35,7 +35,7 @@ class NPZReader(FormatReader):
     @dlp.log
     def open(self, filename):
         super().open(filename)
-        return np.load(filename, allow_pickle=True)["x"]
+        return np.load(filename, allow_pickle=True)['x']
 
     @dlp.log
     def close(self, filename):

@@ -78,7 +78,6 @@ class DLIOBenchmark(object):
         self.output_folder = self.args.output_folder
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root,
                                                     self.args.framework)
-
         self.output_folder = self.args.output_folder
         self.output = StorageFactory().get_storage(self.args.storage_type, self.args.output_folder,
                                                    self.args.framework)
