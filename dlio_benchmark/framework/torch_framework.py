@@ -24,7 +24,8 @@ import os
 import torch
 import functools
 import logging
-from dlio_benchmark.utils.utility import utcnow, PerfTrace, Profile
+from dlio_benchmark.utils.utility import utcnow
+from dlio_profiler.logger import fn_interceptor as Profile
 
 from time import sleep, time
 
@@ -111,7 +112,7 @@ class TorchFramework(Framework):
             f.close()
 
     @dlp.log
-    def compute(self, epoch_number, step, computation_time):
+    def compute(self, x, epoch_number, step, computation_time):
         torch_sleep(computation_time)
 
     @dlp.log

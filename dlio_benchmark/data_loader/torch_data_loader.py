@@ -24,7 +24,8 @@ from dlio_benchmark.common.constants import MODULE_DATA_LOADER
 from dlio_benchmark.common.enumerations import Shuffle, DatasetType, DataLoaderType
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
-from dlio_benchmark.utils.utility import utcnow, get_rank, Profile
+from dlio_benchmark.utils.utility import utcnow, get_rank
+from dlio_profiler.logger import fn_interceptor as Profile
 
 dlp = Profile(MODULE_DATA_LOADER)
 
@@ -108,7 +109,8 @@ class TorchDataLoader(BaseDataLoader):
                                        num_workers=self._args.read_threads,
                                        pin_memory=True,
                                        drop_last=True,
-                                       worker_init_fn=dataset.worker_init, **kwargs)
+                                       worker_init_fn=dataset.worker_init, 
+                                       **kwargs)
         else: 
             self._dataset = DataLoader(dataset,
                                        batch_size=self.batch_size,

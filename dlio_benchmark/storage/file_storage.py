@@ -24,10 +24,9 @@ import os
 import glob
 import shutil
 
-from dlio_benchmark.utils.utility import Profile
+from dlio_profiler.logger import fn_interceptor as Profile
 
 dlp = Profile(MODULE_STORAGE)
-
 
 class FileStorage(DataStorage):
     """
@@ -75,7 +74,13 @@ class FileStorage(DataStorage):
         if not use_pattern:
             return os.listdir(self.get_uri(id))
         else:
-            return glob.glob(self.get_uri(id))
+            format= self.get_uri(id).split(".")[-1]
+            upper_case = self.get_uri(id).replace(format, format.upper())
+            lower_case = self.get_uri(id).replace(format, format.lower())
+            if format != format.lower():
+                raise Exception(f"Unknown file format {format}")
+            return glob.glob(self.get_uri(id)) + glob.glob(upper_case)
+
 
     @dlp.log
     def delete_node(self, id):

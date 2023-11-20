@@ -11,14 +11,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-20.04, ubuntu-22.04 ]
-        profiler: [ DEFAULT, DLIO_PROFILER ]
+        profiler: [ 0, 1 ]
         gcc: [10]
         python: ["3.8", "3.9", "3.10" ]
     name: ${{ matrix.os }}-${{ matrix.profiler }}-${{ matrix.gcc }}-${{ matrix.python }}
     runs-on: ${{ matrix.os }}
     env:
       VENV: "/home/runner/work/venv"
-      DLIO_PROFILER: ${{ matrix.profiler }}
+      DLIO_PROFILER_ENABLE: ${{ matrix.profiler }}
       CC: gcc-${{ matrix.gcc }}
       CXX: g++-${{ matrix.gcc }}
       RDMAV_FORK_SAFE: "1"
@@ -48,10 +48,7 @@ jobs:
       run: |
         sudo apt update
         sudo apt-get install $CC $CXX libc6
-        sudo apt-get install mpich
-        if [[ $DLIO_PROFILER == 'DLIO_PROFILER' ]]; then
-          sudo apt-get install libhwloc-dev
-        fi
+        sudo apt-get install mpich libhwloc-dev
     - name: Install DLIO
       if: steps.cache-modules.outputs.cache-hit != 'true'
       run: |
@@ -60,11 +57,7 @@ jobs:
         pip install virtualenv
         python -m venv ${VENV}
         source ${VENV}/bin/activate
-        if [[ $DLIO_PROFILER == 'DLIO_PROFILER' ]]; then
-          pip install .[test,dlio_profiler]
-        else
-          pip install .[test] 
-        fi
+          pip install .[test]
         rm -rf dlio_benchmark
     - name: test_gen_data
       run: |

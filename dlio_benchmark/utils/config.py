@@ -32,7 +32,7 @@ import math
 import os
 import numpy as np
 
-from dlio_benchmark.utils.utility import Profile
+from dlio_profiler.logger import fn_interceptor as Profile
 dlp = Profile(MODULE_CONFIG)
 @dataclass
 class ConfigArguments:
