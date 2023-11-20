@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-from dlio_benchmark.utils.utility import Profile, PerfTrace
+from dlio_profiler.logger import fn_interceptor as Profile
+from dlio_profiler.logger import dlio_logger as PerfTrace
 import argparse
 import numpy as np
 import os
@@ -21,8 +22,6 @@ os.makedirs(f"{args.log_dir}/{args.format}", exist_ok=True)
 os.makedirs(f"{args.data_dir}/{args.format}", exist_ok=True)
 dlp = Profile("dlio")
 
-#PerfTrace.initialize_log(f"{args.log_dir}/{args.format}", 
-#                         'all')
 PerfTrace.initialize_log(f"{args.log_dir}/{args.format}", 
                          f"{args.data_dir}")
 #f"{args.data_dir}/{args.format}")
@@ -125,12 +124,10 @@ def data_generator(data):
 def train(epoch):        
     io.train_epoch()
 
-data_generator(data)
-for n in range(args.niter):
-    train(n)
+def main():    
+    data_generator(data)
+    for n in range(args.niter):
+        train(n)
 
-PerfTrace.get_instance().finalize()
-
-
-
-
+if __name__=="__main__":
+    main()
