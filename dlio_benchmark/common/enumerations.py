@@ -17,6 +17,16 @@
 
 from enum import Enum
 
+class CheckpointType(Enum):
+    """
+    Different types of underlying storage
+    """
+    COLLECTIVE = 'collective'
+    INDEPENDENT = 'independent'
+
+    def __str__(self):
+        return self.value
+
 class StorageType(Enum):
     """
     Different types of underlying storage

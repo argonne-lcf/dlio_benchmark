@@ -16,7 +16,7 @@
 """
 
 from dlio_benchmark.common.error_code import ErrorCodes
-from dlio_benchmark.common.enumerations import FormatType, FrameworkType, DatasetType, DataLoaderType
+from dlio_benchmark.common.enumerations import FormatType, FrameworkType, DatasetType, DataLoaderType, CheckpointType
 from dlio_benchmark.data_loader.data_loader_factory import DataLoaderFactory
 from dlio_benchmark.framework.framework import Framework, DummyTraceObject
 from dlio_benchmark.common.constants import MODULE_AI_FRAMEWORK
@@ -61,6 +61,31 @@ class TorchFramework(Framework):
         super().__init__()
         self.profiling = profiling
         self.reader_handler = None
+        rank_to_checkpoint = self.args.my_rank
+        if self.args.checkpoint_type == CheckpointType.COLLECTIVE:
+            rank_to_checkpoint = 0
+        if rank_to_checkpoint == self.args.my_rank:
+            self.model_state = None
+            if self.args.model_size > 0:
+                self.model_state = {"a": self._get_tensor(self.args.model_size)}
+            self.optimization_state = None
+            if len(self.args.optimization_groups) > 0:
+                self.optimization_state = dict()
+                tensor_array = []
+                for index, state in enumerate(self.args.optimization_groups):
+                    if state > 0:
+                        self.optimization_state[str(index)] = {'a': self._get_tensor(state), 'b': self._get_tensor(state)}
+                        tensor_array.append(self._get_tensor(state))
+                self.optimization_state["combined"] = tensor_array
+            self.layer_state = None
+            if len(self.args.layer_parameters) > 0:
+                self.layer_state = dict()
+                for index, state in enumerate(self.args.layer_parameters):
+                    if state > 0:
+                        self.layer_state[str(index)] = self._get_tensor(state)
+
+    def _get_tensor(self, size):
+        return torch.randint(high=1, size=(size,), dtype=torch.int8)
 
     @dlp.log
     def init_loader(self, format_type, epoch=0, data_loader=None):
@@ -97,19 +122,25 @@ class TorchFramework(Framework):
 
     @dlp.log
     def checkpoint(self, epoch, step_number):
-        if self.rank() == 0:
-            """
-            Performs Checkpointing for a specific step number. It writes different file of different sizes.
-            """
-            if not os.path.exists(self.checkpoint_folder):
-                os.makedirs(self.checkpoint_folder)
+        rank_to_checkpoint = self.args.my_rank
+        if self.args.checkpoint_type == CheckpointType.COLLECTIVE:
+            rank_to_checkpoint = 0
+        if rank_to_checkpoint == self.args.my_rank:
             my_rank = self.rank()
-            model_file = os.path.join(self.checkpoint_folder, f"model-{epoch}-{step_number}.bin")
+            if self.model_state:
+                fname = os.path.join(self.checkpoint_folder, f"model-{epoch}-{step_number}-{my_rank}.pt")
+                with open(fname, "wb") as f:
+                    torch.save(self.model_state, f)
+            if self.optimization_state:
+                fname = os.path.join(self.checkpoint_folder, f"optimizer-{epoch}-{step_number}-{my_rank}.pt")
+                with open(fname, "wb") as f:
+                    torch.save(self.optimization_state, f)
 
-            f = open(model_file, "w")
-            string_val = "x" * self.args.model_size
-            f.write(string_val)
-            f.close()
+            if self.layer_state and self.args.num_layers > 0:
+                for layer in range(self.args.num_layers):
+                    fname = os.path.join(self.checkpoint_folder, f"layer-{layer}-{epoch}-{step_number}-{my_rank}.pt")
+                    with open(fname, "wb") as f:
+                        torch.save(self.layer_state, f)
 
     @dlp.log
     def compute(self, x, epoch_number, step, computation_time):

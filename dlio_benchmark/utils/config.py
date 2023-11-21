@@ -26,7 +26,7 @@ from typing import List, ClassVar
 from dlio_benchmark.common.constants import MODULE_CONFIG
 from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
     FrameworkType, \
-    DataLoaderType, Profiler, DatasetType, DataLoaderSampler
+    DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointType
 from dataclasses import dataclass
 import math
 import os
@@ -97,7 +97,11 @@ class ConfigArguments:
     eval_time_stdev: float = 0.0
     eval_after_epoch: int = 1
     epochs_between_evals: int = 1
+    checkpoint_type: CheckpointType = CheckpointType.COLLECTIVE
     model_size: int = 10240
+    optimization_groups:  ClassVar[List[int]] = []
+    num_layers: int = 1
+    layer_parameters: ClassVar[List[int]] = [17371, 24740228]
     data_loader: DataLoaderType = DataLoaderType.TENSORFLOW.value
     num_subfolders_train: int = 0
     num_subfolders_eval: int = 0
@@ -423,8 +427,16 @@ def LoadConfig(args, config):
             args.epochs_between_checkpoints = config['checkpoint']['epochs_between_checkpoints']
         if 'steps_between_checkpoints' in config['checkpoint']:
             args.steps_between_checkpoints = config['checkpoint']['steps_between_checkpoints']
+        if 'type' in config['checkpoint']:
+            args.checkpoint_type = CheckpointType(config['checkpoint']['type'])
         if 'model_size' in config['checkpoint']:
             args.model_size = config['checkpoint']['model_size']
+        if 'optimization_groups' in config['checkpoint']:
+            args.optimization_groups = config['checkpoint']['optimization_groups']
+        if 'num_layers' in config['checkpoint']:
+            args.num_layers = config['checkpoint']['num_layers']
+        if 'layer_parameters' in config['checkpoint']:
+            args.layer_parameters = config['checkpoint']['layer_parameters']
     if 'output' in config:
         if 'folder' in config['output']:
             args.output_folder = config['output']['folder']
