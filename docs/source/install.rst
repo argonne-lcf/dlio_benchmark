@@ -31,7 +31,7 @@ One can build docker image run DLIO inside a docker container.
     docker build -t dlio .
     docker run -t dlio dlio_benchmark
 
-A prebuilt docker image is available in docker hub 
+A prebuilt docker image is available in docker hub  (might not be up-to-date)
 
 .. code-block:: bash 
 

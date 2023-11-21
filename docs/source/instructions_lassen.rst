@@ -1,4 +1,4 @@
-.. _instructions_lassen
+.. _instructions_lassen:
 
 Instructions for DLIO Benchmark on Lassen, LLNL.
 ================================================

@@ -1,3 +1,5 @@
+.. _custom_data_reader: 
+
 Creating a Data Reader
 ==============================
 
