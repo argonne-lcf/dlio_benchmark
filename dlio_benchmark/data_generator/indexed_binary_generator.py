@@ -55,28 +55,39 @@ class IndexedBinaryGenerator(DataGenerator):
             MEMORY_SIZE = 2*GB
             if total_size > MEMORY_SIZE:
                 write_size = MEMORY_SIZE - (MEMORY_SIZE % sample_size)
+            out_path_spec = self.storage.get_uri(self._file_list[i])
+            out_path_spec_idx = self.index_file_path(out_path_spec)
+            progress(i + 1, self.total_files_to_generate, "Generating Indexed Binary Data")
+            prev_out_spec = out_path_spec
             written_bytes = 0
-            while written_bytes <= total_size:
+            data_file = open(out_path_spec, "wb")
+            metadata_file = open(out_path_spec_idx, "wb")
+            while written_bytes < total_size:
                 data_to_write = write_size if written_bytes + write_size <= total_size else total_size - written_bytes
-                samples_to_write = data_to_write // sample_size
                 records = np.random.randint(255, size=data_to_write, dtype=np.uint8)
-                out_path_spec = self.storage.get_uri(self._file_list[i])
-                out_path_spec_idx = self.index_file_path(out_path_spec)
-                progress(i + 1, self.total_files_to_generate, "Generating Indexed Binary Data")
-                prev_out_spec = out_path_spec
                 myfmt = 'B' * data_to_write
                 binary_data = struct.pack(myfmt, *records)
-                with open(out_path_spec, "wb") as f:
-                    f.write(binary_data)
+                data_file.write(binary_data)
+                written_bytes = written_bytes + data_to_write
+            data_file.close()
+            written_bytes = 0
+            while written_bytes < total_size:
+                data_to_write = write_size if written_bytes + write_size <= total_size else total_size - written_bytes
+                samples_to_write = data_to_write // sample_size
                 myfmt = 'Q' * samples_to_write
                 offsets = range(0, data_to_write, sample_size)
                 offsets = offsets[:samples_to_write]
-                sample_sizes = [sample_size] * samples_to_write
                 binary_offsets = struct.pack(myfmt, *offsets)
-                binary_sizes = struct.pack(myfmt, *sample_sizes)
-                with open(out_path_spec_idx, "wb") as f:
-                    f.write(binary_offsets)
-                    f.write(binary_sizes)
+                metadata_file.write(binary_offsets)
                 written_bytes = written_bytes + data_to_write
-
+            written_bytes = 0
+            while written_bytes < total_size:
+                data_to_write = write_size if written_bytes + write_size <= total_size else total_size - written_bytes
+                samples_to_write = data_to_write // sample_size
+                myfmt = 'Q' * samples_to_write
+                sample_sizes = [sample_size] * samples_to_write
+                binary_sizes = struct.pack(myfmt, *sample_sizes)
+                metadata_file.write(binary_sizes)
+                written_bytes = written_bytes + data_to_write
+            metadata_file.close()
         np.random.seed()
