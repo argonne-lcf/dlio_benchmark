@@ -229,7 +229,7 @@ reader
 
   For pytorch, ``prefetch_size`` is set to be 0, it will be changed to 2. In other words, the default value for ``prefetch_size`` in pytorch is 2. 
 
-.. node:: 
+.. note:: 
 
   We also supoprt custom data reader and data loader. The detailed instruction on how to create custom data loader and data reader are provided here: :ref:`custom_data_loader` and :ref:`custom_data_reader`. 
 
@@ -260,6 +260,13 @@ train
    * - seed
      - 123
      - the random seed     
+
+.. note:: 
+
+  To get the simulated computation time, one has to run the actual workload and get out the timing information. 
+
+  In actual distributed training, the communication overhead will increase the time per time step. In DLIO however, we do not simulate communication. Therefore, one can in principle include the communication time as part of `computation_time`. 
+
 
 evaluation
 ------------------
@@ -355,6 +362,7 @@ profiling
     * ``darshan``: https://www.mcs.anl.gov/research/projects/darshan/. ``LD_PRELOAD`` has to be set for the darshan runtime library (libdarshan.so) to be loaded properly. 
 
     * ``iostat``: https://linux.die.net/man/1/iostat. One can specify the command to use for profiling in order to get the profiling for specific disk.   
+
     * ``tensorflow`` (tf.profiler): https://www.tensorflow.org/api_docs/python/tf/profiler. This works only for tensorflow framework (and data loader)
 
     * ``pytorch`` (torch.profiler): https://pytorch.org/docs/stable/profiler.html. This works only for pytorch framework (and data loader).
