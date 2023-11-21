@@ -106,6 +106,7 @@ class FormatType(Enum):
     HDF5_OPT = 'hdf5_opt'
     JPEG = 'jpeg'
     PNG = 'png'
+    INDEXED_BINARY = 'indexed_binary'
 
     def __str__(self):
         return self.value
@@ -126,6 +127,8 @@ class FormatType(Enum):
             return FormatType.JPEG
         elif FormatType.PNG.value == value:
             return FormatType.PNG
+        elif FormatType.INDEXED_BINARY.value == value:
+            return FormatType.INDEXED_BINARY
 
 class DataLoaderType(Enum):
     """

@@ -55,6 +55,9 @@ class ReaderFactory(object):
         elif type == FormatType.TFRECORD:
             from dlio_benchmark.reader.tf_reader import TFReader
             return TFReader(dataset_type, thread_index, epoch_number)
+        elif type == FormatType.INDEXED_BINARY:
+            from dlio_benchmark.reader.indexed_binary_reader import IndexedBinaryReader
+            return IndexedBinaryReader(dataset_type, thread_index, epoch_number)
         else:
             print("Loading data of %s format is not supported without framework data loader" %type)
             raise Exception(type)
