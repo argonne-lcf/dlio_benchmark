@@ -98,7 +98,10 @@ class DLIOBenchmark(object):
         dlp_trace = get_trace_name(self.args.output_folder)
         logging.info(f"{utcnow()} Profiling DLIO {dlp_trace}")
         self.dlp_logger = PerfTrace.initialize_log(logfile=dlp_trace,
-                                                     data_dir=f"{os.path.abspath(self.args.data_folder)}:{self.args.data_folder}:./{self.args.data_folder}",
+                                                     data_dir=f"{os.path.abspath(self.args.data_folder)}:"
+                                                              f"{self.args.data_folder}:./{self.args.data_folder}:"
+                                                              f"{self.args.checkpoint_folder}:./{self.args.checkpoint_folder}:"
+                                                              f"{os.path.abspath(self.args.checkpoint_folder)}",
                                                      process_id=get_rank())
         with Profile(name=f"{self.__init__.__qualname__}", cat=MODULE_DLIO_BENCHMARK):
             self.data_folder = self.args.data_folder

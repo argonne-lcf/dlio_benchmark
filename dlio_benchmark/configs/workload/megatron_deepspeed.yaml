@@ -29,6 +29,7 @@ checkpoint:
   checkpoint_folder: checkpoints/megatron-deepspeed
   checkpoint_after_epoch: 1000
   model_size: 30102
+  type: independent
   optimization_groups: [1009254400, 865075200, 793600]
   num_layers: 44
   layer_parameters: [129761280, 20971520]
