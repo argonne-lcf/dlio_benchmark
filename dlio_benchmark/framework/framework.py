@@ -16,6 +16,10 @@
 """
 
 from abc import ABC, abstractmethod
+
+from dlio_benchmark.common.enumerations import DatasetType
+from dlio_benchmark.data_loader.data_loader_factory import DataLoaderFactory
+from dlio_benchmark.storage.storage_factory import StorageFactory
 from dlio_benchmark.utils.utility import utcnow
 
 from time import sleep
@@ -43,11 +47,18 @@ class Framework(ABC):
         self.args = ConfigArguments.get_instance()
         self.output_folder = self.args.output_folder
         self.checkpoint_folder = self.args.checkpoint_folder
-        pass
+
 
     @abstractmethod
-    def init_loader(self, format_type, epoch_number, data_loader=None):
-        pass
+    def init_loader(self, format_type, epoch, data_loader=None):
+        self.reader_train = DataLoaderFactory.get_loader(data_loader, format_type,
+                                                         dataset_type=DatasetType.TRAIN, epoch=epoch)
+        self.reader_valid = DataLoaderFactory.get_loader(data_loader, format_type,
+                                                         dataset_type=DatasetType.VALID, epoch=epoch)
+        self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
+        checkpoint_storage = StorageFactory().get_storage(self.args.storage_type, self.checkpoint_folder,
+                                                          self.args.framework)
+        checkpoint_storage.create_namespace(exist_ok=True)
 
     @abstractmethod 
     def get_type(self):
