@@ -212,8 +212,9 @@ class DLIOBenchmark(object):
             else:
                 assert (num_subfolders == 0)
                 fullpaths = [self.storage.get_uri(os.path.join(self.args.data_folder, f"{dataset_type}", entry))
-                             for entry in filenames if entry.find(f'{self.args.format}') != -1]
+                             for entry in filenames if entry.endswith(f'{self.args.format}')]
                 fullpaths = sorted(fullpaths)
+            logging.debug(f"subfolder {num_subfolders} fullpaths {fullpaths}")
             if dataset_type is DatasetType.TRAIN:
                 file_list_train = fullpaths
             elif dataset_type is DatasetType.VALID:

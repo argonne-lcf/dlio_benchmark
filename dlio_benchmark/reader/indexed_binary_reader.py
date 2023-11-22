@@ -51,9 +51,9 @@ class IndexedBinaryReader(FormatReader):
             index_file = self.index_file_path(filename)
             with open(index_file, 'rb') as f:
                 offsets = self.read_longs(f, self._args.num_samples_per_file)
-                logging.info(f"read offsets {offsets} from file {index_file}")
+                logging.debug(f"read offsets {offsets} from file {index_file}")
                 sizes = self.read_longs(f, self._args.num_samples_per_file)
-                logging.info(f"read sizes {sizes} from file {index_file}")
+                logging.debug(f"read sizes {sizes} from file {index_file}")
                 self.file_map[filename] = (offsets, sizes)
     @dlp.log
     def load_index(self):
@@ -83,7 +83,7 @@ class IndexedBinaryReader(FormatReader):
         file = self.open_file_map[filename]
         offset = self.file_map[filename][0][sample_index]
         size = self.file_map[filename][1][sample_index]
-        logging.info(f"reading sample from offset {offset} of size {size} from file {filename}")
+        logging.debug(f"reading sample from offset {offset} of size {size} from file {filename}")
         file.seek(offset)
         image = np.empty(size, dtype=np.uint8)
         file.readinto(image)
