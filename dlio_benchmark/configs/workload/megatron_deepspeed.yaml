@@ -9,9 +9,9 @@ workflow:
 
 dataset: 
   data_folder: data/megatron-deepspeed/
-  format: indexed_binary
+  format: mmap_indexed_binary
   num_files_train: 1
-  num_samples_per_file: 277203535
+  num_samples_per_file: 1024 #277203535
   record_length: 4096
   
 reader: 
@@ -22,12 +22,12 @@ reader:
   sample_shuffle: seed
 
 train:
-  epochs: 311541
+  epochs: 10 #311541
   computation_time: 8.99
 
 checkpoint:
   checkpoint_folder: checkpoints/megatron-deepspeed
-  checkpoint_after_epoch: 1000
+  checkpoint_after_epoch: 5 #1000
   model_size: 30102
   optimization_groups: [1009254400, 865075200, 793600]
   num_layers: 44

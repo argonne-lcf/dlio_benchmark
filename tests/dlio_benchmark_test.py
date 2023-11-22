@@ -76,7 +76,7 @@ def run_benchmark(cfg, storage_root="./", verify=True):
 @pytest.mark.timeout(60, method="thread")
 @pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
                                             ("jpeg", "tensorflow"), ("tfrecord", "tensorflow"),
-                                            ("hdf5", "tensorflow"), ("indexed_binary", "tensorflow")])
+                                            ("hdf5", "tensorflow"), ("indexed_binary", "tensorflow"), ("mmap_indexed_binary", "tensorflow")])
 def test_gen_data(fmt, framework) -> None:
     if (comm.rank == 0):
         logging.info("")
@@ -126,7 +126,8 @@ def test_subset() -> None:
 @pytest.mark.timeout(60, method="thread")
 @pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
                                             ("jpeg", "tensorflow"), ("tfrecord", "tensorflow"),
-                                            ("hdf5", "tensorflow"), ("indexed_binary", "tensorflow")])
+                                            ("hdf5", "tensorflow"), ("indexed_binary", "tensorflow"),
+                                            ("mmap_indexed_binary", "tensorflow")])
 def test_storage_root_gen_data(fmt, framework) -> None:
     storage_root = "runs"
 
@@ -341,16 +342,19 @@ def test_multi_threads(framework, nt) -> None:
 @pytest.mark.parametrize("fmt, framework, dataloader", [("png", "tensorflow","tensorflow"), ("npz", "tensorflow","tensorflow"),
                                             ("jpeg", "tensorflow","tensorflow"), ("tfrecord", "tensorflow","tensorflow"),
                                             ("hdf5", "tensorflow","tensorflow"), ("csv", "tensorflow","tensorflow"),
-                                            ("indexed_binary", "tensorflow","tensorflow"),
+                                            ("indexed_binary", "tensorflow","tensorflow"), ("mmap_indexed_binary", "tensorflow","tensorflow"),
                                             ("png", "pytorch", "pytorch"), ("npz", "pytorch", "pytorch"),
                                             ("jpeg", "pytorch", "pytorch"), ("hdf5", "pytorch", "pytorch"),
                                             ("csv", "pytorch", "pytorch"), ("indexed_binary", "pytorch", "pytorch"),
+                                            ("mmap_indexed_binary", "pytorch", "pytorch"),
                                             ("png", "tensorflow", "dali"), ("npz", "tensorflow", "dali"),
                                             ("jpeg", "tensorflow", "dali"), ("hdf5", "tensorflow", "dali"),
                                             ("csv", "tensorflow", "dali"), ("indexed_binary", "tensorflow", "dali"),
+                                            ("mmap_indexed_binary", "tensorflow", "dali"),
                                             ("png", "pytorch", "dali"), ("npz", "pytorch", "dali"),
                                             ("jpeg", "pytorch", "dali"), ("hdf5", "pytorch", "dali"),
                                             ("csv", "pytorch", "dali"), ("indexed_binary", "pytorch", "dali"),
+                                            ("mmap_indexed_binary", "pytorch", "dali"),
                                             ])
 def test_train(fmt, framework, dataloader) -> None:
     clean()
@@ -379,10 +383,11 @@ def test_train(fmt, framework, dataloader) -> None:
 @pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
                                             ("jpeg", "tensorflow"), ("tfrecord", "tensorflow"),
                                             ("hdf5", "tensorflow"), ("csv", "tensorflow"),
-                                            ("indexed_binary", "tensorflow"),
+                                            ("indexed_binary", "tensorflow"), ("mmap_indexed_binary", "tensorflow"),
                                             ("png", "pytorch"), ("npz", "pytorch"),
                                             ("jpeg", "pytorch"), ("hdf5", "pytorch"),
                                             ("csv", "pytorch"), ("indexed_binary", "pytorch"),
+                                            ("mmap_indexed_binary", "pytorch"),
                                             ])
 def test_custom_storage_root_train(fmt, framework) -> None:
     storage_root = "root_dir"

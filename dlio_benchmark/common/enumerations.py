@@ -107,6 +107,7 @@ class FormatType(Enum):
     JPEG = 'jpeg'
     PNG = 'png'
     INDEXED_BINARY = 'indexed_binary'
+    MMAP_INDEXED_BINARY = 'mmap_indexed_binary'
 
     def __str__(self):
         return self.value
@@ -129,6 +130,8 @@ class FormatType(Enum):
             return FormatType.PNG
         elif FormatType.INDEXED_BINARY.value == value:
             return FormatType.INDEXED_BINARY
+        elif FormatType.MMAP_INDEXED_BINARY.value == value:
+            return FormatType.MMAP_INDEXED_BINARY
 
 class DataLoaderType(Enum):
     """

@@ -58,6 +58,9 @@ class ReaderFactory(object):
         elif type == FormatType.INDEXED_BINARY:
             from dlio_benchmark.reader.indexed_binary_reader import IndexedBinaryReader
             return IndexedBinaryReader(dataset_type, thread_index, epoch_number)
+        elif type == FormatType.MMAP_INDEXED_BINARY:
+            from dlio_benchmark.reader.indexed_binary_mmap_reader import IndexedBinaryMMapReader
+            return IndexedBinaryMMapReader(dataset_type, thread_index, epoch_number)
         else:
             print("Loading data of %s format is not supported without framework data loader" %type)
             raise Exception(type)

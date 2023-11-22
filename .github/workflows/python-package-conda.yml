@@ -68,6 +68,7 @@ jobs:
         mpirun -np 2 pytest -k test_gen_data[tfrecord-tensorflow] -v
         mpirun -np 2 pytest -k test_gen_data[hdf5-tensorflow] -v
         mpirun -np 2 pytest -k test_gen_data[indexed_binary-tensorflow] -v
+        mpirun -np 2 pytest -k test_gen_data[mmap_indexed_binary-tensorflow] -v
     - name: test_custom_storage_root_gen_data
       run: |
         source ${VENV}/bin/activate
@@ -77,6 +78,7 @@ jobs:
         mpirun -np 2 pytest -k test_storage_root_gen_data[tfrecord-tensorflow] -v
         mpirun -np 2 pytest -k test_storage_root_gen_data[hdf5-tensorflow] -v
         mpirun -np 2 pytest -k test_storage_root_gen_data[indexed_binary-tensorflow] -v
+        mpirun -np 2 pytest -k test_storage_root_gen_data[mmap_indexed_binary-tensorflow] -v
     - name: test_train
       run: |
         source ${VENV}/bin/activate
@@ -105,6 +107,10 @@ jobs:
         mpirun -np 2 pytest -k test_train[indexed_binary-pytorch-pytorch] -v
         mpirun -np 2 pytest -k test_train[indexed_binary-tensorflow-dali] -v
         mpirun -np 2 pytest -k test_train[indexed_binary-pytorch-dali] -v
+        mpirun -np 2 pytest -k test_train[mmap_indexed_binary-tensorflow-tensorflow] -v
+        mpirun -np 2 pytest -k test_train[mmap_indexed_binary-pytorch-pytorch] -v
+        mpirun -np 2 pytest -k test_train[mmap_indexed_binary-tensorflow-dali] -v
+        mpirun -np 2 pytest -k test_train[mmap_indexed_binary-pytorch-dali] -v
     - name: test_custom_storage_root_train
       run: |
         source ${VENV}/bin/activate
@@ -121,6 +127,8 @@ jobs:
         mpirun -np 2 pytest -k test_custom_storage_root_train[csv-pytorch] -v
         mpirun -np 2 pytest -k test_custom_storage_root_train[indexed_binary-tensorflow] -v
         mpirun -np 2 pytest -k test_custom_storage_root_train[indexed_binary-pytorch] -v
+        mpirun -np 2 pytest -k test_custom_storage_root_train[mmap_indexed_binary-tensorflow] -v
+        mpirun -np 2 pytest -k test_custom_storage_root_train[mmap_indexed_binary-pytorch] -v
     - name: test_checkpoint_epoch
       run: |
         source ${VENV}/bin/activate

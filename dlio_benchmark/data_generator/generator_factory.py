@@ -44,7 +44,7 @@ class GeneratorFactory(object):
         elif type == FormatType.PNG:
             from dlio_benchmark.data_generator.png_generator import PNGGenerator
             return PNGGenerator()
-        elif type == FormatType.INDEXED_BINARY:
+        elif type == FormatType.INDEXED_BINARY or type == FormatType.MMAP_INDEXED_BINARY:
             from dlio_benchmark.data_generator.indexed_binary_generator import IndexedBinaryGenerator
             return IndexedBinaryGenerator()
         else:
