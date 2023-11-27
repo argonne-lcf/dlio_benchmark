@@ -370,4 +370,9 @@ profiling
 The YAML files are stored in the `workload`_ folder. 
 It then can be loaded by ```dlio_benchmark``` through hydra (https://hydra.cc/). This will override the default settings. One can override the configurations through command line (https://hydra.cc/docs/advanced/override_grammar/basic/).
 
+How to create a DLIO configuration YAML file
+=============================================
+Creating a YAML file for a workload is very straight forward. Most of the options are essentially the same with the actual workload, such as ``framework``, ``reader``, and many options in ``train``, ``evaluation``, such as ``epochs``. The main work involved is to find out the dataset information and the computation time. For the former, one can to check the original dataset to find out the number of files for training, how many samples per file, and the sample size, data format, etc. For the latter, one has to run the actual workload to find out the comptuation time per training step. One might have to add timing stamp before and after the training step. 
+
+
 .. _workload: https://github.com/argonne-lcf/dlio_benchmark/tree/main/dlio_benchmark/configs/workload
