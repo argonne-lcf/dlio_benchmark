@@ -350,7 +350,7 @@ profiling
      - Description
    * - profiler
      - none
-     - specifying the profiler to use [none|iostat|tensorflow|pytorch]
+     - specifying the profiler to use [none|iostat]
    * - iostat_devices**
      - [sda, sdb]
      - specifying the devices to perform iostat tracing.  
@@ -359,16 +359,13 @@ profiling
    
    We support following I/O profiling using following profilers: 
 
-    * ``darshan``: https://www.mcs.anl.gov/research/projects/darshan/. ``LD_PRELOAD`` has to be set for the darshan runtime library (libdarshan.so) to be loaded properly. 
-
     * ``iostat``: https://linux.die.net/man/1/iostat. One can specify the command to use for profiling in order to get the profiling for specific disk.   
 
-    * ``tensorflow`` (tf.profiler): https://www.tensorflow.org/api_docs/python/tf/profiler. This works only for tensorflow framework (and data loader)
+    * ``dlio_profiler``: https://dlio-profiler.readthedocs.io/en/latest/. One has to make sure that DLIO is installed. 
 
-    * ``pytorch`` (torch.profiler): https://pytorch.org/docs/stable/profiler.html. This works only for pytorch framework (and data loader).
+    Please refer to :ref:`profiling` on how to enable these profiling tools. 
 
-The YAML files are stored in the `workload`_ folder. 
-It then can be loaded by ```dlio_benchmark``` through hydra (https://hydra.cc/). This will override the default settings. One can override the configurations through command line (https://hydra.cc/docs/advanced/override_grammar/basic/).
+The YAML files are stored in the `workload`_ folder. One can create custom YAML configuration file, and load it to ```dlio_benchmark``` by specifying ``--config-path`` and ``--config-dir``. 
 
 How to create a DLIO configuration YAML file
 =============================================
