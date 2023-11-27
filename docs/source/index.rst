@@ -31,7 +31,7 @@ GitHub repo: https://github.com/argonne-lcf/dlio_benchmark.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Custom data loader and reader
+   :caption: Custom data loader and reader plugins
 
    custom_data_loader
    custom_reader
@@ -67,6 +67,7 @@ GitHub repo: https://github.com/argonne-lcf/dlio_benchmark.
    :caption: Appendix
 
    jpeg_generator
+   profiling
 
 .. toctree::
    :maxdepth: 2
