@@ -308,4 +308,4 @@ Then set ```DLIO_PROFILER_ENABLE=1``` to enable it. Other environemnt variables 
 
 This will generate tracing files in the output folder, trace-$rank-of-$nproc.pfw, which can then be visualized interactively through https://ui.perfetto.dev/. Below shows one example for UNet3D model.  
 
-.. image:: images/dlio.png
+.. image:: images/profiling.png
