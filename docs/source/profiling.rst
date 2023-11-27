@@ -2,7 +2,7 @@
 
 Profiling 
 ==========================
-We have a built in support for iostat and DLIO profiler. 
+We have a built in support for iostat and DLIO profiler for I/O profiling. Below are instructions on how to use the two profiling tools in `DLIO`. 
 
 iostat profiling
 ---------------------
@@ -288,9 +288,11 @@ DLIO profiler
 ttps://github.com/hariharan-devarajan/dlio-profiler. A profiler developed for capturing I/O calls. If DLIO profiler is enabled, profiling trace will be generated at the end of the run. The profiler provides profiling information at both application levels and system I/O calls level. 
 
 To enable this functionality, one has to install DLIO profiler throught 
+
 .. code-block:: bash 
 
     pip install dlio-profiler
+
 
 or 
 
