@@ -279,9 +279,6 @@ The output is
         ...
 
 
-
-
-
 DLIO profiler
 --------------------------
 
@@ -303,9 +300,10 @@ or
     python setup.py build
     python setup.py install
 
-
 Then set ```DLIO_PROFILER_ENABLE=1``` to enable it. Other environemnt variables setting can be found here: https://dlio-profiler.readthedocs.io/en/latest/api.html#configurations-of-dlio-profiler. 
 
-This will generate tracing files in the output folder, trace-$rank-of-$nproc.pfw, which can then be visualized interactively through https://ui.perfetto.dev/. Below shows one example for UNet3D model.  
+The profiler outputs all profiling output in <OUTPUT_FOLDER>/.trace*.pfw files.
+It contains application level profiling as well as low-level I/O calls from POSIX and STDIO layers.
+The low-level I/O events are only way to understand I/O pattern from internal framework functions such as TFRecordDataset or DaliDataLoader. These files are in chrome tracing's json line format. This can be visualized using https://ui.perfetto.dev/
 
 .. image:: images/profiling.png

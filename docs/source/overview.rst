@@ -27,8 +27,7 @@ while keeping the I/O pattern / behavior the same.
 The logic behind this is demonstrated in the figure. 
 In a typical deep learning training process, a batch of data is 
 loaded from the storage either to host memory and then transfered 
-to the accelerator or directly to
- the accelerator through networks such as GPU Direct. In either case, 
+to the accelerator or directly to the accelerator through networks such as GPU Direct. In either case, 
 the I/O (data access in the storage) should likely be independent of 
 what is going on inside the accelerator, whether it is doing busy computation or being idle. As long as amount of time per step is the same, the 
 frequency of the I/O requests issued will be the same, which eventually results in the same I/O behavior on the storage.

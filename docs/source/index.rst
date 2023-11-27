@@ -15,13 +15,13 @@ GitHub repo: https://github.com/argonne-lcf/dlio_benchmark.
 ==================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Overview
 
    overview
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Getting Started
 
    install
@@ -30,14 +30,14 @@ GitHub repo: https://github.com/argonne-lcf/dlio_benchmark.
    examples
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Custom data loader and reader plugins
 
    custom_data_loader
    custom_reader
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Tested systems and Known issues
 
    testedsystems
@@ -45,25 +45,25 @@ GitHub repo: https://github.com/argonne-lcf/dlio_benchmark.
    knownissues
    
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: How to contribute
 
    contribute
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Resources
 
    resources
 
 .. toctree:: 
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Acknowdgments
 
    acknowledgments
 
 .. toctree:: 
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Appendix
 
    jpeg_generator
