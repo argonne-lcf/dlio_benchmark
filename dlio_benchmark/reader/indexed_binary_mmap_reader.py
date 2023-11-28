@@ -39,8 +39,11 @@ class IndexedBinaryMMapReader(FormatReader):
         self.load_index()
         self.buffer_map = {}
 
-    def index_file_path(self, prefix_path):
-        return prefix_path + '.idx'
+    def index_file_path_off(self, prefix_path):
+        return prefix_path + '.off.idx'
+
+    def index_file_path_size(self, prefix_path):
+        return prefix_path + '.sz.idx'
 
     def read_longs(self, f, n):
         a = np.empty(n, dtype=np.int64)
@@ -49,13 +52,18 @@ class IndexedBinaryMMapReader(FormatReader):
 
     def load_index_file(self, global_sample_idx, filename, sample_index):
         if filename not in self.file_map:
-            index_file = self.index_file_path(filename)
-            with open(index_file, 'rb') as f:
+            offset_file = self.index_file_path_off(filename)
+            sz_file = self.index_file_path_size(filename)
+            self.file_map[filename] = []
+            with open(offset_file, 'rb') as f:
                 offsets = self.read_longs(f, self._args.num_samples_per_file)
-                logging.debug(f"read offsets {offsets} from file {index_file}")
+                logging.debug(f"read offsets {offsets} from file {offset_file}")
+                self.file_map[filename].append(offsets)
+            with open(sz_file, 'rb') as f:
                 sizes = self.read_longs(f, self._args.num_samples_per_file)
-                logging.debug(f"read sizes {sizes} from file {index_file}")
-                self.file_map[filename] = (offsets, sizes)
+                logging.debug(f"read sizes {sizes} from file {sz_file}")
+                self.file_map[filename].append(sizes)
+
     @dlp.log
     def load_index(self):
         if self._args.data_loader_sampler == DataLoaderSampler.ITERATIVE:

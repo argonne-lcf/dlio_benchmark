@@ -8,7 +8,7 @@ workflow:
   checkpoint: True
 
 dataset: 
-  data_folder: data/megatron-deepspeed/
+  data_folder: /p/lustre1/haridev/dataset/megatron-deepspeed/
   format: mmap_indexed_binary
   num_files_train: 1
   num_samples_per_file: 277203535
@@ -26,7 +26,7 @@ train:
   computation_time: 8.99
 
 checkpoint:
-  checkpoint_folder: checkpoints/megatron-deepspeed
+  checkpoint_folder: /p/lustre1/haridev/checkpoints/megatron-deepspeed
   checkpoint_after_epoch: 1000
   model_size: 30102
   type: independent
