@@ -67,14 +67,14 @@ class IndexedBinaryGenerator(DataGenerator):
             data_file = open(out_path_spec, "wb")
             off_file = open(out_path_spec_off_idx, "wb")
             sz_file = open(out_path_spec_sz_idx, "wb")
+            records = np.random.randint(255, size=write_size, dtype=np.uint8)
             while written_bytes < total_size:
                 data_to_write = write_size if written_bytes + write_size <= total_size else total_size - written_bytes
                 samples_to_write = data_to_write // sample_size
 
                 # Write data
-                records = np.random.randint(255, size=data_to_write, dtype=np.uint8)
                 myfmt = 'B' * data_to_write
-                binary_data = struct.pack(myfmt, *records)
+                binary_data = struct.pack(myfmt, *records[:data_to_write])
                 data_file.write(binary_data)
 
                 # Write offsets
