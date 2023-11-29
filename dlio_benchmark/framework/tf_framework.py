@@ -66,13 +66,13 @@ class TFFramework(Framework):
             self.optimization_state = None
             if len(self.args.optimization_groups) > 0:
                 self.optimization_state = dict()
-                tensor_array = []
+                tensor_array_size = 0
                 for index, state in enumerate(self.args.optimization_groups):
                     if state > 0:
-                        self.optimization_state[str(index)] = {'a': self._get_tensor(state*num_ranks),
-                                                               'b': self._get_tensor(state*num_ranks)}
-                        tensor_array.append(self._get_tensor(state*num_ranks))
-                self.optimization_state["combined"] = tensor_array
+                        self.optimization_state[str(index)] = {'a': self._get_tensor(state),
+                                                               'b': self._get_tensor(state)}
+                        tensor_array_size += state
+                self.optimization_state["combined"] = self._get_tensor(tensor_array_size)
             self.layer_state = None
             if len(self.args.layer_parameters) > 0:
                 self.layer_state = dict()
