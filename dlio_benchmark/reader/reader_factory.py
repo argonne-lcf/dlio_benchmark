@@ -44,11 +44,11 @@ class ReaderFactory(object):
             from dlio_benchmark.reader.csv_reader import CSVReader
             return CSVReader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.JPEG or FormatType.PNG:
-            if _args.data_loader == DataLoaderType.NATIVE_DALI
+            if _args.data_loader == DataLoaderType.NATIVE_DALI:
                 from dlio_benchmark.reader.image_reader import ImageReader
                 return DaliImageReader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.NPZ:
-            if _args.data_loader == DataLoaderType.NATIVE_DALI
+            if _args.data_loader == DataLoaderType.NATIVE_DALI:
                 from dlio_benchmark.reader.dali_npz_reader import DaliNPZReader
                 return DaliNPZReader(dataset_type, thread_index, epoch_number)
             else:
