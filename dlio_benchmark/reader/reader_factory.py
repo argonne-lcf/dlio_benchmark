@@ -43,7 +43,7 @@ class ReaderFactory(object):
         elif type == FormatType.CSV:
             from dlio_benchmark.reader.csv_reader import CSVReader
             return CSVReader(dataset_type, thread_index, epoch_number)
-        elif type == FormatType.JPEG or FormatType.PNG:
+        elif type == FormatType.JPEG or type == FormatType.PNG:
             if _args.data_loader == DataLoaderType.NATIVE_DALI:
                 from dlio_benchmark.reader.image_reader import ImageReader
                 return DaliImageReader(dataset_type, thread_index, epoch_number)
@@ -57,7 +57,7 @@ class ReaderFactory(object):
         elif type == FormatType.TFRECORD:
             if _args.data_loader == DataLoaderType.NATIVE_DALI: 
                 from dlio_benchmark.reader.dali_tf_reader import DaliTFReader
-                return TFReader(dataset_type, thread_index, epoch_number)
+                return DaliTFReader(dataset_type, thread_index, epoch_number)
             else:
                 from dlio_benchmark.reader.tf_reader import TFReader
                 return TFReader(dataset_type, thread_index, epoch_number) 
