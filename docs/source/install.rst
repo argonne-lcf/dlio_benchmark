@@ -1,6 +1,6 @@
 Installation
 =============
-DLIO itself should run directly after installing dependence python packages specified in requirement.txt in the code. 
+The installation of DLIO follows the standard python package installation as follows: 
 
 .. code-block:: bash
 
@@ -22,7 +22,7 @@ One can also install the package directly from github
     pip install git+https://github.com/argonne-lcf/dlio_benchmark.git@main
 
     
-One can build a docker image run DLIO inside a docker container.  
+One can build a docker image run DLIO inside a container.  
 
 .. code-block:: bash
 

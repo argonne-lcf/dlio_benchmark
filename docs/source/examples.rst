@@ -202,8 +202,6 @@ This will generate the logs and profiling data inside hydra_log/${model}/${data}
     0_output.json  2_output.json  4_output.json  6_output.json  dlio.log     per_epoch_stats.json
     1_output.json  3_output.json  5_output.json  7_output.json  iostat.json  summary.json
 
-One can then post processing the data with dlio_postprocessor.py
-
 BERT: Natural Language Processing Model
 ---------------------------------------
 

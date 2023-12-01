@@ -70,7 +70,7 @@ GitHub repo: https://github.com/argonne-lcf/dlio_benchmark.
    profiling
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Legal
 
    copyright
