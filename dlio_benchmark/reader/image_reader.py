@@ -26,9 +26,9 @@ from dlio_profiler.logger import fn_interceptor as Profile
 
 dlp = Profile(MODULE_DATA_READER)
 
-class PNGReader(FormatReader):
+class ImageReader(FormatReader):
     """
-    Reader for PNG files
+    Reader for PNG / JPEG files
     """
 
     @dlp.log_init

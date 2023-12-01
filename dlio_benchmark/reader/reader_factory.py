@@ -43,18 +43,24 @@ class ReaderFactory(object):
         elif type == FormatType.CSV:
             from dlio_benchmark.reader.csv_reader import CSVReader
             return CSVReader(dataset_type, thread_index, epoch_number)
-        elif type == FormatType.JPEG:
-            from dlio_benchmark.reader.jpeg_reader import JPEGReader
-            return JPEGReader(dataset_type, thread_index, epoch_number)
-        elif type == FormatType.PNG:
-            from dlio_benchmark.reader.png_reader import PNGReader
-            return PNGReader(dataset_type, thread_index, epoch_number)
+        elif type == FormatType.JPEG or FormatType.PNG:
+            if _args.data_loader == DataLoaderType.NATIVE_DALI
+                from dlio_benchmark.reader.image_reader import ImageReader
+                return DaliImageReader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.NPZ:
-            from dlio_benchmark.reader.npz_reader import NPZReader
-            return NPZReader(dataset_type, thread_index, epoch_number)
+            if _args.data_loader == DataLoaderType.NATIVE_DALI
+                from dlio_benchmark.reader.dali_npz_reader import DaliNPZReader
+                return DaliNPZReader(dataset_type, thread_index, epoch_number)
+            else:
+                from dlio_benchmark.reader.npz_reader import NPZReader
+                return NPZReader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.TFRECORD:
-            from dlio_benchmark.reader.tf_reader import TFReader
-            return TFReader(dataset_type, thread_index, epoch_number)
+            if _args.data_loader == DataLoaderType.NATIVE_DALI: 
+                from dlio_benchmark.reader.dali_tf_reader import DaliTFReader
+                return TFReader(dataset_type, thread_index, epoch_number)
+            else:
+                from dlio_benchmark.reader.tf_reader import TFReader
+                return TFReader(dataset_type, thread_index, epoch_number) 
         else:
             print("Loading data of %s format is not supported without framework data loader" %type)
             raise Exception(type)
