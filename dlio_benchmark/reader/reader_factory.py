@@ -45,8 +45,11 @@ class ReaderFactory(object):
             return CSVReader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.JPEG or type == FormatType.PNG:
             if _args.data_loader == DataLoaderType.NATIVE_DALI:
-                from dlio_benchmark.reader.image_reader import ImageReader
+                from dlio_benchmark.reader.dali_image_reader import DaliImageReader
                 return DaliImageReader(dataset_type, thread_index, epoch_number)
+            else:
+                from dlio_benchmark.reader.image_reader import ImageReader
+                return ImageReader(dataset_type, thread_index, epoch_number)            
         elif type == FormatType.NPZ:
             if _args.data_loader == DataLoaderType.NATIVE_DALI:
                 from dlio_benchmark.reader.dali_npz_reader import DaliNPZReader
