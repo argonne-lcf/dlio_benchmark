@@ -56,7 +56,7 @@ class DaliImageReader(DaliBaseReader):
         stick_to_shard = True
         if seed_change_epoch:
             stick_to_shard = False
-        images, labels = fn.readers.file(files=files, num_shards=self._args.comm_size, 
+        images, labels = fn.readers.file(files=self.file_list, num_shards=self._args.comm_size, 
                                          prefetch_queue_depth=prefetch_size, 
                                          initial_fill=initial_fill, random_shuffle=random_shuffle, 
                                          shuffle_after_epoch=seed_change_epoch, 
