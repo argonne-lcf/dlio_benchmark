@@ -29,7 +29,7 @@ from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Pro
 dlp = Profile(MODULE_DATA_READER)
 
 
-class DaliNPZReader(DaliBaseReader):
+class DaliNPYReader(DaliBaseReader):
     @dlp.log_init
     def __init__(self, dataset_type):
         super().__init__(dataset_type)

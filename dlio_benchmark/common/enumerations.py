@@ -93,6 +93,7 @@ class FormatType(Enum):
     HDF5 = 'hdf5'
     CSV = 'csv'
     NPZ = 'npz'
+    NPY = 'npy'
     HDF5_OPT = 'hdf5_opt'
     JPEG = 'jpeg'
     PNG = 'png'
@@ -110,6 +111,8 @@ class FormatType(Enum):
             return FormatType.CSV
         elif FormatType.NPZ.value == value:
             return FormatType.NPZ
+        elif FormatType.NPY.value == value:
+            return FormatType.NPY            
         elif FormatType.HDF5_OPT.value == value:
             return FormatType.HDF5_OPT
         elif FormatType.JPEG.value == value:
