@@ -52,7 +52,7 @@ class NativeDaliDataLoader(BaseDataLoader):
         for step in range(num_samples // batch_size):
             _dataset = DALIGenericIterator(self.pipelines, ['data'])
             for batch in _dataset:
-                logging.info(f"{utcnow()} Creating {len(batch)} batches by {self._args.my_rank} rank ")
+                logging.debug(f"{utcnow()} Creating {len(batch)} batches by {self._args.my_rank} rank ")
                 yield batch
 
     @dlp.log
