@@ -61,7 +61,7 @@ class DaliImageReader(DaliBaseReader):
                                          initial_fill=initial_fill, random_shuffle=random_shuffle, 
                                          shuffle_after_epoch=seed_change_epoch, 
                                          stick_to_shard=stick_to_shard, pad_last_batch=True)
-        dataset = fn.decoders.image(jpegs, device='cpu')
+        dataset = fn.decoders.image(images, device='cpu')
         return dataset
 
     @dlp.log
