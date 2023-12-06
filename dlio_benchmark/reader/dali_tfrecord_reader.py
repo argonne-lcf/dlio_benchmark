@@ -24,10 +24,10 @@ import nvidia
 import nvidia.dali.fn as fn
 from dlio_benchmark.common.constants import MODULE_DATA_READER
 from dlio_benchmark.reader.dali_base_reader import DaliBaseReader
-from dlio_benchmark.reader.tf_base_reader import TFBaseReader
-from dlio_benchmark.utils.utility import utcnow, PerfTrace, Profile
+from dlio_benchmark.utils.utility import utcnow
 from dlio_benchmark.common.enumerations import DatasetType, Shuffle
 import nvidia.dali.tfrecord as tfrec
+from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile
 
 dlp = Profile(MODULE_DATA_READER)
 
