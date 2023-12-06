@@ -43,7 +43,6 @@ class NativeDaliDataLoader(BaseDataLoader):
                                                       epoch_number=self.epoch_number).read()
             pipeline.set_outputs(images)
         self.pipelines.append(pipeline)
-        logging.info(f"{utcnow()} Creating {num_threads} pipelines by {self._args.my_rank} rank ")
 
     @dlp.log
     def next(self):
