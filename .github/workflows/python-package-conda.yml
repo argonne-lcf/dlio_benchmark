@@ -57,8 +57,13 @@ jobs:
         pip install virtualenv
         python -m venv ${VENV}
         source ${VENV}/bin/activate
-          pip install .[test]
+        pip install .[test]
         rm -rf dlio_benchmark
+    - name: Install DLIO Profiler
+      run: |
+        echo "Profiler ${DLIO_PROFILER} gcc $CC"
+        source ${VENV}/bin/activate
+        pip install --force-reinstall dlio-profiler-py==0.0.2
     - name: test_gen_data
       run: |
         source ${VENV}/bin/activate
