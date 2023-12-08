@@ -46,21 +46,28 @@ class ReaderFactory(object):
         elif type == FormatType.JPEG or type == FormatType.PNG:
             if _args.data_loader == DataLoaderType.NATIVE_DALI:
                 from dlio_benchmark.reader.dali_image_reader import DaliImageReader
-                return DaliImageReader(dataset_type, thread_index, epoch_number)
+                return DaliImageReader(dataset_type)
             else:
                 from dlio_benchmark.reader.image_reader import ImageReader
-                return ImageReader(dataset_type, thread_index, epoch_number)            
+                return ImageReader(dataset_type, thread_index, epoch_number)   
+        elif type == FormatType.NPY:
+            if _args.data_loader == DataLoaderType.NATIVE_DALI:
+                from dlio_benchmark.reader.dali_npy_reader import DaliNPYReader
+                return DaliNPYReader(dataset_type)
+            else:
+                from dlio_benchmark.reader.npy_reader import NPYReader
+                return NPYReader(dataset_type, thread_index, epoch_number)                         
         elif type == FormatType.NPZ:
             if _args.data_loader == DataLoaderType.NATIVE_DALI:
-                from dlio_benchmark.reader.dali_npz_reader import DaliNPZReader
-                return DaliNPZReader(dataset_type, thread_index, epoch_number)
+                print("Loading data of %s format is not supported without framework data loader" %type)
+                raise Exception(type)
             else:
                 from dlio_benchmark.reader.npz_reader import NPZReader
                 return NPZReader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.TFRECORD:
             if _args.data_loader == DataLoaderType.NATIVE_DALI: 
-                from dlio_benchmark.reader.dali_tf_reader import DaliTFReader
-                return DaliTFReader(dataset_type, thread_index, epoch_number)
+                from dlio_benchmark.reader.dali_tfrecord_reader import DaliTFRecordReader
+                return DaliTFRecordReader(dataset_type)
             else:
                 from dlio_benchmark.reader.tf_reader import TFReader
                 return TFReader(dataset_type, thread_index, epoch_number) 

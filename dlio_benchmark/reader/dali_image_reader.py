@@ -21,10 +21,10 @@ from time import time
 import nvidia.dali.fn as fn
 from dlio_benchmark.common.constants import MODULE_DATA_READER
 from dlio_benchmark.reader.dali_base_reader import DaliBaseReader
-from dlio_benchmark.reader.tf_base_reader import TFBaseReader
-from dlio_benchmark.utils.utility import utcnow, PerfTrace, Profile
+from dlio_benchmark.utils.utility import utcnow
 from dlio_benchmark.common.enumerations import DatasetType, Shuffle
 import nvidia.dali.tfrecord as tfrec
+from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile
 
 dlp = Profile(MODULE_DATA_READER)
 
@@ -56,12 +56,12 @@ class DaliImageReader(DaliBaseReader):
         stick_to_shard = True
         if seed_change_epoch:
             stick_to_shard = False
-        images, labels = fn.readers.file(files=files, num_shards=self._args.comm_size, 
+        images, labels = fn.readers.file(files=self.file_list, num_shards=self._args.comm_size, 
                                          prefetch_queue_depth=prefetch_size, 
                                          initial_fill=initial_fill, random_shuffle=random_shuffle, 
                                          shuffle_after_epoch=seed_change_epoch, 
                                          stick_to_shard=stick_to_shard, pad_last_batch=True)
-        dataset = fn.decoders.image(jpegs, device='cpu')
+        dataset = fn.decoders.image(images, device='cpu')
         return dataset
 
     @dlp.log

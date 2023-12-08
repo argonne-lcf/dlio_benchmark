@@ -12,7 +12,8 @@ from dlio_benchmark.common.constants import MODULE_DATA_LOADER
 from dlio_benchmark.common.enumerations import Shuffle, DataLoaderType, DatasetType
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
-from dlio_benchmark.utils.utility import utcnow, get_rank, timeit, Profile
+from dlio_benchmark.utils.utility import utcnow, get_rank, timeit
+from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile
 
 dlp = Profile(MODULE_DATA_LOADER)
 
@@ -42,7 +43,6 @@ class NativeDaliDataLoader(BaseDataLoader):
                                                       epoch_number=self.epoch_number).read()
             pipeline.set_outputs(images)
         self.pipelines.append(pipeline)
-        logging.info(f"{utcnow()} Creating {num_threads} pipelines by {self._args.my_rank} rank ")
 
     @dlp.log
     def next(self):
@@ -52,7 +52,7 @@ class NativeDaliDataLoader(BaseDataLoader):
         for step in range(num_samples // batch_size):
             _dataset = DALIGenericIterator(self.pipelines, ['data'])
             for batch in _dataset:
-                logging.info(f"{utcnow()} Creating {len(batch)} batches by {self._args.my_rank} rank ")
+                logging.debug(f"{utcnow()} Creating {len(batch)} batches by {self._args.my_rank} rank ")
                 yield batch
 
     @dlp.log
