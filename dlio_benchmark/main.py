@@ -78,6 +78,7 @@ class DLIOBenchmark(object):
                 self.args.output_folder = hydra_cfg['runtime']['output_dir']
             except:
                 self.args.output_folder = 'output/'
+        self.output_folder = self.args.output_folder
         os.makedirs(self.args.output_folder, mode=0o755, exist_ok=True)
         self.logfile = os.path.join(self.args.output_folder, self.args.log_file)
         dlp_trace = get_trace_name(self.args.output_folder)
