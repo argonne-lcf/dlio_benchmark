@@ -88,7 +88,9 @@ def test_gen_data(fmt, framework) -> None:
                                                        f'++workload.reader.data_loader={framework}',
                                                        '++workload.workflow.train=False',
                                                        '++workload.workflow.generate_data=True',
-                                                       f"++workload.dataset.format={fmt}"])
+                                                       f"++workload.dataset.format={fmt}", 
+                                                       "++workload.dataset.num_files_train=8", 
+                                                       "++workload.dataset.num_files_eval=8"])
         benchmark = run_benchmark(cfg, verify=False)
         if benchmark.args.num_subfolders_train <= 1:
             train = pathlib.Path(f"{cfg.workload.dataset.data_folder}/train")
@@ -119,7 +121,9 @@ def test_subset() -> None:
                     '++workload.workflow.generate_data=True'])
         benchmark=run_benchmark(cfg, verify=False)
         cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', \
-                        '++workload.workflow.generate_data=False', '++workload.dataset.num_files_train=8'])
+                        '++workload.workflow.generate_data=False', \
+                            '++workload.dataset.num_files_train=8', \
+                            '++workload.train.computation_time=0.01'])
         benchmark=run_benchmark(cfg, verify=True)
     clean()
 
@@ -142,7 +146,8 @@ def test_storage_root_gen_data(fmt, framework) -> None:
                                                        '++workload.workflow.train=False',
                                                        '++workload.workflow.generate_data=True',
                                                        f"++workload.storage.storage_root={storage_root}",
-                                                       f"++workload.dataset.format={fmt}"])
+                                                       f"++workload.dataset.format={fmt}", 
+                                                       "++workload.dataset.num_files_train=16"])
         benchmark = run_benchmark(cfg, verify=False)
         if benchmark.args.num_subfolders_train <= 1:
             assert (
@@ -302,8 +307,8 @@ def test_multi_threads(framework, nt) -> None:
                                                        'workload.train.computation_time=0.01',
                                                        'workload.evaluation.eval_time=0.005',
                                                        '++workload.train.epochs=1',
-                                                       '++workload.dataset.num_files_train=16',
-                                                       '++workload.dataset.num_files_eval=16'])
+                                                       '++workload.dataset.num_files_train=8',
+                                                       '++workload.dataset.num_files_eval=8'])
         benchmark = run_benchmark(cfg)
     clean()
 
