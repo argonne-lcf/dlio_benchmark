@@ -101,15 +101,14 @@ class TorchFramework(Framework):
             """
             Performs Checkpointing for a specific step number. It writes different file of different sizes.
             """
-            if not os.path.exists(self.checkpoint_folder):
-                os.makedirs(self.checkpoint_folder)
             my_rank = self.rank()
+            if not self.storage.get_node(self.checkpoint_folder):
+                self.storage.create_node(self.checkpoint_folder)
+
             model_file = os.path.join(self.checkpoint_folder, f"model-{epoch}-{step_number}.bin")
 
-            f = open(model_file, "w")
             string_val = "x" * self.args.model_size
-            f.write(string_val)
-            f.close()
+            self.storage.put_data(model_file, string_val)
 
     @dlp.log
     def compute(self, x, epoch_number, step, computation_time):
