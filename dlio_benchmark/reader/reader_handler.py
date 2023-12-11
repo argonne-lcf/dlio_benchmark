@@ -124,8 +124,8 @@ class FormatReader(ABC):
                 self.close(filename)
                 self.open_file_map[filename] = None
 
-    @abstractmethod
     def read(self):
+        logging.error("This method is not implemented!")
         return
 
     def __del__(self):
