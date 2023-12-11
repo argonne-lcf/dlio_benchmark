@@ -126,7 +126,7 @@ class FormatReader(ABC):
 
     @abstractmethod
     def read(self):
-        pass
+        return
 
     def __del__(self):
         self.thread_index = None
