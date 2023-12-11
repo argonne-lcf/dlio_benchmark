@@ -50,7 +50,6 @@ jobs:
         sudo apt-get install $CC $CXX libc6
         sudo apt-get install mpich libhwloc-dev
     - name: Install DLIO
-      if: steps.cache-modules.outputs.cache-hit != 'true'
       run: |
         echo "Profiler ${DLIO_PROFILER} gcc $CC"
         python -m pip install --upgrade pip
