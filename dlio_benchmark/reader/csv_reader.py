@@ -58,3 +58,7 @@ class CSVReader(FormatReader):
     @dlp.log
     def finalize(self):
         return super().finalize()
+
+    @dlp.log
+    def read(self):
+        return super().read()

@@ -124,6 +124,7 @@ class FormatReader(ABC):
             if filename in self.open_file_map:
                 self.close(filename)
                 self.open_file_map[filename] = None
+
     @abstractmethod
     def read(self):
         return
