@@ -37,9 +37,7 @@ class TFReader(FormatReader):
     def __init__(self, dataset_type, thread_index, epoch):
         super().__init__(dataset_type, thread_index)
         self._dataset = None
-        self._file_list = self._args.file_list_train if self.dataset_type is DatasetType.TRAIN else self._args.file_list_eval
-        self.batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
-    @dlp.log
+   @dlp.log
     def open(self, filename):
         pass
 
@@ -105,3 +103,7 @@ class TFReader(FormatReader):
     @dlp.log
     def finalize(self):
         return super().finalize()
+
+    @dlp.log
+    def read(self):
+        return super().read()

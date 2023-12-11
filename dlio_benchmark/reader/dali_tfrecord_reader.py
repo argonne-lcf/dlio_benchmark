@@ -34,9 +34,22 @@ dlp = Profile(MODULE_DATA_READER)
 
 class DaliTFRecordReader(FormatReader):
     @dlp.log_init
-    def __init__(dataset_type, thread_index, epoch):
+    def __init__(self, dataset_type, thread_index, epoch):
         super().__init__(dataset_type, thread_index)
+    def open(self):
+        super().open()
 
+    def close(self):
+        super().close()
+    
+    def get_sample(self, filename, sample_index):
+        super().get_sample(filename, sample_index)
+
+    def next(self):
+        super().next()
+
+    def read_index(self):
+        super().read_index()
     @dlp.log
     def read(self):
         folder = "valid"
@@ -44,7 +57,7 @@ class DaliTFRecordReader(FormatReader):
             folder = "train"
         index_folder = f"{self._args.data_folder}/index/{folder}"
         index_files = []
-        for file in self.file_list:
+        for file in self._file_list:
             filename = os.path.basename(file)
             index_files.append(f"{index_folder}/{filename}.idx")
         logging.info(
@@ -61,7 +74,7 @@ class DaliTFRecordReader(FormatReader):
         prefetch_size = 1
         if self._args.prefetch_size > 0:
             prefetch_size = self._args.prefetch_size
-        dataset = fn.readers.tfrecord(path=self.file_list,
+        dataset = fn.readers.tfrecord(path=self._file_list,
                                       index_path=index_files,
                                       features={
                                           'image': tfrec.FixedLenFeature((), tfrec.string, ""),
@@ -84,7 +97,7 @@ class DaliTFRecordReader(FormatReader):
 
     @dlp.log
     def _resize(self, dataset):
-        return nvidia.dali.fn.reshape(dataset, shape=[self._args.max_dimension, self._args.max_dimension])
+        return fn.resize(dataset, size=[self._args.max_dimension, self._args.max_dimension])
 
     @dlp.log
     def finalize(self):

@@ -49,6 +49,7 @@ class FormatReader(ABC):
             FormatReader.read_images = 0
         self.step = 1
         self.image_idx = 0
+        self._file_list = self._args.file_list_train if self.dataset_type is DatasetType.TRAIN else self._args.file_list_eval 
         self.batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
 
     @dlp.log
@@ -123,9 +124,8 @@ class FormatReader(ABC):
             if filename in self.open_file_map:
                 self.close(filename)
                 self.open_file_map[filename] = None
-
+    @abstractmethod
     def read(self):
-        logging.error("This method is not implemented!")
         return
 
     def __del__(self):

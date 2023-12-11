@@ -59,8 +59,7 @@ class ReaderFactory(object):
                 return NPYReader(dataset_type, thread_index, epoch_number)                         
         elif type == FormatType.NPZ:
             if _args.data_loader == DataLoaderType.NATIVE_DALI:
-                print("Loading data of %s format is not supported without framework data loader" %type)
-                raise Exception(type)
+                raise Exception("Loading data of %s format is not supported without framework data loader; please use npy format instead." %type)
             else:
                 from dlio_benchmark.reader.npz_reader import NPZReader
                 return NPZReader(dataset_type, thread_index, epoch_number)
@@ -72,5 +71,4 @@ class ReaderFactory(object):
                 from dlio_benchmark.reader.tf_reader import TFReader
                 return TFReader(dataset_type, thread_index, epoch_number) 
         else:
-            print("Loading data of %s format is not supported without framework data loader" %type)
-            raise Exception(type)
+            raise Exception("Loading data of %s format is not supported without framework data loader" %type)

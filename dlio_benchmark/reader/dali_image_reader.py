@@ -31,13 +31,27 @@ dlp = Profile(MODULE_DATA_READER)
 
 class DaliImageReader(FormatReader):
     @dlp.log_init
-    def __init__(dataset_type, thread_index, epoch):
+    def __init__(self, dataset_type, thread_index, epoch):
         super().__init__(dataset_type, thread_index)
+    def open(self):
+        super().open()
+
+    def close(self):
+        super().close()
+    
+    def get_sample(self, filename, sample_index):
+        super().get_sample(filename, sample_index)
+
+    def next(self):
+        super().next()
+
+    def read_index(self):
+        super().read_index()
 
     @dlp.log
     def read(self):
         logging.debug(
-            f"{utcnow()} Reading {len(self.file_list)} files rank {self._args.my_rank}")
+            f"{utcnow()} Reading {len(self._file_list)} files rank {self._args.my_rank}")
         random_shuffle = False
         seed = -1
         seed_change_epoch = False
@@ -56,7 +70,7 @@ class DaliImageReader(FormatReader):
         stick_to_shard = True
         if seed_change_epoch:
             stick_to_shard = False
-        images, labels = fn.readers.file(files=self.file_list, num_shards=self._args.comm_size, 
+        images, labels = fn.readers.file(files=self._file_list, num_shards=self._args.comm_size, 
                                          prefetch_queue_depth=prefetch_size, 
                                          initial_fill=initial_fill, random_shuffle=random_shuffle, 
                                          shuffle_after_epoch=seed_change_epoch, 
@@ -75,7 +89,7 @@ class DaliImageReader(FormatReader):
 
     @dlp.log
     def _resize(self, dataset):
-        return nvidia.dali.fn.reshape(dataset, shape=[self._args.max_dimension, self._args.max_dimension])
+        return fn.resize(dataset, size=[self._args.max_dimension, self._args.max_dimension])
 
     @dlp.log
     def finalize(self):

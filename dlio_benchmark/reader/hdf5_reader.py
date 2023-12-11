@@ -59,5 +59,9 @@ class HDF5Reader(FormatReader):
         return super().read_index(image_idx, step)
 
     @dlp.log
+    def read(self):
+        return super().read()
+
+    @dlp.log
     def finalize(self):
         return super().finalize()
