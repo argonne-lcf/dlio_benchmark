@@ -23,7 +23,7 @@ from time import time
 import nvidia
 import nvidia.dali.fn as fn
 from dlio_benchmark.common.constants import MODULE_DATA_READER
-from dlio_benchmark.reader.dali_base_reader import DaliBaseReader
+from dlio_benchmark.dlio_benchmark.reader.reader_handler import FormatReader
 from dlio_benchmark.utils.utility import utcnow
 from dlio_benchmark.common.enumerations import DatasetType, Shuffle
 import nvidia.dali.tfrecord as tfrec
@@ -32,13 +32,13 @@ from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Pro
 dlp = Profile(MODULE_DATA_READER)
 
 
-class DaliTFRecordReader(DaliBaseReader):
+class DaliTFRecordReader(FormatReader):
     @dlp.log_init
-    def __init__(self, dataset_type):
-        super().__init__(dataset_type)
+    def __init__(dataset_type, thread_index, epoch):
+        super().__init__(dataset_type, thread_index)
 
     @dlp.log
-    def _load(self):
+    def read(self):
         folder = "valid"
         if self.dataset_type == DatasetType.TRAIN:
             folder = "train"
@@ -71,7 +71,20 @@ class DaliTFRecordReader(DaliBaseReader):
                                       initial_fill=initial_fill,
                                       random_shuffle=random_shuffle, seed=seed,
                                       stick_to_shard=True, pad_last_batch=True)
-        return dataset["image"]
+        dataset = self._preprocess(dataset["image"])
+        dataset = self._resize(dataset)
+        return dataset
+
+    @dlp.log
+    def _preprocess(self, dataset):
+        if self._args.preprocess_time != 0. or self._args.preprocess_time_stdev != 0.:
+            t = np.random.normal(self._args.preprocess_time, self._args.preprocess_time_stdev)
+            sleep(max(t, 0.0))
+        return dataset
+
+    @dlp.log
+    def _resize(self, dataset):
+        return nvidia.dali.fn.reshape(dataset, shape=[self._args.max_dimension, self._args.max_dimension])
 
     @dlp.log
     def finalize(self):

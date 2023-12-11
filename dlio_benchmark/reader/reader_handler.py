@@ -124,6 +124,10 @@ class FormatReader(ABC):
                 self.close(filename)
                 self.open_file_map[filename] = None
 
+    @abstractmethod
+    def read(self):
+        pass
+
     def __del__(self):
         self.thread_index = None
         self._args = None
