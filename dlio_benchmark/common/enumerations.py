@@ -101,7 +101,7 @@ class FormatType(Enum):
     def __str__(self):
         return self.value
 
-    @ staticmethod
+    @staticmethod
     def get_enum(value):
         if FormatType.TFRECORD.value == value:
             return FormatType.TFRECORD
