@@ -83,7 +83,8 @@ class DaliTFRecordReader(FormatReader):
                                       prefetch_queue_depth=prefetch_size,
                                       initial_fill=initial_fill,
                                       random_shuffle=random_shuffle, seed=seed,
-                                      stick_to_shard=True, pad_last_batch=True)
+                                      stick_to_shard=True, pad_last_batch=True, 
+                                      dont_use_mmap=self._args.dont_use_mmap)
         dataset = self._preprocess(dataset["image"])
         dataset = self._resize(dataset)
         return dataset

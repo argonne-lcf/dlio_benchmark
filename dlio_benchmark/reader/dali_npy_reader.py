@@ -78,7 +78,8 @@ class DaliNPYReader(FormatReader):
         dataset = fn.readers.numpy(device='cpu', files=self._file_list, num_shards=self._args.comm_size,
                                    prefetch_queue_depth=prefetch_size, initial_fill=initial_fill,
                                    random_shuffle=random_shuffle, seed=seed, shuffle_after_epoch=seed_change_epoch,
-                                   stick_to_shard=stick_to_shard, pad_last_batch=True)
+                                   stick_to_shard=stick_to_shard, pad_last_batch=True, 
+                                   dont_use_mmap=self._args.dont_use_mmap)
 
         dataset = self._preprocess(dataset)
         dataset = self._resize(dataset)

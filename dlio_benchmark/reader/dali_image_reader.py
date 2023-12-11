@@ -74,7 +74,8 @@ class DaliImageReader(FormatReader):
                                          prefetch_queue_depth=prefetch_size, 
                                          initial_fill=initial_fill, random_shuffle=random_shuffle, 
                                          shuffle_after_epoch=seed_change_epoch, 
-                                         stick_to_shard=stick_to_shard, pad_last_batch=True)
+                                         stick_to_shard=stick_to_shard, pad_last_batch=True, 
+                                         dont_use_mmap=self._args.dont_use_mmap)
         dataset = fn.decoders.image(images, device='cpu')
         dataset = self._preprocess(images)
         dataset = self._resize(images)

@@ -78,6 +78,7 @@ class ConfigArguments:
     steps_between_checkpoints: int = -1
     transfer_size: int = None
     read_threads: int = 1
+    dont_use_mmap: bool = False
     computation_threads: int = 1
     computation_time: float = 0.
     computation_time_stdev: float = 0.
@@ -349,6 +350,8 @@ def LoadConfig(args, config):
     elif 'reader' in config:
         reader = config['reader']
     if reader is not None:
+        if 'dont_use_mmap' in reader:
+            args.dont_use_mmap = reader['dont_use_mmap']
         if 'reader_classname' in reader:
             args.reader_classname = reader['reader_classname']
         if 'multiprocessing_context' in reader:
