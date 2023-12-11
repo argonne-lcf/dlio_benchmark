@@ -37,7 +37,8 @@ class TFReader(FormatReader):
     def __init__(self, dataset_type, thread_index, epoch):
         super().__init__(dataset_type, thread_index)
         self._dataset = None
-   @dlp.log
+    
+    @dlp.log
     def open(self, filename):
         pass
 
