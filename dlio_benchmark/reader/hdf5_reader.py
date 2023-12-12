@@ -24,13 +24,10 @@ from dlio_benchmark.reader.reader_handler import FormatReader
 
 dlp = Profile(MODULE_DATA_READER)
 
-"""
-Reader for HDF5 files for training file.
-"""
-
-
 class HDF5Reader(FormatReader):
-
+    """
+    Reader for HDF5 files.
+    """
     @dlp.log_init
     def __init__(self, dataset_type, thread_index, epoch):
         super().__init__(dataset_type, thread_index)
@@ -57,10 +54,6 @@ class HDF5Reader(FormatReader):
     @dlp.log
     def read_index(self, image_idx, step):
         return super().read_index(image_idx, step)
-
-    @dlp.log
-    def read(self):
-        return super().read()
 
     @dlp.log
     def finalize(self):

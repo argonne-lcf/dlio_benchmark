@@ -16,7 +16,8 @@
 """
 import math
 import logging
-from time import time
+from time import time, sleep
+import numpy as np
 
 import nvidia.dali.fn as fn
 from dlio_benchmark.common.constants import MODULE_DATA_READER
@@ -34,23 +35,12 @@ class DaliNPYReader(FormatReader):
     def __init__(self, dataset_type, thread_index, epoch):
         super().__init__(dataset_type, thread_index)
 
-    def open(self):
-        super().open()
-
-    def close(self):
-        super().close()
-    
-    def get_sample(self, filename, sample_index):
-        super().get_sample(filename, sample_index)
-
-    def next(self):
-        super().next()
-
-    def read_index(self):
-        super().read_index()
+    @dlp.log
+    def open(self, filename):
+        super().open(filename)
 
     @dlp.log
-    def read(self):
+    def pipeline(self):
         logging.debug(
             f"{utcnow()} Reading {len(self._file_list)} files rank {self._args.my_rank}")
         random_shuffle = False
@@ -74,24 +64,30 @@ class DaliNPYReader(FormatReader):
         if seed_change_epoch:
             stick_to_shard = False
 
-
         dataset = fn.readers.numpy(device='cpu', files=self._file_list, num_shards=self._args.comm_size,
                                    prefetch_queue_depth=prefetch_size, initial_fill=initial_fill,
                                    random_shuffle=random_shuffle, seed=seed, shuffle_after_epoch=seed_change_epoch,
                                    stick_to_shard=stick_to_shard, pad_last_batch=True, 
                                    dont_use_mmap=self._args.dont_use_mmap)
-
-        dataset = self._preprocess(dataset)
         dataset = self._resize(dataset)
         return dataset
+
+    def close(self):
+        super().close()
     
+    def get_sample(self, filename, sample_index):
+        super().get_sample(filename, sample_index)
+
+    def next(self):
+        super().next()
+
+    def read_index(self):
+        super().read_index()   
 
     @dlp.log
-    def _preprocess(self, dataset):
-        if self._args.preprocess_time != 0. or self._args.preprocess_time_stdev != 0.:
-            t = np.random.normal(self._args.preprocess_time, self._args.preprocess_time_stdev)
-            sleep(max(t, 0.0))
-        return dataset
+    def preprocess(self, dataset):
+        raise Exception("Emulated preprocessing method is not implemented in dali readers")
+
 
     @dlp.log
     def _resize(self, dataset):

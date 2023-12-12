@@ -25,7 +25,7 @@ dlp = Profile(MODULE_DATA_READER)
 
 class NPYReader(FormatReader):
     """
-    Reader for NPZ files
+    Reader for NPY files
     """
 
     @dlp.log_init
@@ -58,7 +58,3 @@ class NPYReader(FormatReader):
     @dlp.log
     def finalize(self):
         return super().finalize()
-    
-    @dlp.log
-    def read(self):
-        return super().read()

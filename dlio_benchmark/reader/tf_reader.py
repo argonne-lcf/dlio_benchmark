@@ -55,7 +55,7 @@ class TFReader(FormatReader):
         pass
 
     @dlp.log
-    def parse_image(self, serialized):
+    def _parse_image(self, serialized):
         """
         performs deserialization of the tfrecord.
         :param serialized: is the serialized version using protobuf
@@ -85,7 +85,7 @@ class TFReader(FormatReader):
         self._dataset = tf.data.TFRecordDataset(filenames=self._file_list, buffer_size=self._args.transfer_size)
         self._dataset = self._dataset.shard(num_shards=self._args.comm_size, index=self._args.my_rank)
         self._dataset = self._dataset.map(
-            lambda x: tf.py_function(func=self.parse_image, inp=[x], Tout=[tf.uint8])
+            lambda x: tf.py_function(func=self._parse_image, inp=[x], Tout=[tf.uint8])
             , num_parallel_calls=self._args.computation_threads)
         self._dataset = self._dataset.batch(self.batch_size, drop_remainder=True)
         total = math.ceil(len(self._file_list)/self._args.comm_size / self.batch_size * self._args.num_samples_per_file)
@@ -104,7 +104,3 @@ class TFReader(FormatReader):
     @dlp.log
     def finalize(self):
         return super().finalize()
-
-    @dlp.log
-    def read(self):
-        return super().read()

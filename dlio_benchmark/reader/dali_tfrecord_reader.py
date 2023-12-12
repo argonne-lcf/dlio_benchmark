@@ -18,7 +18,8 @@ import os.path
 
 import math
 import logging
-from time import time
+from time import time, sleep
+import numpy as np
 
 import nvidia
 import nvidia.dali.fn as fn
@@ -33,25 +34,25 @@ dlp = Profile(MODULE_DATA_READER)
 
 
 class DaliTFRecordReader(FormatReader):
+    """
+    Reader for NPZ files
+    """    
     @dlp.log_init
     def __init__(self, dataset_type, thread_index, epoch):
         super().__init__(dataset_type, thread_index)
-    def open(self):
-        super().open()
 
+    @dlp.log
+    def open(self, filename):
+        super().open(filename)
+    
     def close(self):
         super().close()
     
     def get_sample(self, filename, sample_index):
         super().get_sample(filename, sample_index)
 
-    def next(self):
-        super().next()
-
-    def read_index(self):
-        super().read_index()
     @dlp.log
-    def read(self):
+    def pipeline(self):
         folder = "valid"
         if self.dataset_type == DatasetType.TRAIN:
             folder = "train"
@@ -85,16 +86,16 @@ class DaliTFRecordReader(FormatReader):
                                       random_shuffle=random_shuffle, seed=seed,
                                       stick_to_shard=True, pad_last_batch=True, 
                                       dont_use_mmap=self._args.dont_use_mmap)
-        dataset = self._preprocess(dataset["image"])
-        dataset = self._resize(dataset)
+        dataset = self._resize(dataset['image'])
         return dataset
 
+    def read_index(self):
+        super().read_index()
+        raise Exception("read_index method is not implemented")
+
     @dlp.log
-    def _preprocess(self, dataset):
-        if self._args.preprocess_time != 0. or self._args.preprocess_time_stdev != 0.:
-            t = np.random.normal(self._args.preprocess_time, self._args.preprocess_time_stdev)
-            sleep(max(t, 0.0))
-        return dataset
+    def preprocess(self, dataset):
+        raise Exception("Emulated preprocessing method is not implemented in dali readers")
 
     @dlp.log
     def _resize(self, dataset):

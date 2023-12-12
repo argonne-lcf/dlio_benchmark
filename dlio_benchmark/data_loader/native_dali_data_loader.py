@@ -38,9 +38,9 @@ class NativeDaliDataLoader(BaseDataLoader):
                                exec_async=False, exec_pipelined=False)
         with pipeline:
             images = ReaderFactory.get_reader(type=self.format_type,
-                                                      dataset_type=self.dataset_type,
-                                                      thread_index=-1,
-                                                      epoch_number=self.epoch_number).read()
+                                            dataset_type=self.dataset_type,
+                                            thread_index=-1,
+                                            epoch_number=self.epoch_number).pipeline()
             pipeline.set_outputs(images)
         self.pipelines.append(pipeline)
 

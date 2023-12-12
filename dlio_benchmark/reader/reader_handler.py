@@ -60,7 +60,7 @@ class FormatReader(ABC):
 
     @abstractmethod
     def open(self, filename):
-        pass
+        return 
 
     @abstractmethod
     def close(self, filename):
@@ -124,10 +124,6 @@ class FormatReader(ABC):
             if filename in self.open_file_map:
                 self.close(filename)
                 self.open_file_map[filename] = None
-
-    @abstractmethod
-    def read(self):
-        return
 
     def __del__(self):
         self.thread_index = None
