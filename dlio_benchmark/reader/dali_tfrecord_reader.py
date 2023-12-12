@@ -47,9 +47,6 @@ class DaliTFRecordReader(FormatReader):
     
     def close(self):
         super().close()
-    
-    def get_sample(self, filename, sample_index):
-        super().get_sample(filename, sample_index)
 
     @dlp.log
     def pipeline(self):
@@ -89,9 +86,17 @@ class DaliTFRecordReader(FormatReader):
         dataset = self._resize(dataset['image'])
         return dataset
 
+    def get_sample(self, filename, sample_index):
+        super().get_sample(filename, sample_index)
+        raise Exception("get sample method is not implemented in dali readers")
+
+    def next(self):
+        super().next()
+        raise Exception("next method is not implemented in dali readers")
+
     def read_index(self):
         super().read_index()
-        raise Exception("read_index method is not implemented")
+        raise Exception("read_index method is not implemented in dali readers")
 
     @dlp.log
     def preprocess(self, dataset):
