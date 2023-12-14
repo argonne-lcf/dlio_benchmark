@@ -83,12 +83,9 @@ class DaliImageReader(FormatReader):
                                          stick_to_shard=stick_to_shard, pad_last_batch=True, 
                                          dont_use_mmap=self._args.dont_use_mmap)
         images = fn.decoders.image(images, device='cpu')
+        fn.python_function(dataset, function=self.preprocess, num_outputs=0)
         dataset = self._resize(images)
         return dataset
-
-    @dlp.log
-    def preprocess(self):
-        raise Exception("Emulated preprocessing method is not implemented in dali readers")
 
     @dlp.log
     def _resize(self, dataset):

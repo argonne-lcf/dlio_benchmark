@@ -53,7 +53,7 @@ class FormatReader(ABC):
         self.batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
 
     @dlp.log
-    def preprocess(self):
+    def preprocess(self, a=None):
         if self._args.preprocess_time != 0. or self._args.preprocess_time_stdev != 0.:
             t = np.random.normal(self._args.preprocess_time, self._args.preprocess_time_stdev)
             sleep(max(t, 0.0))

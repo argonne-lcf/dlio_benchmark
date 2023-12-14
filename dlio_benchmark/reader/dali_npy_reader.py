@@ -70,6 +70,7 @@ class DaliNPYReader(FormatReader):
                                    stick_to_shard=stick_to_shard, pad_last_batch=True, 
                                    dont_use_mmap=self._args.dont_use_mmap)
         dataset = self._resize(dataset)
+        fn.python_function(dataset, function=self.preprocess, num_outputs=0)
         return dataset
 
     def close(self):
@@ -86,12 +87,7 @@ class DaliNPYReader(FormatReader):
     def read_index(self):
         super().read_index()
         raise Exception("read_index method is not implemented in dali readers")
-
-    @dlp.log
-    def preprocess(self, dataset):
-        raise Exception("Emulated preprocessing method is not implemented in dali readers")
-
-
+    
     @dlp.log
     def _resize(self, dataset):
         return fn.resize(dataset, size=[self._args.max_dimension, self._args.max_dimension])

@@ -84,6 +84,7 @@ class DaliTFRecordReader(FormatReader):
                                       stick_to_shard=True, pad_last_batch=True, 
                                       dont_use_mmap=self._args.dont_use_mmap)
         dataset = self._resize(dataset['image'])
+        fn.python_function(dataset, function=self.preprocess, num_outputs=0)
         return dataset
 
     def get_sample(self, filename, sample_index):
@@ -97,10 +98,6 @@ class DaliTFRecordReader(FormatReader):
     def read_index(self):
         super().read_index()
         raise Exception("read_index method is not implemented in dali readers")
-
-    @dlp.log
-    def preprocess(self, dataset):
-        raise Exception("Emulated preprocessing method is not implemented in dali readers")
 
     @dlp.log
     def _resize(self, dataset):
