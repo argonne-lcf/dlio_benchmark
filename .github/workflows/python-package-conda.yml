@@ -56,7 +56,7 @@ jobs:
         rm -rf *.egg*
         rm -rf build
         rm -rf dist
-        pip uninstall dlio_benchmark
+        pip uninstall -y dlio_benchmark
         python setup.py build
         python setup.py install
     - name: Install DLIO
