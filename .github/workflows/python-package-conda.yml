@@ -52,7 +52,6 @@ jobs:
     - name: Install DLIO code only 
       if: steps.cache-modules.outputs.cache-hit == 'true'    
       run: |
-        git pull
         source ${VENV}/bin/activate
         rm -rf *.egg*
         rm -rf build
