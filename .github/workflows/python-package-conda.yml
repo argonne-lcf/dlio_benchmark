@@ -55,6 +55,8 @@ jobs:
         source ${VENV}/bin/activate
         rm -rf *.egg*
         rm -rf build
+        rm -rf dist
+        pip uninstall dlio_benchmark
         python setup.py build
         python setup.py install
     - name: Install DLIO
