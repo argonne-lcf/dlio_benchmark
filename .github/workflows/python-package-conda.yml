@@ -49,6 +49,13 @@ jobs:
         sudo apt update
         sudo apt-get install $CC $CXX libc6
         sudo apt-get install mpich libhwloc-dev
+    - name: Install DLIO code only 
+      if: steps.cache-modules.outputs.cache-hit == 'true'    
+      run: |
+        source ${VENV}/bin/activate
+        rm -rf *.egg*
+        rm -rf build
+        python setup.py install
     - name: Install DLIO
       if: steps.cache-modules.outputs.cache-hit != 'true'
       run: |
@@ -57,13 +64,7 @@ jobs:
         pip install virtualenv
         python -m venv ${VENV}
         source ${VENV}/bin/activate
-        pip install .[test]
-      if: steps.cache-modules.outputs.cache-hit == 'true'    
-      run: |
-        source ${VENV}/bin/activate
-        rm -rf *.egg*
-        rm -rf build
-        python setup.py install
+        pip install .[test]       
     - name: Install DLIO Profiler
       run: |
         echo "Profiler ${DLIO_PROFILER} gcc $CC"
