@@ -45,6 +45,9 @@ class DataLoaderFactory(object):
         elif type == DataLoaderType.DALI:
             from dlio_benchmark.data_loader.dali_data_loader import DaliDataLoader
             return DaliDataLoader(format_type, dataset_type, epoch)
+        elif type == DataLoaderType.NATIVE_DALI:
+            from dlio_benchmark.data_loader.native_dali_data_loader import NativeDaliDataLoader
+            return NativeDaliDataLoader(format_type, dataset_type, epoch)
         else:
             print("Data Loader %s not supported or plugins not found" % type)
             raise Exception(str(ErrorCodes.EC1004))

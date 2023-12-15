@@ -23,7 +23,7 @@ dlio_benchmark ++workload.workflow.generate_data=True
 git clone https://github.com/argonne-lcf/dlio_benchmark
 cd dlio_benchmark/
 pip install .[dlio_profiler]
-
+```
 ## Container
 
 ```bash
