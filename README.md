@@ -23,7 +23,7 @@ dlio_benchmark ++workload.workflow.generate_data=True
 git clone https://github.com/argonne-lcf/dlio_benchmark
 cd dlio_benchmark/
 pip install .[dlio_profiler]
-
+```
 ## Container
 
 ```bash
@@ -68,7 +68,7 @@ A DLIO run is split in 3 phases:
 - Run the benchmark using the previously generated data
 - Post-process the results to generate a report
 
-The configurations of a workload can be specified through a yaml file. Examples of yaml files can be found in [./configs/workload/](./configs/workload). 
+The configurations of a workload can be specified through a yaml file. Examples of yaml files can be found in [dlio_benchmark/configs/workload/](./dlio_benchmark/configs/workload). 
 
 One can specify the workload through the ```workload=``` option on the command line. Specific configuration fields can then be overridden following the ```hydra``` framework convention (e.g. ```++workload.framework=tensorflow```). 
 
