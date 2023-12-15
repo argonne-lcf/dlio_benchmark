@@ -14,9 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-
 import numpy as np
-from PIL import Image
 
 from dlio_benchmark.common.constants import MODULE_DATA_READER
 from dlio_benchmark.reader.reader_handler import FormatReader
@@ -25,9 +23,9 @@ from dlio_profiler.logger import fn_interceptor as Profile
 dlp = Profile(MODULE_DATA_READER)
 
 
-class JPEGReader(FormatReader):
+class NPYReader(FormatReader):
     """
-    Reader for JPEG files
+    Reader for NPY files
     """
 
     @dlp.log_init
@@ -37,7 +35,7 @@ class JPEGReader(FormatReader):
     @dlp.log
     def open(self, filename):
         super().open(filename)
-        return np.asarray(Image.open(filename))
+        return np.load(filename)
 
     @dlp.log
     def close(self, filename):
@@ -46,7 +44,7 @@ class JPEGReader(FormatReader):
     @dlp.log
     def get_sample(self, filename, sample_index):
         super().get_sample(filename, sample_index)
-        image = self.open_file_map[filename]
+        image = self.open_file_map[filename][..., sample_index]
         dlp.update(image_size=image.nbytes)
 
     def next(self):

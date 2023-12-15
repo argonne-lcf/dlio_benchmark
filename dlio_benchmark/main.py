@@ -69,6 +69,9 @@ class DLIOBenchmark(object):
         t0 = time()
         self.args = ConfigArguments.get_instance()
         LoadConfig(self.args, cfg)
+        self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root,
+                                                    self.args.framework)
+
         if self.args.output_folder is None:
             try:
                 hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
@@ -76,26 +79,9 @@ class DLIOBenchmark(object):
             except:
                 self.args.output_folder = 'output/'
         self.output_folder = self.args.output_folder
-        self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root,
-                                                    self.args.framework)
-        self.output_folder = self.args.output_folder
-        self.output = StorageFactory().get_storage(self.args.storage_type, self.args.output_folder,
-                                                   self.args.framework)
-        self.output.create_namespace(exist_ok=True)
-        self.logfile = os.path.join(self.output_folder, self.args.log_file)
-        # Configure the logging library
-        log_level = logging.DEBUG if self.args.debug else logging.INFO
-        logging.basicConfig(
-            level=log_level,
-            handlers=[
-                logging.FileHandler(self.logfile, mode="a", encoding='utf-8'),
-                logging.StreamHandler()
-            ],
-            format='[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'
-            # logging's max timestamp resolution is msecs, we will pass in usecs in the message
-        )
+        os.makedirs(self.args.output_folder, mode=0o755, exist_ok=True)
+        self.logfile = os.path.join(self.args.output_folder, self.args.log_file)
         dlp_trace = get_trace_name(self.args.output_folder)
-        logging.info(f"{utcnow()} Profiling DLIO {dlp_trace}")
         self.dlp_logger = PerfTrace.initialize_log(logfile=dlp_trace,
                                                      data_dir=f"{os.path.abspath(self.args.data_folder)}:{self.args.data_folder}:./{self.args.data_folder}",
                                                      process_id=get_rank())
@@ -114,7 +100,20 @@ class DLIOBenchmark(object):
                 if os.path.isfile(self.logfile):
                     os.remove(self.logfile)
             self.framework.barrier()
+            # Configure the logging library
+            log_level = logging.DEBUG if self.args.debug else logging.INFO
+            logging.basicConfig(
+                level=log_level,
+                force=True,
+                handlers=[
+                    logging.FileHandler(self.logfile, mode="a", encoding='utf-8'),
+                    logging.StreamHandler()
+                ],
+                format='[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'
+                # logging's max timestamp resolution is msecs, we will pass in usecs in the message
+            )
             if self.args.my_rank == 0:
+                logging.info(f"{utcnow()} Profiling DLIO {dlp_trace}")
                 logging.info(f"{utcnow()} Running DLIO with {self.args.comm_size} process(es)")
                 try:
                     logging.info(
