@@ -43,18 +43,33 @@ class ReaderFactory(object):
         elif type == FormatType.CSV:
             from dlio_benchmark.reader.csv_reader import CSVReader
             return CSVReader(dataset_type, thread_index, epoch_number)
-        elif type == FormatType.JPEG:
-            from dlio_benchmark.reader.jpeg_reader import JPEGReader
-            return JPEGReader(dataset_type, thread_index, epoch_number)
-        elif type == FormatType.PNG:
-            from dlio_benchmark.reader.png_reader import PNGReader
-            return PNGReader(dataset_type, thread_index, epoch_number)
+        elif type == FormatType.JPEG or type == FormatType.PNG:
+            if _args.data_loader == DataLoaderType.NATIVE_DALI:
+                from dlio_benchmark.reader.dali_image_reader import DaliImageReader
+                return DaliImageReader(dataset_type, thread_index, epoch_number)
+            else:
+                from dlio_benchmark.reader.image_reader import ImageReader
+                return ImageReader(dataset_type, thread_index, epoch_number)   
+        elif type == FormatType.NPY:
+            if _args.data_loader == DataLoaderType.NATIVE_DALI:
+                from dlio_benchmark.reader.dali_npy_reader import DaliNPYReader
+                return DaliNPYReader(dataset_type, thread_index, epoch_number)
+            else:
+                from dlio_benchmark.reader.npy_reader import NPYReader
+                return NPYReader(dataset_type, thread_index, epoch_number)                         
         elif type == FormatType.NPZ:
-            from dlio_benchmark.reader.npz_reader import NPZReader
-            return NPZReader(dataset_type, thread_index, epoch_number)
+            if _args.data_loader == DataLoaderType.NATIVE_DALI:
+                raise Exception("Loading data of %s format is not supported without framework data loader; please use npy format instead." %type)
+            else:
+                from dlio_benchmark.reader.npz_reader import NPZReader
+                return NPZReader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.TFRECORD:
-            from dlio_benchmark.reader.tf_reader import TFReader
-            return TFReader(dataset_type, thread_index, epoch_number)
+            if _args.data_loader == DataLoaderType.NATIVE_DALI: 
+                from dlio_benchmark.reader.dali_tfrecord_reader import DaliTFRecordReader
+                return DaliTFRecordReader(dataset_type, thread_index, epoch_number)
+            else:
+                from dlio_benchmark.reader.tf_reader import TFReader
+                return TFReader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.INDEXED_BINARY:
             from dlio_benchmark.reader.indexed_binary_reader import IndexedBinaryReader
             return IndexedBinaryReader(dataset_type, thread_index, epoch_number)
@@ -62,5 +77,4 @@ class ReaderFactory(object):
             from dlio_benchmark.reader.indexed_binary_mmap_reader import IndexedBinaryMMapReader
             return IndexedBinaryMMapReader(dataset_type, thread_index, epoch_number)
         else:
-            print("Loading data of %s format is not supported without framework data loader" %type)
-            raise Exception(type)
+            raise Exception("Loading data of %s format is not supported without framework data loader" %type)

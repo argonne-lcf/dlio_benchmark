@@ -78,6 +78,7 @@ class ConfigArguments:
     steps_between_checkpoints: int = -1
     transfer_size: int = None
     read_threads: int = 1
+    dont_use_mmap: bool = False
     computation_threads: int = 1
     computation_time: float = 0.
     computation_time_stdev: float = 0.
@@ -153,10 +154,8 @@ class ConfigArguments:
         if (self.do_profiling == True) and (self.profiler == Profiler('darshan')):
             if ('LD_PRELOAD' not in os.environ or os.environ["LD_PRELOAD"].find("libdarshan") == -1):
                 raise Exception("Please set darshan runtime library in LD_PRELOAD")
-        if self.format is FormatType.TFRECORD and self.framework is not FrameworkType.TENSORFLOW:
-            raise Exception(f"{self.framework} support for tfrecord is not implemented.")
-        if self.format is FormatType.TFRECORD and self.data_loader is not DataLoaderType.TENSORFLOW:
-            raise Exception(f"{self.data_loader} support for tfrecord is not implemented.")
+        if self.format is FormatType.TFRECORD and (self.data_loader is DataLoaderType.PYTORCH):
+            raise Exception(f"{self.framework} support for tfrecord is not implemented for {self.data_loader}.")
         if (self.framework == FrameworkType.TENSORFLOW and self.data_loader == DataLoaderType.PYTORCH) or (
                 self.framework == FrameworkType.PYTORCH and self.data_loader == DataLoaderType.TENSORFLOW):
             raise Exception("Imcompatible between framework and data_loader setup.")
@@ -355,6 +354,8 @@ def LoadConfig(args, config):
     elif 'reader' in config:
         reader = config['reader']
     if reader is not None:
+        if 'dont_use_mmap' in reader:
+            args.dont_use_mmap = reader['dont_use_mmap']
         if 'reader_classname' in reader:
             args.reader_classname = reader['reader_classname']
         if 'multiprocessing_context' in reader:

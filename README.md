@@ -16,8 +16,14 @@ cd dlio_benchmark/
 pip install .
 dlio_benchmark ++workload.workflow.generate_data=True
 ```
-Additionally, to generate the report `iostat` is needed and can be installed from the `sysstat` package using your package manager.
 
+### Bare metal installation with profiler
+
+```bash
+git clone https://github.com/argonne-lcf/dlio_benchmark
+cd dlio_benchmark/
+pip install .[dlio_profiler]
+```
 ## Container
 
 ```bash
@@ -62,7 +68,7 @@ A DLIO run is split in 3 phases:
 - Run the benchmark using the previously generated data
 - Post-process the results to generate a report
 
-The configurations of a workload can be specified through a yaml file. Examples of yaml files can be found in [./configs/workload/](./configs/workload). 
+The configurations of a workload can be specified through a yaml file. Examples of yaml files can be found in [dlio_benchmark/configs/workload/](./dlio_benchmark/configs/workload). 
 
 One can specify the workload through the ```workload=``` option on the command line. Specific configuration fields can then be overridden following the ```hydra``` framework convention (e.g. ```++workload.framework=tensorflow```). 
 
@@ -74,9 +80,15 @@ If possible, one can flush the filesystem caches in order to properly capture de
   ```bash
   sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches
   ```
-Finally, run the benchmark with ```iostat``` profiling, listing the io devices you would like to trace.
+Finally, run the benchmark
   ```bash
-  mpirun -np 8 dlio_benchmark workload=unet3d ++workload.workflow.profiling=True ++workload.profiling.profiler=iostat ++workload.profiling.iostat_devices=[sda,sdb]
+  mpirun -np 8 dlio_benchmark workload=unet3d
+  ```
+Finally, run the benchmark with Profiler
+  ```bash
+  export ENV DLIO_PROFILER_ENABLE=1
+  export DLIO_PROFILER_INC_METADATA=1
+  mpirun -np 8 dlio_benchmark workload=unet3d
   ```
 
 All the outputs will be stored in ```hydra_log/unet3d/$DATE-$TIME``` folder. To post process the data, one can do

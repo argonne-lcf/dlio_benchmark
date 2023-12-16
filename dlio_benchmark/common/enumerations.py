@@ -103,6 +103,7 @@ class FormatType(Enum):
     HDF5 = 'hdf5'
     CSV = 'csv'
     NPZ = 'npz'
+    NPY = 'npy'
     HDF5_OPT = 'hdf5_opt'
     JPEG = 'jpeg'
     PNG = 'png'
@@ -112,7 +113,7 @@ class FormatType(Enum):
     def __str__(self):
         return self.value
 
-    @ staticmethod
+    @staticmethod
     def get_enum(value):
         if FormatType.TFRECORD.value == value:
             return FormatType.TFRECORD
@@ -122,6 +123,8 @@ class FormatType(Enum):
             return FormatType.CSV
         elif FormatType.NPZ.value == value:
             return FormatType.NPZ
+        elif FormatType.NPY.value == value:
+            return FormatType.NPY            
         elif FormatType.HDF5_OPT.value == value:
             return FormatType.HDF5_OPT
         elif FormatType.JPEG.value == value:
@@ -140,6 +143,7 @@ class DataLoaderType(Enum):
     TENSORFLOW='tensorflow'
     PYTORCH='pytorch'
     DALI='dali'
+    NATIVE_DALI='native_dali'
     CUSTOM='custom'
     NONE='none'
     
