@@ -314,6 +314,33 @@ def test_multi_threads(framework, nt) -> None:
 
 
 @pytest.mark.timeout(60, method="thread")
+
+@pytest.mark.parametrize("nt, context", [(0, None), (1, "fork"), (2, "spawn"), (2, "forkserver")])
+def test_pytorch_multiprocessing_context(nt, context) -> None:
+    clean()
+    if (comm.rank == 0):
+        logging.info("")
+        logging.info("=" * 80)
+        logging.info(f" DLIO test for pytorch multiprocessing_context={context} read_threads={nt}")
+        logging.info("=" * 80)
+        # with subTest(f"Testing full benchmark for format: {framework}-NT{nt}", nt=nt, framework=pytorch):
+    with initialize_config_dir(version_base=None, config_dir=config_dir):
+        cfg = compose(config_name='config', overrides=['++workload.workflow.train=True',
+                                                       '++workload.workflow.generate_data=True',
+                                                       f"++workload.framework=pytorch",
+                                                       f"++workload.reader.data_loader=pytorch",
+                                                       f"++workload.reader.read_threads={nt}",
+                                                       f"++workload.reader.multiprocessing_context={context}",
+                                                       'workload.train.computation_time=0.01',
+                                                       'workload.evaluation.eval_time=0.005',
+                                                       '++workload.train.epochs=1',
+                                                       '++workload.dataset.num_files_train=8',
+                                                       '++workload.dataset.num_files_eval=8'])
+        benchmark = run_benchmark(cfg)
+    clean()
+
+
+@pytest.mark.timeout(60, method="thread")
 @pytest.mark.parametrize("fmt, framework, dataloader", [("png", "tensorflow","tensorflow"), ("npz", "tensorflow","tensorflow"),
                                             ("jpeg", "tensorflow","tensorflow"), ("tfrecord", "tensorflow","tensorflow"),
                                             ("hdf5", "tensorflow","tensorflow"), ("csv", "tensorflow","tensorflow"),
