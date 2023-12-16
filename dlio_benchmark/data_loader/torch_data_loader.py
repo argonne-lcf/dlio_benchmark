@@ -46,10 +46,10 @@ class TorchDataset(Dataset):
         self.reader = None
         self.num_images_read = 0
         self.batch_size = batch_size
-        if num_workers == 0:
-            self.worker_init(-1)
         args = ConfigArguments.get_instance()
         self.serial_args = pickle.dumps(args)
+        if num_workers == 0:
+            self.worker_init(-1)
 
     @dlp.log
     def worker_init(self, worker_id):
