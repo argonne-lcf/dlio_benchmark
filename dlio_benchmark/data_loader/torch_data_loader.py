@@ -17,6 +17,7 @@
 from time import time
 import logging
 import math
+import pickle
 import torch
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler
 
@@ -25,6 +26,7 @@ from dlio_benchmark.common.enumerations import Shuffle, DatasetType, DataLoaderT
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.utils.utility import utcnow, get_rank
+from dlio_benchmark.utils.config import ConfigArguments
 from dlio_profiler.logger import fn_interceptor as Profile
 
 dlp = Profile(MODULE_DATA_LOADER)
@@ -46,9 +48,12 @@ class TorchDataset(Dataset):
         self.batch_size = batch_size
         if num_workers == 0:
             self.worker_init(-1)
+        args = ConfigArguments.get_instance()
+        self.serial_args = pickle.dumps(args)
 
     @dlp.log
     def worker_init(self, worker_id):
+        pickle.loads(self.serial_args)
         logging.debug(f"{utcnow()} worker initialized {worker_id} with format {self.format_type}")
         self.reader = ReaderFactory.get_reader(type=self.format_type,
                                                dataset_type=self.dataset_type,

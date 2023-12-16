@@ -137,6 +137,10 @@ class ConfigArguments:
         self.comm_size = MPI.COMM_WORLD.size
         self.my_rank = MPI.COMM_WORLD.rank
 
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        ConfigArguments.__instance = self
+
     @staticmethod
     def get_instance():
         """ Static access method. """
