@@ -36,7 +36,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 from dataclasses import dataclass
-from dlio_benchmark.utils.utility import utcnow, measure_performance, get_trace_name, get_rank
+from dlio_benchmark.utils.utility import utcnow, measure_performance, get_trace_name, mpi
 from omegaconf import DictConfig, OmegaConf
 from dlio_benchmark.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
@@ -67,6 +67,8 @@ class DLIOBenchmark(object):
         </ul>
         """
         t0 = time()
+        mpi.get_instance().initialize()
+        self.comm = mpi.get_instance().comm()
         self.args = ConfigArguments.get_instance()
         LoadConfig(self.args, cfg)
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root,
@@ -82,9 +84,11 @@ class DLIOBenchmark(object):
         os.makedirs(self.args.output_folder, mode=0o755, exist_ok=True)
         self.logfile = os.path.join(self.args.output_folder, self.args.log_file)
         dlp_trace = get_trace_name(self.args.output_folder)
+        self.my_rank = self.args.my_rank = mpi.get_instance().rank()
+        self.comm_size = self.args.comm_size = mpi.get_instance().size()
         self.dlp_logger = PerfTrace.initialize_log(logfile=dlp_trace,
                                                      data_dir=f"{os.path.abspath(self.args.data_folder)}:{self.args.data_folder}:./{self.args.data_folder}",
-                                                     process_id=get_rank())
+                                                     process_id=self.my_rank)
         with Profile(name=f"{self.__init__.__qualname__}", cat=MODULE_DLIO_BENCHMARK):
             self.data_folder = self.args.data_folder
             self.storage_root = self.args.storage_root
@@ -93,13 +97,11 @@ class DLIOBenchmark(object):
             self.framework = FrameworkFactory().get_framework(self.args.framework,
                                                               self.args.do_profiling)
 
-            self.my_rank = self.args.my_rank = self.framework.rank()
-            self.comm_size = self.args.comm_size = self.framework.size()
             # Delete previous logfile
             if self.my_rank == 0:
                 if os.path.isfile(self.logfile):
                     os.remove(self.logfile)
-            self.framework.barrier()
+            self.comm.barrier()
             # Configure the logging library
             log_level = logging.DEBUG if self.args.debug else logging.INFO
             logging.basicConfig(
@@ -166,7 +168,7 @@ class DLIOBenchmark(object):
         - It generates the required data
         - Start profiling session for Darshan and Tensorboard.
         """
-        self.framework.barrier()
+        self.comm.barrier()
         if self.args.debug and self.args.my_rank == 0:
             input("Debug mode: Press enter to start\n")
 
@@ -175,17 +177,17 @@ class DLIOBenchmark(object):
                 logging.info(f"{utcnow()} Starting data generation")
             self.data_generator.generate()
             # important to have this barrier to ensure that the data generation is done for all the ranks
-            self.framework.barrier()
+            self.comm.barrier()
             if self.args.my_rank == 0:
                 logging.info(f"{utcnow()} Generation done")
 
         if not self.generate_only and self.do_profiling:
             self.profiler.start()
             self.framework.start_framework_profiler()
-            self.framework.barrier()
+            self.comm.barrier()
             if self.args.my_rank == 0:
                 logging.info(f"{utcnow()} Profiling Started with {self.args.profiler}")
-        self.framework.barrier()
+        self.comm.barrier()
         file_list_train = []
         file_list_eval = []
         num_subfolders = 0
@@ -232,7 +234,7 @@ class DLIOBenchmark(object):
             file_list_eval = file_list_eval[:self.num_files_eval]
         self.args.derive_configurations(file_list_train, file_list_eval)
         self.args.validate()
-        self.framework.barrier()
+        self.comm.barrier()
 
     @dlp.log
     def _eval(self, epoch):
@@ -293,7 +295,7 @@ class DLIOBenchmark(object):
                 else:
                     computation_time = self.computation_time
                 self.framework.compute(batch, epoch, block_step, computation_time)
-            self.framework.barrier()
+            self.comm.barrier()
             self.stats.batch_processed(epoch, overall_step, block, t0, computation_time)
             if self.do_checkpoint and (
                     self.steps_between_checkpoints >= 0) and overall_step == self.next_checkpoint_step:
@@ -316,7 +318,7 @@ class DLIOBenchmark(object):
                 break
             overall_step += 1
             t0 = time()
-        self.framework.barrier()
+        self.comm.barrier()
         if self.do_checkpoint and (self.steps_between_checkpoints < 0) and (epoch == self.next_checkpoint_epoch):
             self.stats.end_block(epoch, block, block_step)
             self.stats.start_ckpt(epoch, block, overall_step)
@@ -374,17 +376,17 @@ class DLIOBenchmark(object):
         """
         It finalizes the dataset once training is completed.
         """
-        self.framework.barrier()
+        self.comm.barrier()
         if not self.generate_only:
             if self.do_profiling:
                 self.profiler.stop()
                 self.framework.stop_framework_profiler()
-                self.framework.barrier()
+                self.comm.barrier()
                 if self.my_rank == 0:
                     logging.info(f"{utcnow()} Profiling stopped")
             if not self.args.keep_files:
                 logging.info(f"{utcnow()} Keep files set to False. Deleting dataset")
-                self.framework.barrier()
+                self.comm.barrier()
                 if self.my_rank == 0:
                     if self.storage.get_node(self.args.data_folder):
                         self.storage.delete_node(self.args.data_folder)
@@ -393,7 +395,7 @@ class DLIOBenchmark(object):
             # Save collected stats to disk
             self.stats.finalize()
             self.stats.save_data()
-        self.framework.barrier()
+        self.comm.barrier()
         self.dlp_logger.finalize()
 
 

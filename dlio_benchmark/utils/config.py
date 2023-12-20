@@ -27,6 +27,7 @@ from dlio_benchmark.common.constants import MODULE_CONFIG
 from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
     FrameworkType, \
     DataLoaderType, Profiler, DatasetType, DataLoaderSampler
+from dlio_benchmark.utils.utility import mpi
 from dataclasses import dataclass
 import math
 import os
@@ -132,13 +133,13 @@ class ConfigArguments:
         if ConfigArguments.__instance is not None:
             raise Exception("This class is a singleton!")
         else:
+            self.comm_size = mpi.get_instance().size()
+            self.my_rank = mpi.get_instance().rank()
             ConfigArguments.__instance = self
-        from mpi4py import MPI
-        self.comm_size = MPI.COMM_WORLD.size
-        self.my_rank = MPI.COMM_WORLD.rank
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+        mpi.get_instance().set_parent_values(self.my_rank, self.comm_size)
         ConfigArguments.__instance = self
 
     @staticmethod
