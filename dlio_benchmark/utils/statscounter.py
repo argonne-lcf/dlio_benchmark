@@ -16,7 +16,7 @@
 """
 from numpy import append
 from dlio_benchmark.utils.config import ConfigArguments
-from dlio_benchmark.utils.utility import utcnow, mpi
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 
 import os
 import json
@@ -30,7 +30,7 @@ import socket
 class StatsCounter(object):
 
     def __init__(self):
-        self.comm = mpi.get_instance().comm()
+        self.comm = DLIOMPI.get_instance().comm()
         self.args = ConfigArguments.get_instance()
         self.my_rank = self.args.my_rank
         self.comm_size = self.args.comm_size

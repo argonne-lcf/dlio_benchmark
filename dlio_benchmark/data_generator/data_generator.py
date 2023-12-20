@@ -23,7 +23,7 @@ import math
 from shutil import copyfile
 import numpy as np
 import logging
-from dlio_benchmark.utils.utility import utcnow, add_padding, mpi
+from dlio_benchmark.utils.utility import utcnow, add_padding, DLIOMPI
 
 
 class DataGenerator(ABC):
@@ -79,7 +79,7 @@ class DataGenerator(ABC):
             logging.info(f"{utcnow()} Number of files for validation dataset: {self.num_files_eval}")
 
 
-        mpi.get_instance().comm().barrier()
+        DLIOMPI.get_instance().comm().barrier()
         # What is the logic behind this formula? 
         # Will probably have to adapt to generate non-images
         self.total_files_to_generate = self.num_files_train

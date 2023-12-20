@@ -24,7 +24,7 @@ import os
 import torch
 import functools
 import logging
-from dlio_benchmark.utils.utility import utcnow, mpi
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 from dlio_profiler.logger import fn_interceptor as Profile
 
 from time import sleep, time
@@ -97,7 +97,7 @@ class TorchFramework(Framework):
 
     @dlp.log
     def checkpoint(self, epoch, step_number):
-        if mpi.get_instance().rank() == 0:
+        if DLIOMPI.get_instance().rank() == 0:
             """
             Performs Checkpointing for a specific step number. It writes different file of different sizes.
             """

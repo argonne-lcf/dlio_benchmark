@@ -36,7 +36,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 from dataclasses import dataclass
-from dlio_benchmark.utils.utility import utcnow, measure_performance, get_trace_name, mpi
+from dlio_benchmark.utils.utility import utcnow, measure_performance, get_trace_name, DLIOMPI
 from omegaconf import DictConfig, OmegaConf
 from dlio_benchmark.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
@@ -67,8 +67,7 @@ class DLIOBenchmark(object):
         </ul>
         """
         t0 = time()
-        mpi.get_instance().initialize()
-        self.comm = mpi.get_instance().comm()
+        DLIOMPI.get_instance().initialize()
         self.args = ConfigArguments.get_instance()
         LoadConfig(self.args, cfg)
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root,
@@ -84,8 +83,9 @@ class DLIOBenchmark(object):
         os.makedirs(self.args.output_folder, mode=0o755, exist_ok=True)
         self.logfile = os.path.join(self.args.output_folder, self.args.log_file)
         dlp_trace = get_trace_name(self.args.output_folder)
-        self.my_rank = self.args.my_rank = mpi.get_instance().rank()
-        self.comm_size = self.args.comm_size = mpi.get_instance().size()
+        self.comm = DLIOMPI.get_instance().comm()
+        self.my_rank = self.args.my_rank = DLIOMPI.get_instance().rank()
+        self.comm_size = self.args.comm_size = DLIOMPI.get_instance().size()
         self.dlp_logger = PerfTrace.initialize_log(logfile=dlp_trace,
                                                      data_dir=f"{os.path.abspath(self.args.data_folder)}:{self.args.data_folder}:./{self.args.data_folder}",
                                                      process_id=self.my_rank)

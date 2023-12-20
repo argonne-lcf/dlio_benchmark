@@ -24,6 +24,7 @@ import threading
 import json
 from typing import Dict
 import pathlib
+from enum import Enum
 
 import numpy as np
 import inspect
@@ -56,52 +57,83 @@ def utcnow(format=LOG_TS_FORMAT):
     return datetime.now().strftime(format)
 
 
-class mpi:
+# After the DLIOMPI singleton has been instantiated, the next call must be
+# either initialize() if in an MPI process, or set_parent_values() if in a
+# non-MPI pytorch read_threads child process.
+class DLIOMPI:
     __instance = None
+    class MPI_state(Enum):
+        uninitialized = 1
+        mpi_initialized = 2
+        child_initialized = 3
 
     def __init__(self):
-        if mpi.__instance is not None:
-            raise Exception(f"Class {self.__init__.__qualname__} is a singleton!")
+        if DLIOMPI.__instance is not None:
+            raise Exception(f"Class {self.classname()} is a singleton!")
         else:
-            self.mpi_rank = -1
-            self.mpi_size = -1
-            self.mpi_world = None
-            mpi.__instance = self
+            self.mpi_state = self.MPI_state.uninitialized
+            DLIOMPI.__instance = self
 
     @staticmethod
     def get_instance():
-        if mpi.__instance is None:
-            mpi()
-        return mpi.__instance
+        if DLIOMPI.__instance is None:
+            DLIOMPI()
+        return DLIOMPI.__instance
+
+    @staticmethod
+    def reset():
+        DLIOMPI.__instance = None
+
+    @classmethod
+    def classname(cls):
+        return cls.__qualname__
 
     def initialize(self):
-        # May have already been initialized by dlio_benchmark_test.py
-        if not MPI.Is_initialized():
-            MPI.Init()
-        self.mpi_rank = MPI.COMM_WORLD.rank
-        self.mpi_size = MPI.COMM_WORLD.size
-        self.mpi_world = MPI.COMM_WORLD
+        if self.mpi_state == self.MPI_state.uninitialized:
+            # MPI may have already been initialized by dlio_benchmark_test.py
+            if not MPI.Is_initialized():
+                MPI.Init()
+            self.mpi_state = self.MPI_state.mpi_initialized
+            self.mpi_rank = MPI.COMM_WORLD.rank
+            self.mpi_size = MPI.COMM_WORLD.size
+            self.mpi_world = MPI.COMM_WORLD
+        elif self.mpi_state == self.MPI_state.child_initialized:
+            raise Exception(f"method {self.classname()}.initialize() called in a child process")
+        else:
+            pass    # redundant call
 
     # read_thread processes need to know their parent process's rank and comm_size,
     # but are not MPI processes themselves.
     def set_parent_values(self, parent_rank, parent_comm_size):
-        self.mpi_rank = parent_rank
-        self.mpi_size = parent_comm_size
+        if self.mpi_state == self.MPI_state.uninitialized:
+            self.mpi_state = self.MPI_state.child_initialized
+            self.mpi_rank = parent_rank
+            self.mpi_size = parent_comm_size
+            self.mpi_world = None
+        elif self.mpi_state == self.MPI_state.mpi_initialized:
+            raise Exception(f"method {self.classname()}.set_parent_values() called in a MPI process")
+        else:
+            raise Exception(f"method {self.classname()}.set_parent_values() called twice")
 
     def rank(self):
-        if self.mpi_rank == -1:
-            raise Exception(f"Attempting to call routine {self.__init__.__qualname__}.rank() before initializing MPI")
-        return self.mpi_rank
+        if self.mpi_state == self.MPI_state.uninitialized:
+            raise Exception(f"method {self.classname()}.rank() called before initializing MPI")
+        else:
+            return self.mpi_rank
 
     def size(self):
-        if self.mpi_size == -1:
-            raise Exception(f"Attempting to call routine {self.__init__.__qualname__}.size() before initializing MPI")
-        return self.mpi_size
+        if self.mpi_state == self.MPI_state.uninitialized:
+            raise Exception(f"method {self.classname()}.size() called before initializing MPI")
+        else:
+            return self.mpi_size
 
     def comm(self):
-        if self.mpi_world is None:
-            raise Exception(f"Attempting to call routine {self.__init__.__qualname__}.comm() before initializing MPI")
-        return self.mpi_world
+        if self.mpi_state == self.MPI_state.mpi_initialized:
+            return self.mpi_world
+        elif self.mpi_state == self.MPI_state.child_initialized:
+            raise Exception(f"method {self.classname()}.comm() called in a child process")
+        else:
+            raise Exception(f"method {self.classname()}.comm() called before initializing MPI")
 
 
 def timeit(func):
@@ -131,7 +163,7 @@ def measure_performance(func):
         finish_time = perf_counter()
         logging.basicConfig(format='%(asctime)s %(message)s')
 
-        if mpi.get_instance().rank() == 0:
+        if DLIOMPI.get_instance().rank() == 0:
             s = f'Resource usage information \n[PERFORMANCE] {"=" * 50}\n'
             s += f'[PERFORMANCE] Memory usage:\t\t {current / 10 ** 6:.6f} MB \n'
             s += f'[PERFORMANCE] Peak memory usage:\t {peak / 10 ** 6:.6f} MB \n'
@@ -151,7 +183,7 @@ def progress(count, total, status=''):
     filled_len = int(round(bar_len * count / float(total)))
     percents = round(100.0 * count / float(total), 1)
     bar = '=' * filled_len + ">" + '-' * (bar_len - filled_len)
-    if mpi.get_instance().rank() == 0:
+    if DLIOMPI.get_instance().rank() == 0:
         logging.info("\r[INFO] {} {}: [{}] {}% {} of {} ".format(utcnow(), status, bar, percents, count, total))
         if count == total:
             logging.info("")
@@ -192,7 +224,7 @@ def create_dur_event(name, cat, ts, dur, args={}):
     d = {
         "name": name,
         "cat": cat,
-        "pid": mpi.get_instance().rank(),
+        "pid": DLIOMPI.get_instance().rank(),
         "tid": tid,
         "ts": ts * 1000000,
         "dur": dur * 1000000,
@@ -203,4 +235,4 @@ def create_dur_event(name, cat, ts, dur, args={}):
 
   
 def get_trace_name(output_folder):
-    return f"{output_folder}/trace-{mpi.get_instance().rank()}-of-{mpi.get_instance().size()}.pfw"
+    return f"{output_folder}/trace-{DLIOMPI.get_instance().rank()}-of-{DLIOMPI.get_instance().size()}.pfw"
