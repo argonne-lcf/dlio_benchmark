@@ -177,7 +177,8 @@ class ConfigArguments:
                 logging.warning(
                     f"Running DLIO with {self.read_threads} threads for I/O but core available {cores_available} "
                     f"are insufficient and can lead to lower performance.")
-    def reset(self):
+    @staticmethod
+    def reset():
         ConfigArguments.__instance = None
 
     @dlp.log

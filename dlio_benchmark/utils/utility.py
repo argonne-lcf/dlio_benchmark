@@ -61,7 +61,7 @@ class mpi:
 
     def __init__(self):
         if mpi.__instance is not None:
-            raise Exception("Class {self.__class__.__name__} is a singleton!")
+            raise Exception(f"Class {self.__init__.__qualname__} is a singleton!")
         else:
             self.mpi_rank = -1
             self.mpi_size = -1
@@ -75,7 +75,9 @@ class mpi:
         return mpi.__instance
 
     def initialize(self):
-        MPI.Init()
+        # May have already been initialized by dlio_benchmark_test.py
+        if not MPI.Is_initialized():
+            MPI.Init()
         self.mpi_rank = MPI.COMM_WORLD.rank
         self.mpi_size = MPI.COMM_WORLD.size
         self.mpi_world = MPI.COMM_WORLD
@@ -88,17 +90,17 @@ class mpi:
 
     def rank(self):
         if self.mpi_rank == -1:
-            raise Exception("Attempting to call routine {self.__class__.__name__}.rank() before initializing MPI")
+            raise Exception(f"Attempting to call routine {self.__init__.__qualname__}.rank() before initializing MPI")
         return self.mpi_rank
 
     def size(self):
         if self.mpi_size == -1:
-            raise Exception("Attempting to call routine {self.__class__.__name__}.size() before initializing MPI")
+            raise Exception(f"Attempting to call routine {self.__init__.__qualname__}.size() before initializing MPI")
         return self.mpi_size
 
     def comm(self):
         if self.mpi_world is None:
-            raise Exception("Attempting to call routine {self.__class__.__name__}.comm() before initializing MPI")
+            raise Exception(f"Attempting to call routine {self.__init__.__qualname__}.comm() before initializing MPI")
         return self.mpi_world
 
 
