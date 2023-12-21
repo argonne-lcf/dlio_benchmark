@@ -32,7 +32,7 @@ import psutil
 import socket
 import importlib.util
 # UTC timestamp format with microsecond precision
-from dlio_benchmark.common.enumerations import LoggerType
+from dlio_benchmark.common.enumerations import LoggerType, MPIState
 
 LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
@@ -62,16 +62,12 @@ def utcnow(format=LOG_TS_FORMAT):
 # non-MPI pytorch read_threads child process.
 class DLIOMPI:
     __instance = None
-    class MPI_state(Enum):
-        uninitialized = 1
-        mpi_initialized = 2
-        child_initialized = 3
 
     def __init__(self):
         if DLIOMPI.__instance is not None:
             raise Exception(f"Class {self.classname()} is a singleton!")
         else:
-            self.mpi_state = self.MPI_state.uninitialized
+            self.mpi_state = MPIState.UNINITIALIZED
             DLIOMPI.__instance = self
 
     @staticmethod
@@ -89,15 +85,15 @@ class DLIOMPI:
         return cls.__qualname__
 
     def initialize(self):
-        if self.mpi_state == self.MPI_state.uninitialized:
+        if self.mpi_state == MPIState.UNINITIALIZED:
             # MPI may have already been initialized by dlio_benchmark_test.py
             if not MPI.Is_initialized():
                 MPI.Init()
-            self.mpi_state = self.MPI_state.mpi_initialized
+            self.mpi_state = MPIState.MPI_INITIALIZED
             self.mpi_rank = MPI.COMM_WORLD.rank
             self.mpi_size = MPI.COMM_WORLD.size
             self.mpi_world = MPI.COMM_WORLD
-        elif self.mpi_state == self.MPI_state.child_initialized:
+        elif self.mpi_state == MPIState.CHILD_INITIALIZED:
             raise Exception(f"method {self.classname()}.initialize() called in a child process")
         else:
             pass    # redundant call
@@ -105,32 +101,32 @@ class DLIOMPI:
     # read_thread processes need to know their parent process's rank and comm_size,
     # but are not MPI processes themselves.
     def set_parent_values(self, parent_rank, parent_comm_size):
-        if self.mpi_state == self.MPI_state.uninitialized:
-            self.mpi_state = self.MPI_state.child_initialized
+        if self.mpi_state == MPIState.UNINITIALIZED:
+            self.mpi_state = MPIState.CHILD_INITIALIZED
             self.mpi_rank = parent_rank
             self.mpi_size = parent_comm_size
             self.mpi_world = None
-        elif self.mpi_state == self.MPI_state.mpi_initialized:
+        elif self.mpi_state == MPIState.MPI_INITIALIZED:
             raise Exception(f"method {self.classname()}.set_parent_values() called in a MPI process")
         else:
             raise Exception(f"method {self.classname()}.set_parent_values() called twice")
 
     def rank(self):
-        if self.mpi_state == self.MPI_state.uninitialized:
+        if self.mpi_state == MPIState.UNINITIALIZED:
             raise Exception(f"method {self.classname()}.rank() called before initializing MPI")
         else:
             return self.mpi_rank
 
     def size(self):
-        if self.mpi_state == self.MPI_state.uninitialized:
+        if self.mpi_state == MPIState.UNINITIALIZED:
             raise Exception(f"method {self.classname()}.size() called before initializing MPI")
         else:
             return self.mpi_size
 
     def comm(self):
-        if self.mpi_state == self.MPI_state.mpi_initialized:
+        if self.mpi_state == MPIState.MPI_INITIALIZED:
             return self.mpi_world
-        elif self.mpi_state == self.MPI_state.child_initialized:
+        elif self.mpi_state == MPIState.CHILD_INITIALIZED:
             raise Exception(f"method {self.classname()}.comm() called in a child process")
         else:
             raise Exception(f"method {self.classname()}.comm() called before initializing MPI")

@@ -235,3 +235,8 @@ class Compression(Enum):
 
     def __str__(self):
         return self.value
+
+class MPIState(Enum):
+    UNINITIALIZED = 0
+    MPI_INITIALIZED = 1
+    CHILD_INITIALIZED = 2
