@@ -22,9 +22,6 @@ from time import sleep
 import os
 import logging
 
-from mpi4py import MPI
-comm = MPI.COMM_WORLD
-
 from dlio_benchmark.utils.config import ConfigArguments
 
 class DummyTraceObject(object):
@@ -53,15 +50,6 @@ class Framework(ABC):
     def get_type(self):
         pass
     
-    def barrier(self):
-        return comm.Barrier()
-
-    def rank(self):
-        return comm.rank
-
-    def size(self):
-        return comm.size
-
     @abstractmethod
     def start_framework_profiler(self):
         pass

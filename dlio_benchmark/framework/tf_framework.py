@@ -21,7 +21,7 @@ from time import time, sleep
 
 from dlio_benchmark.common.constants import MODULE_AI_FRAMEWORK
 from dlio_benchmark.data_loader.data_loader_factory import DataLoaderFactory
-from dlio_benchmark.utils.utility import utcnow
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 from dlio_profiler.logger import fn_interceptor as Profile
 from dlio_benchmark.common.error_code import ErrorCodes
 from dlio_benchmark.framework.framework import Framework
@@ -93,8 +93,7 @@ class TFFramework(Framework):
         """
         Performs Checkpointing for a specific step number. It writes different file of different sizes.
         """
-        if self.rank() == 0:
-            my_rank = self.rank()
+        if DLIOMPI.get_instance().rank() == 0:
             if not self.storage.get_node(self.checkpoint_folder):
                 self.storage.create_node(self.checkpoint_folder)
 

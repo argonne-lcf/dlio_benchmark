@@ -235,3 +235,20 @@ class Compression(Enum):
 
     def __str__(self):
         return self.value
+
+class MPIState(Enum):
+    """
+    MPI State for forked and spawned processes.
+    """
+    UNINITIALIZED = 0
+    MPI_INITIALIZED = 1
+    CHILD_INITIALIZED = 2
+   
+    @staticmethod
+    def get_enum(value):
+        if MPIState.UNINITIALIZED.value == value:
+            return MPIState.UNINITIALIZED
+        elif MPIState.MPI_INITIALIZE.value == value:
+            return MPIState.MPI_INITIALIZE
+        elif MPIState.CHILD_INITIALIZED.value == value:
+            return MPIState.CHILD_INITIALIZED

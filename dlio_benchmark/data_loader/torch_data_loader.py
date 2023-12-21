@@ -17,6 +17,7 @@
 from time import time
 import logging
 import math
+import pickle
 import torch
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler
 
@@ -24,7 +25,8 @@ from dlio_benchmark.common.constants import MODULE_DATA_LOADER
 from dlio_benchmark.common.enumerations import Shuffle, DatasetType, DataLoaderType
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
-from dlio_benchmark.utils.utility import utcnow, get_rank
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI
+from dlio_benchmark.utils.config import ConfigArguments
 from dlio_profiler.logger import fn_interceptor as Profile
 
 dlp = Profile(MODULE_DATA_LOADER)
@@ -44,11 +46,14 @@ class TorchDataset(Dataset):
         self.reader = None
         self.num_images_read = 0
         self.batch_size = batch_size
+        args = ConfigArguments.get_instance()
+        self.serial_args = pickle.dumps(args)
         if num_workers == 0:
             self.worker_init(-1)
 
     @dlp.log
     def worker_init(self, worker_id):
+        pickle.loads(self.serial_args)
         logging.debug(f"{utcnow()} worker initialized {worker_id} with format {self.format_type}")
         self.reader = ReaderFactory.get_reader(type=self.format_type,
                                                dataset_type=self.dataset_type,
@@ -63,7 +68,7 @@ class TorchDataset(Dataset):
     def __getitem__(self, image_idx):
         self.num_images_read += 1
         step = int(math.ceil(self.num_images_read / self.batch_size))
-        logging.debug(f"{utcnow()} Rank {get_rank()} reading {image_idx} sample")
+        logging.debug(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample")
         return self.reader.read_index(image_idx, step)
 
 class TorchDataLoader(BaseDataLoader):

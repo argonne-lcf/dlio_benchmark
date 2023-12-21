@@ -20,11 +20,10 @@ from abc import ABC, abstractmethod
 from dlio_benchmark.utils.config import ConfigArguments
 from dlio_benchmark.storage.storage_factory import StorageFactory
 import math
-from mpi4py import MPI
 from shutil import copyfile
 import numpy as np
 import logging
-from dlio_benchmark.utils.utility import utcnow, add_padding
+from dlio_benchmark.utils.utility import utcnow, add_padding, DLIOMPI
 
 
 class DataGenerator(ABC):
@@ -80,7 +79,7 @@ class DataGenerator(ABC):
             logging.info(f"{utcnow()} Number of files for validation dataset: {self.num_files_eval}")
 
 
-        MPI.COMM_WORLD.Barrier()
+        DLIOMPI.get_instance().comm().barrier()
         # What is the logic behind this formula? 
         # Will probably have to adapt to generate non-images
         self.total_files_to_generate = self.num_files_train
