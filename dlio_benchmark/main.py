@@ -73,15 +73,8 @@ class DLIOBenchmark(object):
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root,
                                                     self.args.framework)
 
-        if self.args.output_folder is None:
-            try:
-                hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
-                self.args.output_folder = hydra_cfg['runtime']['output_dir']
-            except:
-                self.args.output_folder = 'output/'
         self.output_folder = self.args.output_folder
         os.makedirs(self.args.output_folder, mode=0o755, exist_ok=True)
-        self.logfile = os.path.join(self.args.output_folder, self.args.log_file)
         dlp_trace = get_trace_name(self.args.output_folder)
         self.comm = DLIOMPI.get_instance().comm()
         self.my_rank = self.args.my_rank = DLIOMPI.get_instance().rank()
@@ -99,21 +92,11 @@ class DLIOBenchmark(object):
 
             # Delete previous logfile
             if self.my_rank == 0:
-                if os.path.isfile(self.logfile):
-                    os.remove(self.logfile)
+                if os.path.isfile(self.args.logfile_path):
+                    os.remove(self.args.logfile_path)
             self.comm.barrier()
             # Configure the logging library
-            log_level = logging.DEBUG if self.args.debug else logging.INFO
-            logging.basicConfig(
-                level=log_level,
-                force=True,
-                handlers=[
-                    logging.FileHandler(self.logfile, mode="a", encoding='utf-8'),
-                    logging.StreamHandler()
-                ],
-                format='[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'
-                # logging's max timestamp resolution is msecs, we will pass in usecs in the message
-            )
+            self.args.configure_dlio_logging(False)
             if self.args.my_rank == 0:
                 logging.info(f"{utcnow()} Profiling DLIO {dlp_trace}")
                 logging.info(f"{utcnow()} Running DLIO with {self.args.comm_size} process(es)")
