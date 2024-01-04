@@ -122,8 +122,8 @@ class TorchFramework(Framework):
         rank_to_checkpoint = DLIOMPI.get_instance().rank()
         if self.args.checkpoint_type == CheckpointType.COLLECTIVE:
             rank_to_checkpoint = 0
-        if rank_to_checkpoint == self.args.my_rank:
-            my_rank = self.rank()
+        if rank_to_checkpoint == DLIOMPI.get_instance().rank():
+            my_rank = DLIOMPI.get_instance().rank()
             if self.model_state:
                 fname = os.path.join(self.checkpoint_folder, f"model-{epoch}-{step_number}-{my_rank}.pt")
                 with open(fname, "wb") as f:
