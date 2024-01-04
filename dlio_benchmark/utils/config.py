@@ -16,6 +16,7 @@
 """
 import importlib
 import inspect
+import hydra
 
 import logging
 from time import time
@@ -149,6 +150,23 @@ class ConfigArguments:
         if ConfigArguments.__instance is None:
             ConfigArguments()
         return ConfigArguments.__instance
+
+    def configure_dlio_logging(self, is_child=False):
+        # with "multiprocessing_context=fork" the log file remains open in the child process
+        if is_child and self.multiprocessing_context == "fork":
+            return
+        # Configure the logging library
+        log_level = logging.DEBUG if self.debug else logging.INFO
+        logging.basicConfig(
+            level=log_level,
+            force=True,
+            handlers=[
+                logging.FileHandler(self.logfile_path, mode="a", encoding='utf-8'),
+                logging.StreamHandler()
+            ],
+            format='[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'
+            # logging's max timestamp resolution is msecs, we will pass in usecs in the message
+        )
 
     @dlp.log
     def validate(self):
@@ -438,7 +456,15 @@ def LoadConfig(args, config):
             args.output_folder = config['output']['folder']
         if 'log_file' in config['output']:
             args.log_file = config['output']['log_file']
-            
+
+    if args.output_folder is None:
+        try:
+            hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
+            args.output_folder = hydra_cfg['runtime']['output_dir']
+        except:
+            args.output_folder = 'output/'
+    args.logfile_path = os.path.join(args.output_folder, args.log_file)
+
     if 'workflow' in config:
         if 'generate_data' in config['workflow']:
             args.generate_data = config['workflow']['generate_data']
