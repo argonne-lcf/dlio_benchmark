@@ -24,7 +24,7 @@ import os
 import torch
 import functools
 import logging
-from dlio_benchmark.utils.utility import utcnow
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 from dlio_profiler.logger import fn_interceptor as Profile
 
 from time import sleep, time
@@ -118,7 +118,8 @@ class TorchFramework(Framework):
 
     @dlp.log
     def checkpoint(self, epoch, step_number):
-        rank_to_checkpoint = self.args.my_rank
+
+        rank_to_checkpoint = DLIOMPI.get_instance().rank()
         if self.args.checkpoint_type == CheckpointType.COLLECTIVE:
             rank_to_checkpoint = 0
         if rank_to_checkpoint == self.args.my_rank:

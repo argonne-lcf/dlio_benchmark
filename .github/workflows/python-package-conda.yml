@@ -169,6 +169,13 @@ jobs:
         mpirun -np 2 pytest -k test_multi_threads[pytorch-0]  -v
         mpirun -np 2 pytest -k test_multi_threads[pytorch-1]  -v
         mpirun -np 2 pytest -k test_multi_threads[pytorch-2]  -v
+    - name: test-pytorch-multiprocessing-context
+      run: |
+        source ${VENV}/bin/activate
+        mpirun -np 2 pytest -k test_pytorch_multiprocessing_context[0-None] -v
+        mpirun -np 2 pytest -k test_pytorch_multiprocessing_context[1-fork] -v
+        mpirun -np 2 pytest -k test_pytorch_multiprocessing_context[2-forkserver] -v
+        mpirun -np 2 pytest -k test_pytorch_multiprocessing_context[2-spawn] -v
     - name: test-tf-loader-tfrecord
       run: |
         source ${VENV}/bin/activate
