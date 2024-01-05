@@ -49,7 +49,7 @@ class IndexedBinaryGenerator(DataGenerator):
         """
         super().generate()
         np.random.seed(10)
-        GB=1024**3
+        GB=1073741824
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
             dim1, dim2 = self.get_dimension()
             sample_size = dim1 * dim2
