@@ -55,9 +55,9 @@ class IndexedBinaryGenerator(DataGenerator):
             sample_size = dim1 * dim2
             total_size = sample_size * self.num_samples
             write_size = total_size
-            MEMORY_SIZE = 2*GB
-            if total_size > MEMORY_SIZE:
-                write_size = MEMORY_SIZE - (MEMORY_SIZE % sample_size)
+            memory_size = self._args.generation_buffer_size
+            if total_size > memory_size:
+                write_size = memory_size - (memory_size % sample_size)
             out_path_spec = self.storage.get_uri(self._file_list[i])
             out_path_spec_off_idx = self.index_file_path_off(out_path_spec)
             out_path_spec_sz_idx = self.index_file_path_size(out_path_spec)

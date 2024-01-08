@@ -96,6 +96,7 @@ class ConfigArguments:
     do_eval: bool = False
     batch_size_eval: int = 1
     num_files_eval: int = 0
+    generation_buffer_size: int = 2 * 1073741824 # 2 GB
     eval_time: float = 0.0
     eval_time_stdev: float = 0.0
     eval_after_epoch: int = 1
@@ -348,6 +349,8 @@ def LoadConfig(args, config):
             args.num_files_train = config['dataset']['num_files_train']
         if 'num_files_eval' in config['dataset']:
             args.num_files_eval = config['dataset']['num_files_eval']
+        if 'generation_buffer_size' in config['dataset']:
+            args.generation_buffer_size = config['dataset']['generation_buffer_size']
         if 'num_samples_per_file' in config['dataset']:
             args.num_samples_per_file = config['dataset']['num_samples_per_file']
         if 'data_folder' in config['dataset']:
