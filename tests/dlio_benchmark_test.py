@@ -209,12 +209,12 @@ def test_iostat_profiling() -> None:
         clean()
 
 @pytest.mark.timeout(60, method="thread")
-@pytest.mark.parametrize("framework, model_size, optimizers, num_layers, layer_params, type", [("tensorflow", 1024, [1024, 128], 2, [16], "independent"),
-                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], "independent"),
-                                                                                         ("tensorflow", 1024, [1024, 128], 2, [16], "collective"),
-                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], "collective"),
-                                                                                         ("tensorflow", 1024, [128], 1, [], "independent"),
-                                                                                         ("pytorch", 1024, [128], 1, [], "independent")])
+@pytest.mark.parametrize("framework, model_size, optimizers, num_layers, layer_params, type", [("tensorflow", 1024, [1024, 128], 2, [16], "all_ranks"),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], "all_ranks"),
+                                                                                         ("tensorflow", 1024, [1024, 128], 2, [16], "rank_zero"),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], "rank_zero"),
+                                                                                         ("tensorflow", 1024, [128], 1, [], "all_ranks"),
+                                                                                         ("pytorch", 1024, [128], 1, [], "all_ranks")])
 def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_params, type) -> None:
     clean()
     if comm.rank == 0:
@@ -249,7 +249,7 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
         if len(layer_params) > 0:
             n = num_layers
         nranks = 1
-        if type == "independent":
+        if type == "all_ranks":
             nranks = comm.size
         if framework == "tensorflow":
             num_check_files = 8 / 2 * (2 + 2 + 2*n) * nranks + 1

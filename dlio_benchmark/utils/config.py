@@ -26,7 +26,8 @@ from typing import List, ClassVar
 
 from dlio_benchmark.common.constants import MODULE_CONFIG
 from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
-    FrameworkType, DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointType
+    FrameworkType, \
+    DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointLocationType
 from dlio_benchmark.utils.utility import DLIOMPI
 from dataclasses import dataclass
 import math
@@ -99,7 +100,7 @@ class ConfigArguments:
     eval_time_stdev: float = 0.0
     eval_after_epoch: int = 1
     epochs_between_evals: int = 1
-    checkpoint_type: CheckpointType = CheckpointType.COLLECTIVE
+    checkpoint_type: CheckpointLocationType = CheckpointLocationType.RANK_ZERO
     model_size: int = 10240
     optimization_groups:  ClassVar[List[int]] = []
     num_layers: int = 1
@@ -453,7 +454,7 @@ def LoadConfig(args, config):
         if 'steps_between_checkpoints' in config['checkpoint']:
             args.steps_between_checkpoints = config['checkpoint']['steps_between_checkpoints']
         if 'type' in config['checkpoint']:
-            args.checkpoint_type = CheckpointType(config['checkpoint']['type'])
+            args.checkpoint_type = CheckpointLocationType(config['checkpoint']['type'])
         if 'model_size' in config['checkpoint']:
             args.model_size = config['checkpoint']['model_size']
         if 'optimization_groups' in config['checkpoint']:

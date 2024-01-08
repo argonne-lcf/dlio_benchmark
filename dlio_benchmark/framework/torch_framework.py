@@ -16,7 +16,7 @@
 """
 
 from dlio_benchmark.common.error_code import ErrorCodes
-from dlio_benchmark.common.enumerations import FormatType, FrameworkType, DatasetType, DataLoaderType, CheckpointType
+from dlio_benchmark.common.enumerations import FormatType, FrameworkType, DatasetType, DataLoaderType, CheckpointLocationType
 from dlio_benchmark.data_loader.data_loader_factory import DataLoaderFactory
 from dlio_benchmark.framework.framework import Framework, DummyTraceObject
 from dlio_benchmark.common.constants import MODULE_AI_FRAMEWORK
@@ -62,7 +62,7 @@ class TorchFramework(Framework):
         self.profiling = profiling
         self.reader_handler = None
         rank_to_checkpoint = self.args.my_rank
-        if self.args.checkpoint_type == CheckpointType.COLLECTIVE:
+        if self.args.checkpoint_type == CheckpointLocationType.RANK_ZERO:
             rank_to_checkpoint = 0
         if rank_to_checkpoint == self.args.my_rank:
             self.model_state = None
@@ -120,7 +120,7 @@ class TorchFramework(Framework):
     def checkpoint(self, epoch, step_number):
 
         rank_to_checkpoint = DLIOMPI.get_instance().rank()
-        if self.args.checkpoint_type == CheckpointType.COLLECTIVE:
+        if self.args.checkpoint_type == CheckpointLocationType.RANK_ZERO:
             rank_to_checkpoint = 0
         if rank_to_checkpoint == DLIOMPI.get_instance().rank():
             my_rank = DLIOMPI.get_instance().rank()

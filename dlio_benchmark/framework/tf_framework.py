@@ -29,7 +29,7 @@ from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.profiler.profiler_factory import ProfilerFactory
 from dlio_benchmark.storage.storage_factory import StorageFactory
 from dlio_benchmark.common.enumerations import FrameworkType, Profiler, FormatType, DatasetType, MetadataType, \
-    DataLoaderType, CheckpointType
+    DataLoaderType, CheckpointLocationType
 
 import tensorflow as tf
 from tensorflow.python.framework import errors
@@ -55,11 +55,11 @@ class TFFramework(Framework):
         self.reader_handler = None
         self.model_state = None
         rank_to_checkpoint = self.args.my_rank
-        if self.args.checkpoint_type == CheckpointType.COLLECTIVE:
+        if self.args.checkpoint_type == CheckpointLocationType.RANK_ZERO:
             rank_to_checkpoint = 0
         if rank_to_checkpoint == self.args.my_rank:
             num_ranks = 1
-            if self.args.checkpoint_type == CheckpointType.COLLECTIVE:
+            if self.args.checkpoint_type == CheckpointLocationType.RANK_ZERO:
                 num_ranks = self.args.comm_size
             if self.args.model_size > 0:
                 self.model_state = {"a": self._get_tensor(self.args.model_size*num_ranks)}
@@ -121,7 +121,7 @@ class TFFramework(Framework):
         """
         my_rank = DLIOMPI.get_instance().rank()
         rank_to_checkpoint = my_rank
-        if self.args.checkpoint_type == CheckpointType.COLLECTIVE:
+        if self.args.checkpoint_type == CheckpointLocationType.RANK_ZERO:
             rank_to_checkpoint = 0
         if rank_to_checkpoint == my_rank:
             if self.model_state:

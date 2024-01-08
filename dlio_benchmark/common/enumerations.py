@@ -17,12 +17,12 @@
 
 from enum import Enum
 
-class CheckpointType(Enum):
+class CheckpointLocationType(Enum):
     """
     Different types of underlying storage
     """
-    COLLECTIVE = 'collective'
-    INDEPENDENT = 'independent'
+    RANK_ZERO = 'rank_zero'
+    ALL_RANKS = 'all_ranks'
 
     def __str__(self):
         return self.value
