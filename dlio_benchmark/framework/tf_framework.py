@@ -62,7 +62,7 @@ class TFFramework(Framework):
             if self.args.checkpoint_type == CheckpointLocationType.RANK_ZERO:
                 num_ranks = self.args.comm_size
             if self.args.model_size > 0:
-                self.model_state = {"a": self._get_tensor(self.args.model_size*num_ranks)}
+                self.model_state = {"a": self._get_tensor(self.args.model_size)}
             self.optimization_state = None
             if len(self.args.optimization_groups) > 0:
                 self.optimization_state = dict()
