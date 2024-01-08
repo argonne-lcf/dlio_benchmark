@@ -1,4 +1,5 @@
-model: unet3d
+# 8 node run with 4 GPUs per node and TPSIZE=4 and PPSIZE=8
+model: megatron_deepspeed
 
 framework: pytorch
 
