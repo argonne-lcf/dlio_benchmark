@@ -23,7 +23,7 @@ reader:
 
 train:
   epochs: 311541
-  computation_time: 8.99
+  computation_time: 0.03 # every iteration has 290 steps and each iteration is 8.9 sec.
 
 checkpoint:
   checkpoint_folder: checkpoints/megatron-deepspeed
