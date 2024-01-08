@@ -1,3 +1,4 @@
+# 8 node run with 4 GPUs per node and TPSIZE=4 and PPSIZE=8
 model: unet3d
 
 framework: pytorch
