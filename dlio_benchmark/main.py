@@ -80,7 +80,10 @@ class DLIOBenchmark(object):
         self.my_rank = self.args.my_rank = DLIOMPI.get_instance().rank()
         self.comm_size = self.args.comm_size = DLIOMPI.get_instance().size()
         self.dlp_logger = PerfTrace.initialize_log(logfile=dlp_trace,
-                                                     data_dir=f"{os.path.abspath(self.args.data_folder)}:{self.args.data_folder}:./{self.args.data_folder}",
+                                                     data_dir=f"{os.path.abspath(self.args.data_folder)}:"
+                                                              f"{self.args.data_folder}:./{self.args.data_folder}:"
+                                                              f"{self.args.checkpoint_folder}:./{self.args.checkpoint_folder}:"
+                                                              f"{os.path.abspath(self.args.checkpoint_folder)}",
                                                      process_id=self.my_rank)
         with Profile(name=f"{self.__init__.__qualname__}", cat=MODULE_DLIO_BENCHMARK):
             self.data_folder = self.args.data_folder
@@ -195,8 +198,9 @@ class DLIOBenchmark(object):
             else:
                 assert (num_subfolders == 0)
                 fullpaths = [self.storage.get_uri(os.path.join(self.args.data_folder, f"{dataset_type}", entry))
-                             for entry in filenames if entry.find(f'{self.args.format}') != -1]
+                             for entry in filenames if entry.endswith(f'{self.args.format}')]
                 fullpaths = sorted(fullpaths)
+            logging.debug(f"subfolder {num_subfolders} fullpaths {fullpaths}")
             if dataset_type is DatasetType.TRAIN:
                 file_list_train = fullpaths
             elif dataset_type is DatasetType.VALID:

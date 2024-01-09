@@ -300,7 +300,20 @@ checkpoint
      - performing one checkpointing per certain number of steps specified
    * - model_size
      - 10240
-     - the size of the model in bytes
+     - the size of the model parameters per GPU in bytes
+   * - optimization_groups
+     - []
+     - List of optimization group tensors. Use Array notation for yaml.
+   * - num_layers
+     - 1
+     - Number of layers to checkpoint. Each layer would be checkpointed separately.
+   * - layer_parameters
+     - []
+     - List of parameters per layer. This is used to perform I/O per layer.
+   * - type
+     - rank_zero
+     - Which rank performs this checkpoint. All ranks (all_ranks) or Rank 0 (rank_zero).
+
 
 .. note::
    

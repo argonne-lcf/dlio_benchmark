@@ -75,7 +75,7 @@ def run_benchmark(cfg, storage_root="./", verify=True):
 @pytest.mark.timeout(60, method="thread")
 @pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
                                             ("jpeg", "tensorflow"), ("tfrecord", "tensorflow"),
-                                            ("hdf5", "tensorflow")])
+                                            ("hdf5", "tensorflow"), ("indexed_binary", "tensorflow"), ("mmap_indexed_binary", "tensorflow")])
 def test_gen_data(fmt, framework) -> None:
     if (comm.rank == 0):
         logging.info("")
@@ -129,7 +129,8 @@ def test_subset() -> None:
 @pytest.mark.timeout(60, method="thread")
 @pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
                                             ("jpeg", "tensorflow"), ("tfrecord", "tensorflow"),
-                                            ("hdf5", "tensorflow")])
+                                            ("hdf5", "tensorflow"), ("indexed_binary", "tensorflow"),
+                                            ("mmap_indexed_binary", "tensorflow")])
 def test_storage_root_gen_data(fmt, framework) -> None:
     storage_root = "runs"
 
@@ -207,31 +208,59 @@ def test_iostat_profiling() -> None:
             subprocess.run(cmd, capture_output=True, timeout=10)
         clean()
 
-
 @pytest.mark.timeout(60, method="thread")
-def test_checkpoint_epoch() -> None:
+@pytest.mark.parametrize("framework, model_size, optimizers, num_layers, layer_params, type", [("tensorflow", 1024, [1024, 128], 2, [16], "all_ranks"),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], "all_ranks"),
+                                                                                         ("tensorflow", 1024, [1024, 128], 2, [16], "rank_zero"),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], "rank_zero"),
+                                                                                         ("tensorflow", 1024, [128], 1, [], "all_ranks"),
+                                                                                         ("pytorch", 1024, [128], 1, [], "all_ranks")])
+def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_params, type) -> None:
     clean()
-    if (comm.rank == 0):
+    if comm.rank == 0:
         logging.info("")
         logging.info("=" * 80)
         logging.info(f" DLIO test for checkpointing at the end of epochs")
         logging.info("=" * 80)
     with initialize_config_dir(version_base=None, config_dir=config_dir):
         cfg = compose(config_name='config',
-                      overrides=['++workload.workflow.train=True', \
-                                 '++workload.workflow.generate_data=True', \
-                                 '++workload.train.computation_time=0.01', \
-                                 '++workload.evaluation.eval_time=0.005', \
-                                 '++workload.train.epochs=8', '++workload.workflow.checkpoint=True', \
-                                 '++workload.checkpoint.epochs_between_checkpoints=2'])
+                      overrides=[f'++workload.framework={framework}',
+                                 f'++workload.reader.data_loader={framework}',
+                                 '++workload.workflow.train=True',
+                                 '++workload.workflow.generate_data=True',
+                                 '++workload.train.computation_time=0.01',
+                                 '++workload.evaluation.eval_time=0.005',
+                                 '++workload.train.epochs=8', '++workload.workflow.checkpoint=True',
+                                 '++workload.checkpoint.epochs_between_checkpoints=2',
+                                 f'++workload.checkpoint.type={type}',
+                                 f'++workload.checkpoint.model_size={model_size}',
+                                 f'++workload.checkpoint.optimization_groups={optimizers}',
+                                 f'++workload.checkpoint.num_layers={num_layers}',
+                                 f'++workload.checkpoint.layer_parameters={layer_params}'])
+        comm.Barrier()
+        if comm.rank == 0:
+            shutil.rmtree("./checkpoints", ignore_errors=True)
+            os.makedirs("./checkpoints", exist_ok=True)
+        comm.Barrier()
+        benchmark = run_benchmark(cfg)
+        output = pathlib.Path("./checkpoints")
+        load_bin = list(output.glob("*"))
+        n = 0
+        if len(layer_params) > 0:
+            n = num_layers
+        nranks = 1
+        if type == "all_ranks":
+            nranks = comm.size
+        if framework == "tensorflow":
+            num_check_files = 8 / 2 * (2 + 2 + 2*n) * nranks + 1
+            assert (len(load_bin) == num_check_files), f"files produced are {len(load_bin)} {num_check_files} {load_bin} "
+        if framework == "pytorch":
+            num_check_files = 8 / 2 * (1 + 1 + n) * nranks
+            assert (len(load_bin) == num_check_files), f"files produced are {len(load_bin)} {num_check_files} {load_bin}"
         comm.Barrier()
         if comm.rank == 0:
             shutil.rmtree("./checkpoints", ignore_errors=True)
         comm.Barrier()
-        benchmark = run_benchmark(cfg)
-        output = pathlib.Path("./checkpoints")
-        load_bin = list(output.glob("*.bin"))
-        assert (len(load_bin) == 4)
         clean()
 
 
@@ -254,14 +283,15 @@ def test_checkpoint_step() -> None:
         comm.Barrier()
         if comm.rank == 0:
             shutil.rmtree("./checkpoints", ignore_errors=True)
+            os.makedirs("./checkpoints", exist_ok=True)
         comm.Barrier()
         benchmark = run_benchmark(cfg)
         dataset = cfg['workload']['dataset']
         nstep = dataset.num_files_train * dataset.num_samples_per_file // cfg['workload'][
             'reader'].batch_size // benchmark.comm_size
-        ncheckpoints = nstep // 2 * 8
+        ncheckpoints = nstep // 2 * 8 * 2
         output = pathlib.Path("./checkpoints")
-        load_bin = list(output.glob("*.bin"))
+        load_bin = list(output.glob("*"))
         assert (len(load_bin) == ncheckpoints)
         clean()
 
@@ -343,14 +373,19 @@ def test_pytorch_multiprocessing_context(nt, context) -> None:
 @pytest.mark.parametrize("fmt, framework, dataloader", [("png", "tensorflow","tensorflow"), ("npz", "tensorflow","tensorflow"),
                                             ("jpeg", "tensorflow","tensorflow"), ("tfrecord", "tensorflow","tensorflow"),
                                             ("hdf5", "tensorflow","tensorflow"), ("csv", "tensorflow","tensorflow"),
+                                            ("indexed_binary", "tensorflow","tensorflow"), ("mmap_indexed_binary", "tensorflow","tensorflow"),
                                             ("png", "pytorch", "pytorch"), ("npz", "pytorch", "pytorch"),
-                                            ("jpeg", "pytorch", "pytorch"), ("hdf5", "pytorch", "pytorch"), ("csv", "pytorch", "pytorch"),
+                                            ("jpeg", "pytorch", "pytorch"), ("hdf5", "pytorch", "pytorch"),
+                                            ("csv", "pytorch", "pytorch"), ("indexed_binary", "pytorch", "pytorch"),
+                                            ("mmap_indexed_binary", "pytorch", "pytorch"),
                                             ("png", "tensorflow", "dali"), ("npz", "tensorflow", "dali"),
-                                            ("jpeg", "tensorflow", "dali"),
-                                            ("hdf5", "tensorflow", "dali"), ("csv", "tensorflow", "dali"),
+                                            ("jpeg", "tensorflow", "dali"), ("hdf5", "tensorflow", "dali"),
+                                            ("csv", "tensorflow", "dali"), ("indexed_binary", "tensorflow", "dali"),
+                                            ("mmap_indexed_binary", "tensorflow", "dali"),
                                             ("png", "pytorch", "dali"), ("npz", "pytorch", "dali"),
                                             ("jpeg", "pytorch", "dali"), ("hdf5", "pytorch", "dali"),
-                                            ("csv", "pytorch", "dali"),
+                                            ("csv", "pytorch", "dali"), ("indexed_binary", "pytorch", "dali"),
+                                            ("mmap_indexed_binary", "pytorch", "dali"),
                                             ])
 def test_train(fmt, framework, dataloader) -> None:
     clean()
@@ -379,9 +414,11 @@ def test_train(fmt, framework, dataloader) -> None:
 @pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
                                             ("jpeg", "tensorflow"), ("tfrecord", "tensorflow"),
                                             ("hdf5", "tensorflow"), ("csv", "tensorflow"),
+                                            ("indexed_binary", "tensorflow"), ("mmap_indexed_binary", "tensorflow"),
                                             ("png", "pytorch"), ("npz", "pytorch"),
                                             ("jpeg", "pytorch"), ("hdf5", "pytorch"),
-                                            ("csv", "pytorch")
+                                            ("csv", "pytorch"), ("indexed_binary", "pytorch"),
+                                            ("mmap_indexed_binary", "pytorch"),
                                             ])
 def test_custom_storage_root_train(fmt, framework) -> None:
     storage_root = "root_dir"

@@ -28,7 +28,8 @@ from dlio_benchmark.framework.framework import Framework
 from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.profiler.profiler_factory import ProfilerFactory
 from dlio_benchmark.storage.storage_factory import StorageFactory
-from dlio_benchmark.common.enumerations import FrameworkType, Profiler, FormatType, DatasetType, MetadataType, DataLoaderType
+from dlio_benchmark.common.enumerations import FrameworkType, Profiler, FormatType, DatasetType, MetadataType, \
+    DataLoaderType, CheckpointLocationType
 
 import tensorflow as tf
 from tensorflow.python.framework import errors
@@ -36,6 +37,7 @@ from tensorflow.python.framework import errors
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 dlp = Profile(MODULE_AI_FRAMEWORK)
+
 
 class TFFramework(Framework):
     __instance = None
@@ -51,17 +53,38 @@ class TFFramework(Framework):
             else:
                 self.tensorboard = ProfilerFactory.get_profiler(Profiler.TENSORBOARD)
         self.reader_handler = None
+        self.model_state = None
+        rank_to_checkpoint = self.args.my_rank
+        if self.args.checkpoint_type == CheckpointLocationType.RANK_ZERO:
+            rank_to_checkpoint = 0
+        if rank_to_checkpoint == self.args.my_rank:
+            if self.args.model_size > 0:
+                self.model_state = {"a": self._get_tensor(self.args.model_size)}
+            self.optimization_state = None
+            if len(self.args.optimization_groups) > 0:
+                self.optimization_state = dict()
+                tensor_array_size = 0
+                for index, state in enumerate(self.args.optimization_groups):
+                    if state > 0:
+                        self.optimization_state[str(index)] = {'a': self._get_tensor(state),
+                                                               'b': self._get_tensor(state)}
+                        tensor_array_size += state
+                self.optimization_state["combined"] = self._get_tensor(tensor_array_size)
+            self.layer_state = None
+            if len(self.args.layer_parameters) > 0:
+                self.layer_state = dict()
+                for index, state in enumerate(self.args.layer_parameters):
+                    if state > 0:
+                        self.layer_state[str(index)] = self._get_tensor(state)
+
+    def _get_tensor(self, size):
+        return tf.random.uniform((int(size / 4),), maxval=100, dtype=tf.dtypes.int32)
 
     @dlp.log
     def init_loader(self, format_type, epoch=0, data_loader=None):
         if data_loader is None:
-            data_loader = DataLoaderType.PYTORCH
-        self.reader_train = DataLoaderFactory.get_loader(data_loader, format_type,
-                                                         dataset_type=DatasetType.TRAIN, epoch=epoch)
-        self.reader_valid = DataLoaderFactory.get_loader(data_loader, format_type,
-                                                         dataset_type=DatasetType.VALID, epoch=epoch)
-        self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
-
+            data_loader = DataLoaderType.TENSORFLOW
+        super().init_loader(format_type, epoch, data_loader)
     @dlp.log
     def get_type(self):
         return FrameworkType.TENSORFLOW
@@ -80,40 +103,46 @@ class TFFramework(Framework):
 
     @dlp.log
     def stop_framework_profiler(self):
-        #if self.profiling:
+        # if self.profiling:
         #    self.tensorboard.stop()
         pass
- 
+
     @dlp.log
     def trace_object(self, string, step, r):
-        pass #tf.profiler.experimental.Trace(string, step_num=step, _r=r)
+        pass  # tf.profiler.experimental.Trace(string, step_num=step, _r=r)
 
     @dlp.log
     def checkpoint(self, epoch, step_number):
         """
         Performs Checkpointing for a specific step number. It writes different file of different sizes.
         """
-        if DLIOMPI.get_instance().rank() == 0:
-            if not self.storage.get_node(self.checkpoint_folder):
-                self.storage.create_node(self.checkpoint_folder)
+        my_rank = DLIOMPI.get_instance().rank()
+        rank_to_checkpoint = my_rank
+        if self.args.checkpoint_type == CheckpointLocationType.RANK_ZERO:
+            rank_to_checkpoint = 0
+        if rank_to_checkpoint == my_rank:
+            if self.model_state:
+                fname = os.path.join(self.checkpoint_folder, f"model-{epoch}-{step_number}-{my_rank}.tf")
+                checkpoint = tf.train.Checkpoint()
+                checkpoint.mapped = self.model_state
+                checkpoint.save(fname)
+            if self.optimization_state:
+                fname = os.path.join(self.checkpoint_folder, f"optimizer-{epoch}-{step_number}-{my_rank}.tf")
+                checkpoint = tf.train.Checkpoint()
+                checkpoint.mapped = self.optimization_state
+                checkpoint.save(fname)
 
-            model_file = os.path.join(self.checkpoint_folder, f"model-{epoch}-{step_number}.bin")
-            meta_file = os.path.join(self.checkpoint_folder, f"meta-{epoch}-{step_number}.bin")
-            index_file = os.path.join(self.checkpoint_folder, f"index-{epoch}-{step_number}.bin")
-
-            string_val = "x" * self.args.model_size
-            self.storage.put_data(model_file, string_val)
-            # TODO Should these scale with the model size?
-            string_val = "x" * (17371)
-            self.storage.put_data(index_file, string_val)
-
-            string_val = "x" * (24740228)
-            self.storage.put_data(meta_file, string_val)
+            if self.layer_state and self.args.num_layers > 0:
+                for layer in range(self.args.num_layers):
+                    fname = os.path.join(self.checkpoint_folder, f"layer-{layer}-{epoch}-{step_number}-{my_rank}.tf")
+                    checkpoint = tf.train.Checkpoint()
+                    checkpoint.mapped = self.layer_state
+                    checkpoint.save(fname)
 
     @dlp.log
     def compute(self, x, epoch_number, step, computation_time):
         sleep(computation_time)
-        #tf.function(self.model)(epoch_number, step, computation_time)
+        # tf.function(self.model)(epoch_number, step, computation_time)
 
     @dlp.log
     def get_loader(self, dataset_type=DatasetType.TRAIN):

@@ -27,7 +27,7 @@ from typing import List, ClassVar
 from dlio_benchmark.common.constants import MODULE_CONFIG
 from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
     FrameworkType, \
-    DataLoaderType, Profiler, DatasetType, DataLoaderSampler
+    DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointLocationType
 from dlio_benchmark.utils.utility import DLIOMPI
 from dataclasses import dataclass
 import math
@@ -96,11 +96,16 @@ class ConfigArguments:
     do_eval: bool = False
     batch_size_eval: int = 1
     num_files_eval: int = 0
+    generation_buffer_size: int = 2 * 1073741824 # 2 GB
     eval_time: float = 0.0
     eval_time_stdev: float = 0.0
     eval_after_epoch: int = 1
     epochs_between_evals: int = 1
+    checkpoint_type: CheckpointLocationType = CheckpointLocationType.RANK_ZERO
     model_size: int = 10240
+    optimization_groups:  ClassVar[List[int]] = []
+    num_layers: int = 1
+    layer_parameters: ClassVar[List[int]] = [17371, 24740228]
     data_loader: DataLoaderType = DataLoaderType.TENSORFLOW.value
     num_subfolders_train: int = 0
     num_subfolders_eval: int = 0
@@ -344,6 +349,8 @@ def LoadConfig(args, config):
             args.num_files_train = config['dataset']['num_files_train']
         if 'num_files_eval' in config['dataset']:
             args.num_files_eval = config['dataset']['num_files_eval']
+        if 'generation_buffer_size' in config['dataset']:
+            args.generation_buffer_size = config['dataset']['generation_buffer_size']
         if 'num_samples_per_file' in config['dataset']:
             args.num_samples_per_file = config['dataset']['num_samples_per_file']
         if 'data_folder' in config['dataset']:
@@ -449,8 +456,16 @@ def LoadConfig(args, config):
             args.epochs_between_checkpoints = config['checkpoint']['epochs_between_checkpoints']
         if 'steps_between_checkpoints' in config['checkpoint']:
             args.steps_between_checkpoints = config['checkpoint']['steps_between_checkpoints']
+        if 'type' in config['checkpoint']:
+            args.checkpoint_type = CheckpointLocationType(config['checkpoint']['type'])
         if 'model_size' in config['checkpoint']:
             args.model_size = config['checkpoint']['model_size']
+        if 'optimization_groups' in config['checkpoint']:
+            args.optimization_groups = config['checkpoint']['optimization_groups']
+        if 'num_layers' in config['checkpoint']:
+            args.num_layers = config['checkpoint']['num_layers']
+        if 'layer_parameters' in config['checkpoint']:
+            args.layer_parameters = config['checkpoint']['layer_parameters']
     if 'output' in config:
         if 'folder' in config['output']:
             args.output_folder = config['output']['folder']

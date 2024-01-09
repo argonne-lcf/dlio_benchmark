@@ -17,6 +17,16 @@
 
 from enum import Enum
 
+class CheckpointLocationType(Enum):
+    """
+    Different types of underlying storage
+    """
+    RANK_ZERO = 'rank_zero'
+    ALL_RANKS = 'all_ranks'
+
+    def __str__(self):
+        return self.value
+
 class StorageType(Enum):
     """
     Different types of underlying storage
@@ -97,6 +107,8 @@ class FormatType(Enum):
     HDF5_OPT = 'hdf5_opt'
     JPEG = 'jpeg'
     PNG = 'png'
+    INDEXED_BINARY = 'indexed_binary'
+    MMAP_INDEXED_BINARY = 'mmap_indexed_binary'
 
     def __str__(self):
         return self.value
@@ -119,6 +131,10 @@ class FormatType(Enum):
             return FormatType.JPEG
         elif FormatType.PNG.value == value:
             return FormatType.PNG
+        elif FormatType.INDEXED_BINARY.value == value:
+            return FormatType.INDEXED_BINARY
+        elif FormatType.MMAP_INDEXED_BINARY.value == value:
+            return FormatType.MMAP_INDEXED_BINARY
 
 class DataLoaderType(Enum):
     """
