@@ -35,6 +35,7 @@ GitHub repo: https://github.com/argonne-lcf/dlio_benchmark.
 
    custom_data_loader
    custom_reader
+   custom_checkpointing_mechanism
 
 .. toctree::
    :maxdepth: 2
