@@ -72,7 +72,7 @@ jobs:
       run: |
         echo "Profiler ${DLIO_PROFILER} gcc $CC"
         source ${VENV}/bin/activate
-        pip install --force-reinstall 'dlio_profiler_py @ git+https://github.com/hariharan-devarajan/dlio-profiler.git@dev'
+        pip install --force-reinstall dlio_profiler_py
     - name: test_gen_data
       run: |
         source ${VENV}/bin/activate
