@@ -16,6 +16,7 @@
 """
 import importlib
 import inspect
+import hydra
 
 import logging
 from time import time
@@ -26,13 +27,14 @@ from typing import List, ClassVar
 from dlio_benchmark.common.constants import MODULE_CONFIG
 from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
     FrameworkType, \
-    DataLoaderType, Profiler, DatasetType, DataLoaderSampler
+    DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointLocationType
+from dlio_benchmark.utils.utility import DLIOMPI, get_trace_name, utcnow
 from dataclasses import dataclass
 import math
 import os
 import numpy as np
 
-from dlio_profiler.logger import fn_interceptor as Profile
+from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile
 dlp = Profile(MODULE_CONFIG)
 @dataclass
 class ConfigArguments:
@@ -94,11 +96,16 @@ class ConfigArguments:
     do_eval: bool = False
     batch_size_eval: int = 1
     num_files_eval: int = 0
+    generation_buffer_size: int = 2 * 1073741824 # 2 GB
     eval_time: float = 0.0
     eval_time_stdev: float = 0.0
     eval_after_epoch: int = 1
     epochs_between_evals: int = 1
+    checkpoint_type: CheckpointLocationType = CheckpointLocationType.RANK_ZERO
     model_size: int = 10240
+    optimization_groups:  ClassVar[List[int]] = []
+    num_layers: int = 1
+    layer_parameters: ClassVar[List[int]] = [17371, 24740228]
     data_loader: DataLoaderType = DataLoaderType.TENSORFLOW.value
     num_subfolders_train: int = 0
     num_subfolders_eval: int = 0
@@ -132,10 +139,15 @@ class ConfigArguments:
         if ConfigArguments.__instance is not None:
             raise Exception("This class is a singleton!")
         else:
+            self.comm_size = DLIOMPI.get_instance().size()
+            self.my_rank = DLIOMPI.get_instance().rank()
             ConfigArguments.__instance = self
-        from mpi4py import MPI
-        self.comm_size = MPI.COMM_WORLD.size
-        self.my_rank = MPI.COMM_WORLD.rank
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        DLIOMPI.reset()     # in 'fork' case, clear parent's DLIOMPI
+        DLIOMPI.get_instance().set_parent_values(self.my_rank, self.comm_size)
+        ConfigArguments.__instance = self
 
     @staticmethod
     def get_instance():
@@ -143,6 +155,37 @@ class ConfigArguments:
         if ConfigArguments.__instance is None:
             ConfigArguments()
         return ConfigArguments.__instance
+
+    def configure_dlio_logging(self, is_child=False):
+        # with "multiprocessing_context=fork" the log file remains open in the child process
+        if is_child and self.multiprocessing_context == "fork":
+            return
+        # Configure the logging library
+        log_level = logging.DEBUG if self.debug else logging.INFO
+        logging.basicConfig(
+            level=log_level,
+            force=True,
+            handlers=[
+                logging.FileHandler(self.logfile_path, mode="a", encoding='utf-8'),
+                logging.StreamHandler()
+            ],
+            format='[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'
+            # logging's max timestamp resolution is msecs, we will pass in usecs in the message
+        )
+
+    def configure_dlio_profiler(self, is_child=False, use_pid=False):
+        # with "multiprocessing_context=fork" the profiler file remains open in the child process
+        if is_child and self.multiprocessing_context == "fork":
+            return
+        # Configure the profiler
+        dlp_trace = get_trace_name(self.output_folder, use_pid)
+        logging.info(f"{utcnow()} Profiling DLIO {dlp_trace}")
+        return PerfTrace.initialize_log(logfile=dlp_trace,
+                                                   data_dir=f"{os.path.abspath(self.data_folder)}:"
+                                                            f"{self.data_folder}:./{self.data_folder}:"
+                                                            f"{self.checkpoint_folder}:./{self.checkpoint_folder}:"
+                                                            f"{os.path.abspath(self.checkpoint_folder)}",
+                                                   process_id=self.my_rank)
 
     @dlp.log
     def validate(self):
@@ -172,7 +215,8 @@ class ConfigArguments:
                 logging.warning(
                     f"Running DLIO with {self.read_threads} threads for I/O but core available {cores_available} "
                     f"are insufficient and can lead to lower performance.")
-    def reset(self):
+    @staticmethod
+    def reset():
         ConfigArguments.__instance = None
 
     @dlp.log
@@ -319,6 +363,8 @@ def LoadConfig(args, config):
             args.num_files_train = config['dataset']['num_files_train']
         if 'num_files_eval' in config['dataset']:
             args.num_files_eval = config['dataset']['num_files_eval']
+        if 'generation_buffer_size' in config['dataset']:
+            args.generation_buffer_size = config['dataset']['generation_buffer_size']
         if 'num_samples_per_file' in config['dataset']:
             args.num_samples_per_file = config['dataset']['num_samples_per_file']
         if 'data_folder' in config['dataset']:
@@ -424,14 +470,30 @@ def LoadConfig(args, config):
             args.epochs_between_checkpoints = config['checkpoint']['epochs_between_checkpoints']
         if 'steps_between_checkpoints' in config['checkpoint']:
             args.steps_between_checkpoints = config['checkpoint']['steps_between_checkpoints']
+        if 'type' in config['checkpoint']:
+            args.checkpoint_type = CheckpointLocationType(config['checkpoint']['type'])
         if 'model_size' in config['checkpoint']:
             args.model_size = config['checkpoint']['model_size']
+        if 'optimization_groups' in config['checkpoint']:
+            args.optimization_groups = config['checkpoint']['optimization_groups']
+        if 'num_layers' in config['checkpoint']:
+            args.num_layers = config['checkpoint']['num_layers']
+        if 'layer_parameters' in config['checkpoint']:
+            args.layer_parameters = config['checkpoint']['layer_parameters']
     if 'output' in config:
         if 'folder' in config['output']:
             args.output_folder = config['output']['folder']
         if 'log_file' in config['output']:
             args.log_file = config['output']['log_file']
-            
+
+    if args.output_folder is None:
+        try:
+            hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
+            args.output_folder = hydra_cfg['runtime']['output_dir']
+        except:
+            args.output_folder = 'output/'
+    args.logfile_path = os.path.join(args.output_folder, args.log_file)
+
     if 'workflow' in config:
         if 'generate_data' in config['workflow']:
             args.generate_data = config['workflow']['generate_data']
