@@ -28,13 +28,13 @@ from dlio_benchmark.common.constants import MODULE_CONFIG
 from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
     FrameworkType, \
     DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointLocationType
-from dlio_benchmark.utils.utility import DLIOMPI
+from dlio_benchmark.utils.utility import DLIOMPI, get_trace_name, utcnow
 from dataclasses import dataclass
 import math
 import os
 import numpy as np
 
-from dlio_profiler.logger import fn_interceptor as Profile
+from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile
 dlp = Profile(MODULE_CONFIG)
 @dataclass
 class ConfigArguments:
@@ -172,6 +172,20 @@ class ConfigArguments:
             format='[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'
             # logging's max timestamp resolution is msecs, we will pass in usecs in the message
         )
+
+    def configure_dlio_profiler(self, is_child=False, use_pid=False):
+        # with "multiprocessing_context=fork" the profiler file remains open in the child process
+        if is_child and self.multiprocessing_context == "fork":
+            return
+        # Configure the profiler
+        dlp_trace = get_trace_name(self.output_folder, use_pid)
+        logging.info(f"{utcnow()} Profiling DLIO {dlp_trace}")
+        return PerfTrace.initialize_log(logfile=dlp_trace,
+                                                   data_dir=f"{os.path.abspath(self.data_folder)}:"
+                                                            f"{self.data_folder}:./{self.data_folder}:"
+                                                            f"{self.checkpoint_folder}:./{self.checkpoint_folder}:"
+                                                            f"{os.path.abspath(self.checkpoint_folder)}",
+                                                   process_id=self.my_rank)
 
     @dlp.log
     def validate(self):

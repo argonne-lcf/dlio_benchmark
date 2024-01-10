@@ -12,7 +12,7 @@ core_deps = [
  'h5py',
  'pandas',
  'psutil',
- 'dlio_profiler_py==0.0.2'
+ 'dlio_profiler_py==0.0.3'
 ]
 x86_deps = [
  'hydra-core == 1.2.0',

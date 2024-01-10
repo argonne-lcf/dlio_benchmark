@@ -48,6 +48,7 @@ class TorchDataset(Dataset):
         self.batch_size = batch_size
         args = ConfigArguments.get_instance()
         self.serial_args = pickle.dumps(args)
+        self.dlp_logger = None
         if num_workers == 0:
             self.worker_init(-1)
 
@@ -55,13 +56,17 @@ class TorchDataset(Dataset):
     def worker_init(self, worker_id):
         pickle.loads(self.serial_args)
         _args = ConfigArguments.get_instance()
-        _args.configure_dlio_logging(True)
+        _args.configure_dlio_logging(is_child=True)
+        self.dlp_logger = _args.configure_dlio_profiler(is_child=True, use_pid=True)
         logging.debug(f"{utcnow()} worker initialized {worker_id} with format {self.format_type}")
         self.reader = ReaderFactory.get_reader(type=self.format_type,
                                                dataset_type=self.dataset_type,
                                                thread_index=worker_id,
                                                epoch_number=self.epoch_number)
 
+    def __del__(self):
+        if self.dlp_logger:
+            self.dlp_logger.finalize()
     @dlp.log
     def __len__(self):
         return self.num_samples
