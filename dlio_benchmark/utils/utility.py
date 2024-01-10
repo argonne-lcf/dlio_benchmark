@@ -230,5 +230,8 @@ def create_dur_event(name, cat, ts, dur, args={}):
     return d
 
   
-def get_trace_name(output_folder):
-    return f"{output_folder}/trace-{DLIOMPI.get_instance().rank()}-of-{DLIOMPI.get_instance().size()}.pfw"
+def get_trace_name(output_folder, use_pid=False):
+    val = ""
+    if use_pid:
+        val = f"-{os.getpid()}"
+    return f"{output_folder}/trace-{DLIOMPI.get_instance().rank()}-of-{DLIOMPI.get_instance().size()}{val}.pfw"

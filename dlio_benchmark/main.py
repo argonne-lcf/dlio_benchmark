@@ -76,33 +76,26 @@ class DLIOBenchmark(object):
 
         self.output_folder = self.args.output_folder
         os.makedirs(self.args.output_folder, mode=0o755, exist_ok=True)
-        dlp_trace = get_trace_name(self.args.output_folder)
         self.comm = DLIOMPI.get_instance().comm()
         self.my_rank = self.args.my_rank = DLIOMPI.get_instance().rank()
         self.comm_size = self.args.comm_size = DLIOMPI.get_instance().size()
-        self.dlp_logger = PerfTrace.initialize_log(logfile=dlp_trace,
-                                                     data_dir=f"{os.path.abspath(self.args.data_folder)}:"
-                                                              f"{self.args.data_folder}:./{self.args.data_folder}:"
-                                                              f"{self.args.checkpoint_folder}:./{self.args.checkpoint_folder}:"
-                                                              f"{os.path.abspath(self.args.checkpoint_folder)}",
-                                                     process_id=self.my_rank)
-        with Profile(name=f"{self.__init__.__qualname__}", cat=MODULE_DLIO_BENCHMARK):
-            self.data_folder = self.args.data_folder
-            self.storage_root = self.args.storage_root
-            if self.args.storage_root:
-                self.storage.create_namespace(exist_ok=True)
-            self.framework = FrameworkFactory().get_framework(self.args.framework,
-                                                              self.args.do_profiling)
+        self.data_folder = self.args.data_folder
+        self.storage_root = self.args.storage_root
+        if self.args.storage_root:
+            self.storage.create_namespace(exist_ok=True)
+        self.framework = FrameworkFactory().get_framework(self.args.framework,
+                                                          self.args.do_profiling)
 
-            # Delete previous logfile
-            if self.my_rank == 0:
-                if os.path.isfile(self.args.logfile_path):
-                    os.remove(self.args.logfile_path)
-            self.comm.barrier()
-            # Configure the logging library
-            self.args.configure_dlio_logging(False)
+        # Delete previous logfile
+        if self.my_rank == 0:
+            if os.path.isfile(self.args.logfile_path):
+                os.remove(self.args.logfile_path)
+        self.comm.barrier()
+        # Configure the logging library
+        self.args.configure_dlio_logging(is_child=False)
+        self.dlp_logger = self.args.configure_dlio_profiler(is_child=False, use_pid=False)
+        with Profile(name=f"{self.__init__.__qualname__}", cat=MODULE_DLIO_BENCHMARK):
             if self.args.my_rank == 0:
-                logging.info(f"{utcnow()} Profiling DLIO {dlp_trace}")
                 logging.info(f"{utcnow()} Running DLIO with {self.args.comm_size} process(es)")
                 try:
                     logging.info(

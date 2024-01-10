@@ -55,3 +55,7 @@ class PyTorchCheckpointing(BaseCheckpointing):
     def checkpoint(self, epoch, step_number):
         super().checkpoint(epoch, step_number)
 
+    @dlp.log
+    def finalize(self):
+        super().finalize()
+

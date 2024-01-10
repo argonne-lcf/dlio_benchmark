@@ -84,3 +84,7 @@ class BaseCheckpointing(ABC):
                         total_layers = total_layers + self.args.tensor_parallelism
                     for layer in range(total_layers):
                         self.save_state(suffix=f"layer-{layer}-{epoch}-{step_number}-{my_rank}", state=self.layer_state)
+
+    @abstractmethod
+    def finalize(self):
+        pass
