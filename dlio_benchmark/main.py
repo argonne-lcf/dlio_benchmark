@@ -67,7 +67,6 @@ class DLIOBenchmark(object):
         </ul>
         """
         t0 = time()
-        DLIOMPI.get_instance().initialize()
         self.args = ConfigArguments.get_instance()
         LoadConfig(self.args, cfg)
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root,
@@ -381,15 +380,17 @@ class DLIOBenchmark(object):
 
 @hydra.main(version_base=None, config_path="configs", config_name="config")
 def main(cfg: DictConfig) -> None:
+
     """
     The main method to start the benchmark runtime.
     """
-    os.environ["DARSHAN_DISABLE"] = "1"
+    DLIOMPI.get_instance().initialize()
     benchmark = DLIOBenchmark(cfg['workload'])
+    os.environ["DARSHAN_DISABLE"] = "1"
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()
-
+    DLIOMPI.get_instance().finalize()
 
 if __name__ == '__main__':
     main()
