@@ -17,7 +17,7 @@
 import logging
 from dlio_benchmark.utils.config import ConfigArguments
 
-from dlio_benchmark.utils.utility import utcnow
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 
 from dlio_benchmark.common.enumerations import DataLoaderType
 from dlio_benchmark.common.error_code import ErrorCodes
@@ -34,7 +34,8 @@ class DataLoaderFactory(object):
         """
         _args = ConfigArguments.get_instance()
         if _args.data_loader_class is not None:
-            logging.info(f"{utcnow()} Running DLIO with custom data loader class {_args.data_loader_class.__name__}")
+            if DLIOMPI.get_instance().rank() == 0:
+                logging.info(f"{utcnow()} Running DLIO with custom data loader class {_args.data_loader_class.__name__}")
             return _args.data_loader_class(format_type, dataset_type, epoch)
         elif type == DataLoaderType.PYTORCH:
             from dlio_benchmark.data_loader.torch_data_loader import TorchDataLoader
@@ -49,5 +50,6 @@ class DataLoaderFactory(object):
             from dlio_benchmark.data_loader.native_dali_data_loader import NativeDaliDataLoader
             return NativeDaliDataLoader(format_type, dataset_type, epoch)
         else:
-            print("Data Loader %s not supported or plugins not found" % type)
-            raise Exception(str(ErrorCodes.EC1004))
+            if DLIOMPI.get_instance().rank() == 0:
+                print("Data Loader %s not supported or plugins not found" % type)
+                raise Exception(str(ErrorCodes.EC1004))
