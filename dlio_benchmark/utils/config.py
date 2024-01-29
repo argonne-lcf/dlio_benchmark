@@ -312,13 +312,14 @@ class ConfigArguments:
 
     @dlp.log
     def reconfigure(self, epoch_number, dataset_type):
-        if self.file_shuffle is not Shuffle.OFF:
-            if self.seed_change_epoch:
-                np.random.seed(self.seed + epoch_number)
-            else:
-                np.random.seed(self.seed)
-            np.random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else np.random.shuffle(
-                self.file_list_eval)
+        if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
+            if self.file_shuffle is not Shuffle.OFF:
+                if self.seed_change_epoch:
+                    np.random.seed(self.seed + epoch_number)
+                else:
+                    np.random.seed(self.seed)
+                np.random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else np.random.shuffle(
+                    self.file_list_eval)
 
         if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
             if dataset_type is DatasetType.TRAIN:
