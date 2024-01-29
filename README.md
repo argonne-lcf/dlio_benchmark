@@ -17,13 +17,6 @@ pip install .
 dlio_benchmark ++workload.workflow.generate_data=True
 ```
 
-### Bare metal installation with profiler
-
-```bash
-git clone https://github.com/argonne-lcf/dlio_benchmark
-cd dlio_benchmark/
-pip install .[dlio_profiler]
-```
 ## Container
 
 ```bash
@@ -38,6 +31,7 @@ You can also pull rebuilt container from docker hub (might not reflect the most 
 docker docker.io/zhenghh04/dlio:latest
 docker run -t docker.io/zhenghh04/dlio:latest python ./dlio_benchmark/main.py ++workload.workflow.generate_data=True
 ```
+If your running on a different architecture, refer to the Dockerfile to build the dlio_benchmark container from scratch.
 
 One can also run interactively inside the container
 ```bash
@@ -86,7 +80,7 @@ Finally, run the benchmark
   ```
 Finally, run the benchmark with Profiler
   ```bash
-  export ENV DLIO_PROFILER_ENABLE=1
+  export DLIO_PROFILER_ENABLE=1
   export DLIO_PROFILER_INC_METADATA=1
   mpirun -np 8 dlio_benchmark workload=unet3d
   ```
