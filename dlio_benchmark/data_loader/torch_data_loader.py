@@ -75,7 +75,7 @@ class TorchDataset(Dataset):
     def __getitem__(self, image_idx):
         self.num_images_read += 1
         step = int(math.ceil(self.num_images_read / self.batch_size))
-        logging.debug(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample")
+        logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample")
         return self.reader.read_index(image_idx, step)
 
 class TorchDataLoader(BaseDataLoader):
@@ -85,10 +85,16 @@ class TorchDataLoader(BaseDataLoader):
 
     @dlp.log
     def read(self):
-        do_shuffle = True if self._args.sample_shuffle != Shuffle.OFF else False
         dataset = TorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples, self._args.read_threads, self.batch_size)
-        if do_shuffle:
-            sampler = RandomSampler(dataset)
+        if self._args.sample_shuffle != Shuffle.OFF:
+            # torch seed is used for all functions within.
+            torch.manual_seed(self._args.seed)
+            seed = int(torch.empty((), dtype=torch.int64).random_().item())
+            # generator needs to load up torch seed.
+            torch_generator = torch.Generator()
+            torch_generator.manual_seed(seed)
+            # Pass generator to sampler
+            sampler = RandomSampler(dataset, generator=torch_generator)
         else:
             sampler = SequentialSampler(dataset)
         if self._args.read_threads >= 1:

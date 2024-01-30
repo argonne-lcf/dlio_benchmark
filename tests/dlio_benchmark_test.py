@@ -28,6 +28,7 @@ import subprocess
 import logging
 import os
 from dlio_benchmark.utils.config import ConfigArguments
+from dlio_benchmark.utils.utility import DLIOMPI
 import dlio_benchmark
 config_dir=os.path.dirname(dlio_benchmark.__file__)+"/configs/"
 
@@ -43,6 +44,11 @@ logging.basicConfig(
 from dlio_benchmark.main import DLIOBenchmark
 import glob
 
+def init():
+    DLIOMPI.get_instance().initialize()
+
+def finalize():
+    DLIOMPI.get_instance().finalize()
 
 def clean(storage_root="./") -> None:
     comm.Barrier()
@@ -54,6 +60,7 @@ def clean(storage_root="./") -> None:
 
 
 def run_benchmark(cfg, storage_root="./", verify=True):
+
     comm.Barrier()
     if (comm.rank == 0):
         shutil.rmtree(os.path.join(storage_root, "output"), ignore_errors=True)
@@ -77,6 +84,7 @@ def run_benchmark(cfg, storage_root="./", verify=True):
                                             ("jpeg", "tensorflow"), ("tfrecord", "tensorflow"),
                                             ("hdf5", "tensorflow"), ("indexed_binary", "tensorflow"), ("mmap_indexed_binary", "tensorflow")])
 def test_gen_data(fmt, framework) -> None:
+    init()
     if (comm.rank == 0):
         logging.info("")
         logging.info("=" * 80)
@@ -106,9 +114,11 @@ def test_gen_data(fmt, framework) -> None:
             assert (len(train_files) == cfg.workload.dataset.num_files_train)
             assert (len(valid_files) == cfg.workload.dataset.num_files_eval)
         clean()
+    finalize()
 
 @pytest.mark.timeout(60, method="thread")
 def test_subset() -> None:
+    init()
     clean()
     if comm.rank == 0:
         logging.info("")
@@ -125,6 +135,7 @@ def test_subset() -> None:
                             '++workload.train.computation_time=0.01'])
         benchmark=run_benchmark(cfg, verify=True)
     clean()
+    finalize()
 
 @pytest.mark.timeout(60, method="thread")
 @pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
@@ -132,6 +143,7 @@ def test_subset() -> None:
                                             ("hdf5", "tensorflow"), ("indexed_binary", "tensorflow"),
                                             ("mmap_indexed_binary", "tensorflow")])
 def test_storage_root_gen_data(fmt, framework) -> None:
+    init()
     storage_root = "runs"
 
     clean(storage_root)
@@ -169,10 +181,11 @@ def test_storage_root_gen_data(fmt, framework) -> None:
                         os.path.join(storage_root, cfg.workload.dataset.data_folder, f"valid/*/*.{fmt}"))) ==
                     cfg.workload.dataset.num_files_eval)
         clean(storage_root)
-
+    finalize()
 
 @pytest.mark.timeout(60, method="thread")
 def test_iostat_profiling() -> None:
+    init()
     clean()
     if (comm.rank == 0):
         logging.info("")
@@ -207,6 +220,7 @@ def test_iostat_profiling() -> None:
             cmd = cmd.split()
             subprocess.run(cmd, capture_output=True, timeout=10)
         clean()
+    finalize()
 
 @pytest.mark.timeout(60, method="thread")
 @pytest.mark.parametrize("framework, model_size, optimizers, num_layers, layer_params, type", [("tensorflow", 1024, [1024, 128], 2, [16], "all_ranks"),
@@ -216,6 +230,7 @@ def test_iostat_profiling() -> None:
                                                                                          ("tensorflow", 1024, [128], 1, [], "all_ranks"),
                                                                                          ("pytorch", 1024, [128], 1, [], "all_ranks")])
 def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_params, type) -> None:
+    init()
     clean()
     if comm.rank == 0:
         logging.info("")
@@ -262,10 +277,11 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
             shutil.rmtree("./checkpoints", ignore_errors=True)
         comm.Barrier()
         clean()
-
+    finalize()
 
 @pytest.mark.timeout(60, method="thread")
 def test_checkpoint_step() -> None:
+    init()
     clean()
     if (comm.rank == 0):
         logging.info("")
@@ -294,10 +310,11 @@ def test_checkpoint_step() -> None:
         load_bin = list(output.glob("*"))
         assert (len(load_bin) == ncheckpoints)
         clean()
-
+    finalize()
 
 @pytest.mark.timeout(60, method="thread")
 def test_eval() -> None:
+    init()
     clean()
     if (comm.rank == 0):
         logging.info("")
@@ -313,13 +330,14 @@ def test_eval() -> None:
                                  '++workload.train.epochs=4', '++workload.workflow.evaluation=True'])
         benchmark = run_benchmark(cfg)
         clean()
-
+    finalize()
 
 @pytest.mark.timeout(60, method="thread")
 
 @pytest.mark.parametrize("framework, nt", [("tensorflow", 0), ("tensorflow", 1),("tensorflow", 2),
                                            ("pytorch", 0), ("pytorch", 1), ("pytorch", 2)])
 def test_multi_threads(framework, nt) -> None:
+    init()
     clean()
     if (comm.rank == 0):
         logging.info("")
@@ -340,12 +358,13 @@ def test_multi_threads(framework, nt) -> None:
                                                        '++workload.dataset.num_files_eval=8'])
         benchmark = run_benchmark(cfg)
     clean()
-
+    finalize()
 
 @pytest.mark.timeout(60, method="thread")
 
 @pytest.mark.parametrize("nt, context", [(0, None), (1, "fork"), (2, "spawn"), (2, "forkserver")])
 def test_pytorch_multiprocessing_context(nt, context) -> None:
+    init()
     clean()
     if (comm.rank == 0):
         logging.info("")
@@ -367,7 +386,7 @@ def test_pytorch_multiprocessing_context(nt, context) -> None:
                                                        '++workload.dataset.num_files_eval=8'])
         benchmark = run_benchmark(cfg)
     clean()
-
+    finalize()
 
 @pytest.mark.timeout(60, method="thread")
 @pytest.mark.parametrize("fmt, framework, dataloader", [("png", "tensorflow","tensorflow"), ("npz", "tensorflow","tensorflow"),
@@ -388,6 +407,7 @@ def test_pytorch_multiprocessing_context(nt, context) -> None:
                                             ("mmap_indexed_binary", "pytorch", "dali"),
                                             ])
 def test_train(fmt, framework, dataloader) -> None:
+    init()
     clean()
     if comm.rank == 0:
         logging.info("")
@@ -407,7 +427,7 @@ def test_train(fmt, framework, dataloader) -> None:
                                                        '++workload.reader.read_threads=1'])
         benchmark = run_benchmark(cfg)
     #clean()
-
+    finalize()
 
 
 @pytest.mark.timeout(60, method="thread")
@@ -421,6 +441,7 @@ def test_train(fmt, framework, dataloader) -> None:
                                             ("mmap_indexed_binary", "pytorch"),
                                             ])
 def test_custom_storage_root_train(fmt, framework) -> None:
+    init()
     storage_root = "root_dir"
     clean(storage_root)
     if (comm.rank == 0):
@@ -442,7 +463,7 @@ def test_custom_storage_root_train(fmt, framework) -> None:
                                                        '++workload.reader.read_threads=1'])
         benchmark = run_benchmark(cfg)
     clean(storage_root)
-
+    finalize()
 
 if __name__ == '__main__':
     unittest.main()

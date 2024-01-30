@@ -68,7 +68,7 @@ Profiling
 Application Profiling
 '''''''''''''''''''''
 
-DLIO_Benchmark has an application level profiler by default. The profiler outputs all application level python function calls in <OUTPUT_FOLDER>/.trace*.pfw files.
+DLIO_Benchmark has an application level profiler by default. The profiler outputs all application level python function calls in <OUTPUT_FOLDER>/trace*.pfw files.
 These files are in chrome tracing's json line format. This can be visualized using `perfetto UI https://ui.perfetto.dev/`_
 
 
@@ -87,14 +87,14 @@ Installing just dlio-profiler
     pip install git+https://github.com/hariharan-devarajan/dlio-profiler.git@dev
 
 
-Installing just dlio-profiler along with dlio_benchmark
+DLIO Profiler is always installed along with dlio_benchmark
 
 .. code-block:: bash
 
     cd <DLIO_BENCHMARK_SRC>
-    pip install .[dlio_profiler]
+    pip install .
 
-The profiler outputs all profiling output in <OUTPUT_FOLDER>/.trace*.pfw files.
+The profiler outputs all profiling output in <OUTPUT_FOLDER>/trace*.pfw files.
 It contains application level profiling as well as low-level I/O calls from POSIX and STDIO layers.
 The low-level I/O events are only way to understand I/O pattern from internal framework functions such as TFRecordDataset or DaliDataLoader.
 These files are in chrome tracing's json line format. This can be visualized using `perfetto UI https://ui.perfetto.dev/`_
