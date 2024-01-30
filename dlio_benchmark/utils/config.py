@@ -34,7 +34,8 @@ import math
 import os
 import numpy as np
 
-from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile
+from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile, DLIO_PROFILER_ENABLE
+
 dlp = Profile(MODULE_CONFIG)
 @dataclass
 class ConfigArguments:
@@ -182,14 +183,21 @@ class ConfigArguments:
         if is_child and self.multiprocessing_context == "fork":
             return
         # Configure the profiler
-        dlp_trace = get_trace_name(self.output_folder, use_pid)
-        logging.info(f"{utcnow()} Profiling DLIO {dlp_trace}")
-        return PerfTrace.initialize_log(logfile=dlp_trace,
-                                                   data_dir=f"{os.path.abspath(self.data_folder)}:"
-                                                            f"{self.data_folder}:./{self.data_folder}:"
-                                                            f"{self.checkpoint_folder}:./{self.checkpoint_folder}:"
-                                                            f"{os.path.abspath(self.checkpoint_folder)}",
-                                                   process_id=self.my_rank)
+        if DLIO_PROFILER_ENABLE:
+            dlp_trace = get_trace_name(self.output_folder, use_pid)
+            if DLIOMPI.get_instance().rank() == 0:
+                logging.info(f"{utcnow()} Profiling DLIO {dlp_trace}")
+                return PerfTrace.initialize_log(logfile=dlp_trace,
+                                                       data_dir=f"{os.path.abspath(self.data_folder)}:"
+                                                                f"{self.data_folder}:./{self.data_folder}:"
+                                                                f"{self.checkpoint_folder}:./{self.checkpoint_folder}:"
+                                                                f"{os.path.abspath(self.checkpoint_folder)}",
+                                                       process_id=self.my_rank)
+        return None
+
+    def finalize_dlio_profiler(self, dlp_logger):
+        if DLIO_PROFILER_ENABLE and dlp_logger:
+            dlp_logger.finalize()
 
     @dlp.log
     def validate(self):
@@ -340,13 +348,14 @@ class ConfigArguments:
 
     @dlp.log
     def reconfigure(self, epoch_number, dataset_type):
-        if self.file_shuffle is not Shuffle.OFF:
-            if self.seed_change_epoch:
-                np.random.seed(self.seed + epoch_number)
-            else:
-                np.random.seed(self.seed)
-            np.random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else np.random.shuffle(
-                self.file_list_eval)
+        if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
+            if self.file_shuffle is not Shuffle.OFF:
+                if self.seed_change_epoch:
+                    np.random.seed(self.seed + epoch_number)
+                else:
+                    np.random.seed(self.seed)
+                np.random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else np.random.shuffle(
+                    self.file_list_eval)
 
         if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
             if dataset_type is DatasetType.TRAIN:

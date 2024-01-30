@@ -68,7 +68,6 @@ class DLIOBenchmark(object):
         </ul>
         """
         t0 = time()
-        DLIOMPI.get_instance().initialize()
         self.args = ConfigArguments.get_instance()
         LoadConfig(self.args, cfg)
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root,
@@ -93,7 +92,7 @@ class DLIOBenchmark(object):
         self.comm.barrier()
         # Configure the logging library
         self.args.configure_dlio_logging(is_child=False)
-        self.dlp_logger = self.args.configure_dlio_profiler(is_child=False, use_pid=False)
+        self.dlio_profiler = self.args.configure_dlio_profiler(is_child=False, use_pid=False)
         with Profile(name=f"{self.__init__.__qualname__}", cat=MODULE_DLIO_BENCHMARK):
             if self.args.my_rank == 0:
                 logging.info(f"{utcnow()} Running DLIO with {self.args.comm_size} process(es)")
@@ -252,7 +251,6 @@ class DLIOBenchmark(object):
         Training loop for reading the dataset and performing training computations.
         :return: returns total steps.
         """
-        self.args.reconfigure(epoch, DatasetType.TRAIN)
         block = 1  # A continuous period of training steps, ended by checkpointing
         block_step = overall_step = 1  # Steps are taken within blocks
         max_steps = math.floor(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
@@ -261,7 +259,6 @@ class DLIOBenchmark(object):
         self.stats.start_block(epoch, block)
 
         loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
-        loader.read()
         t0 = time()
         for batch in dlp.iter(loader.next()):
             self.stats.batch_loaded(epoch, overall_step, block, t0)
@@ -332,13 +329,15 @@ class DLIOBenchmark(object):
             # Keep track of the next epoch at which we will evaluate
             next_eval_epoch = self.eval_after_epoch
             self.next_checkpoint_epoch = self.checkpoint_after_epoch
-
+            epoch = 1
+            self.args.reconfigure(epoch, DatasetType.TRAIN)
+            # Initialize the dataset
+            self.framework.init_loader(self.args.format, epoch=epoch, data_loader=self.args.data_loader)
+            loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
+            loader.read()
             for epoch in range(1, self.epochs + 1):
                 self.next_checkpoint_step = self.steps_between_checkpoints
                 self.stats.start_train(epoch)
-
-                # Initialize the dataset
-                self.framework.init_loader(self.args.format, epoch=epoch, data_loader=self.args.data_loader)
                 steps = self._train(epoch)
                 self.stats.end_train(epoch, steps)
                 logging.debug(f"{utcnow()} Rank {self.my_rank} returned after {steps} steps.")
@@ -378,20 +377,22 @@ class DLIOBenchmark(object):
             self.stats.finalize()
             self.stats.save_data()
         self.comm.barrier()
-        self.dlp_logger.finalize()
+        self.args.finalize_dlio_profiler(self.dlio_profiler)
 
 
 @hydra.main(version_base=None, config_path="configs", config_name="config")
 def main(cfg: DictConfig) -> None:
+
     """
     The main method to start the benchmark runtime.
     """
-    os.environ["DARSHAN_DISABLE"] = "1"
+    DLIOMPI.get_instance().initialize()
     benchmark = DLIOBenchmark(cfg['workload'])
+    os.environ["DARSHAN_DISABLE"] = "1"
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()
-
+    DLIOMPI.get_instance().finalize()
 
 if __name__ == '__main__':
     main()
