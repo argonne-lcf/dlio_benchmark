@@ -359,6 +359,7 @@ class DLIOBenchmark(object):
         It finalizes the dataset once training is completed.
         """
         self.comm.barrier()
+        self.checkpointing_mechanism.finalize()
         if not self.generate_only:
             if self.do_profiling:
                 self.profiler.stop()
