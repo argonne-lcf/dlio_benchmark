@@ -313,7 +313,12 @@ checkpoint
    * - type
      - rank_zero
      - Which rank performs this checkpoint. All ranks (all_ranks) or Rank 0 (rank_zero).
-
+   * - tensor_parallelism
+     - 1
+     - Tensor parallelism for model. Used to determine the number of layer model files.
+   * - pipeline_parallelism
+     - 1
+     - Pipeline parallelism for model.
 
 .. note::
    
