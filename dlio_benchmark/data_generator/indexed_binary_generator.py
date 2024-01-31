@@ -21,7 +21,7 @@ from dlio_benchmark.data_generator.data_generator import DataGenerator
 import logging
 import numpy as np
 
-from dlio_benchmark.utils.utility import progress, utcnow
+from dlio_benchmark.utils.utility import progress, utcnow, DLIOMPI
 from dlio_profiler.logger import fn_interceptor as Profile
 from shutil import copyfile
 from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
@@ -53,7 +53,7 @@ class IndexedBinaryGenerator(DataGenerator):
         MB=1048576
         samples_processed = 0
         total_samples = self.total_files_to_generate * self.num_samples
-        if self.total_files_to_generate < self.comm_size:
+        if self.total_files_to_generate <= self.comm_size:
             # Use collective I/O
             # we need even number os samples for collective I/O
             samples_per_rank = (self.num_samples + (self.num_samples % self.comm_size)) // self.comm_size
@@ -140,3 +140,4 @@ class IndexedBinaryGenerator(DataGenerator):
                 off_file.close()
                 sz_file.close()
             np.random.seed()
+        DLIOMPI.get_instance().comm().Barrier()
