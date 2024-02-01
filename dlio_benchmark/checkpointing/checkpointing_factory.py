@@ -19,7 +19,7 @@ import logging
 from dlio_benchmark.common.enumerations import CheckpointMechanismType
 from dlio_benchmark.common.error_code import ErrorCodes
 from dlio_benchmark.utils.config import ConfigArguments
-from dlio_benchmark.utils.utility import utcnow
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 
 
 class CheckpointingFactory(object):
@@ -30,8 +30,9 @@ class CheckpointingFactory(object):
     def get_mechanism(checkpoint_mechanism_type):
         _args = ConfigArguments.get_instance()
         if _args.checkpoint_mechanism_class is not None:
-            logging.info(f"{utcnow()} Running DLIO with custom checkpointing mechanism "
-                         f"class {_args.checkpoint_mechanism_class.__name__}")
+            if DLIOMPI.get_instance().rank() == 0:
+                logging.info(f"{utcnow()} Running DLIO with custom checkpointing mechanism "
+                             f"class {_args.checkpoint_mechanism_class.__name__}")
             return _args.checkpoint_mechanism_class.get_instance()
         elif checkpoint_mechanism_type == CheckpointMechanismType.TF_SAVE:
             from dlio_benchmark.checkpointing.tf_checkpointing import TFCheckpointing
