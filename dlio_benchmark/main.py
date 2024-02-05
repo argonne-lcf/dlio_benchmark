@@ -304,6 +304,7 @@ class DLIOBenchmark(object):
             self.checkpointing_mechanism.checkpoint(epoch, overall_step)
             self.stats.end_ckpt(epoch, block)
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
+        self.comm.barrier()
         return overall_step
 
     @dlp.log

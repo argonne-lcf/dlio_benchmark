@@ -187,12 +187,12 @@ class ConfigArguments:
             dlp_trace = get_trace_name(self.output_folder, use_pid)
             if DLIOMPI.get_instance().rank() == 0:
                 logging.info(f"{utcnow()} Profiling DLIO {dlp_trace}")
-                return PerfTrace.initialize_log(logfile=dlp_trace,
-                                                       data_dir=f"{os.path.abspath(self.data_folder)}:"
-                                                                f"{self.data_folder}:./{self.data_folder}:"
-                                                                f"{self.checkpoint_folder}:./{self.checkpoint_folder}:"
-                                                                f"{os.path.abspath(self.checkpoint_folder)}",
-                                                       process_id=self.my_rank)
+            return PerfTrace.initialize_log(logfile=dlp_trace,
+                                                   data_dir=f"{os.path.abspath(self.data_folder)}:"
+                                                            f"{self.data_folder}:./{self.data_folder}:"
+                                                            f"{self.checkpoint_folder}:./{self.checkpoint_folder}:"
+                                                            f"{os.path.abspath(self.checkpoint_folder)}",
+                                                   process_id=self.my_rank)
         return None
 
     def finalize_dlio_profiler(self, dlp_logger):
@@ -276,7 +276,8 @@ class ConfigArguments:
             module = importlib.import_module(".".join(self.data_loader_classname.split(".")[:-1]))
             for class_name, obj in inspect.getmembers(module):
                 if class_name == classname and issubclass(obj, BaseDataLoader):
-                    logging.info(f"Discovered custom data loader {class_name}")
+                    if DLIOMPI.get_instance().rank() == 0:
+                        logging.info(f"Discovered custom data loader {class_name}")
                     self.data_loader_class = obj
                     break
         if self.checkpoint_mechanism_classname is not None:
@@ -285,7 +286,8 @@ class ConfigArguments:
             module = importlib.import_module(".".join(self.checkpoint_mechanism_classname.split(".")[:-1]))
             for class_name, obj in inspect.getmembers(module):
                 if class_name == classname and issubclass(obj, BaseCheckpointing):
-                    logging.info(f"Discovered custom checkpointing mechanism {class_name}")
+                    if DLIOMPI.get_instance().rank() == 0:
+                        logging.info(f"Discovered custom checkpointing mechanism {class_name}")
                     self.checkpoint_mechanism_class = obj
                     break
         if self.reader_classname is not None:
@@ -294,7 +296,8 @@ class ConfigArguments:
             module = importlib.import_module(".".join(self.reader_classname.split(".")[:-1]))
             for class_name, obj in inspect.getmembers(module):
                 if class_name == classname and issubclass(obj, FormatReader):
-                    logging.info(f"Discovered custom data reader {class_name}")
+                    if DLIOMPI.get_instance().rank() == 0:
+                        logging.info(f"Discovered custom data reader {class_name}")
                     self.reader_class = obj
                     break
 
