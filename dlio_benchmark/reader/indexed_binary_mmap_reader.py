@@ -55,14 +55,12 @@ class IndexedBinaryMMapReader(FormatReader):
             offset_file = self.index_file_path_off(filename)
             sz_file = self.index_file_path_size(filename)
             self.file_map[filename] = []
-            with open(offset_file, 'rb') as f:
-                offsets = self.read_longs(f, self._args.num_samples_per_file)
-                logging.debug(f"read offsets {offsets} from file {offset_file}")
-                self.file_map[filename].append(offsets)
-            with open(sz_file, 'rb') as f:
-                sizes = self.read_longs(f, self._args.num_samples_per_file)
-                logging.debug(f"read sizes {sizes} from file {sz_file}")
-                self.file_map[filename].append(sizes)
+            bin_buffer_mmap = np.memmap(offset_file, mode='r', order='C')
+            bin_buffer = memoryview(bin_buffer_mmap)
+            self.file_map[filename].append(np.frombuffer(bin_buffer, dtype=np.uint8))
+            bin_buffer_mmap = np.memmap(sz_file, mode='r', order='C')
+            bin_buffer = memoryview(bin_buffer_mmap)
+            self.file_map[filename].append(np.frombuffer(bin_buffer, dtype=np.uint8))
 
     @dlp.log
     def load_index(self):
