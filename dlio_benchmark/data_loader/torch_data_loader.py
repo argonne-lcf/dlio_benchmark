@@ -17,6 +17,7 @@
 from time import time
 import logging
 import math
+import pickle
 import torch
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler
 
@@ -24,7 +25,8 @@ from dlio_benchmark.common.constants import MODULE_DATA_LOADER
 from dlio_benchmark.common.enumerations import Shuffle, DatasetType, DataLoaderType
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
-from dlio_benchmark.utils.utility import utcnow, get_rank
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI
+from dlio_benchmark.utils.config import ConfigArguments
 from dlio_profiler.logger import fn_interceptor as Profile
 
 dlp = Profile(MODULE_DATA_LOADER)
@@ -44,17 +46,27 @@ class TorchDataset(Dataset):
         self.reader = None
         self.num_images_read = 0
         self.batch_size = batch_size
+        args = ConfigArguments.get_instance()
+        self.serial_args = pickle.dumps(args)
+        self.dlp_logger = None
         if num_workers == 0:
             self.worker_init(-1)
 
     @dlp.log
     def worker_init(self, worker_id):
+        pickle.loads(self.serial_args)
+        _args = ConfigArguments.get_instance()
+        _args.configure_dlio_logging(is_child=True)
+        self.dlp_logger = _args.configure_dlio_profiler(is_child=True, use_pid=True)
         logging.debug(f"{utcnow()} worker initialized {worker_id} with format {self.format_type}")
         self.reader = ReaderFactory.get_reader(type=self.format_type,
                                                dataset_type=self.dataset_type,
                                                thread_index=worker_id,
                                                epoch_number=self.epoch_number)
 
+    def __del__(self):
+        if self.dlp_logger:
+            self.dlp_logger.finalize()
     @dlp.log
     def __len__(self):
         return self.num_samples
@@ -63,7 +75,7 @@ class TorchDataset(Dataset):
     def __getitem__(self, image_idx):
         self.num_images_read += 1
         step = int(math.ceil(self.num_images_read / self.batch_size))
-        logging.debug(f"{utcnow()} Rank {get_rank()} reading {image_idx} sample")
+        logging.debug(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample")
         return self.reader.read_index(image_idx, step)
 
 class TorchDataLoader(BaseDataLoader):
@@ -73,10 +85,16 @@ class TorchDataLoader(BaseDataLoader):
 
     @dlp.log
     def read(self):
-        do_shuffle = True if self._args.sample_shuffle != Shuffle.OFF else False
         dataset = TorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples, self._args.read_threads, self.batch_size)
-        if do_shuffle:
-            sampler = RandomSampler(dataset)
+        if self._args.sample_shuffle != Shuffle.OFF:
+            # torch seed is used for all functions within.
+            torch.manual_seed(self._args.seed)
+            seed = int(torch.empty((), dtype=torch.int64).random_().item())
+            # generator needs to load up torch seed.
+            torch_generator = torch.Generator()
+            torch_generator.manual_seed(seed)
+            # Pass generator to sampler
+            sampler = RandomSampler(dataset, generator=torch_generator)
         else:
             sampler = SequentialSampler(dataset)
         if self._args.read_threads >= 1:

@@ -16,7 +16,7 @@
 """
 from numpy import append
 from dlio_benchmark.utils.config import ConfigArguments
-from dlio_benchmark.utils.utility import utcnow
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 
 import os
 import json
@@ -25,12 +25,12 @@ import logging
 import pandas as pd
 from time import time
 import numpy as np
-from mpi4py import MPI
-comm = MPI.COMM_WORLD
+
 import socket
 class StatsCounter(object):
 
     def __init__(self):
+        self.comm = DLIOMPI.get_instance().comm()
         self.args = ConfigArguments.get_instance()
         self.my_rank = self.args.my_rank
         self.comm_size = self.args.comm_size
@@ -74,8 +74,8 @@ class StatsCounter(object):
         self.end_run_timestamp = time()
         if not self.args.generate_only:
             total_elapsed_time = self.end_run_timestamp - self.start_run_timestamp
-            train_au = np.array(comm.allreduce(np.array(self.train_au)))/comm.size
-            train_throughput = comm.allreduce(np.array(self.train_throughput))
+            train_au = np.array(self.comm.allreduce(np.array(self.train_au)))/self.comm.size
+            train_throughput = self.comm.allreduce(np.array(self.train_throughput))
             self.summary['epochs'] = len(train_au)
             self.summary['metric']['train_au_percentage'] = list(train_au)
             self.summary['metric']['train_au_mean_percentage'] = np.mean(train_au)
@@ -90,8 +90,8 @@ class StatsCounter(object):
             self.summary['metric']['train_io_mean_MB_per_second'] = np.mean(train_throughput)*self.record_size/1024./1024.
             self.summary['metric']['train_io_stdev_MB_per_second'] = np.std(train_throughput)*self.record_size/1024./1024.
             if self.args.do_eval:
-                eval_au = np.array(comm.allreduce(self.eval_au))/comm.size
-                eval_throughput = comm.allreduce(self.eval_throughput)
+                eval_au = np.array(self.comm.allreduce(self.eval_au))/self.comm.size
+                eval_throughput = self.comm.allreduce(self.eval_throughput)
                 self.summary['metric']['eval_au_percentage'] = list(eval_au)
                 self.summary['metric']['eval_au_mean_percentage'] = np.mean(eval_au)
                 if self.summary['metric']['eval_au_mean_percentage'] >=90:

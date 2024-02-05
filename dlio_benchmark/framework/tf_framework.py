@@ -21,14 +21,15 @@ from time import time, sleep
 
 from dlio_benchmark.common.constants import MODULE_AI_FRAMEWORK
 from dlio_benchmark.data_loader.data_loader_factory import DataLoaderFactory
-from dlio_benchmark.utils.utility import utcnow
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 from dlio_profiler.logger import fn_interceptor as Profile
 from dlio_benchmark.common.error_code import ErrorCodes
 from dlio_benchmark.framework.framework import Framework
 from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.profiler.profiler_factory import ProfilerFactory
 from dlio_benchmark.storage.storage_factory import StorageFactory
-from dlio_benchmark.common.enumerations import FrameworkType, Profiler, FormatType, DatasetType, MetadataType, DataLoaderType
+from dlio_benchmark.common.enumerations import FrameworkType, Profiler, FormatType, DatasetType, MetadataType, \
+    DataLoaderType
 
 import tensorflow as tf
 from tensorflow.python.framework import errors
@@ -36,6 +37,7 @@ from tensorflow.python.framework import errors
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 dlp = Profile(MODULE_AI_FRAMEWORK)
+
 
 class TFFramework(Framework):
     __instance = None
@@ -55,13 +57,8 @@ class TFFramework(Framework):
     @dlp.log
     def init_loader(self, format_type, epoch=0, data_loader=None):
         if data_loader is None:
-            data_loader = DataLoaderType.PYTORCH
-        self.reader_train = DataLoaderFactory.get_loader(data_loader, format_type,
-                                                         dataset_type=DatasetType.TRAIN, epoch=epoch)
-        self.reader_valid = DataLoaderFactory.get_loader(data_loader, format_type,
-                                                         dataset_type=DatasetType.VALID, epoch=epoch)
-        self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
-
+            data_loader = DataLoaderType.TENSORFLOW
+        super().init_loader(format_type, epoch, data_loader)
     @dlp.log
     def get_type(self):
         return FrameworkType.TENSORFLOW
@@ -80,41 +77,18 @@ class TFFramework(Framework):
 
     @dlp.log
     def stop_framework_profiler(self):
-        #if self.profiling:
+        # if self.profiling:
         #    self.tensorboard.stop()
         pass
- 
+
     @dlp.log
     def trace_object(self, string, step, r):
-        pass #tf.profiler.experimental.Trace(string, step_num=step, _r=r)
-
-    @dlp.log
-    def checkpoint(self, epoch, step_number):
-        """
-        Performs Checkpointing for a specific step number. It writes different file of different sizes.
-        """
-        if self.rank() == 0:
-            my_rank = self.rank()
-            if not self.storage.get_node(self.checkpoint_folder):
-                self.storage.create_node(self.checkpoint_folder)
-
-            model_file = os.path.join(self.checkpoint_folder, f"model-{epoch}-{step_number}.bin")
-            meta_file = os.path.join(self.checkpoint_folder, f"meta-{epoch}-{step_number}.bin")
-            index_file = os.path.join(self.checkpoint_folder, f"index-{epoch}-{step_number}.bin")
-
-            string_val = "x" * self.args.model_size
-            self.storage.put_data(model_file, string_val)
-            # TODO Should these scale with the model size?
-            string_val = "x" * (17371)
-            self.storage.put_data(index_file, string_val)
-
-            string_val = "x" * (24740228)
-            self.storage.put_data(meta_file, string_val)
+        pass  # tf.profiler.experimental.Trace(string, step_num=step, _r=r)
 
     @dlp.log
     def compute(self, x, epoch_number, step, computation_time):
         sleep(computation_time)
-        #tf.function(self.model)(epoch_number, step, computation_time)
+        # tf.function(self.model)(epoch_number, step, computation_time)
 
     @dlp.log
     def get_loader(self, dataset_type=DatasetType.TRAIN):

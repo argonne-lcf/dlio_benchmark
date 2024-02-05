@@ -15,7 +15,7 @@
    limitations under the License.
 """
 import logging
-from dlio_benchmark.utils.utility import utcnow
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 
 from dlio_benchmark.utils.config import ConfigArguments
 
@@ -35,7 +35,8 @@ class ReaderFactory(object):
 
         _args = ConfigArguments.get_instance()
         if _args.reader_class is not None:
-            logging.info(f"{utcnow()} Running DLIO with custom data loader class {_args.reader_class.__name__}")
+            if DLIOMPI.get_instance().rank() == 0:
+                logging.info(f"{utcnow()} Running DLIO with custom data loader class {_args.reader_class.__name__}")
             return _args.reader_class(dataset_type, thread_index, epoch_number)
         elif type == FormatType.HDF5:
             from dlio_benchmark.reader.hdf5_reader import HDF5Reader
@@ -69,6 +70,12 @@ class ReaderFactory(object):
                 return DaliTFRecordReader(dataset_type, thread_index, epoch_number)
             else:
                 from dlio_benchmark.reader.tf_reader import TFReader
-                return TFReader(dataset_type, thread_index, epoch_number) 
+                return TFReader(dataset_type, thread_index, epoch_number)
+        elif type == FormatType.INDEXED_BINARY:
+            from dlio_benchmark.reader.indexed_binary_reader import IndexedBinaryReader
+            return IndexedBinaryReader(dataset_type, thread_index, epoch_number)
+        elif type == FormatType.MMAP_INDEXED_BINARY:
+            from dlio_benchmark.reader.indexed_binary_mmap_reader import IndexedBinaryMMapReader
+            return IndexedBinaryMMapReader(dataset_type, thread_index, epoch_number)
         else:
             raise Exception("Loading data of %s format is not supported without framework data loader" %type)

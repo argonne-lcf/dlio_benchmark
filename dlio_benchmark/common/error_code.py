@@ -35,3 +35,4 @@ class ErrorCodes:
     EC1002 = {1002, "ERROR: Invalid Parameter Combination"}
     EC1003 = {1003, "ERROR: Invalid Data Loader"}
     EC1004 = {1004, "ERROR: Not supported"}
+    EC1005 = {1005, "ERROR: Invalid Checkpointing Mechanism"}

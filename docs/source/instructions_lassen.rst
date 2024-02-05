@@ -112,20 +112,12 @@ Running the Benchmark
 
 	jsrun --bind packed:4 --smpiargs="-gpu" --nrs 1 --rs_per_host 1 --tasks_per_rs 4 --launch_distribution packed --cpu_per_rs ALL_CPUS --gpu_per_rs ALL_GPUS dlio_benchmark workload=resnet50 ++workload.workflow.generate_data=False ++workload.workflow.train=True
 
-If you want to use a profiler: Same example with using iostat profiler, isting the io devices you would like to trace:
+If you want to use a profiler: Same example with using DLIO Profiler, isting the io devices you would like to trace:
 
 .. code-block:: bash
 
-	jsrun --bind packed:4 --smpiargs="-gpu" --nrs 1 --rs_per_host 1 --tasks_per_rs 4 --launch_distribution packed --cpu_per_rs ALL_CPUS --gpu_per_rs ALL_GPUS dlio_benchmark workload=resnet50 ++workload.workflow.generate_data=False ++workload.workflow.profiling=True ++workload.profiling.profiler=iostat ++workload.profiling.iostat_devices=[sda,sdb]
+    export DLIO_PROFILER_ENABLE=1
+	jsrun --bind packed:4 --smpiargs="-gpu" --nrs 1 --rs_per_host 1 --tasks_per_rs 4 --launch_distribution packed --cpu_per_rs ALL_CPUS --gpu_per_rs ALL_GPUS dlio_benchmark workload=resnet50 ++workload.workflow.generate_data=False ++workload.workflow.profiling=True
 
 All the outputs will be stored in ```hydra_log/WORKLOAD/$DATE-$TIME``` folder, where WORKLOAD could be `cosmoflow` etc or in our examples resnet50 if you are using the existing workloads. If you are using a custom workload this will be in the absolute path that you specified in your .yaml file.
 
-''''''''''''''''''''''''
-To post process the data
-''''''''''''''''''''''''
-
-.. code-block:: bash
-
-	dlio_postprocessor --output-folder hydra_log/WORKLOAD/$DATE-$TIME
-
-This will generate ```DLIO_$model_report.txt``` in the output folder, where WORKLOAD could be cosmoflow etc or in our examples `resnet50`.

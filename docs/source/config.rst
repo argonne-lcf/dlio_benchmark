@@ -312,7 +312,25 @@ checkpoint
      - performing one checkpointing per certain number of steps specified
    * - model_size
      - 10240
-     - the size of the model in bytes
+     - the size of the model parameters per GPU in bytes
+   * - optimization_groups
+     - []
+     - List of optimization group tensors. Use Array notation for yaml.
+   * - num_layers
+     - 1
+     - Number of layers to checkpoint. Each layer would be checkpointed separately.
+   * - layer_parameters
+     - []
+     - List of parameters per layer. This is used to perform I/O per layer.
+   * - type
+     - rank_zero
+     - Which rank performs this checkpoint. All ranks (all_ranks) or Rank 0 (rank_zero).
+   * - tensor_parallelism
+     - 1
+     - Tensor parallelism for model. Used to determine the number of layer model files.
+   * - pipeline_parallelism
+     - 1
+     - Pipeline parallelism for model.
 
 .. note::
    
@@ -350,28 +368,21 @@ profiling
    * - Parameter
      - Default
      - Description
-   * - profiler
-     - none
-     - specifying the profiler to use [none|iostat]
    * - iostat_devices**
      - [sda, sdb]
      - specifying the devices to perform iostat tracing.  
 
 .. note::
    
-   We support following I/O profiling using following profilers: 
-
-    * ``iostat``: https://linux.die.net/man/1/iostat. One can specify the command to use for profiling in order to get the profiling for specific disk.   
-
-    * ``dlio_profiler``: https://dlio-profiler.readthedocs.io/en/latest/. One has to make sure that DLIO is installed. 
-
+   We support multi-level profiling using:
+    * ``dlio_profiler``: https://github.com/hariharan-devarajan/dlio-profiler. DLIO_PROFILER_ENABLE=1 has to be set to enable profiler.
     Please refer to :ref:`profiling` on how to enable these profiling tools. 
-
-The YAML files are stored in the `workload`_ folder. One can create custom YAML configuration file, and load it to ```dlio_benchmark``` by specifying ``--config-path`` and ``--config-dir``. 
 
 How to create a DLIO configuration YAML file
 =============================================
 Creating a YAML file for a workload is very straight forward. Most of the options are essentially the same with the actual workload, such as ``framework``, ``reader``, and many options in ``train``, ``evaluation``, such as ``epochs``. The main work involved is to find out the dataset information and the computation time. For the former, one can to check the original dataset to find out the number of files for training, how many samples per file, and the sample size, data format, etc. For the latter, one has to run the actual workload to find out the comptuation time per training step. One might have to add timing stamp before and after the training step. 
 
+The YAML files are stored in the `workload`_ folder.
+It then can be loaded by ```dlio_benchmark``` through hydra (https://hydra.cc/). This will override the default settings. One can override the configurations through command line (https://hydra.cc/docs/advanced/override_grammar/basic/).
 
 .. _workload: https://github.com/argonne-lcf/dlio_benchmark/tree/main/dlio_benchmark/configs/workload

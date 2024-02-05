@@ -24,7 +24,7 @@ import os
 import torch
 import functools
 import logging
-from dlio_benchmark.utils.utility import utcnow
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 from dlio_profiler.logger import fn_interceptor as Profile
 
 from time import sleep, time
@@ -66,11 +66,7 @@ class TorchFramework(Framework):
     def init_loader(self, format_type, epoch=0, data_loader=None):
         if data_loader is None:
             data_loader = DataLoaderType.PYTORCH
-        self.reader_train = DataLoaderFactory.get_loader(data_loader, format_type,
-                                                         dataset_type=DatasetType.TRAIN, epoch=epoch)
-        self.reader_valid = DataLoaderFactory.get_loader(data_loader, format_type,
-                                                         dataset_type=DatasetType.VALID, epoch=epoch)
-        self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
+        super().init_loader(format_type, epoch, data_loader)
 
     @dlp.log
     def get_type(self):
@@ -94,21 +90,6 @@ class TorchFramework(Framework):
     @dlp.log
     def trace_object(self, string, step, r):
         return DummyTraceObject(string, step, r)
-
-    @dlp.log
-    def checkpoint(self, epoch, step_number):
-        if self.rank() == 0:
-            """
-            Performs Checkpointing for a specific step number. It writes different file of different sizes.
-            """
-            my_rank = self.rank()
-            if not self.storage.get_node(self.checkpoint_folder):
-                self.storage.create_node(self.checkpoint_folder)
-
-            model_file = os.path.join(self.checkpoint_folder, f"model-{epoch}-{step_number}.bin")
-
-            string_val = "x" * self.args.model_size
-            self.storage.put_data(model_file, string_val)
 
     @dlp.log
     def compute(self, x, epoch_number, step, computation_time):
