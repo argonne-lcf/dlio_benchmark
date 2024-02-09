@@ -27,14 +27,15 @@ from typing import List, ClassVar
 from dlio_benchmark.common.constants import MODULE_CONFIG
 from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
     FrameworkType, \
-    DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointLocationType
+    DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointLocationType, CheckpointMechanismType
 from dlio_benchmark.utils.utility import DLIOMPI, get_trace_name, utcnow
 from dataclasses import dataclass
 import math
 import os
 import numpy as np
 
-from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile
+from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile, DLIO_PROFILER_ENABLE
+
 dlp = Profile(MODULE_CONFIG)
 @dataclass
 class ConfigArguments:
@@ -96,21 +97,25 @@ class ConfigArguments:
     do_eval: bool = False
     batch_size_eval: int = 1
     num_files_eval: int = 0
-    generation_buffer_size: int = 2 * 1073741824 # 2 GB
+    generation_buffer_size: int = 2 * 1073741824  # 2 GB
     eval_time: float = 0.0
     eval_time_stdev: float = 0.0
     eval_after_epoch: int = 1
     epochs_between_evals: int = 1
     checkpoint_type: CheckpointLocationType = CheckpointLocationType.RANK_ZERO
+    checkpoint_mechanism: CheckpointMechanismType = CheckpointMechanismType.NONE
     model_size: int = 10240
-    optimization_groups:  ClassVar[List[int]] = []
+    optimization_groups: ClassVar[List[int]] = []
     num_layers: int = 1
     layer_parameters: ClassVar[List[int]] = [17371, 24740228]
+    tensor_parallelism: int = 1
+    pipeline_parallelism: int = 1
     data_loader: DataLoaderType = DataLoaderType.TENSORFLOW.value
     num_subfolders_train: int = 0
     num_subfolders_eval: int = 0
     iostat_devices: ClassVar[List[str]] = []
     data_loader_classname = None
+    checkpoint_mechanism_classname = None
     data_loader_sampler: DataLoaderSampler = None
     reader_classname: str = None
     multiprocessing_context: str = "fork"
@@ -132,7 +137,7 @@ class ConfigArguments:
     global_index_map = None
     data_loader_class = None
     reader_class = None
-    
+    checkpoint_mechanism_class = None
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -145,7 +150,7 @@ class ConfigArguments:
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        DLIOMPI.reset()     # in 'fork' case, clear parent's DLIOMPI
+        DLIOMPI.reset()  # in 'fork' case, clear parent's DLIOMPI
         DLIOMPI.get_instance().set_parent_values(self.my_rank, self.comm_size)
         ConfigArguments.__instance = self
 
@@ -178,14 +183,21 @@ class ConfigArguments:
         if is_child and self.multiprocessing_context == "fork":
             return
         # Configure the profiler
-        dlp_trace = get_trace_name(self.output_folder, use_pid)
-        logging.info(f"{utcnow()} Profiling DLIO {dlp_trace}")
-        return PerfTrace.initialize_log(logfile=dlp_trace,
+        if DLIO_PROFILER_ENABLE:
+            dlp_trace = get_trace_name(self.output_folder, use_pid)
+            if DLIOMPI.get_instance().rank() == 0:
+                logging.info(f"{utcnow()} Profiling DLIO {dlp_trace}")
+            return PerfTrace.initialize_log(logfile=dlp_trace,
                                                    data_dir=f"{os.path.abspath(self.data_folder)}:"
                                                             f"{self.data_folder}:./{self.data_folder}:"
                                                             f"{self.checkpoint_folder}:./{self.checkpoint_folder}:"
                                                             f"{os.path.abspath(self.checkpoint_folder)}",
                                                    process_id=self.my_rank)
+        return None
+
+    def finalize_dlio_profiler(self, dlp_logger):
+        if DLIO_PROFILER_ENABLE and dlp_logger:
+            dlp_logger.finalize()
 
     @dlp.log
     def validate(self):
@@ -215,6 +227,15 @@ class ConfigArguments:
                 logging.warning(
                     f"Running DLIO with {self.read_threads} threads for I/O but core available {cores_available} "
                     f"are insufficient and can lead to lower performance.")
+        if self.num_layers % self.pipeline_parallelism != 0:
+            raise Exception(
+                f"Expected checkpoint.num_layers {self.num_layers} should be multiple of "
+                f"checkpoint.pipeline_parallelism {self.pipeline_parallelism}.")
+        if self.num_layers % self.tensor_parallelism != 0:
+            raise Exception(
+                f"Expected checkpoint.num_layers {self.num_layers} should be multiple of "
+                f"checkpoint.tensor_parallelism {self.tensor_parallelism}.")
+
     @staticmethod
     def reset():
         ConfigArguments.__instance = None
@@ -222,11 +243,16 @@ class ConfigArguments:
     @dlp.log
     def derive_configurations(self, file_list_train=None, file_list_eval=None):
         self.dimension = int(math.sqrt(self.record_length))
-        self.dimension_stdev = self.record_length_stdev/2.0/math.sqrt(self.record_length)
+        self.dimension_stdev = self.record_length_stdev / 2.0 / math.sqrt(self.record_length)
         self.max_dimension = self.dimension
-        if (self.record_length_resize>0):
-            self.max_dimension =  int(math.sqrt(self.record_length_resize))
-        if (file_list_train !=None and file_list_eval !=None):
+        if self.checkpoint_mechanism == CheckpointMechanismType.NONE:
+            if self.framework == FrameworkType.TENSORFLOW:
+                self.checkpoint_mechanism = CheckpointMechanismType.TF_SAVE
+            elif self.framework == FrameworkType.PYTORCH:
+                self.checkpoint_mechanism = CheckpointMechanismType.PT_SAVE
+        if (self.record_length_resize > 0):
+            self.max_dimension = int(math.sqrt(self.record_length_resize))
+        if (file_list_train != None and file_list_eval != None):
             self.resized_image = np.random.randint(255, size=(self.max_dimension, self.max_dimension), dtype=np.uint8)
             self.file_list_train = file_list_train
             self.file_list_eval = file_list_eval
@@ -250,8 +276,19 @@ class ConfigArguments:
             module = importlib.import_module(".".join(self.data_loader_classname.split(".")[:-1]))
             for class_name, obj in inspect.getmembers(module):
                 if class_name == classname and issubclass(obj, BaseDataLoader):
-                    logging.info(f"Discovered custom data loader {class_name}")
+                    if DLIOMPI.get_instance().rank() == 0:
+                        logging.info(f"Discovered custom data loader {class_name}")
                     self.data_loader_class = obj
+                    break
+        if self.checkpoint_mechanism_classname is not None:
+            from dlio_benchmark.checkpointing.base_checkpointing import BaseCheckpointing
+            classname = self.checkpoint_mechanism_classname.split(".")[-1]
+            module = importlib.import_module(".".join(self.checkpoint_mechanism_classname.split(".")[:-1]))
+            for class_name, obj in inspect.getmembers(module):
+                if class_name == classname and issubclass(obj, BaseCheckpointing):
+                    if DLIOMPI.get_instance().rank() == 0:
+                        logging.info(f"Discovered custom checkpointing mechanism {class_name}")
+                    self.checkpoint_mechanism_class = obj
                     break
         if self.reader_classname is not None:
             from dlio_benchmark.reader.reader_handler import FormatReader
@@ -259,7 +296,8 @@ class ConfigArguments:
             module = importlib.import_module(".".join(self.reader_classname.split(".")[:-1]))
             for class_name, obj in inspect.getmembers(module):
                 if class_name == classname and issubclass(obj, FormatReader):
-                    logging.info(f"Discovered custom data reader {class_name}")
+                    if DLIOMPI.get_instance().rank() == 0:
+                        logging.info(f"Discovered custom data reader {class_name}")
                     self.reader_class = obj
                     break
 
@@ -289,9 +327,10 @@ class ConfigArguments:
                     process_thread_file_map[rank][thread_index] = []
                 selected_samples = 0
                 while selected_samples < self.samples_per_thread:
-                    process_thread_file_map[rank][thread_index].append((sample_global_list[sample_index], 
+                    process_thread_file_map[rank][thread_index].append((sample_global_list[sample_index],
                                                                         os.path.abspath(file_list[file_index]),
-                                                                        sample_global_list[sample_index] % self.num_samples_per_file))
+                                                                        sample_global_list[
+                                                                            sample_index] % self.num_samples_per_file))
                     sample_index += 1
                     selected_samples += 1
                     if sample_index >= self.num_samples_per_file:
@@ -312,13 +351,14 @@ class ConfigArguments:
 
     @dlp.log
     def reconfigure(self, epoch_number, dataset_type):
-        if self.file_shuffle is not Shuffle.OFF:
-            if self.seed_change_epoch:
-                np.random.seed(self.seed + epoch_number)
-            else:
-                np.random.seed(self.seed)
-            np.random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else np.random.shuffle(
-                self.file_list_eval)
+        if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
+            if self.file_shuffle is not Shuffle.OFF:
+                if self.seed_change_epoch:
+                    np.random.seed(self.seed + epoch_number)
+                else:
+                    np.random.seed(self.seed)
+                np.random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else np.random.shuffle(
+                    self.file_list_eval)
 
         if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
             if dataset_type is DatasetType.TRAIN:
@@ -332,6 +372,8 @@ class ConfigArguments:
                 self.global_index_map = self.get_global_map_index(self.file_list_train, self.total_samples_train)
             else:
                 self.global_index_map = self.get_global_map_index(self.file_list_eval, self.total_samples_eval)
+
+
 def LoadConfig(args, config):
     '''
     Override the args by a system config (typically loaded from a YAML file)
@@ -350,7 +392,7 @@ def LoadConfig(args, config):
             args.storage_type = StorageType(config['storage']['storage_type'])
         if 'storage_root' in config['storage']:
             args.storage_root = config['storage']['storage_root']
-        
+
     # dataset related settings
     if 'dataset' in config:
         if 'record_length' in config['dataset']:
@@ -421,7 +463,7 @@ def LoadConfig(args, config):
         if 'file_shuffle' in reader:
             args.file_shuffle = reader['file_shuffle']
         if 'file_access' in reader:
-            args.file_access = FileAccess(reader['file_access'])  
+            args.file_access = FileAccess(reader['file_access'])
         if 'shuffle_size' in reader:
             args.shuffle_size = reader['shuffle_size']
         if 'sample_shuffle' in reader:
@@ -432,7 +474,7 @@ def LoadConfig(args, config):
             args.transfer_size = reader['transfer_size']
         if 'preprocess_time' in reader:
             args.preprocess_time = reader['preprocess_time']
-        if 'preprocess_time_stdev' in reader: 
+        if 'preprocess_time_stdev' in reader:
             args.preprocess_time_stdev = reader['preprocess_time_stdev']
 
     # training relevant setting
@@ -472,6 +514,8 @@ def LoadConfig(args, config):
             args.steps_between_checkpoints = config['checkpoint']['steps_between_checkpoints']
         if 'type' in config['checkpoint']:
             args.checkpoint_type = CheckpointLocationType(config['checkpoint']['type'])
+        if 'checkpoint_mechanism_classname' in config['checkpoint']:
+            args.checkpoint_mechanism_classname = config['checkpoint']['checkpoint_mechanism_classname']
         if 'model_size' in config['checkpoint']:
             args.model_size = config['checkpoint']['model_size']
         if 'optimization_groups' in config['checkpoint']:
@@ -480,6 +524,10 @@ def LoadConfig(args, config):
             args.num_layers = config['checkpoint']['num_layers']
         if 'layer_parameters' in config['checkpoint']:
             args.layer_parameters = config['checkpoint']['layer_parameters']
+        if 'tensor_parallelism' in config['checkpoint']:
+            args.tensor_parallelism = config['checkpoint']['tensor_parallelism']
+        if 'pipeline_parallelism' in config['checkpoint']:
+            args.pipeline_parallelism = config['checkpoint']['pipeline_parallelism']
     if 'output' in config:
         if 'folder' in config['output']:
             args.output_folder = config['output']['folder']

@@ -8,6 +8,7 @@ astunparse==1.6.3
 cachetools==5.2.0
 certifi==2022.9.24
 charset-normalizer==2.1.1
+dlio_profiler_py==0.0.3
 flatbuffers==22.10.26
 gast==0.4.0
 google-auth==2.14.1

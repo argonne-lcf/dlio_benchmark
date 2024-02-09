@@ -43,7 +43,6 @@ class Framework(ABC):
     def __init__(self):
         self.args = ConfigArguments.get_instance()
         self.output_folder = self.args.output_folder
-        self.checkpoint_folder = self.args.checkpoint_folder
 
 
     @abstractmethod
@@ -53,9 +52,6 @@ class Framework(ABC):
         self.reader_valid = DataLoaderFactory.get_loader(data_loader, format_type,
                                                          dataset_type=DatasetType.VALID, epoch=epoch)
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root, self.args.framework)
-        checkpoint_storage = StorageFactory().get_storage(self.args.storage_type, self.checkpoint_folder,
-                                                          self.args.framework)
-        checkpoint_storage.create_namespace(exist_ok=True)
 
     @abstractmethod 
     def get_type(self):
@@ -71,9 +67,6 @@ class Framework(ABC):
 
     @abstractmethod
     def trace_object(self, string, step, r):
-        pass
-
-    def checkpoint(self, epoch, step_number):
         pass
 
     def model(epoch, epoch_number, step, computation_time):
