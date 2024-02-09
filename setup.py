@@ -18,7 +18,7 @@ x86_deps = [
  'hydra-core == 1.2.0',
  'tensorflow == 2.11',
  'torch == 2.0.1',
- 'torchaudio == 0.13.0',
+ 'torchaudio',
  'torchvision',
  'nvidia-dali-cuda110' 
 ]
