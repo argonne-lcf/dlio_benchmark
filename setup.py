@@ -19,7 +19,7 @@ x86_deps = [
  'tensorflow == 2.11',
  'torch == 2.0.1',
  'torchaudio == 0.13.0',
- 'torchvision == 0.14.0',
+ 'torchvision',
  'nvidia-dali-cuda110' 
 ]
 ppc_deps = [
