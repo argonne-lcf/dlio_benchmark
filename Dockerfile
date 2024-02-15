@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 # Add contents of the current directory to /workspace/dlio in the container
 ADD . /workspace/dlio

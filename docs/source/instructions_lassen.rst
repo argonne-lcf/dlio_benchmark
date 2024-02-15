@@ -1,12 +1,12 @@
-.. _instructions_lassen
+.. _instructions_lassen:
 
-Instructions for DLIO Benchmark on Lassen, LLNL.
+Instructions for running DLIO Benchmark on Lassen@LLNL
 ================================================
 
 ''''''''''''
 Installation
 ''''''''''''
-On Lassen on the login node: 
+On the login node: 
 
 * **Clone the github repository**:
 
@@ -32,7 +32,7 @@ On Lassen on the login node:
 
 .. note::
 
-	If problem with mpi4py make sure that mpi is pointing to the right version of gcc.
+	If there is any problem with mpi4py, make sure that mpi is pointing to the right version of gcc.
 	Do not install packages using the $conda install command but rather install all required versions of packages using pip only.
 	To check versions of mpicc and gcc:
 
@@ -67,18 +67,18 @@ Arguments to use:
 7. --cpu_per_rs ALL_CPUS (each resource set contains the number of CPUs that are available on each compute node)
 8. --gpu_per_rs ALL_GPUS (each resource set contains the number of GPUs that are available on each compute node)
 
-For more information on these arguments please turn to: https://www.ibm.com/docs/en/spectrum-lsf/10.1.0?topic=SSWRJV_10.1.0/jsm/jsrun.htm
+For more information on these arguments, please turn to: https://www.ibm.com/docs/en/spectrum-lsf/10.1.0?topic=SSWRJV_10.1.0/jsm/jsrun.htm
 
 .. note::
 
-	Lassen machine has a custom wrapper over jsrun which is also called `jsrun` which is used by default by the system.
+	Lassen machine has a custom wrapper over jsrun which is also called `jsrun` used by default on the system.
 
 You can use the already existing workloads (.yaml files) located at `workload`_ or you can create your own custom workload (.yaml file) based on the following instructions: `config`_
 
 .. note::
 
 	Do not forget to set a "data_folder" in the dataset section and a "folder" in the output section with abs existent paths if you create a custom .yaml workload file.
-	Before generating the data make sure you are in the your conda env and in the folder where your dlio_benchmark was installed having allocated a compute node
+	Before generating the data, make sure you are in the your conda env and in the folder where your dlio_benchmark was installed having allocated a compute node
 
 * To allocate a compute node for 1 hr in the queue pdebug run:
 

@@ -1,3 +1,5 @@
+.. _custom_data_loader: 
+
 Creating a Data Loader Plugin
 ==============================
 

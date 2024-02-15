@@ -94,8 +94,8 @@ DLIO Profiler is always installed along with dlio_benchmark
     cd <DLIO_BENCHMARK_SRC>
     pip install .
 
+
 The profiler outputs all profiling output in <OUTPUT_FOLDER>/trace*.pfw files.
 It contains application level profiling as well as low-level I/O calls from POSIX and STDIO layers.
 The low-level I/O events are only way to understand I/O pattern from internal framework functions such as TFRecordDataset or DaliDataLoader.
 These files are in chrome tracing's json line format. This can be visualized using `perfetto UI https://ui.perfetto.dev/`_
-

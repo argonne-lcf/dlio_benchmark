@@ -1,63 +1,37 @@
 Introduction
 =============
-Deep learning has been shown as a successful
-method for various tasks, and its popularity results in numerous
-open-source deep learning software tools. It has
-been applied to a broad spectrum of scientific domains such
-as cosmology, particle physics, computer vision, fusion, and
-astrophysics. As deep learning algorithms rely on big-data volume and
-variety to effectively train neural networks accurately, I/O is
-a significant bottleneck on large-scale distributed deep learning training. 
+Deep learning has proven to be highly effective across various tasks, leading to the development of numerous open-source deep learning tools like TensorFlow, PyTorch, MXNet, and Horovod. Its application spans diverse scientific domains, including cosmology, particle physics, computer vision, fusion, and astrophysics. However, the success of deep learning algorithms is contingent upon substantial volumes and varieties of big data for accurate neural network training, thereby posing a significant challenge in large-scale distributed deep learning training due to potential I/O bottlenecks.
 
-The `DLIO` benchmark aims to provide a detailed representation of
-the data access pattern of deep learning workloads, to 
-to accurately emulate the I/O behavior in the training process. 
-Using `DLIO`, application developers and system
-software solution architects can identify potential I/O bottlenecks
-in their applications and guide optimizations to boost the I/O
-performance. The storage vendors can also use `DLIO` benchmark as 
-a guidance for designing storage and file system 
-targeting the deep learning applications. 
-
-In developing the benchmark, we have the following two assume: 
-
-First, we assume that one can replace the computation part 
-(training and validation) with a sleep of the same amount of time, 
-while keeping the I/O pattern / behavior the same. 
-The logic behind this is demonstrated as shown in the figure. 
-In a typical deep leanring training process, a batch of data is 
-loaded from the storage to host memory at each time step, 
-and then transfered to the accelerator to perform the training. 
-There might be some hardware supporting loading data from storage 
-directly to the accelerators such as GPU Direct. In either case, 
-the I/O (data access in the storage) should likely be independent of 
-what is going on inside the accelerator, as long as the 
-frequency of the I/O requests remains the same. 
-
-  .. figure:: ./images/training.png
-
-    Typical process of AI training. The dataset is loaded from the storage to the host RAM and then feed into the accelerators for training. The storage benchmarks will focus on data loading from the storage to the host RAM. 
-
-We have validated this in various cases. For example, in the figure shown below, we replace the computation with a sleep of different amounts corresponding to the training time in Nvidia A100, V100, and P100 GPUs, we were able to reproduce the I/O timeline trace of the real workload running on different GPUs. More results from distributed training were presented in our CCGrid paper. 
-
-  .. figure:: ./images/validation.png
-
-    Upper panel: I/O timeline on A100, V100, P100; Lower panel: I/O timeline on Skylake with training replaced by sleep of different amounts of time equal to the training time on A100, V100 and P100 respectively. 
-
-Second, one can have certain extent of abstraction of the dataset and igore the low level details. We assume that as long as the number of files, number of samples per file, size of each sample, batch size, are the same, the I/O behavior should be similar regardless of the details of each sample. We incorporate built-in data loaders such as tf.data, and torch DataLoader to incorporate advance features such as prefetch, and multithreaded data loading. 
+The `DLIO`` benchmark aims to meticulously represent the data access patterns of deep learning workloads, allowing accurate emulation of I/O behavior during training. By leveraging `DLIO`, application developers and system software architects can pinpoint potential I/O bottlenecks and guide optimizations to enhance performance. Storage hardware vendors can also utilize the DLIO benchmark as a guide in designing storage and file systems tailored for deep learning applications.
 
 High-level Design
 =======================
-The benchmark uses a modular design to incorporate
-more data formats, datasets, and configuration parameters. It
-emulates deep learning applications using
-**Benchmark Runner**, **Data Generator**, **Format Handler**, and **I/O Profiler** modules. These modules utilize state-of-the-art design
-patterns to build a transparent and extensible framework. The
-`DLIO` benchmark has been designed with the following goals.
+The standard AI training process entails transferring datasets from storage to host RAM, then forwarding them to accelerators for training. Data is loaded in batches concurrently through multiple threads while accelerators execute training. After processing each batch, the accelerator triggers a request to the host, prompting the loading of another batch from storage. This iterative cycle guarantees uninterrupted data processing, contributing to the efficiency of the training process.
+
+  .. figure:: ./images/training.png
+
+    Typical process of AI training. 
+
+Based on the training process shown above, we can have following considerations in designing the benchmark: 
+
+Firstly, the data loading process is independent of the specific computation happening in the accelerator. We therefore can replace the computation part with a sleep function of equivalent duration, and still produce the same the I/O pattern. This is demonstrated with the UNet3D workload shown below. We replace the computation with a sleep of different durations corresponding to the training time in Nvidia A100, V100, and P100 GPUs, we were able to generate the I/O timeline of the real workload running on different GPUs. Replacing the training part with a sleep function eliminate the needs of actual accelerators to perform the I/O benchmark, which significantly reduces the cost and complexity of benchmarking. It also allows us to simulate the I/O pattern for different types of accelerators easily by simply changing the sleep time accordingly.
+
+  .. figure:: ./images/validation.png
+
+    Upper panel: I/O timeline on A100, V100, P100; Lower panel: I/O timeline on Skylake with training replaced by sleep of different durations equal to the actual training time on A100, V100 and P100 respectively. 
+
+
+Secondly, the I/O process is indifferent to the actual values of the data. As long as the number of files, number of samples per file, size of each sample, batch size, and format are the same, the I/O behavior should be similar regardless of the details of each sample. This allows us to use synthetic data for benchmarking and still get the similar I/O behavior. This eliminates the need of downloading the original datasets for each workload which is a rather cumbersome task. 
+
+Third, we will adopt built-in framework data loaders, such as tf.data, torch DataLoader, and Dali data loader, to allow DLIO to simulate advanced optimization features like pipeline, prefetching, and multithreaded data loading.  
+
+With the above considerations, we design our benchmark using a modular design artitecture, which consists of modules like
+**Benchmark Runner**, **Data Generator**, **Format Handler**, and **I/O Profiler**. These modules utilize state-of-the-art design patterns to build a transparent and extensible framework. 
 
 1) **Accurate**: `DLIO` should be an accurate representation of
 selected deep learning applications. It should
-incorporate all the I/O behavior seen in various configurations of applications, and act as a mini-application that can precisely replay the I/O behavior. 
+incorporate all the I/O behavior seen in various configurations of applications,
+ and act as a mini-application that can precisely replay the I/O behavior. 
 
 2) **Configurable**: `DLIO` should be easily configurable for
 different scenarios required by the user. These include
@@ -67,8 +41,9 @@ prefetch, and batching), and mechanism to feed data into training.
 
 3) **Extensible**: `DLIO` benchmark should allow adding
 custom data directories and enable easy extensions to the
-benchmark to incorporate different data formats, data loaders or data generation algorithms. These changes should not affect
-the basic benchmark operations.
+benchmark to incorporate different data formats, data loaders 
+or data generation algorithms. 
+These changes should not affect the basic benchmark operations.
 
 ''''''''''''''''''''
 `DLIO` Code Modules
