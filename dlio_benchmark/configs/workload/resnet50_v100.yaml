@@ -18,6 +18,7 @@ dataset:
 
 train: 
  computation_time: 0.195
+ epoch: 5
  
 reader:
  data_loader: pytorch
