@@ -1,0 +1,32 @@
+model: ispy
+
+framework: pytorch
+
+workflow:
+  generate_data: False
+  train: True
+  checkpoint: False
+
+dataset:
+  data_folder: data/ispy/
+  format: dcm
+  num_files_train: 7005030
+  num_samples_per_file: 1
+
+reader:
+  data_loader: pytorch
+  reader_classname: dlio_benchmark.plugins.experimental.src.reader.dcm_reader.DCMReader
+  batch_size: 1024
+  read_threads: 4
+  file_shuffle: seed
+  sample_shuffle: seed
+
+train:
+  epochs: 5
+  computation_time: 1.3604
+
+checkpoint:
+  checkpoint_folder: checkpoints/yaml
+  checkpoint_after_epoch: 5
+  epochs_between_checkpoints: 2
+  model_size: 499153191
