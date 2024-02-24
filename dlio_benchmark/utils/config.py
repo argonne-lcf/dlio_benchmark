@@ -467,7 +467,7 @@ def LoadConfig(args, config):
         if 'shuffle_size' in reader:
             args.shuffle_size = reader['shuffle_size']
         if 'sample_shuffle' in reader:
-            args.sample_shuffle = reader['sample_shuffle']
+            args.sample_shuffle = Shuffle(reader['sample_shuffle'])
         if 'read_type' in reader:
             args.read_type = reader['read_type']
         if 'transfer_size' in reader:
