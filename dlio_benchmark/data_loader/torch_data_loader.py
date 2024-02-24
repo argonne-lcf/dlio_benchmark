@@ -20,6 +20,8 @@ import math
 import pickle
 import torch
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler
+from torch.utils.data.sampler import Sampler
+import numpy as np
 
 from dlio_benchmark.common.constants import MODULE_DATA_LOADER
 from dlio_benchmark.common.enumerations import Shuffle, DatasetType, DataLoaderType
@@ -37,6 +39,7 @@ class TorchDataset(Dataset):
     Currently, we only support loading one sample per file
     TODO: support multiple samples per file
     """
+
     @dlp.log_init
     def __init__(self, format_type, dataset_type, epoch, num_samples, num_workers, batch_size):
         self.format_type = format_type
@@ -67,6 +70,7 @@ class TorchDataset(Dataset):
     def __del__(self):
         if self.dlp_logger:
             self.dlp_logger.finalize()
+
     @dlp.log
     def __len__(self):
         return self.num_samples
@@ -78,6 +82,32 @@ class TorchDataset(Dataset):
         logging.debug(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample")
         return self.reader.read_index(image_idx, step)
 
+
+class dlio_sampler(Sampler):
+    def __init__(self, rank, size, num_samples, shuffle, epochs, seed):
+        self.size = size
+        self.rank = rank
+        self.num_samples = num_samples
+        self.shuffle = shuffle
+        self.epochs = epochs
+        self.seed = seed
+
+    def __len__(self):
+        return self.num_samples
+
+    def __iter__(self):
+        indices = list(range(self.num_samples))
+        if self.shuffle != Shuffle.OFF:
+            if self.shuffle == Shuffle.SEED:
+                np.random.seed(self.seed)
+            np.random.shuffle(indices)
+        samples_per_gpu = self.num_samples // self.size
+        start = self.rank * samples_per_gpu
+        end = ((self.rank + 1) * samples_per_gpu) * self.epochs
+        for i in range(start, end):
+            yield indices[i % self.num_samples]
+
+
 class TorchDataLoader(BaseDataLoader):
     @dlp.log_init
     def __init__(self, format_type, dataset_type, epoch_number):
@@ -85,18 +115,10 @@ class TorchDataLoader(BaseDataLoader):
 
     @dlp.log
     def read(self):
-        dataset = TorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples, self._args.read_threads, self.batch_size)
-        if self._args.sample_shuffle != Shuffle.OFF:
-            # torch seed is used for all functions within.
-            torch.manual_seed(self._args.seed)
-            seed = int(torch.empty((), dtype=torch.int64).random_().item())
-            # generator needs to load up torch seed.
-            torch_generator = torch.Generator()
-            torch_generator.manual_seed(seed)
-            # Pass generator to sampler
-            sampler = RandomSampler(dataset, generator=torch_generator)
-        else:
-            sampler = SequentialSampler(dataset)
+        dataset = TorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples,
+                               self._args.read_threads, self.batch_size)
+        sampler = dlio_sampler(self._args.my_rank, self._args.comm_size, self.num_samples, self._args.sample_shuffle,
+                               self._args.epochs, self._args.seed)
         if self._args.read_threads >= 1:
             prefetch_factor = math.ceil(self._args.prefetch_size / self._args.read_threads)
         else:
