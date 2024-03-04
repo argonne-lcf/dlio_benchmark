@@ -17,9 +17,22 @@
 
 from enum import Enum
 
+
+class CheckpointMechanismType(Enum):
+    """
+    Different Checkpoint mechanisms.
+    """
+    NONE = 'none'
+    CUSTOM = 'custom'
+    TF_SAVE = 'tf_save'
+    PT_SAVE = 'pt_save'
+
+    def __str__(self):
+        return self.value
+
 class CheckpointLocationType(Enum):
     """
-    Different types of underlying storage
+    Different types of Checkpointing Locations
     """
     RANK_ZERO = 'rank_zero'
     ALL_RANKS = 'all_ranks'

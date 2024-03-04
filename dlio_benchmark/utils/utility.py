@@ -131,6 +131,9 @@ class DLIOMPI:
         else:
             raise Exception(f"method {self.classname()}.comm() called before initializing MPI")
 
+    def finalize(self):
+        if self.mpi_state == MPIState.MPI_INITIALIZED and MPI.Is_initialized():
+            MPI.Finalize()
 
 def timeit(func):
     @wraps(func)

@@ -7,19 +7,19 @@ test_deps = [
     'pytest',
 ]
 core_deps = [
- 'mpi4py',
- 'numpy',
- 'h5py',
- 'pandas',
+ 'mpi4py>=3.1.4',
+ 'numpy>=1.23.5',
+ 'h5py>=3.7.0',
+ 'pandas>=1.5.1',
  'psutil',
  'dlio_profiler_py==0.0.3'
 ]
 x86_deps = [
- 'hydra-core == 1.2.0',
- 'tensorflow == 2.11',
- 'torch == 1.13.0',
- 'torchaudio == 0.13.0',
- 'torchvision == 0.14.0',
+ 'hydra-core >= 1.2.0',
+ 'tensorflow >= 2.11',
+ 'torch >= 1.13.0',
+ 'torchaudio',
+ 'torchvision',
  'nvidia-dali-cuda110' 
 ]
 ppc_deps = [

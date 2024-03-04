@@ -1,4 +1,6 @@
-Creating a Data Reader
+.. _custom_data_reader: 
+
+Creating a Custom Data Reader
 ==============================
 
 Within DLIO Benchmark we can define custom data reader implementations. 
@@ -9,12 +11,12 @@ To achieve this developers have to take the following main steps.
 2. Define workflow configuration.
 3. Run the workload with custom data reader.
 
-Write their custom data reader.
+Defining custom data reader
 --------------------------------
 
-In this section, we will describe how to write the custom data reader.
-To write a data reader you need to implement `FormatReader` Class.
-This data reader needs to added `<ROOT>/dlio_benchmark/plugins/experimental/src/reader`.
+In this section, we will describe how to write a custom data reader.
+To write a data reader, one needs to implement `FormatReader` Class.
+This data reader needs to be added `<ROOT>/dlio_benchmark/plugins/experimental/src/reader`.
 A complete examples can be seen at `<ROOT>/dlio_benchmark/reader/`
 
 - For NPZ: npz_reader.py

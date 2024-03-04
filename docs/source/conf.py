@@ -24,7 +24,7 @@ author = 'H. Devarajan, H. Zheng, A. Kougkas, X.-H. Sun and V. Vishwanath'
 
 
 # The full version, including alpha/beta/rc tags
-release = '0.1'
+release = '2.0'
 
 
 # -- General configuration ---------------------------------------------------

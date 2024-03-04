@@ -1,7 +1,7 @@
 # Deep Learning I/O (DLIO) Benchmark
 ![test status](https://github.com/argonne-lcf/dlio_benchmark/actions/workflows/python-package-conda.yml/badge.svg)
 
-This README provides an abbreviated documentation of the DLIO code. Please refer to https://argonne-lcf.github.io/dlio_benchmark/ for full user documentation. 
+This README provides an abbreviated documentation of the DLIO code. Please refer to https://dlio-benchmark.readthedocs.io for full user documentation. 
 
 ## Overview
 
@@ -24,8 +24,8 @@ git clone https://github.com/argonne-lcf/dlio_benchmark
 cd dlio_benchmark/
 pip install .[dlio_profiler]
 ```
-## Container
 
+## Container
 ```bash
 git clone https://github.com/argonne-lcf/dlio_benchmark
 cd dlio_benchmark/
@@ -38,6 +38,7 @@ You can also pull rebuilt container from docker hub (might not reflect the most 
 docker docker.io/zhenghh04/dlio:latest
 docker run -t docker.io/zhenghh04/dlio:latest python ./dlio_benchmark/main.py ++workload.workflow.generate_data=True
 ```
+If your running on a different architecture, refer to the Dockerfile to build the dlio_benchmark container from scratch.
 
 One can also run interactively inside the container
 ```bash
@@ -86,7 +87,7 @@ Finally, run the benchmark
   ```
 Finally, run the benchmark with Profiler
   ```bash
-  export ENV DLIO_PROFILER_ENABLE=1
+  export DLIO_PROFILER_ENABLE=1
   export DLIO_PROFILER_INC_METADATA=1
   mpirun -np 8 dlio_benchmark workload=unet3d
   ```
