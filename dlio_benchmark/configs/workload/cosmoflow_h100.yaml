@@ -16,7 +16,7 @@ dataset:
  format: tfrecord
 
 reader:
- data_loader: dali
+ data_loader: native_dali
  read_threads: 4
  batch_size: 1
  

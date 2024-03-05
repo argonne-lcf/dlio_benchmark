@@ -43,15 +43,14 @@ class NativeDaliDataLoader(BaseDataLoader):
                                             epoch_number=self.epoch_number).pipeline()
             pipeline.set_outputs(images)
         self.pipelines.append(pipeline)
-
+        self._dataset = DALIGenericIterator(self.pipelines, ['data'])
     @dlp.log
     def next(self):
         super().next()
         num_samples = self._args.total_samples_train if self.dataset_type is DatasetType.TRAIN else self._args.total_samples_eval
         batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
         for step in range(num_samples // batch_size):
-            _dataset = DALIGenericIterator(self.pipelines, ['data'])
-            for batch in _dataset:
+            for batch in self._dataset:
                 logging.debug(f"{utcnow()} Creating {len(batch)} batches by {self._args.my_rank} rank ")
                 yield batch
 

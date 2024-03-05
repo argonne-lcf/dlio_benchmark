@@ -107,9 +107,9 @@ class DaliDataLoader(BaseDataLoader):
     @dlp.log
     def next(self):
         super().next()
-        # DALIGenericIterator(self.pipelines, ['data', 'label'])
-
         logging.debug(f"{utcnow()} Iterating pipelines by {self._args.my_rank} rank ")
+        # The following is to reinitialize the data loader. This is particular to the dali data loader
+        self.read()
         step = 0
         while step <= self.num_samples // self.batch_size:
             for pipe in self.pipelines:

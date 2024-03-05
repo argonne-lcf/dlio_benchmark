@@ -21,7 +21,7 @@ import numpy as np
 
 import nvidia.dali.fn as fn
 from dlio_benchmark.common.constants import MODULE_DATA_READER
-from dlio_benchmark.dlio_benchmark.reader.reader_handler import FormatReader
+from dlio_benchmark.reader.reader_handler import FormatReader
 from dlio_benchmark.utils.utility import utcnow
 from dlio_benchmark.common.enumerations import DatasetType, Shuffle
 import nvidia.dali.tfrecord as tfrec
@@ -83,13 +83,9 @@ class DaliImageReader(FormatReader):
                                          stick_to_shard=stick_to_shard, pad_last_batch=True, 
                                          dont_use_mmap=self._args.dont_use_mmap)
         images = fn.decoders.image(images, device='cpu')
-        fn.python_function(dataset, function=self.preprocess, num_outputs=0)
-        dataset = self._resize(images)
+        images = fn.python_function(images, function=self.preprocess, num_outputs=1)
+        dataset = fn.python_function(images, function=self.resize, num_outputs=1)
         return dataset
-
-    @dlp.log
-    def _resize(self, dataset):
-        return fn.resize(dataset, size=[self._args.max_dimension, self._args.max_dimension])
 
     @dlp.log
     def finalize(self):

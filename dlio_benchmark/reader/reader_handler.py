@@ -57,7 +57,7 @@ class FormatReader(ABC):
         if self._args.preprocess_time != 0. or self._args.preprocess_time_stdev != 0.:
             t = np.random.normal(self._args.preprocess_time, self._args.preprocess_time_stdev)
             sleep(max(t, 0.0))
-
+        return a
     @abstractmethod
     def open(self, filename):
         return 
@@ -124,6 +124,10 @@ class FormatReader(ABC):
             if filename in self.open_file_map:
                 self.close(filename)
                 self.open_file_map[filename] = None
+
+    @dlp.log
+    def resize(self, image):
+        return self._args.resized_image
 
     def __del__(self):
         self.thread_index = None
