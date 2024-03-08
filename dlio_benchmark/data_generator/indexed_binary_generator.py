@@ -98,8 +98,8 @@ class IndexedBinaryGenerator(DataGenerator):
                     sz_file.write(binary_sizes)
         else:
             for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
-                dim1 = dim[2*file_index]
-                dim2 = dim[2*file_index + 1]
+                dim1 = dim[2*i]
+                dim2 = dim[2*i + 1]
                 sample_size = dim1 * dim2
                 total_size = sample_size * self.num_samples
                 write_size = total_size
