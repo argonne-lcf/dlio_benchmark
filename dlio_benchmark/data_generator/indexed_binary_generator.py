@@ -53,12 +53,11 @@ class IndexedBinaryGenerator(DataGenerator):
         MB=1048576
         samples_processed = 0
         total_samples = self.total_files_to_generate * self.num_samples
+        dim = self.get_dimension(self.total_files_to_generate)
         if self.total_files_to_generate <= self.comm_size:
             # Use collective I/O
             # we need even number os samples for collective I/O
             samples_per_rank = (self.num_samples + (self.num_samples % self.comm_size)) // self.comm_size
-            dim = self.get_dimension(self.total_files_to_generate)
-
             for file_index in dlp.iter(range(int(self.total_files_to_generate))):
                 amode = MPI.MODE_WRONLY | MPI.MODE_CREATE
                 comm = MPI.COMM_WORLD
