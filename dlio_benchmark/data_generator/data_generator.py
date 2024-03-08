@@ -54,7 +54,7 @@ class DataGenerator(ABC):
         if (self._dimension_stdev>0):
             dim = [max(int(d), 1) for d in np.random.normal(self._dimension, self._dimension_stdev, 2*num_samples)]
         else:
-            dim = np.ones(2*num_samples, dtype=np.uint8)*int(self._dimension)
+            dim = np.ones(2*num_samples, dtype=np.int64)*int(self._dimension)
         return dim 
 
     @abstractmethod

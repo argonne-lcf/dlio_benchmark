@@ -54,6 +54,7 @@ class IndexedBinaryGenerator(DataGenerator):
         samples_processed = 0
         total_samples = self.total_files_to_generate * self.num_samples
         dim = self.get_dimension(self.total_files_to_generate)
+        logging.info(dim)
         if self.total_files_to_generate <= self.comm_size:
             # Use collective I/O
             # we need even number os samples for collective I/O
