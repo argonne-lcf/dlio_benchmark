@@ -43,8 +43,10 @@ class NPZGenerator(DataGenerator):
         super().generate()
         np.random.seed(10)
         record_labels = [0] * self.num_samples
+        dim = self.get_dimension(self.total_files_to_generate)
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
-            dim1, dim2 = self.get_dimension()
+            dim1 = dim[2*i]
+            dim2 = dim[2*i+1]
             records = np.random.randint(255, size=(dim1, dim2, self.num_samples), dtype=np.uint8)
             out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating NPZ Data")

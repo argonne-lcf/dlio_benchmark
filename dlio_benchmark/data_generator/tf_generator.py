@@ -45,10 +45,12 @@ class TFRecordGenerator(DataGenerator):
         np.random.seed(10)
         # This creates a 2D image representing a single record
         record_label = 0
+        dim = self.get_dimension(self.total_files_to_generate)
         for i in dlp.iter(range(self.my_rank, self.total_files_to_generate, self.comm_size)):
             progress(i+1, self.total_files_to_generate, "Generating TFRecord Data")
             out_path_spec = self.storage.get_uri(self._file_list[i])
-            dim1, dim2 = self.get_dimension()
+            dim1 = dim[2*i]
+            dim2 = dim[2*i+1]
             # Open a TFRecordWriter for the output-file.
             with tf.io.TFRecordWriter(out_path_spec) as writer:
                 for i in range(0, self.num_samples):
