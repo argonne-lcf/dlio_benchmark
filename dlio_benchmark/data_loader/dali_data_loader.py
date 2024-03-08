@@ -58,7 +58,6 @@ class DaliDataset(object):
         if sample_info.iteration >= self.samples_per_worker or sample_idx >= self.total_num_samples:
             # Indicate end of the epoch
             raise StopIteration()
-
         step = int(math.ceil(sample_idx / self.batch_size))
         with Profile(MODULE_DATA_LOADER, epoch=self.epoch, image_idx=sample_idx, step=step):
             image = self.reader.read_index(sample_idx, step)
@@ -92,7 +91,7 @@ class DaliDataLoader(BaseDataLoader):
                                 prefetch_queue_depth=prefetch_size, py_start_method=self._args.multiprocessing_context, exec_async=True)
             with pipeline:
                 images, labels = fn.external_source(source=dataset, num_outputs=2, dtype=[types.UINT8, types.UINT8],
-                                                    parallel=True, batch=False)
+                                                    parallel=parallel, batch=False)
                 pipeline.set_outputs(images, labels)
             self.pipelines.append(pipeline)
         for pipe in self.pipelines:
