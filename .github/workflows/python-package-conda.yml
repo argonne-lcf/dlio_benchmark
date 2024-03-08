@@ -226,4 +226,4 @@ jobs:
     - name: test_bert
       run: | 
         source ${VENV}/bin/activate
-        mpirun -np 2 dlio_benchmark workload=bert_v100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=4 ++workload.training.total_training_steps=10
+        mpirun -np 2 dlio_benchmark workload=bert_v100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=4 ++workload.train.total_training_steps=10
