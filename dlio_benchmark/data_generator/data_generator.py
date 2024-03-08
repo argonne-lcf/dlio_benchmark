@@ -50,12 +50,12 @@ class DataGenerator(ABC):
         self.format = self._args.format
         self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root,
                                                                         self._args.framework)
-    def get_dimension(self):
+    def get_dimension(self, num_samples=1):
         if (self._dimension_stdev>0):
-            dim1, dim2 = [max(int(d), 1) for d in np.random.normal(self._dimension, self._dimension_stdev, 2)]
+            dim = [max(int(d), 1) for d in np.random.normal(self._dimension, self._dimension_stdev, 2*num_samples)]
         else:
-            dim1 = dim2 = self._dimension
-        return dim1, dim2 
+            dim = np.ones(2*num_samples, dtype=np.int64)*int(self._dimension)
+        return dim 
 
     @abstractmethod
     def generate(self):

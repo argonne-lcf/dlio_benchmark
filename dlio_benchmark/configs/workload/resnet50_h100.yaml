@@ -16,7 +16,7 @@ dataset:
 
 train: 
  computation_time: 0.224
- epoch: 5
+ epochs: 5
  
 reader:
  data_loader: dali

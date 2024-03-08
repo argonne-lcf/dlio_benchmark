@@ -13,10 +13,9 @@ dataset:
  record_length_resize: 150528
  data_folder: data/resnet50
  format: tfrecord
- 
 train: 
  computation_time: 0.195
- epoch: 5
+ epochs: 5
  
 reader:
  data_loader: dali

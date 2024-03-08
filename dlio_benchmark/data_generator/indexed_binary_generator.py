@@ -53,15 +53,18 @@ class IndexedBinaryGenerator(DataGenerator):
         MB=1048576
         samples_processed = 0
         total_samples = self.total_files_to_generate * self.num_samples
+        dim = self.get_dimension(self.total_files_to_generate)
+        logging.info(dim)
         if self.total_files_to_generate <= self.comm_size:
             # Use collective I/O
             # we need even number os samples for collective I/O
             samples_per_rank = (self.num_samples + (self.num_samples % self.comm_size)) // self.comm_size
-            dim1, dim2 = self.get_dimension()
-            sample_size = dim1 * dim2
             for file_index in dlp.iter(range(int(self.total_files_to_generate))):
                 amode = MPI.MODE_WRONLY | MPI.MODE_CREATE
                 comm = MPI.COMM_WORLD
+                dim1 = dim[2*file_index]
+                dim2 = dim[2*file_index + 1]
+                sample_size = dim1 * dim2
                 out_path_spec = self.storage.get_uri(self._file_list[file_index])
                 out_path_spec_off_idx = self.index_file_path_off(out_path_spec)
                 out_path_spec_sz_idx = self.index_file_path_size(out_path_spec)
@@ -96,7 +99,8 @@ class IndexedBinaryGenerator(DataGenerator):
                     sz_file.write(binary_sizes)
         else:
             for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
-                dim1, dim2 = self.get_dimension()
+                dim1 = dim[2*i]
+                dim2 = dim[2*i + 1]
                 sample_size = dim1 * dim2
                 total_size = sample_size * self.num_samples
                 write_size = total_size
