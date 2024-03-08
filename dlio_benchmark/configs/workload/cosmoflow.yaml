@@ -12,7 +12,6 @@ dataset:
  num_samples_per_file: 512
  record_length: 131072
 
-
 reader:
  data_loader: tensorflow
  computation_threads: 8
