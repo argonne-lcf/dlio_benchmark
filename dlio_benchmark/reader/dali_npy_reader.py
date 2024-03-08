@@ -69,8 +69,8 @@ class DaliNPYReader(FormatReader):
                                    random_shuffle=random_shuffle, seed=seed, shuffle_after_epoch=seed_change_epoch,
                                    stick_to_shard=stick_to_shard, pad_last_batch=True, 
                                    dont_use_mmap=self._args.dont_use_mmap)
-        dataset = self._resize(dataset)
-        fn.python_function(dataset, function=self.preprocess, num_outputs=0)
+        dataset = fn.python_function(dataset, function=self.preprocess, num_outputs=1)
+        dataset = fn.python_function(dataset, function=self.resize, num_outputs=1)
         return dataset
 
     def close(self):

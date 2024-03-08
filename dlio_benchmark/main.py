@@ -331,8 +331,8 @@ class DLIOBenchmark(object):
             next_eval_epoch = self.eval_after_epoch
             self.next_checkpoint_epoch = self.checkpoint_after_epoch
             epoch = 1
-            self.args.reconfigure(epoch, DatasetType.TRAIN)
             # Initialize the dataset
+            self.args.reconfigure(epoch, DatasetType.TRAIN)
             self.framework.init_loader(self.args.format, epoch=epoch, data_loader=self.args.data_loader)
             loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
             loader.read()

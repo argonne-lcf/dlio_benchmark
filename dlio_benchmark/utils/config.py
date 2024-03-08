@@ -372,7 +372,6 @@ class ConfigArguments:
                     np.random.seed(self.seed)
                 np.random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else np.random.shuffle(
                     self.file_list_eval)
-
         if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
             if dataset_type is DatasetType.TRAIN:
                 global_file_map = self.build_sample_map_iter(self.file_list_train, self.total_samples_train,

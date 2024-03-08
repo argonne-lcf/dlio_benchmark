@@ -24,7 +24,7 @@ import numpy as np
 import nvidia
 import nvidia.dali.fn as fn
 from dlio_benchmark.common.constants import MODULE_DATA_READER
-from dlio_benchmark.dlio_benchmark.reader.reader_handler import FormatReader
+from dlio_benchmark.reader.reader_handler import FormatReader
 from dlio_benchmark.utils.utility import utcnow
 from dlio_benchmark.common.enumerations import DatasetType, Shuffle
 import nvidia.dali.tfrecord as tfrec
@@ -59,7 +59,7 @@ class DaliTFRecordReader(FormatReader):
             filename = os.path.basename(file)
             index_files.append(f"{index_folder}/{filename}.idx")
         logging.info(
-            f"{utcnow()} Reading {len(self.file_list)} files rank {self._args.my_rank}")
+            f"{utcnow()} Reading {len(self._file_list)} files rank {self._args.my_rank}")
         random_shuffle = False
         seed = -1
         if self._args.sample_shuffle is not Shuffle.OFF:
@@ -83,9 +83,9 @@ class DaliTFRecordReader(FormatReader):
                                       random_shuffle=random_shuffle, seed=seed,
                                       stick_to_shard=True, pad_last_batch=True, 
                                       dont_use_mmap=self._args.dont_use_mmap)
-        dataset = self._resize(dataset['image'])
-        fn.python_function(dataset, function=self.preprocess, num_outputs=0)
-        return dataset
+        dataset['image'] = fn.python_function(dataset['image'], function=self.preprocess, num_outputs=1)
+        dataset['image'] = fn.python_function(dataset['image'], function=self.resize, num_outputs=1)
+        return dataset['image']
 
     def get_sample(self, filename, sample_index):
         super().get_sample(filename, sample_index)
@@ -98,10 +98,6 @@ class DaliTFRecordReader(FormatReader):
     def read_index(self):
         super().read_index()
         raise Exception("read_index method is not implemented in dali readers")
-
-    @dlp.log
-    def _resize(self, dataset):
-        return fn.resize(dataset, size=[self._args.max_dimension, self._args.max_dimension])
 
     @dlp.log
     def finalize(self):
