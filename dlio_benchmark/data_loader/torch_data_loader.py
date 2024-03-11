@@ -80,6 +80,7 @@ class TorchDataset(Dataset):
         self.num_images_read += 1
         step = int(math.ceil(self.num_images_read / self.batch_size))
         logging.debug(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample")
+        dlp.update(step = step)
         return self.reader.read_index(image_idx, step)
 
 
@@ -91,28 +92,28 @@ class dlio_sampler(Sampler):
         self.shuffle = shuffle
         self.epochs = epochs
         self.seed = seed
+        self.indices = list(range(self.num_samples))
+
 
     def __len__(self):
         return self.num_samples
 
     def __iter__(self):
-        indices = list(range(self.num_samples))
         if self.shuffle != Shuffle.OFF:
             if self.shuffle == Shuffle.SEED:
                 np.random.seed(self.seed)
-            np.random.shuffle(indices)
+            np.random.shuffle(self.indices)
         samples_per_gpu = self.num_samples // self.size
         start = self.rank * samples_per_gpu
-        end = ((self.rank + 1) * samples_per_gpu) * self.epochs
+        end = (self.rank + 1) * samples_per_gpu
         for i in range(start, end):
-            yield indices[i % self.num_samples]
+            yield self.indices[i % self.num_samples]
 
 
 class TorchDataLoader(BaseDataLoader):
     @dlp.log_init
     def __init__(self, format_type, dataset_type, epoch_number):
         super().__init__(format_type, dataset_type, epoch_number, DataLoaderType.PYTORCH)
-
     @dlp.log
     def read(self):
         dataset = TorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples,
@@ -169,8 +170,13 @@ class TorchDataLoader(BaseDataLoader):
         super().next()
         total = self._args.training_steps if self.dataset_type is DatasetType.TRAIN else self._args.eval_steps
         logging.debug(f"{utcnow()} Rank {self._args.my_rank} should read {total} batches")
+        step = 1
         for batch in self._dataset:
+            dlp.update(step = step)
+            step += 1
             yield batch
+        self.epoch_number += 1
+        dlp.update(epoch=self.epoch_number)
 
     @dlp.log
     def finalize(self):

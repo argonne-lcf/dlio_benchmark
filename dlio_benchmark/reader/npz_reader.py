@@ -53,6 +53,7 @@ class NPZReader(FormatReader):
 
     @dlp.log
     def read_index(self, image_idx, step):
+        dlp.update(step=step)
         return super().read_index(image_idx, step)
 
     @dlp.log
