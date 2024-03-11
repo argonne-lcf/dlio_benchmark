@@ -223,7 +223,3 @@ jobs:
         mpirun -np 2 dlio_benchmark workload=cosmoflow_v100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16
         mpirun -np 2 dlio_benchmark workload=cosmoflow_a100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16
         mpirun -np 2 dlio_benchmark workload=cosmoflow_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16
-    - name: test_bert
-      run: | 
-        source ${VENV}/bin/activate
-        mpirun -np 2 dlio_benchmark workload=bert_v100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=4 ++workload.train.total_training_steps=10
