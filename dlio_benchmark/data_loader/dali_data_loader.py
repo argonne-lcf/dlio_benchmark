@@ -99,11 +99,6 @@ class DaliDataLoader(BaseDataLoader):
                 dataset = DaliDataset(self.format_type, self.dataset_type, self.epoch_number, global_worker_index,
                                     self._args.comm_size * num_pipelines, self.num_samples, samples_per_worker, self.batch_size, self._args.sample_shuffle, self._args.seed)
                 self.dataset = dataset
-            else:
-                if self._args.sample_shuffle != Shuffle.OFF:
-                    if self._args.sample_shuffle == Shuffle.SEED:
-                        np.random.seed(self._args.seed)
-                    np.random.shuffle(self.dataset.indices)
             pipeline = Pipeline(batch_size=self.batch_size, num_threads=num_threads, device_id=None, py_num_workers=num_threads//num_pipelines,
                                 prefetch_queue_depth=prefetch_size, py_start_method=self._args.multiprocessing_context, exec_async=True)
             with pipeline:
