@@ -352,14 +352,11 @@ class ConfigArguments:
     @dlp.log
     def get_global_map_index(self, file_list, total_samples):
         process_thread_file_map = {}
-        file_index = 0
-        abs_path = os.path.abspath(file_list[file_index]) 
         for global_sample_index in range(total_samples):
+            file_index = global_sample_index//self.num_samples_per_file
+            abs_path = os.path.abspath(file_list[file_index]) 
             sample_index = global_sample_index % self.num_samples_per_file
             process_thread_file_map[global_sample_index] = (abs_path, sample_index)
-            if global_sample_index != 0 and global_sample_index % self.num_samples_per_file == 0:
-                file_index += 1
-                abs_path = os.path.abspath(file_list[file_index])  
         return process_thread_file_map
 
     @dlp.log
