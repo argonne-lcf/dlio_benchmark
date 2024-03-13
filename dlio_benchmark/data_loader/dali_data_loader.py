@@ -31,7 +31,6 @@ from dlio_profiler.logger import fn_interceptor as Profile
 
 dlp = Profile(MODULE_DATA_LOADER)
 
-
 class DaliDataset(object):
 
     def __init__(self, format_type, dataset_type, epoch, worker_index,
@@ -60,15 +59,13 @@ class DaliDataset(object):
     def __call__(self, sample_info):
         logging.debug(
             f"{utcnow()} Reading {sample_info.idx_in_epoch} out of {self.samples_per_worker} by worker {self.worker_index}")
-        #sample_idx = sample_info.idx_in_epoch + self.total_num_workers * self.worker_index
         sample_idx = sample_info.idx_in_epoch + self.samples_per_worker * self.worker_index
         logging.debug(
             f"{utcnow()} Reading {sample_idx} on {sample_info.iteration} by worker {self.worker_index}")
-        if sample_info.iteration >= min(self.samples_per_worker, self.total_num_steps) or sample_idx >= self.total_num_samples:
+        step = sample_info.iteration       
+        if step >= self.total_num_steps or sample_idx >= self.total_num_samples:
             # Indicate end of the epoch
             raise StopIteration()
-        step = sample_info.iteration
-        logging.info(f"sample_idx: {step} - {sample_idx}: {self.indices[sample_idx]} - {self.worker_index}")
         with Profile(MODULE_DATA_LOADER, epoch=self.epoch, image_idx=sample_idx, step=step):
             image = self.reader.read_index(self.indices[sample_idx], step)
         return image, np.uint8([self.indices[sample_idx]])
@@ -81,7 +78,9 @@ class DaliDataLoader(BaseDataLoader):
         self.dataset = None
 
     @dlp.log
-    def read(self):
+    def read(self, init=True):
+        if init:
+            return 
         parallel = True if self._args.read_threads > 0 else False
         self.pipelines = []
         num_threads = 1
@@ -96,9 +95,8 @@ class DaliDataLoader(BaseDataLoader):
             global_worker_index = self._args.my_rank * num_pipelines + worker_index
             # None executes pipeline on CPU and the reader does the batching
             if self.dataset is None:
-                dataset = DaliDataset(self.format_type, self.dataset_type, self.epoch_number, global_worker_index,
+                self.dataset = DaliDataset(self.format_type, self.dataset_type, self.epoch_number, global_worker_index,
                                     self._args.comm_size * num_pipelines, self.num_samples, samples_per_worker, self.batch_size, self._args.sample_shuffle, self._args.seed)
-                self.dataset = dataset
             else:
                 if self._args.sample_shuffle != Shuffle.OFF:
                     if self._args.sample_shuffle == Shuffle.SEED:
@@ -116,23 +114,22 @@ class DaliDataLoader(BaseDataLoader):
         for pipe in self.pipelines:
             pipe.build()
         for pipe in self.pipelines:
-            pipe.schedule_run()
+            pipe.schedule_run()            
         logging.debug(f"{utcnow()} Starting {num_threads} pipelines by {self._args.my_rank} rank ")
-
 
     @dlp.log
     def next(self):
         super().next()
         logging.debug(f"{utcnow()} Iterating pipelines by {self._args.my_rank} rank ")
-        # The following is to reinitialize the data loader. This is particular to the dali data loader
-        self.read()
         step = 0
-        while step <= self.num_samples // self.batch_size:
+        self.read(init=False)
+        while step < self.num_samples // self.batch_size:
             for pipe in self.pipelines:
                 outputs = pipe.share_outputs()
                 logging.debug(f"{utcnow()} Output batch {step} {len(outputs)}")
                 yield outputs
                 step += 1
+                dlp.update(step = step)
                 pipe.release_outputs()
                 pipe.schedule_run()
         self.epoch_number += 1
