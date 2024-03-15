@@ -55,7 +55,8 @@ class NativeDaliDataLoader(BaseDataLoader):
             for batch in self._dataset:
                 logging.debug(f"{utcnow()} Creating {len(batch)} batches by {self._args.my_rank} rank ")
                 yield batch
-
+        self.epoch_number += 1
+        dlp.update(epoch=self.epoch_number)        
     @dlp.log
     def finalize(self):
         pass
