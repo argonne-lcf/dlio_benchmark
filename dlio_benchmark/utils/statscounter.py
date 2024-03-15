@@ -25,6 +25,7 @@ import logging
 import pandas as pd
 from time import time
 import numpy as np
+import psutil
 
 import socket
 class StatsCounter(object):
@@ -46,6 +47,9 @@ class StatsCounter(object):
         self.summary['num_files_train'] = self.args.num_files_train
         self.summary['num_files_eval'] = self.args.num_files_eval
         self.summary['num_samples_per_file'] = self.args.num_samples_per_file
+        self.summary['host_memory_GB'] = psutil.virtual_memory().total/1024./1024./1024
+        self.summary['host_cpu_count'] = psutil.cpu_count()
+        self.summary['potential_caching'] = False
         max_steps = math.floor(self.args.num_samples_per_file * self.args.num_files_train / self.args.batch_size / self.args.comm_size)
 
         if self.args.total_training_steps > 0:
@@ -68,6 +72,15 @@ class StatsCounter(object):
         self.eval_au = []
         self.train_throughput = []
         self.eval_throughput = []
+        data_per_node = DLIOMPI.get_instance().npernode()*self.args.num_samples_per_file * self.args.num_files_train//DLIOMPI.get_instance().size()*self.args.record_length
+        self.summary['data_size_per_host_GB'] = data_per_node/1024./1024./1024.
+        if DLIOMPI.get_instance().rank() == 0:
+            logging.info(f"Total amount of data each host will consume is {data_per_node/1024./1024./1024} GB; each host has {self.summary['host_memory_GB']} GB memory") 
+        if self.summary['data_size_per_host_GB'] <= self.summary['host_memory_GB']:
+            self.summary['potential_caching'] = True
+            if DLIOMPI.get_instance().rank() == 0: 
+                logging.warning("The amount of dataset is smaller than the host memory; data might be cached after the first epoch. Increase the size of dataset to eliminate the caching effect!!!")
+            
     def start_run(self):
         self.start_run_timestamp = time()
     def end_run(self):
@@ -107,6 +120,7 @@ class StatsCounter(object):
             if self.my_rank==0:
                 logging.info(f"{utcnow()} Saved outputs in {self.output_folder}")   
                 metric="Averaged metric over all epochs\n[METRIC] ==========================================================\n"
+                metric = metric + f"[METRIC] Number of Simulated Accelerators: {self.comm_size} \n"
                 metric = metric + f"[METRIC] Training Accelerator Utilization [AU] (%): {np.mean(train_au):.4f} ({np.std(train_au):.4f})\n"
                 metric = metric + f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput):.4f} ({np.std(train_throughput):.4f})\n"
                 metric = metric + f"[METRIC] Training I/O Throughput (MB/second): {np.mean(train_throughput)*self.record_size/1024/1024:.4f} ({np.std(train_throughput)*self.record_size/1024/1024:.4f})\n"
