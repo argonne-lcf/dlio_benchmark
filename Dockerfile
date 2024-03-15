@@ -6,7 +6,7 @@ ADD . /workspace/dlio
 WORKDIR /workspace/dlio
 
 RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y git sysstat openmpi libc6 libhwloc-dev python3.10 python3-pip python3-venv cmake
+    DEBIAN_FRONTEND=noninteractive apt-get install -y git sysstat mpich libc6 libhwloc-dev python3.10 python3-pip python3-venv cmake
 RUN python3 -m pip install --upgrade pip
 RUN python3 -m venv /workspace/venv
 ENV PATH="/workspace/venv/bin:$PATH"
