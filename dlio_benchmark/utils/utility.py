@@ -89,10 +89,16 @@ class DLIOMPI:
             # MPI may have already been initialized by dlio_benchmark_test.py
             if not MPI.Is_initialized():
                 MPI.Init()
+            
             self.mpi_state = MPIState.MPI_INITIALIZED
             self.mpi_rank = MPI.COMM_WORLD.rank
             self.mpi_size = MPI.COMM_WORLD.size
             self.mpi_world = MPI.COMM_WORLD
+            split_comm = MPI.COMM_WORLD.Split_type(MPI.COMM_TYPE_SHARED)
+            # Get the number of nodes
+            self.mpi_ppn = split_comm.size
+            self.mpi_local_rank = split_comm.rank
+            self.mpi_nodes = self.mpi_size//split_comm.size
         elif self.mpi_state == MPIState.CHILD_INITIALIZED:
             raise Exception(f"method {self.classname()}.initialize() called in a child process")
         else:
@@ -130,6 +136,18 @@ class DLIOMPI:
             raise Exception(f"method {self.classname()}.comm() called in a child process")
         else:
             raise Exception(f"method {self.classname()}.comm() called before initializing MPI")
+
+    def local_rank(self):
+        if self.mpi_state == MPIState.UNINITIALIZED:
+            raise Exception(f"method {self.classname()}.size() called before initializing MPI")
+        else:
+            return self.mpi_local_rank
+
+    def npernode(self):
+        if self.mpi_state == MPIState.UNINITIALIZED:
+            raise Exception(f"method {self.classname()}.size() called before initializing MPI")
+        else:
+            return self.mpi_ppn
 
     def finalize(self):
         if self.mpi_state == MPIState.MPI_INITIALIZED and MPI.Is_initialized():
