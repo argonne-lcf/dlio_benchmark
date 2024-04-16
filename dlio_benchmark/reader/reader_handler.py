@@ -137,3 +137,11 @@ class FormatReader(ABC):
         self.step = None
         self.image_idx = None
         self.batch_size = None
+
+    @abstractmethod
+    def is_index_based(self):
+        return False
+
+    @abstractmethod
+    def is_iterator_based(self):
+        return False

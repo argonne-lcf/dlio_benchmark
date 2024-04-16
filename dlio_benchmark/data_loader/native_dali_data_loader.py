@@ -36,15 +36,18 @@ class NativeDaliDataLoader(BaseDataLoader):
         logging.info(f"num_threads: {num_threads}; batch_size: {batch_size}")
         pipeline = Pipeline(batch_size=batch_size, num_threads=num_threads, device_id=None, 
                             py_num_workers=num_threads,
-                            exec_async=False, exec_pipelined=False, 
+                            exec_async=True, exec_pipelined=True, 
                             py_start_method=self._args.multiprocessing_context)            
         with pipeline:
-            images = ReaderFactory.get_reader(type=self.format_type,
+            dataset = ReaderFactory.get_reader(type=self.format_type,
                                             dataset_type=self.dataset_type,
                                             thread_index=-1,
                                             epoch_number=self.epoch_number).pipeline()
+            images, labels = fn.external_source(source=dataset, num_outputs=1, dtype=[types.UINT8],
+                                                parallel=parallel, batch=False)
             pipeline.set_outputs(images)
         self.pipeline = pipeline
+        
         self._dataset = DALIGenericIterator(self.pipeline, ['data'], auto_reset=True)
     @dlp.log
     def next(self):

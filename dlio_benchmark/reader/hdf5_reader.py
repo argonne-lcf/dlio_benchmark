@@ -58,3 +58,9 @@ class HDF5Reader(FormatReader):
     @dlp.log
     def finalize(self):
         return super().finalize()
+
+    def is_index_based(self):
+        return True
+
+    def is_iterator_based(self):
+        return True

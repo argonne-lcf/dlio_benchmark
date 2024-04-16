@@ -83,22 +83,28 @@ class DaliTFRecordReader(FormatReader):
                                       random_shuffle=random_shuffle, seed=seed,
                                       stick_to_shard=True, pad_last_batch=True, 
                                       dont_use_mmap=self._args.dont_use_mmap)
-        dataset['image'] = fn.python_function(dataset['image'], function=self.preprocess, num_outputs=1)
-        dataset['image'] = fn.python_function(dataset['image'], function=self.resize, num_outputs=1)
+        #dataset['image'] = fn.python_function(dataset['image'], function=self.preprocess, num_outputs=1)
+        #dataset['image'] = fn.python_function(dataset['image'], function=self.resize, num_outputs=1)
         return dataset['image']
 
     def get_sample(self, filename, sample_index):
-        super().get_sample(filename, sample_index)
         raise Exception("get sample method is not implemented in dali readers")
+        super().get_sample(filename, sample_index)
 
     def next(self):
-        super().next()
         raise Exception("next method is not implemented in dali readers")
+        super().next()
 
     def read_index(self):
-        super().read_index()
         raise Exception("read_index method is not implemented in dali readers")
+        super().read_index()
 
     @dlp.log
     def finalize(self):
         pass
+
+    def is_index_based(self):
+        return False
+
+    def is_iterator_based(self):
+        return True

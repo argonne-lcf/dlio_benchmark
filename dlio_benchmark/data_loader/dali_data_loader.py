@@ -31,7 +31,7 @@ from dlio_profiler.logger import fn_interceptor as Profile
 
 dlp = Profile(MODULE_DATA_LOADER)
 
-class DaliDataset(object):
+class DaliIndexDataset(object):
 
     def __init__(self, format_type, dataset_type, epoch, worker_index,
                  total_num_workers, total_num_samples, samples_per_worker, batch_size, shuffle=Shuffle.OFF, seed=1234):
@@ -49,6 +49,7 @@ class DaliDataset(object):
                                                dataset_type=self.dataset_type,
                                                thread_index=worker_index,
                                                epoch_number=self.epoch)
+        assert(self.reader.is_index_based())
         self.seed = seed
         if not hasattr(self, 'indices'):
             self.indices = np.arange(self.total_num_samples, dtype=np.int64)
@@ -69,6 +70,39 @@ class DaliDataset(object):
         with Profile(MODULE_DATA_LOADER, epoch=self.epoch, image_idx=sample_idx, step=step):
             image = self.reader.read_index(self.indices[sample_idx], step)
         return image, np.uint8([self.indices[sample_idx]])
+
+
+
+class DaliIteratorDataset(object):
+    def __init__(self, format_type, dataset_type, epoch, worker_index,
+                 total_num_workers, total_num_samples, samples_per_worker, batch_size, shuffle=Shuffle.OFF, seed=1234):
+        self.format_type = format_type
+        self.dataset_type = dataset_type
+        self.epoch = epoch
+        self.total_num_workers = total_num_workers
+        self.total_num_samples = total_num_samples
+        self.samples_per_worker = samples_per_worker
+        self.batch_size = batch_size
+        self.worker_index = worker_index
+        self.shuffle = shuffle
+        self.total_num_steps = self.samples_per_worker//batch_size
+        self.reader = ReaderFactory.get_reader(type=self.format_type,
+                                               dataset_type=self.dataset_type,
+                                               thread_index=worker_index,
+                                               epoch_number=self.epoch)
+        assert(self.reader.is_iterator_based())
+        self.seed = seed
+        if not hasattr(self, 'indices'):
+            self.indices = np.arange(self.total_num_samples, dtype=np.int64)
+        if self.shuffle != Shuffle.OFF:
+            if self.shuffle == Shuffle.SEED:
+                np.random.seed(self.seed)
+            np.random.shuffle(self.indices)
+    def __iter__(self):
+        with Profile(MODULE_DATA_LOADER):
+            for image in self.reader.next():
+                yield image.numpy(), np.uint8([0])
+
 
 class DaliDataLoader(BaseDataLoader):
     @dlp.log_init
@@ -95,8 +129,8 @@ class DaliDataLoader(BaseDataLoader):
             global_worker_index = self._args.my_rank * num_pipelines + worker_index
             # None executes pipeline on CPU and the reader does the batching
             if self.dataset is None:
-                self.dataset = DaliDataset(self.format_type, self.dataset_type, self.epoch_number, global_worker_index,
-                                    self._args.comm_size * num_pipelines, self.num_samples, samples_per_worker, self.batch_size, self._args.sample_shuffle, self._args.seed)
+                self.dataset = DaliIteratorDataset(self.format_type, self.dataset_type, self.epoch_number, global_worker_index,
+                                    self._args.comm_size * num_pipelines, self.num_samples, samples_per_worker, 1, self._args.sample_shuffle, self._args.seed)
             else:
                 if self._args.sample_shuffle != Shuffle.OFF:
                     if self._args.sample_shuffle == Shuffle.SEED:
@@ -106,7 +140,7 @@ class DaliDataLoader(BaseDataLoader):
                                 prefetch_queue_depth=prefetch_size, py_start_method=self._args.multiprocessing_context, exec_async=True)
             with pipeline:
                 images, labels = fn.external_source(source=self.dataset, num_outputs=2, dtype=[types.UINT8, types.UINT8],
-                                                    parallel=parallel, batch=False)
+                                                    parallel=parallel, batch=True)
                 pipeline.set_outputs(images, labels)
             self.pipelines.append(pipeline)
         for pipe in self.pipelines:
