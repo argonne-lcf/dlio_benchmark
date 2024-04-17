@@ -332,13 +332,13 @@ class DLIOBenchmark(object):
             self.next_checkpoint_epoch = self.checkpoint_after_epoch
             epoch = 1
             # Initialize the dataset
-            self.args.reconfigure(epoch, DatasetType.TRAIN)
             self.framework.init_loader(self.args.format, epoch=epoch, data_loader=self.args.data_loader)
             loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
             loader.read()
             for epoch in range(1, self.epochs + 1):
                 self.next_checkpoint_step = self.steps_between_checkpoints
                 self.stats.start_train(epoch)
+                self.args.reconfigure(epoch, DatasetType.TRAIN)
                 steps = self._train(epoch)
                 self.stats.end_train(epoch, steps)
                 logging.debug(f"{utcnow()} Rank {self.my_rank} returned after {steps} steps.")
@@ -346,7 +346,7 @@ class DLIOBenchmark(object):
                 # Perform evaluation if enabled
                 if self.do_eval and epoch >= next_eval_epoch:
                     next_eval_epoch += self.epochs_between_evals
-
+                    self.args.reconfigure(epoch, DatasetType.VALID)
                     self.stats.start_eval(epoch)
                     self._eval(epoch)
                     self.stats.end_eval(epoch)
