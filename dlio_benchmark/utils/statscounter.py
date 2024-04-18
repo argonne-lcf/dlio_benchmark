@@ -34,13 +34,19 @@ def lines_to_dict(lines):
     for l in lines.split("\n"):
         if len(l.split(":"))==2: 
             k, v = l.split(":")
-        dict[k] = v
+            if k[-1] == "\n":
+                k = k[:-1]
+            k = k.strip()
+            v = v.strip()
+        if k != 'processor':
+            dict[k] = v
     return dict
 
 class StatsCounter(object):
 
     def __init__(self):
-        self.comm = DLIOMPI.get_instance().comm()
+        self.MPI = DLIOMPI.get_instance()
+        self.comm = self.MPI.comm()
         self.args = ConfigArguments.get_instance()
         self.my_rank = self.args.my_rank
         self.comm_size = self.args.comm_size
@@ -51,7 +57,7 @@ class StatsCounter(object):
         self.summary = {}
         self.summary['start'] = utcnow()
         self.summary['num_accelerators'] = self.comm_size
-        self.summary['num_hosts'] = self.comm_size //DLIOMPI.get_instance().npernode()
+        self.summary['num_hosts'] = self.comm_size //self.MPI.npernode()
         self.summary['hostname'] = socket.gethostname()
         self.summary['metric'] = {}
         self.summary['num_files_train'] = self.args.num_files_train
@@ -84,16 +90,22 @@ class StatsCounter(object):
         # Each process keeps track of its loading and processing times independently
         self.output = {}
         self.output['host_memory_GB'] = psutil.virtual_memory().total/1024./1024./1024
-        DLIOMPI.get_instance().npernode()
-        host_memory = np.zeros(DLIOMPI.get_instance().size()//DLIOMPI.get_instance().npernode())
-        host_memory_agg = np.zeros(DLIOMPI.get_instance().size()//DLIOMPI.get_instance().npernode())
-        if DLIOMPI.get_instance().rank()%DLIOMPI.get_instance().npernode()==0:
-            host_memory[DLIOMPI.get_instance().rank()//DLIOMPI.get_instance().npernode()] = self.output['host_memory_GB']
-        DLIOMPI.get_instance().comm().Reduce(host_memory, host_memory_agg, op=MPI.SUM, root=0)
+        host_memory = np.zeros(self.MPI.nnodes())
+        host_memory_agg = np.zeros(self.MPI.size()//self.MPI.npernode())
+        if self.MPI.local_rank()==0:
+            host_memory[self.MPI.rank()//self.MPI.npernode()] = self.output['host_memory_GB']
+        self.MPI.comm().Reduce(host_memory, host_memory_agg, op=MPI.SUM, root=0)
         self.summary['host_memory_GB'] = list(host_memory_agg)
         self.output['host_cpu_count'] = psutil.cpu_count()
+        cpu_count = np.zeros(self.MPI.nnodes())
+        cpu_count_agg = np.zeros(self.MPI.nnodes())
+        if self.MPI.local_rank()==0:
+            cpu_count[self.MPI.rank()//self.MPI.npernode()] = self.output['host_cpu_count']
+        self.MPI.comm().Reduce(cpu_count, cpu_count_agg, op=MPI.SUM, root=0)   
+
+        self.summary['host_cpu_count'] = [int(d) for d in cpu_count_agg]
         self.output['host_processor_name'] = platform.processor()
-        self.output['potential_caching'] = False
+        self.output['potential_caching'] = 0
         if os.path.exists("/proc/cpuinfo"):
             self.output['host_cpuinfo'] = lines_to_dict(open("/proc/cpuinfo", "r").read())
         if os.path.exists("/proc/meminfo"):
@@ -103,16 +115,16 @@ class StatsCounter(object):
         self.eval_au = []
         self.train_throughput = []
         self.eval_throughput = []
-        data_per_node = DLIOMPI.get_instance().npernode()*self.args.num_samples_per_file * self.args.num_files_train//DLIOMPI.get_instance().size()*self.args.record_length
+        data_per_node = self.MPI.npernode()*self.args.num_samples_per_file * self.args.num_files_train//self.MPI.size()*self.args.record_length
         self.summary['data_size_per_host_GB'] = data_per_node/1024./1024./1024.
-        if DLIOMPI.get_instance().rank() == 0:
+        if self.MPI.rank() == 0:
             logging.info(f"Total amount of data each host will consume is {data_per_node/1024./1024./1024} GB; each host has {self.summary['host_memory_GB']} GB memory") 
         if self.summary['data_size_per_host_GB'] <= self.output['host_memory_GB']:
-            self.output['potential_caching'] = True
-            if DLIOMPI.get_instance().rank() == 0: 
+            self.output['potential_caching'] = 1
+            if self.MPI.rank() == 0: 
                 logging.warning("The amount of dataset is smaller than the host memory; data might be cached after the first epoch. Increase the size of dataset to eliminate the caching effect!!!")
         potential_caching = []
-        for i in range(DLIOMPI.get_instance().size()//DLIOMPI.get_instance().npernode()):
+        for i in range(self.MPI.size()//self.MPI.npernode()):
             if self.summary['host_memory_GB'][i]  <= self.summary['data_size_per_host_GB']:
                 potential_caching.append(0)
             else:
@@ -188,6 +200,8 @@ class StatsCounter(object):
         self.output[epoch]['throughput'] = {}
         self.output[epoch]['au'] = {}
         self.output[epoch]['compute'] = {}
+        if os.path.exists("/proc/meminfo"):
+            self.output[epoch]['host_meminfo'] = lines_to_dict(open("/proc/meminfo", "r").read())
 
     def end_train(self, epoch, steps):
         au = np.array([self.output[epoch]['au'][k] for k in self.output[epoch]['au']])

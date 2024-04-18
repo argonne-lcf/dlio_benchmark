@@ -148,7 +148,11 @@ class DLIOMPI:
             raise Exception(f"method {self.classname()}.size() called before initializing MPI")
         else:
             return self.mpi_ppn
-
+    def nnodes(self):
+        if self.mpi_state == MPIState.UNINITIALIZED:
+            raise Exception(f"method {self.classname()}.size() called before initializing MPI")
+        else:
+            return self.mpi_size//self.mpi_ppn
     def finalize(self):
         if self.mpi_state == MPIState.MPI_INITIALIZED and MPI.Is_initialized():
             MPI.Finalize()

@@ -87,7 +87,7 @@ class TFDataLoader(BaseDataLoader):
                                                                              self.epoch_number, (
                                                                              self.batch_size,
                                                                              self._args.max_dimension,
-                                                                            self._args.max_dimension), x),
+                                                                             self._args.max_dimension), x),
                                                  cycle_length=read_threads,
                                                  num_parallel_calls=read_threads)
         if self._args.prefetch_size > 0:
