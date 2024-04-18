@@ -26,6 +26,12 @@ jobs:
       DLIO_PROFILER_LOG_LEVEL: "INFO"
       GOTCHA_DEBUG: 3
     steps:
+    - name: clear disc
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
     - name: Push checkout
       if: github.event_name == 'push'
       uses: actions/checkout@v3
