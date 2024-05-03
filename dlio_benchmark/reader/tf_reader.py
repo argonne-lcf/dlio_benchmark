@@ -66,15 +66,15 @@ class TFReader(FormatReader):
                 'image': tf.io.FixedLenFeature([], tf.string),
                 'size': tf.io.FixedLenFeature([], tf.int64)
             }
-        parsed_example = tf.io.parse_example(serialized=serialized, features=features)
+        parsed_example = tf.io.parse_single_example(serialized=serialized, features=features)
         # Get the image as raw bytes.
         image_raw = parsed_example['image']
         dimension = tf.cast(parsed_example['size'], tf.int32).numpy()
         # Decode the raw bytes so it becomes a tensor with type.
-        image_tensor = tf.io.decode_raw(image_raw, tf.uint8)
+        #image_tensor = tf.io.decode_raw(image_raw, tf.uint8)
         size = dimension * dimension
         dlp.update(image_size=size)
-        # image_tensor = tf.io.decode_image(image_raw)
+        #image_tensor = tf.io.decode_image(image_raw)
         resized_image = tf.convert_to_tensor(self._args.resized_image, dtype=tf.uint8)
         return resized_image
 
