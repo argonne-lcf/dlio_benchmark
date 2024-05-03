@@ -96,6 +96,7 @@ class TFDataLoader(BaseDataLoader):
                                           dataset_type=self.dataset_type,
                                           thread_index=-1,
                                           epoch_number=0).next()
+
     @dlp.log
     def next(self):
         super().next()
