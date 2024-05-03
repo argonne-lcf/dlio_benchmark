@@ -80,18 +80,22 @@ class TFDataLoader(BaseDataLoader):
         elif "experimental_threading" in dir(options):
             options.experimental_threading.private_threadpool_size = read_threads
             options.experimental_threading.max_intra_op_parallelism = read_threads
-
-        self._dataset = tf.data.Dataset.from_tensor_slices(np.arange(read_threads)).with_options(options)
-
-        self._dataset = self._dataset.interleave(lambda x: TensorflowDataset(self.format_type, self.dataset_type,
-                                                                             self.epoch_number, (
-                                                                             self.batch_size,
-                                                                             self._args.max_dimension,
-                                                                             self._args.max_dimension), x),
-                                                 cycle_length=read_threads,
-                                                 num_parallel_calls=read_threads)
-        if self._args.prefetch_size > 0:
-            self._dataset = self._dataset.prefetch(buffer_size=self._args.prefetch_size)
+        if self.format_type != FormatType.TFRECORD:
+            self._dataset = tf.data.Dataset.from_tensor_slices(np.arange(read_threads)).with_options(options)
+            self._dataset = self._dataset.interleave(lambda x: TensorflowDataset(self.format_type, self.dataset_type,
+                                                                                self.epoch_number, (
+                                                                                self.batch_size,
+                                                                                self._args.max_dimension,
+                                                                                self._args.max_dimension), x),
+                                                                                cycle_length=read_threads,
+                                                                                num_parallel_calls=read_threads)
+            if self._args.prefetch_size > 0:
+                self._dataset = self._dataset.prefetch(buffer_size=self._args.prefetch_size)
+        else:
+            self._dataset = ReaderFactory.get_reader(type=self.format_type,
+                                          dataset_type=self.dataset_type,
+                                          thread_index=-1,
+                                          epoch_number=0).next()
 
     @dlp.log
     def next(self):
