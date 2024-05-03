@@ -36,6 +36,7 @@ class TFReader(FormatReader):
     @dlp.log_init
     def __init__(self, dataset_type, thread_index, epoch):
         super().__init__(dataset_type, thread_index)
+        self._resized_image = tf.convert_to_tensor(self._args.resized_image, dtype=tf.uint8)        
         self._dataset = None
 
     @dlp.log
@@ -75,8 +76,8 @@ class TFReader(FormatReader):
         #size = dimension * dimension
         #dlp.update(image_size=size)
         #image_tensor = tf.io.decode_image(image_raw)
-        resized_image = tf.convert_to_tensor(self._args.resized_image, dtype=tf.uint8)
-        return resized_image
+        #resized_image = tf.convert_to_tensor(self._args.resized_image, dtype=tf.uint8)
+        return self._resized_image
 
     @dlp.log
     def next(self):
