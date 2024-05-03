@@ -100,7 +100,6 @@ class DaliIteratorDataset(object):
             for image in self.reader.next():
                 yield image.numpy(), np.uint8([0])
 
-
 class DaliDataLoader(BaseDataLoader):
     @dlp.log_init
     def __init__(self, format_type, dataset_type, epoch):
