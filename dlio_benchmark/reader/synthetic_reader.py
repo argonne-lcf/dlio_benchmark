@@ -46,7 +46,10 @@ class SyntheticReader(FormatReader):
 
     @dlp.log
     def next(self):
-        for batch in super().next():
+        while True:
+            batch = []
+            for i in range(self.batch_size):
+                batch.append(self._args.resized_image)
             yield batch
 
     @dlp.log
