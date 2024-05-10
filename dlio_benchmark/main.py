@@ -122,7 +122,6 @@ class DLIOBenchmark(object):
 
             if self.args.generate_data:
                 self.data_generator = GeneratorFactory.get_generator(self.args.format)
-                logging.info(f"{self.data_generator}, {self.args.format}")
             # Checkpointing support
             self.do_checkpoint = self.args.do_checkpoint
             self.steps_between_checkpoints = self.args.steps_between_checkpoints
