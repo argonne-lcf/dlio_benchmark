@@ -162,6 +162,7 @@ class DataLoaderType(Enum):
     NATIVE_DALI='native_dali'
     CUSTOM='custom'
     NONE='none'
+    SYNTHETIC='synthetic'
     
     def __str__(self):
         return self.value

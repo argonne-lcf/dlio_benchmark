@@ -260,20 +260,19 @@ class DLIOBenchmark(object):
         t0 = time()
         for batch in dlp.iter(loader.next()):
             self.stats.batch_loaded(epoch, overall_step, block, t0)
-
             # Log a new block, unless it's the first one which we've already logged before the loop
             if block_step == 1 and block != 1:
                 self.stats.start_block(epoch, block)
-            computation_time = 0.0
+            computation_time = self.computation_time
             if self.computation_time > 0:
                 self.framework.trace_object("Train", overall_step, 1)
                 if self.computation_time_stdev > 0:
                     computation_time = random.normal(self.computation_time, self.computation_time_stdev)
                 else:
                     computation_time = self.computation_time
-                self.framework.compute(batch, epoch, block_step, computation_time)
-            self.comm.barrier()
+            self.framework.compute(batch, epoch, block_step, computation_time)
             self.stats.batch_processed(epoch, overall_step, block, t0, computation_time)
+            self.comm.barrier()
             if self.do_checkpoint and (
                     self.steps_between_checkpoints >= 0) and overall_step == self.next_checkpoint_step:
                 self.stats.end_block(epoch, block, block_step)
