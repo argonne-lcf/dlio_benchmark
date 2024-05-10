@@ -42,7 +42,7 @@ from omegaconf import DictConfig, OmegaConf
 from dlio_benchmark.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
 from dlio_benchmark.utils.config import LoadConfig, ConfigArguments
-from dlio_benchmark.common.enumerations import Profiler, DatasetType, StorageType, MetadataType
+from dlio_benchmark.common.enumerations import Profiler, DatasetType, StorageType, MetadataType, FormatType
 from dlio_benchmark.profiler.profiler_factory import ProfilerFactory
 from dlio_benchmark.framework.framework_factory import FrameworkFactory
 from dlio_benchmark.data_generator.generator_factory import GeneratorFactory
@@ -122,7 +122,7 @@ class DLIOBenchmark(object):
 
             if self.args.generate_data:
                 self.data_generator = GeneratorFactory.get_generator(self.args.format)
-
+                logging.info(f"{self.data_generator}, {self.args.format}")
             # Checkpointing support
             self.do_checkpoint = self.args.do_checkpoint
             self.steps_between_checkpoints = self.args.steps_between_checkpoints
