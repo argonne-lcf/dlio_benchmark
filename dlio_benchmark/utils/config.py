@@ -87,7 +87,7 @@ class ConfigArguments:
     computation_time_stdev: float = 0.
     preprocess_time: float = 0.
     preprocess_time_stdev: float = 0.
-    prefetch_size: int = 0
+    prefetch_size: int = 2
     enable_chunking: bool = False
     chunk_size: int = 0
     compression: Compression = Compression.NONE
