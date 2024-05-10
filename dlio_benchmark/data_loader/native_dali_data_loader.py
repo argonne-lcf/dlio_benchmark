@@ -23,9 +23,12 @@ class NativeDaliDataLoader(BaseDataLoader):
     def __init__(self, format_type, dataset_type, epoch):
         super().__init__(format_type, dataset_type, epoch, DataLoaderType.NATIVE_DALI)
         self.pipelines = []
+        self._dataset = None
 
     @dlp.log
-    def read(self):
+    def read(self, init=False):
+        if not init:
+            return
         num_samples = self._args.total_samples_train if self.dataset_type is DatasetType.TRAIN else self._args.total_samples_eval
         batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
         parallel = True if self._args.read_threads > 0 else False
@@ -33,7 +36,6 @@ class NativeDaliDataLoader(BaseDataLoader):
         if self._args.read_threads > 0:
             num_threads = self._args.read_threads
         # None executes pipeline on CPU and the reader does the batching
-        logging.info(f"num_threads: {num_threads}; batch_size: {batch_size}")
         pipeline = Pipeline(batch_size=batch_size, num_threads=num_threads, device_id=None, 
                             py_num_workers=num_threads,
                             exec_async=True, exec_pipelined=True, 
@@ -43,23 +45,25 @@ class NativeDaliDataLoader(BaseDataLoader):
                                             dataset_type=self.dataset_type,
                                             thread_index=-1,
                                             epoch_number=self.epoch_number).pipeline()
-            images, labels = fn.external_source(source=dataset, num_outputs=1, dtype=[types.UINT8],
-                                                parallel=parallel, batch=False)
-            pipeline.set_outputs(images)
-        self.pipeline = pipeline
-        
-        self._dataset = DALIGenericIterator(self.pipeline, ['data'], auto_reset=True)
+            pipeline.set_outputs(dataset)
+        self.pipelines.append(pipeline)
+        self._dataset = DALIGenericIterator(self.pipelines, ['data'], auto_reset=True)
+
     @dlp.log
     def next(self):
         super().next()
+        self.read(True)
         num_samples = self._args.total_samples_train if self.dataset_type is DatasetType.TRAIN else self._args.total_samples_eval
         batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
+        step = 0
+        for pipeline in self.pipelines:
+            pipeline.reset()
         for step in range(num_samples // batch_size):
             for batch in self._dataset:
                 logging.debug(f"{utcnow()} Creating {len(batch)} batches by {self._args.my_rank} rank ")
                 yield batch
         self.epoch_number += 1
-        dlp.update(epoch=self.epoch_number)        
+        dlp.update(epoch=self.epoch_number)
     @dlp.log
     def finalize(self):
         pass

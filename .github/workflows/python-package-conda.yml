@@ -26,6 +26,12 @@ jobs:
       DLIO_PROFILER_LOG_LEVEL: "INFO"
       GOTCHA_DEBUG: 3
     steps:
+    - name: clear disc
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
     - name: Push checkout
       if: github.event_name == 'push'
       uses: actions/checkout@v3
@@ -83,6 +89,7 @@ jobs:
         mpirun -np 2 pytest -k test_gen_data[hdf5-tensorflow] -v
         mpirun -np 2 pytest -k test_gen_data[indexed_binary-tensorflow] -v
         mpirun -np 2 pytest -k test_gen_data[mmap_indexed_binary-tensorflow] -v
+        rm -rf data
     - name: test_custom_storage_root_gen_data
       run: |
         source ${VENV}/bin/activate
@@ -93,6 +100,7 @@ jobs:
         mpirun -np 2 pytest -k test_storage_root_gen_data[hdf5-tensorflow] -v
         mpirun -np 2 pytest -k test_storage_root_gen_data[indexed_binary-tensorflow] -v
         mpirun -np 2 pytest -k test_storage_root_gen_data[mmap_indexed_binary-tensorflow] -v
+        rm -rf data
     - name: test_train
       run: |
         source ${VENV}/bin/activate
@@ -125,6 +133,7 @@ jobs:
         mpirun -np 2 pytest -k test_train[mmap_indexed_binary-pytorch-pytorch] -v
         mpirun -np 2 pytest -k test_train[mmap_indexed_binary-tensorflow-dali] -v
         mpirun -np 2 pytest -k test_train[mmap_indexed_binary-pytorch-dali] -v
+        rm -rf data
     - name: test_custom_storage_root_train
       run: |
         source ${VENV}/bin/activate
@@ -143,6 +152,7 @@ jobs:
         mpirun -np 2 pytest -k test_custom_storage_root_train[indexed_binary-pytorch] -v
         mpirun -np 2 pytest -k test_custom_storage_root_train[mmap_indexed_binary-tensorflow] -v
         mpirun -np 2 pytest -k test_custom_storage_root_train[mmap_indexed_binary-pytorch] -v
+        rm -rf data
     - name: test_checkpoint_epoch
       run: |
         source ${VENV}/bin/activate
@@ -152,6 +162,7 @@ jobs:
         mpirun -np 2 pytest -k test_checkpoint_epoch[pytorch-1024-optimizers3-2-layer_params3-rank_zero] -v
         mpirun -np 2 pytest -k test_checkpoint_epoch[tensorflow-1024-optimizers4-1-layer_params4-all_ranks] -v
         mpirun -np 2 pytest -k test_checkpoint_epoch[pytorch-1024-optimizers5-1-layer_params5-all_ranks] -v
+        rm -rf data
     - name: test_checkpoint_step
       run: |
         source ${VENV}/bin/activate
@@ -169,6 +180,7 @@ jobs:
         mpirun -np 2 pytest -k test_multi_threads[pytorch-0]  -v
         mpirun -np 2 pytest -k test_multi_threads[pytorch-1]  -v
         mpirun -np 2 pytest -k test_multi_threads[pytorch-2]  -v
+        rm -rf data
     - name: test-pytorch-multiprocessing-context
       run: |
         source ${VENV}/bin/activate
@@ -176,31 +188,25 @@ jobs:
         mpirun -np 2 pytest -k test_pytorch_multiprocessing_context[1-fork] -v
         mpirun -np 2 pytest -k test_pytorch_multiprocessing_context[2-forkserver] -v
         mpirun -np 2 pytest -k test_pytorch_multiprocessing_context[2-spawn] -v
+        rm -rf data
     - name: test-tf-loader-tfrecord
       run: |
         source ${VENV}/bin/activate
         mpirun -np 2 dlio_benchmark workload=resnet50_tf ++workload.dataset.num_files_train=64 ++workload.workflow.train=False ++workload.workflow.generate_data=True  ++workload.dataset.num_files_train=4 ++workload.dataset.num_samples_per_file=16
         mpirun -np 2 dlio_benchmark workload=resnet50_tf ++workload.dataset.num_files_train=64 ++workload.workflow.train=True ++workload.workflow.generate_data=False  ++workload.dataset.num_files_train=4 ++workload.dataset.num_samples_per_file=16 ++workload.train.computation_time=0.01 ++workload.train.epochs=1
+        rm -rf data
     - name: test-torch-loader-npz
       run: |
         source ${VENV}/bin/activate
         mpirun -np 2 dlio_benchmark workload=unet3d_a100 ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=8 ++workload.dataset.num_files_eval=8 ++workload.reader.read_threads=2 ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
         mpirun -np 2 dlio_benchmark workload=unet3d_a100 ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=1 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=8 ++workload.dataset.num_files_eval=8 ++workload.reader.read_threads=0  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
+        rm -rf data
     - name: test-tf-loader-npz
       run: |
         source ${VENV}/bin/activate
         mpirun -np 2 dlio_benchmark workload=unet3d_a100 ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
         mpirun -np 2 dlio_benchmark workload=unet3d_a100 ++workload.framework=tensorflow ++workload.data_reader.data_loader=tensorflow ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=2 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
-    - name: test-torch-native-dali-loader-npy
-      run: |
-        source ${VENV}/bin/activate
-        mpirun -np 2 dlio_benchmark workload=unet3d_a100 ++workload.reader.data_loader=native_dali ++workload.dataset.format=npy ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=1 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2 ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
-        mpirun -np 2 dlio_benchmark workload=unet3d_a100 ++workload.reader.data_loader=native_dali ++workload.dataset.format=npy ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=1 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
-    - name: test-tf-native-dali-loader-npy
-      run: |
-        source ${VENV}/bin/activate
-        mpirun -np 2 dlio_benchmark workload=unet3d_a100 ++workload.framework=tensorflow ++workload.dataset.format=npy ++workload.reader.data_loader=native_dali ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=1 ++workload.workflow.train=False ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2 ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
-        mpirun -np 2 dlio_benchmark workload=unet3d_a100 ++workload.framework=tensorflow ++workload.dataset.format=npy ++workload.reader.data_loader=native_dali ++workload.train.computation_time=0.05 ++workload.evaluation.eval_time=0.01 ++workload.train.epochs=1 ++workload.workflow.train=True ++workload.workflow.generate_data=False ++workload.dataset.num_files_train=16 ++workload.dataset.num_files_eval=16 ++workload.reader.read_threads=2  ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0
+        rm -rf data
     - name: test_subset
       run: |
         source ${VENV}/bin/activate
@@ -210,13 +216,16 @@ jobs:
         source ${VENV}/bin/activate
         mpirun -np 2 dlio_benchmark workload=unet3d_a100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=42
         mpirun -np 2 dlio_benchmark workload=unet3d_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=42
+        rm -rf data
     - name: test_resnet50
       run: |
         source ${VENV}/bin/activate
         mpirun -np 2 dlio_benchmark workload=resnet50_a100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=4
         mpirun -np 2 dlio_benchmark workload=resnet50_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=4
+        rm -rf data
     - name: test_cosmoflow
       run: |
         source ${VENV}/bin/activate
         mpirun -np 2 dlio_benchmark workload=cosmoflow_a100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16
         mpirun -np 2 dlio_benchmark workload=cosmoflow_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16
+        rm -rf data

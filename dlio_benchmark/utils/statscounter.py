@@ -63,6 +63,7 @@ class StatsCounter(object):
         self.summary['num_files_train'] = self.args.num_files_train
         self.summary['num_files_eval'] = self.args.num_files_eval
         self.summary['num_samples_per_file'] = self.args.num_samples_per_file
+        self.summary['host_cpu_count'] = psutil.cpu_count()
         self.summary['host_processor_name'] = platform.processor()
         self.summary['potential_caching'] = False
 
