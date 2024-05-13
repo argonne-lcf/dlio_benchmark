@@ -169,9 +169,9 @@ dataset
 
   The training and validation datasets will be put in ```${data_folder}/train``` and ```${data_folder}/valid``` respectively. If ``num_subfolders_train`` and ``num_subfolders_eval`` are larger than one, the datasets will be split into multiple subfolders within ```${data_folder}/train``` and ```${data_folder}/valid``` in a round robin manner. 
 
-.. attention:: 
+.. note:: 
 
-  Currently, the DALI data loader is supported if pytorch framework is selected.
+  If ``format`` is set to be ``synthetic``, samples will be generated in memory and fed through the data loader specified. 
 
 .. attention::
   
@@ -191,7 +191,7 @@ reader
      - Description
    * - data_loader
      - tensorflow
-     - select the data loader to use [tensorflow|pytorch|dali|native_dali]. 
+     - select the data loader to use [tensorflow|pytorch|synthetic]. 
    * - batch_size
      - 1 
      - batch size for training
@@ -227,9 +227,12 @@ reader
   TensorFlow and PyTorch behave differently for some parameters. For ``read_threads``, tensorflow does 
   not support ``read_threads=0``, but pytorch does, in which case, the main thread will be doing data loader and no overlap between I/O and compute. 
 
-  For pytorch, ``prefetch_size`` is set to be 0, it will be changed to 2. In other words, the default value for ``prefetch_size`` in pytorch is 2. 
+  For pytorch, if ``prefetch_size`` is set to be 0, it will be changed to 2. In other words, the default value for ``prefetch_size`` in pytorch is 2. 
 
-  For Dali data loader, we support two options, ``dali`` and ``native_dali```. ``dali`` uses our internal reader, such as ``jpeg_reader``, ``hdf5_reader``, etc, and ``dali.fn.external_source``; whereas ``native_dali`` directly uses Dali readers, such as ``dn.readers.numpy``, ``fn.readers.tfrecord``, and ``fn.readers.file``. 
+  In order to be consistent, we set ``prefetch_size`` to be 2 all the time for both pytorch and tensorflow. 
+
+.. note:: 
+  For``synthetic`` data loader, dataset will be generated in memory directly rather than loading from the storage. 
 
 .. note:: 
 
