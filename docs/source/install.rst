@@ -9,6 +9,7 @@ The installation of DLIO follows the standard python package installation as fol
     pip install .
 
 One can also build and install the package as follows 
+
 .. code-block:: bash
 
     git clone https://github.com/argonne-lcf/dlio_benchmark
@@ -17,6 +18,7 @@ One can also build and install the package as follows
     python setup.py install
 
 One can also install the package directly from github
+
 .. code-block:: bash
 
     pip install git+https://github.com/argonne-lcf/dlio_benchmark.git@main
