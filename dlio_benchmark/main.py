@@ -1,5 +1,5 @@
 """
-   Copyright (c) 2022, UChicago Argonne, LLC
+   Copyright (c) 2024, UChicago Argonne, LLC
    All Rights Reserved
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,7 +42,7 @@ from omegaconf import DictConfig, OmegaConf
 from dlio_benchmark.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
 from dlio_benchmark.utils.config import LoadConfig, ConfigArguments
-from dlio_benchmark.common.enumerations import Profiler, DatasetType, StorageType, MetadataType
+from dlio_benchmark.common.enumerations import Profiler, DatasetType, StorageType, MetadataType, FormatType
 from dlio_benchmark.profiler.profiler_factory import ProfilerFactory
 from dlio_benchmark.framework.framework_factory import FrameworkFactory
 from dlio_benchmark.data_generator.generator_factory import GeneratorFactory
@@ -122,7 +122,6 @@ class DLIOBenchmark(object):
 
             if self.args.generate_data:
                 self.data_generator = GeneratorFactory.get_generator(self.args.format)
-
             # Checkpointing support
             self.do_checkpoint = self.args.do_checkpoint
             self.steps_between_checkpoints = self.args.steps_between_checkpoints
@@ -261,20 +260,19 @@ class DLIOBenchmark(object):
         t0 = time()
         for batch in dlp.iter(loader.next()):
             self.stats.batch_loaded(epoch, overall_step, block, t0)
-
             # Log a new block, unless it's the first one which we've already logged before the loop
             if block_step == 1 and block != 1:
                 self.stats.start_block(epoch, block)
-            computation_time = 0.0
+            computation_time = self.computation_time
             if self.computation_time > 0:
                 self.framework.trace_object("Train", overall_step, 1)
                 if self.computation_time_stdev > 0:
                     computation_time = random.normal(self.computation_time, self.computation_time_stdev)
                 else:
                     computation_time = self.computation_time
-                self.framework.compute(batch, epoch, block_step, computation_time)
-            self.comm.barrier()
+            self.framework.compute(batch, epoch, block_step, computation_time)
             self.stats.batch_processed(epoch, overall_step, block, t0, computation_time)
+            self.comm.barrier()
             if self.do_checkpoint and (
                     self.steps_between_checkpoints >= 0) and overall_step == self.next_checkpoint_step:
                 self.stats.end_block(epoch, block, block_step)

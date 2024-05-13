@@ -29,30 +29,25 @@ from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
 
 dlp = Profile(MODULE_DATA_GENERATOR)
 
-class PNGGenerator(DataGenerator):
+class SyntheticGenerator(DataGenerator):
     def __init__(self):
         super().__init__()
 
     @dlp.log        
     def generate(self):
         """
-        Generator for creating data in PNG format of 3d dataset.
+        Generator for creating dummy files.
         """
         super().generate()
         np.random.seed(10)
         record_labels = [0] 
         dim = self.get_dimension(self.total_files_to_generate)
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
-            dim1 = dim[2*i]
-            dim2 = dim[2*i+1]
-            if self.my_rank==0:
-                logging.debug(f"{utcnow()} Dimension of images: {dim1} x {dim2}")
             out_path_spec = self.storage.get_uri(self._file_list[i])
-            records = np.random.randint(255, size=(dim1, dim2), dtype=np.uint8)
-            img = im.fromarray(records)
             if self.my_rank == 0 and i % 100 == 0:
                 logging.info(f"Generated file {i}/{self.total_files_to_generate}")
-            progress(i+1, self.total_files_to_generate, "Generating PNG Data")
+            progress(i+1, self.total_files_to_generate, "Generating Synethic Data (Empty)")
             prev_out_spec = out_path_spec
-            img.save(out_path_spec, format='PNG', bits=8)
+            with open(out_path_spec, 'w') as f:
+                f.write(f"{i}")
         np.random.seed()

@@ -1,5 +1,5 @@
 """
-   Copyright (c) 2022, UChicago Argonne, LLC
+   Copyright (c) 2024, UChicago Argonne, LLC
    All Rights Reserved
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -122,7 +122,8 @@ class FormatType(Enum):
     PNG = 'png'
     INDEXED_BINARY = 'indexed_binary'
     MMAP_INDEXED_BINARY = 'mmap_indexed_binary'
-
+    SYNTHETIC = 'synthetic'
+    
     def __str__(self):
         return self.value
 
@@ -148,6 +149,8 @@ class FormatType(Enum):
             return FormatType.INDEXED_BINARY
         elif FormatType.MMAP_INDEXED_BINARY.value == value:
             return FormatType.MMAP_INDEXED_BINARY
+        elif FormatType.SYNTHETIC.value == value:
+            return FormatType.SYNTHETIC
 
 class DataLoaderType(Enum):
     """
@@ -159,6 +162,7 @@ class DataLoaderType(Enum):
     NATIVE_DALI='native_dali'
     CUSTOM='custom'
     NONE='none'
+    SYNTHETIC='synthetic'
     
     def __str__(self):
         return self.value

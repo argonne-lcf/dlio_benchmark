@@ -216,16 +216,19 @@ jobs:
         source ${VENV}/bin/activate
         mpirun -np 2 dlio_benchmark workload=unet3d_a100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=42
         mpirun -np 2 dlio_benchmark workload=unet3d_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=42
+        mpirun -np 2 dlio_benchmark workload=unet3d_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=42 ++workload.dataset.format=synthetic
         rm -rf data
     - name: test_resnet50
       run: |
         source ${VENV}/bin/activate
         mpirun -np 2 dlio_benchmark workload=resnet50_a100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=4
         mpirun -np 2 dlio_benchmark workload=resnet50_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=4
+        mpirun -np 2 dlio_benchmark workload=resnet50_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=4 ++workload.dataset.format=synthetic
         rm -rf data
     - name: test_cosmoflow
       run: |
         source ${VENV}/bin/activate
         mpirun -np 2 dlio_benchmark workload=cosmoflow_a100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16
         mpirun -np 2 dlio_benchmark workload=cosmoflow_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16
+        mpirun -np 2 dlio_benchmark workload=cosmoflow_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.format=synthetic
         rm -rf data

@@ -1,5 +1,5 @@
 """
-   Copyright (c) 2022, UChicago Argonne, LLC
+   Copyright (c) 2024, UChicago Argonne, LLC
    All Rights Reserved
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,6 +47,9 @@ class GeneratorFactory(object):
         elif type == FormatType.PNG:
             from dlio_benchmark.data_generator.png_generator import PNGGenerator
             return PNGGenerator()
+        elif type == FormatType.SYNTHETIC:
+            from dlio_benchmark.data_generator.synthetic_generator import SyntheticGenerator
+            return SyntheticGenerator()
         elif type == FormatType.INDEXED_BINARY or type == FormatType.MMAP_INDEXED_BINARY:
             from dlio_benchmark.data_generator.indexed_binary_generator import IndexedBinaryGenerator
             return IndexedBinaryGenerator()

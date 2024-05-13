@@ -1,5 +1,5 @@
 """
-   Copyright (c) 2022, UChicago Argonne, LLC
+   Copyright (c) 2024, UChicago Argonne, LLC
    All Rights Reserved
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -87,7 +87,7 @@ class ConfigArguments:
     computation_time_stdev: float = 0.
     preprocess_time: float = 0.
     preprocess_time_stdev: float = 0.
-    prefetch_size: int = 0
+    prefetch_size: int = 2
     enable_chunking: bool = False
     chunk_size: int = 0
     compression: Compression = Compression.NONE

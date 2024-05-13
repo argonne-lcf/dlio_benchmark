@@ -18,9 +18,6 @@ reader:
  data_loader: tensorflow
  read_threads: 4
  batch_size: 1
- dont_use_mmap: True
- file_shuffle: seed
- sample_shuffle: seed
  
 train: 
   epochs: 5
