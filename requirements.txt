@@ -1,7 +1,3 @@
-# Use cpu version of torch
-
-
-
 absl-py>=1.3.0
 antlr4-python3-runtime>=4.9.3
 astunparse>=1.6.3
@@ -50,6 +46,7 @@ tensorflow-cpu>=2.15.0
 tensorflow-io>=0.28.0
 tensorflow-estimator>=2.15.0
 termcolor>=2.1.1
+# Use cpu version of torch
 --extra-index-url https://download.pytorch.org/whl/cpu torch>=2.2.0
 torchaudio>=2.2.0
 torchvision>=0.17.0

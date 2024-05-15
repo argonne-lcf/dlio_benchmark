@@ -5,7 +5,7 @@ configs = glob('dlio_benchmark/configs/**/*', recursive=True)
 print(configs)
 import pathlib, pkg_resources
 import os
-os.system("pip install -r requirements.txt")
+os.system("python -m pip install -r requirements.txt")
 test_deps = [
     'pytest',
 ]
