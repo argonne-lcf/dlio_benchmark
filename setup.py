@@ -3,6 +3,9 @@ from glob import glob
 from distutils import util
 configs = glob('dlio_benchmark/configs/**/*', recursive=True)
 print(configs)
+import pathlib, pkg_resources
+import os
+os.system("python -m pip install -r requirements.txt")
 test_deps = [
     'pytest',
 ]
@@ -16,7 +19,7 @@ core_deps = [
 ]
 x86_deps = [
  'hydra-core >= 1.2.0',
- 'tensorflow >= 2.11',
+ 'tensorflow_cpu >= 2.11',
  'torch >= 1.13.0',
  'torchaudio',
  'torchvision',
@@ -25,7 +28,9 @@ x86_deps = [
 ppc_deps = [
  'hydra-core @ git+https://github.com/facebookresearch/hydra.git@v1.3.2#egg=hydra-core'
 ]
+
 deps = core_deps
+
 if "ppc" in util.get_platform():
   deps.extend(ppc_deps)
 else:
@@ -44,8 +49,8 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/argonne-lcf/dlio_benchmark",
-    author="Hariharan Devarajan (Hari)",
-    email="mani.hariharan@gmail.com",
+    author="Huihuo Zheng, Hariharan Devarajan (Hari)",
+    email="zhenghh04@gmail.com, mani.hariharan@gmail.com",
     classifiers=[  # Optional
         # How mature is this project? Common values are
         #   3 - Alpha
