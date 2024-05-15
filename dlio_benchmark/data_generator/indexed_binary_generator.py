@@ -125,6 +125,7 @@ class IndexedBinaryGenerator(DataGenerator):
                     myfmt = 'B' * data_to_write
                     binary_data = struct.pack(myfmt, *records[:data_to_write])
                     data_file.write(binary_data)
+                    struct._clearcache()
 
                     # Write offsets
                     myfmt = 'Q' * samples_to_write
