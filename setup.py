@@ -19,7 +19,7 @@ core_deps = [
 ]
 x86_deps = [
  'hydra-core >= 1.2.0',
- 'tensorflow >= 2.15',
+ 'tensorflow >= 2.11',
  'torch >= 2.2',
  'torchaudio',
  'torchvision',
