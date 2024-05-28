@@ -85,9 +85,13 @@ class TFReader(FormatReader):
             f"{utcnow()} Reading {len(self._file_list)} files thread {self.thread_index} rank {self._args.my_rank}")
         self._dataset = tf.data.TFRecordDataset(filenames=self._file_list, buffer_size=self._args.transfer_size, 
                                                 num_parallel_reads=self._args.read_threads)
+
+        self._dataset = self._dataset.batch(self.batch_size)
         self._dataset = self._dataset.map(
                 lambda x: tf.py_function(func=self._parse_image, inp=[x], Tout=[tf.uint8]), 
                 num_parallel_calls=self._args.computation_threads)
+        self._dataset = self._dataset.unbatch()
+
         self._dataset = self._dataset.shard(num_shards=self._args.comm_size, index=self._args.my_rank)
 
         if self._args.sample_shuffle != Shuffle.OFF:
