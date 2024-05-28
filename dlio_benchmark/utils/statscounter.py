@@ -303,8 +303,12 @@ class StatsCounter(object):
             self.per_epoch_stats[epoch][f'ckpt{block}']['end'] = ts
             self.per_epoch_stats[epoch][f'ckpt{block}']['duration'] = duration
 
-    def batch_loaded(self, epoch, step, block, t0):
-        duration = time() - t0
+    def start_loading(self):
+        self.start_time_loading = time()
+    def start_compute(self):
+        self.start_time_compute = time()
+    def batch_loaded(self, epoch, step, block):
+        duration = time() - self.start_time_loading
         key = f'block{block}'
         if key in self.output[epoch]['load']:
             self.output[epoch]['load'][key].append(duration)
@@ -312,17 +316,18 @@ class StatsCounter(object):
             self.output[epoch]['load'][key] = [duration]
         logging.debug(f"{utcnow()} Rank {self.my_rank} step {step}: loaded {self.batch_size} samples in {duration} s")
 
-
-    def batch_processed(self, epoch, step, block, t0, computation_time):
-        duration = time() - t0
+    def batch_processed(self, epoch, step, block):
+        current_time = time()
+        duration = current_time - self.start_time_loading 
         key = f'block{block}'
+        self.computation_time = current_time - self.start_time_compute
         if key in self.output[epoch]['proc']:
             self.output[epoch]['proc'][key].append(duration)
-            self.output[epoch]['compute'][key].append(computation_time)
+            self.output[epoch]['compute'][key].append(self.computation_time)
         else:
             self.output[epoch]['proc'] = [duration]
-            self.output[epoch]['compute']=[computation_time]
-        logging.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size} samples in {duration} s")
+            self.output[epoch]['compute']=[self.computation_time]
+        logging.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size} samples in {duration}s)")
 
     def compute_metrics_train(self, epoch, block):
         key = f"block{block}"
@@ -348,14 +353,16 @@ class StatsCounter(object):
         self.output[epoch]['au'][key] = au*100
         self.output[epoch]['throughput'][key] = throughput
 
-    def eval_batch_loaded(self, epoch, step, t0):
-        duration = time() - t0
+    def eval_batch_loaded(self, epoch, step):
+        duration = time() - self.start_time_loading
         self.output[epoch]['load']['eval'].append(duration)
         logging.debug(f"{utcnow()} Rank {self.my_rank} step {step} loaded {self.batch_size_eval} samples in {duration} s")
 
 
-    def eval_batch_processed(self, epoch, step, t0, computation_time):
-        duration = time() - t0
+    def eval_batch_processed(self, epoch, step):
+        current_time = time()
+        duration = current_time - self.start_time_loading 
+        computation_time = current_time -self.start_time_compute
         self.output[epoch]['proc']['eval'].append(duration)
         self.output[epoch]['compute']['eval'].append(computation_time)
         logging.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size_eval} samples in {duration} s")

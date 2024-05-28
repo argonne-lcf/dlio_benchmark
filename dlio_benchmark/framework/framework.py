@@ -20,11 +20,21 @@ from abc import ABC, abstractmethod
 from dlio_benchmark.common.enumerations import DatasetType
 from dlio_benchmark.data_loader.data_loader_factory import DataLoaderFactory
 from dlio_benchmark.storage.storage_factory import StorageFactory
-from dlio_benchmark.utils.utility import utcnow
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI
+comm = DLIOMPI.get_instance().comm()
 
 from time import sleep
 import os
 import logging
+from multiprocessing import Process
+def emulate_compute(computation_time):
+    sleep(computation_time)
+    comm.barrier()
+
+def async_compute(computation_time):
+    p = Process(target=emulate_compute, args=(computation_time,))
+    p.start()
+    return p
 
 from dlio_benchmark.utils.config import ConfigArguments
 
