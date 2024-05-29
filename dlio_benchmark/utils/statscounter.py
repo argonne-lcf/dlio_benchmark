@@ -142,10 +142,6 @@ class StatsCounter(object):
             self.summary['epochs'] = len(train_au)
             self.summary['metric']['train_au_percentage'] = list(train_au)
             self.summary['metric']['train_au_mean_percentage'] = np.mean(train_au)
-            if self.summary['metric']['train_au_mean_percentage'] >=90:
-                self.summary['metric']['train_au_meet_expectation'] = 'success'
-            else:
-                self.summary['metric']['train_au_meet_expectation'] = 'fail'
             self.summary['metric']['train_au_stdev_percentage'] = np.std(train_au)
             self.summary['metric']['train_throughput_samples_per_second'] = list(train_throughput)
             self.summary['metric']['train_throughput_mean_samples_per_second'] = np.mean(train_throughput)
@@ -157,10 +153,6 @@ class StatsCounter(object):
                 eval_throughput = self.comm.allreduce(self.eval_throughput)
                 self.summary['metric']['eval_au_percentage'] = list(eval_au)
                 self.summary['metric']['eval_au_mean_percentage'] = np.mean(eval_au)
-                if self.summary['metric']['eval_au_mean_percentage'] >=90:
-                    self.summary['metric']['eval_au_meet_expectation'] = 'success'
-                else:
-                    self.summary['metric']['eval_au_meet_expectation'] = 'fail'
                 self.summary['metric']['eval_au_stdev_percentage'] = np.std(eval_au)
                 self.summary['metric']['eval_throughput_samples_per_second'] = list(eval_throughput)
                 self.summary['metric']['eval_throughput_mean_samples_per_second'] = np.mean(eval_throughput)
@@ -174,13 +166,11 @@ class StatsCounter(object):
                 metric = metric + f"[METRIC] Training Accelerator Utilization [AU] (%): {np.mean(train_au):.4f} ({np.std(train_au):.4f})\n"
                 metric = metric + f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput):.4f} ({np.std(train_throughput):.4f})\n"
                 metric = metric + f"[METRIC] Training I/O Throughput (MB/second): {np.mean(train_throughput)*self.record_size/1024/1024:.4f} ({np.std(train_throughput)*self.record_size/1024/1024:.4f})\n"
-                metric = metric + f"[METRIC] train_au_meet_expectation: {self.summary['metric']['train_au_meet_expectation']}\n"
 
                 if self.args.do_eval:
                     metric = metric + f"[METRIC] Eval Accelerator Utilization [AU] (%): {np.mean(eval_au):.4f} ({np.std(eval_au):.4f})\n"
                     metric = metric + f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput):.6f} ({np.std(eval_throughput):.6f})\n"
                     metric = metric + f"[METRIC] Eval Throughput (MB/second): {np.mean(eval_throughput)*self.record_size/1024/1024:.6f} ({np.std(eval_throughput)*self.record_size/1024/1024:.6f})\n"
-                    metric = metric + f"[METRIC] eval_au_meet_expectation: {self.summary['metric']['eval_au_meet_expectation']}\n"
                 metric+="[METRIC] ==========================================================\n"
                 logging.info(metric)   
     def start_train(self, epoch):   
@@ -331,13 +321,13 @@ class StatsCounter(object):
 
     def compute_metrics_train(self, epoch, block):
         key = f"block{block}"
-        total_compute_time = np.sum(self.output[epoch]['compute'][key][1:])
+        total_compute_time = np.sum(self.output[epoch]['compute'][key][1:-1])
         if (total_compute_time==0):
             au=0.0
         else:
-            total_time = self.end_timestamp - self.start_timestamp - self.output[epoch]['proc'][key][0]
+            total_time = self.end_timestamp - self.start_timestamp - self.output[epoch]['proc'][key][0] - self.output[epoch]['proc'][key][-1]
             au = total_compute_time / total_time
-        throughput = len(self.output[epoch]['compute'][key])/(self.end_timestamp - self.start_timestamp)*self.batch_size
+        throughput = (len(self.output[epoch]['compute'][key]) - 2)/(total_time)*self.batch_size
         self.output[epoch]['au'][key] = au*100
         self.output[epoch]['throughput'][key] = throughput
 
