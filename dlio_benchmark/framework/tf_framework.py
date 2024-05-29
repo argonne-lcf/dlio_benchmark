@@ -86,7 +86,7 @@ class TFFramework(Framework):
 
     @dlp.log
     def compute(self, x, epoch_number, step, computation_time):
-        emulate_compute(computation_time)
+        return self.model(x, computation_time)
         # tf.function(self.model)(epoch_number, step, computation_time)
 
     @dlp.log

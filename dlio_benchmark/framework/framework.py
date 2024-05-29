@@ -79,7 +79,7 @@ class Framework(ABC):
     def trace_object(self, string, step, r):
         pass
 
-    def model(epoch, epoch_number, step, computation_time):
+    def model(epoch, x, computation_time):
         sleep(computation_time)
 
     @abstractmethod
