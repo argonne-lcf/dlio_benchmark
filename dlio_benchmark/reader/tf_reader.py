@@ -86,21 +86,19 @@ class TFReader(FormatReader):
         self._dataset = tf.data.TFRecordDataset(filenames=self._file_list, buffer_size=self._args.transfer_size, 
                                                 num_parallel_reads=self._args.read_threads)
 
-        self._dataset = self._dataset.batch(self.batch_size)
-        self._dataset = self._dataset.map(
-                lambda x: tf.py_function(func=self._parse_image, inp=[x], Tout=[tf.uint8]), 
-                num_parallel_calls=self._args.computation_threads)
-        self._dataset = self._dataset.unbatch()
-
-        self._dataset = self._dataset.shard(num_shards=self._args.comm_size, index=self._args.my_rank)
-
         if self._args.sample_shuffle != Shuffle.OFF:
             if self._args.sample_shuffle == Shuffle.SEED:
                 self._dataset = self._dataset.shuffle(buffer_size=self._args.shuffle_size,
                                           seed=self._args.seed)
             else:
                 self._dataset = self._dataset.shuffle(buffer_size=self._args.shuffle_size)
+
+        self._dataset = self._dataset.shard(num_shards=self._args.comm_size, index=self._args.my_rank)
         self._dataset = self._dataset.batch(self.batch_size, drop_remainder=True)
+        self._dataset = self._dataset.map(
+                lambda x: tf.py_function(func=self._parse_image, inp=[x], Tout=[tf.uint8]),
+                num_parallel_calls=self._args.computation_threads)
+
         self._dataset = self._dataset.repeat(self._args.epochs)
         total = math.ceil(len(self._file_list)/self._args.comm_size / self.batch_size * self._args.num_samples_per_file)
         return self._dataset.take(total*self._args.epochs).prefetch(buffer_size=self._args.prefetch_size)
