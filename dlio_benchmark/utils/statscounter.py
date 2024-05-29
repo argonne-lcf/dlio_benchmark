@@ -166,11 +166,17 @@ class StatsCounter(object):
                 metric = metric + f"[METRIC] Training Accelerator Utilization [AU] (%): {np.mean(train_au):.4f} ({np.std(train_au):.4f})\n"
                 metric = metric + f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput):.4f} ({np.std(train_throughput):.4f})\n"
                 metric = metric + f"[METRIC] Training I/O Throughput (MB/second): {np.mean(train_throughput)*self.record_size/1024/1024:.4f} ({np.std(train_throughput)*self.record_size/1024/1024:.4f})\n"
+                metric = metric + f"[METRIC] --\n"
+                metric = metric + f"[METRIC] Training Throughput (ideal) (samples/second): {self.batch_size / self.args.computation_time * self.MPI.size():.4f}\n"
+                metric = metric + f"[METRIC] Training I/O Throughput (ideal) (MB/second): {self.batch_size * self.record_size/1024/1024 / self.args.computation_time * self.MPI.size():.4f}\n"
 
                 if self.args.do_eval:
                     metric = metric + f"[METRIC] Eval Accelerator Utilization [AU] (%): {np.mean(eval_au):.4f} ({np.std(eval_au):.4f})\n"
                     metric = metric + f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput):.6f} ({np.std(eval_throughput):.6f})\n"
                     metric = metric + f"[METRIC] Eval Throughput (MB/second): {np.mean(eval_throughput)*self.record_size/1024/1024:.6f} ({np.std(eval_throughput)*self.record_size/1024/1024:.6f})\n"
+                    metric = metric + f"[METRIC] --\n"
+                    metric = metric + f"[METRIC] Eval Throughput (ideal) (samples/second): {self.batch_size / self.args.eval_time * self.MPI.size():.4f}\n"
+                    metric = metric + f"[METRIC] Eval I/O Throughput (ideal) (MB/second): {self.batch_size * self.record_size/1024/1024 / self.args.eval_time * self.MPI.size():.4f}\n"
                 metric+="[METRIC] ==========================================================\n"
                 logging.info(metric)   
     def start_train(self, epoch):   
@@ -322,10 +328,10 @@ class StatsCounter(object):
     def compute_metrics_train(self, epoch, block):
         key = f"block{block}"
         total_compute_time = np.sum(self.output[epoch]['compute'][key][1:-1])
+        total_time = self.end_timestamp - self.start_timestamp - self.output[epoch]['proc'][key][0] - self.output[epoch]['proc'][key][-1]
         if (total_compute_time==0):
             au=0.0
         else:
-            total_time = self.end_timestamp - self.start_timestamp - self.output[epoch]['proc'][key][0] - self.output[epoch]['proc'][key][-1]
             au = total_compute_time / total_time
         throughput = (len(self.output[epoch]['compute'][key]) - 2)/(total_time)*self.batch_size
         self.output[epoch]['au'][key] = au*100
