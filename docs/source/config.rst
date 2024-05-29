@@ -253,9 +253,6 @@ train
    * - computation_time
      - 0.0
      - emulated computation time per step in second
-   * - computation_time_stdev
-     - 0.0
-     - standard deviation of the emulated computation time per step in second
    * - total_training_steps
      - -1
      - number of training steps to simulate, assuming running the benchmark less than one epoch. 

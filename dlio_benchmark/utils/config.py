@@ -496,8 +496,6 @@ def LoadConfig(args, config):
             args.seed_change_epoch = config['train']['seed_change_epoch']
         if 'computation_time' in config['train']:
             args.computation_time = config['train']['computation_time']
-        if 'computation_time_stdev' in config['train']:
-            args.computation_time_stdev = config['train']['computation_time_stdev']
         if 'seed' in config['train']:
             args.seed = config['train']['seed']
 

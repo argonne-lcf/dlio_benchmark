@@ -27,14 +27,6 @@ from time import sleep
 import os
 import logging
 from multiprocessing import Process
-def emulate_compute(computation_time):
-    sleep(computation_time)
-    comm.barrier()
-
-def async_compute(computation_time):
-    p = Process(target=emulate_compute, args=(computation_time,))
-    p.start()
-    return p
 
 from dlio_benchmark.utils.config import ConfigArguments
 
@@ -81,6 +73,7 @@ class Framework(ABC):
 
     def model(epoch, x, computation_time):
         sleep(computation_time)
+        comm.barrier()
 
     @abstractmethod
     def compute(self, x, epoch_number, step, computation_time):
