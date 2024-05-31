@@ -166,17 +166,17 @@ class StatsCounter(object):
                 metric = metric + f"[METRIC] Training Accelerator Utilization [AU] (%): {np.mean(train_au):.4f} ({np.std(train_au):.4f})\n"
                 metric = metric + f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput):.4f} ({np.std(train_throughput):.4f})\n"
                 metric = metric + f"[METRIC] Training I/O Throughput (MB/second): {np.mean(train_throughput)*self.record_size/1024/1024:.4f} ({np.std(train_throughput)*self.record_size/1024/1024:.4f})\n"
-                metric = metric + f"[METRIC] --\n"
-                metric = metric + f"[METRIC] Training Throughput (ideal) (samples/second): {self.batch_size / self.args.computation_time * self.MPI.size():.4f}\n"
-                metric = metric + f"[METRIC] Training I/O Throughput (ideal) (MB/second): {self.batch_size * self.record_size/1024/1024 / self.args.computation_time * self.MPI.size():.4f}\n"
+                metric = metric + f"[METRIC] **Expected Throughputs if compute-bound\n"
+                metric = metric + f"[METRIC] Training Throughput (expected) (samples/second): {np.mean(train_throughput/train_au)*100:.4f}\n"
+                metric = metric + f"[METRIC] Training I/O Throughput (expected) (MB/second): {np.mean(train_throughput/train_au)*100*self.record_size/1024/1024:.4f}\n"
 
                 if self.args.do_eval:
                     metric = metric + f"[METRIC] Eval Accelerator Utilization [AU] (%): {np.mean(eval_au):.4f} ({np.std(eval_au):.4f})\n"
                     metric = metric + f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput):.6f} ({np.std(eval_throughput):.6f})\n"
                     metric = metric + f"[METRIC] Eval Throughput (MB/second): {np.mean(eval_throughput)*self.record_size/1024/1024:.6f} ({np.std(eval_throughput)*self.record_size/1024/1024:.6f})\n"
-                    metric = metric + f"[METRIC] --\n"
-                    metric = metric + f"[METRIC] Eval Throughput (ideal) (samples/second): {self.batch_size / self.args.eval_time * self.MPI.size():.4f}\n"
-                    metric = metric + f"[METRIC] Eval I/O Throughput (ideal) (MB/second): {self.batch_size * self.record_size/1024/1024 / self.args.eval_time * self.MPI.size():.4f}\n"
+                    metric = metric + f"[METRIC] **Expected Throughputs if compute-bound\n"
+                    metric = metric + f"[METRIC] Eval Throughput (expected) (samples/second): {np.mean(eval_throughput/eval_au)*100:.4f}\n"
+                    metric = metric + f"[METRIC] Eval I/O Throughput (expected) (MB/second): {np.mean(eval_throughput/eval_au) * self.record_size/1024/1024:.4f}\n"
                 metric+="[METRIC] ==========================================================\n"
                 logging.info(metric)   
     def start_train(self, epoch):   
@@ -336,6 +336,7 @@ class StatsCounter(object):
         throughput = (len(self.output[epoch]['compute'][key]) - 2)/(total_time)*self.batch_size
         self.output[epoch]['au'][key] = au*100
         self.output[epoch]['throughput'][key] = throughput
+        self.output[epoch]['compute'][key] = total_compute_time
 
     def compute_metrics_eval(self, epoch):
         key = 'eval'
@@ -348,6 +349,8 @@ class StatsCounter(object):
         throughput = len(self.output[epoch]['compute'][key])/(self.end_timestamp - self.start_timestamp)*self.batch_size_eval
         self.output[epoch]['au'][key] = au*100
         self.output[epoch]['throughput'][key] = throughput
+        self.output[epoch]['compute'][key] = total_compute_time
+
 
     def eval_batch_loaded(self, epoch, step):
         duration = time() - self.start_time_loading
