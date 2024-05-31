@@ -461,8 +461,8 @@ def LoadConfig(args, config):
             args.data_loader_sampler = DataLoaderSampler(reader['data_loader_sampler'])
         if 'read_threads' in reader:
             args.read_threads = reader['read_threads']
-        if 'computatation_threads' in reader:
-            args.computatation_threads = reader['computatation_threads']
+        if 'computation_threads' in reader:
+            args.computation_threads = reader['computation_threads']
         if 'batch_size' in reader:
             args.batch_size = reader['batch_size']
         if 'batch_size_eval' in reader:
