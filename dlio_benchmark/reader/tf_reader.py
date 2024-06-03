@@ -84,9 +84,10 @@ class TFReader(FormatReader):
         logging.debug(
             f"{utcnow()} Reading {len(self._file_list)} files thread {self.thread_index} rank {self._args.my_rank}")
 	filenames = tf.data.Dataset.list_files(self._file_list, shuffle=True)
-	# sharding in the file list if we have another files. 
+
+	# sharding in the file list if we have enought files. 
         if (len(self._file_list) >= self._args.comm_size):
-		filenames = filenames.shard(num_shards=self._args.comm_size, index=self._args.my_rank)
+	    filenames = filenames.shard(num_shards=self._args.comm_size, index=self._args.my_rank)
 			
 	self._dataset = tf.data.TFRecordDataset(filenames=filenames, buffer_size=self._args.transfer_size,
 	                                        num_parallel_reads=self._args.read_threads)
@@ -100,7 +101,7 @@ class TFReader(FormatReader):
 		
 	# shard the dataset if it is not done already.
 	if (len(self._file_list) < self._args.comm_size):
-		self._dataset =  self._dataset.shard(num_shards=self._args.comm_size, index=self._args.my_rank)
+	    self._dataset =  self._dataset.shard(num_shards=self._args.comm_size, index=self._args.my_rank)
 	
         self._dataset = self._dataset.batch(self.batch_size, drop_remainder=True)
         self._dataset = self._dataset.map(
