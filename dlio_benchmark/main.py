@@ -196,6 +196,14 @@ class DLIOBenchmark(object):
                 file_list_train = fullpaths
             elif dataset_type is DatasetType.VALID:
                 file_list_eval = fullpaths
+        if not self.generate_only and self.num_files_train > self.comm_size and self.num_files_train % self.comm_size != 0:
+            self.num_files_train = self.num_files_train - (self.num_files_train % self.comm_size)
+            logging.warning(
+                f"Number of files for training % {self.comm_size} != 0. Reducing the number of file to {self.num_files_train}")
+        if not self.generate_only and self.num_files_eval > self.comm_size and self.num_files_eval % self.comm_size != 0 :
+            self.num_files_eval = self.num_files_eval - (self.num_files_eval % self.comm_size)
+            logging.warning(
+                f"Number of files for eval % {self.comm_size} != 0. Reducing the number of file to {self.num_files_eval}")
         if not self.generate_only and self.num_files_train > len(file_list_train):
             raise Exception(
                 "Not enough training dataset is found; Please run the code with ++workload.workflow.generate_data=True")
