@@ -24,7 +24,7 @@ import os
 import glob
 import shutil
 
-from utils.utility import Profile
+from dlio_benchmark.utils.utility import Profile
 
 dlp = Profile(MODULE_STORAGE)
 

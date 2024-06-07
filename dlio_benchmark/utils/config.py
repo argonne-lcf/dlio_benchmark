@@ -33,8 +33,7 @@ from dataclasses import dataclass
 import math
 import os
 import numpy as np
-
-from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile, DLIO_PROFILER_ENABLE
+from dlio_benchmark.utils.utility import Profile, PerfTrace, DLIO_PROFILER_ENABLE
 
 dlp = Profile(MODULE_CONFIG)
 @dataclass

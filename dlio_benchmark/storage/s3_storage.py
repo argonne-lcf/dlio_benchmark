@@ -21,7 +21,7 @@ from dlio_benchmark.storage.storage_handler import DataStorage, Namespace
 from dlio_benchmark.common.enumerations import NamespaceType, MetadataType
 import os
 
-from utils.utility import Profile
+from dlio_benchmark.utils.utility import Profile
 
 dlp = Profile(MODULE_STORAGE)
 

@@ -25,7 +25,7 @@ import torch
 import functools
 import logging
 from dlio_benchmark.utils.utility import utcnow, DLIOMPI
-from utils.utility import Profile
+from dlio_benchmark.utils.utility import Profile
 
 from time import sleep, time
 

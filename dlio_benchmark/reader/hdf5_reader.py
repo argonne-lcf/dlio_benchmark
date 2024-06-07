@@ -19,7 +19,7 @@ import logging
 import h5py
 
 from dlio_benchmark.common.constants import MODULE_DATA_READER
-from utils.utility import Profile
+from dlio_benchmark.utils.utility import Profile
 from dlio_benchmark.reader.reader_handler import FormatReader
 
 dlp = Profile(MODULE_DATA_READER)
