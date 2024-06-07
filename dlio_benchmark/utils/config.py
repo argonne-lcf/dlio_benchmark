@@ -133,6 +133,7 @@ class ConfigArguments:
     training_steps: int = 0
     eval_steps: int = 0
     samples_per_thread: int = 1
+    au: float = 0.90
     file_map = None
     global_index_map = None
     data_loader_class = None
@@ -574,3 +575,7 @@ def LoadConfig(args, config):
             args.iostat_devices = config['profiling']['iostat_devices']
             if isinstance(args.iostat_devices, str):
                 args.iostat_devices = [args.iostat_devices]
+
+    if 'metric' in config:
+        if 'au' in config['metric']:
+            args.au = config['metric']['au']

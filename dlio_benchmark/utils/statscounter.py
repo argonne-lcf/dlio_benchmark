@@ -142,7 +142,7 @@ class StatsCounter(object):
             self.summary['epochs'] = len(train_au)
             self.summary['metric']['train_au_percentage'] = list(train_au)
             self.summary['metric']['train_au_mean_percentage'] = np.mean(train_au)
-            if self.summary['metric']['train_au_mean_percentage'] >=90:
+            if self.summary['metric']['train_au_mean_percentage'] >=self.args.au*100:
                 self.summary['metric']['train_au_meet_expectation'] = 'success'
             else:
                 self.summary['metric']['train_au_meet_expectation'] = 'fail'
@@ -157,7 +157,7 @@ class StatsCounter(object):
                 eval_throughput = self.comm.allreduce(self.eval_throughput)
                 self.summary['metric']['eval_au_percentage'] = list(eval_au)
                 self.summary['metric']['eval_au_mean_percentage'] = np.mean(eval_au)
-                if self.summary['metric']['eval_au_mean_percentage'] >=90:
+                if self.summary['metric']['eval_au_mean_percentage'] >=self.args.au*100:
                     self.summary['metric']['eval_au_meet_expectation'] = 'success'
                 else:
                     self.summary['metric']['eval_au_meet_expectation'] = 'fail'
