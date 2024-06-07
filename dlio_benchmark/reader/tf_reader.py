@@ -20,7 +20,7 @@ from time import time
 
 from dlio_benchmark.common.constants import MODULE_DATA_READER
 from dlio_benchmark.utils.utility import utcnow
-from dlio_profiler.logger import fn_interceptor as Profile
+from dlio_benchmark.utils.utility import Profile
 from dlio_benchmark.common.enumerations import DatasetType, Shuffle
 from dlio_benchmark.reader.reader_handler import FormatReader
 import tensorflow as tf

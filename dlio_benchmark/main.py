@@ -46,7 +46,7 @@ from dlio_benchmark.profiler.profiler_factory import ProfilerFactory
 from dlio_benchmark.framework.framework_factory import FrameworkFactory
 from dlio_benchmark.data_generator.generator_factory import GeneratorFactory
 from dlio_benchmark.storage.storage_factory import StorageFactory
-from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile
+from dlio_benchmark.utils.utility import Profile, PerfTrace
 
 dlp = Profile(MODULE_DLIO_BENCHMARK)
 

@@ -22,7 +22,7 @@ import logging
 import numpy as np
 
 from dlio_benchmark.utils.utility import progress, utcnow
-from dlio_profiler.logger import fn_interceptor as Profile
+from dlio_benchmark.utils.utility import Profile
 from shutil import copyfile
 from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
 
