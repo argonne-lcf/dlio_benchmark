@@ -33,6 +33,24 @@ import socket
 import importlib.util
 # UTC timestamp format with microsecond precision
 from dlio_benchmark.common.enumerations import LoggerType, MPIState
+try:
+    from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile
+except:
+    class Profile:
+        def __init__(self, name=None, cat=None):
+            self.type = type
+        def log(self, func):
+            return func
+        def iter(self, a):
+            return a
+    class dlio_logger:
+        def __init__(self,):
+            self.type = None
+        def initialize_log(self, logfile=None, data_dir=None, process_id=-1):
+            return
+        def iter(self, a):
+            return a
+    PerfTrace = dlio_logger()
 
 LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 

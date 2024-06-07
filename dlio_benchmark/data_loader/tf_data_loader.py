@@ -25,7 +25,7 @@ from dlio_benchmark.common.enumerations import DataLoaderType, Shuffle, FormatTy
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.utils.utility import utcnow
-from dlio_profiler.logger import fn_interceptor as Profile
+from utils.utility import Profile
 
 import numpy as np
 

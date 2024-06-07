@@ -24,7 +24,7 @@ import os
 import glob
 import shutil
 
-from dlio_profiler.logger import fn_interceptor as Profile
+from utils.utility import Profile
 
 dlp = Profile(MODULE_STORAGE)
 
