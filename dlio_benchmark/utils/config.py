@@ -33,8 +33,7 @@ from dataclasses import dataclass
 import math
 import os
 import numpy as np
-
-from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile, DLIO_PROFILER_ENABLE
+from dlio_benchmark.utils.utility import Profile, PerfTrace, DLIO_PROFILER_ENABLE
 
 dlp = Profile(MODULE_CONFIG)
 @dataclass
@@ -133,6 +132,7 @@ class ConfigArguments:
     training_steps: int = 0
     eval_steps: int = 0
     samples_per_thread: int = 1
+    au: float = 0.90
     file_map = None
     global_index_map = None
     data_loader_class = None
@@ -572,3 +572,7 @@ def LoadConfig(args, config):
             args.iostat_devices = config['profiling']['iostat_devices']
             if isinstance(args.iostat_devices, str):
                 args.iostat_devices = [args.iostat_devices]
+
+    if 'metric' in config:
+        if 'au' in config['metric']:
+            args.au = config['metric']['au']

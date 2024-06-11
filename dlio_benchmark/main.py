@@ -16,7 +16,7 @@
 """
 import os
 import math
-import hydra
+
 import logging
 from time import time, sleep
 import json
@@ -46,10 +46,13 @@ from dlio_benchmark.profiler.profiler_factory import ProfilerFactory
 from dlio_benchmark.framework.framework_factory import FrameworkFactory
 from dlio_benchmark.data_generator.generator_factory import GeneratorFactory
 from dlio_benchmark.storage.storage_factory import StorageFactory
-from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile
+from dlio_benchmark.utils.utility import Profile, PerfTrace
 
 dlp = Profile(MODULE_DLIO_BENCHMARK)
-
+from mpi4py import MPI
+# To make sure the output folder is the same in all the nodes. We have to do this. 
+MPI.COMM_WORLD.Barrier()
+import hydra
 
 class DLIOBenchmark(object):
     """

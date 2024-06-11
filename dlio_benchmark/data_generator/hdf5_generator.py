@@ -21,7 +21,7 @@ import numpy as np
 from dlio_benchmark.common.enumerations import Compression
 from dlio_benchmark.data_generator.data_generator import DataGenerator
 from dlio_benchmark.utils.utility import progress
-from dlio_profiler.logger import fn_interceptor as Profile
+from dlio_benchmark.utils.utility import Profile
 from shutil import copyfile
 
 from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
