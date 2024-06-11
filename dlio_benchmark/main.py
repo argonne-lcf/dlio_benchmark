@@ -50,8 +50,9 @@ from dlio_benchmark.utils.utility import Profile, PerfTrace
 
 dlp = Profile(MODULE_DLIO_BENCHMARK)
 from mpi4py import MPI
+comm = MPI.COMM_WORLD
 # To make sure the output folder is the same in all the nodes. We have to do this. 
-MPI.COMM_WORLD.Barrier()
+comm.Barrier()
 import hydra
 
 class DLIOBenchmark(object):
