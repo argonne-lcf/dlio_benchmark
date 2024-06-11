@@ -50,7 +50,6 @@ from dlio_benchmark.storage.storage_factory import StorageFactory
 from dlio_benchmark.utils.utility import Profile, PerfTrace
 
 dlp = Profile(MODULE_DLIO_BENCHMARK)
-
 # To make sure the output folder is the same in all the nodes. We have to do this. 
 comm.Barrier()
 import hydra
