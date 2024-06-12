@@ -93,7 +93,7 @@ class TorchFramework(Framework):
 
     @dlp.log
     def compute(self, x, epoch_number, step, computation_time):
-        torch_sleep(computation_time)
+        return self.model(x, computation_time)
 
     @dlp.log
     def get_loader(self, dataset_type=DatasetType.TRAIN):
