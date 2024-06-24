@@ -78,7 +78,7 @@ jobs:
       run: |
         echo "Profiler ${DFTRACER_ENABLE} gcc $CC"
         source ${VENV}/bin/activate
-        pip install --force-reinstall pydftracer
+        pip install --force-reinstall git+https://github.com/hariharan-devarajan/dlio-profiler.git@rebrand/dftracer
     - name: test_gen_data
       run: |
         source ${VENV}/bin/activate
