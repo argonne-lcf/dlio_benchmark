@@ -17,14 +17,14 @@ jobs:
     name: ${{ matrix.os }}-${{ matrix.profiler }}-${{ matrix.gcc }}-${{ matrix.python }}
     runs-on: ${{ matrix.os }}
     env:
-      VENV: "/home/runner/work/venv"
-      DLIO_PROFILER_ENABLE: ${{ matrix.profiler }}
       CC: gcc-${{ matrix.gcc }}
       CXX: g++-${{ matrix.gcc }}
-      RDMAV_FORK_SAFE: "1"
-      PYTHON_VER: ${{ matrix.python }}
-      DLIO_PROFILER_LOG_LEVEL: "INFO"
+      DFTRACER_ENABLE: ${{ matrix.profiler }}
+      DFTRACER_LOG_LEVEL: "INFO"
       GOTCHA_DEBUG: 3
+      PYTHON_VER: ${{ matrix.python }}
+      RDMAV_FORK_SAFE: "1"
+      VENV: "/home/runner/work/venv"
     steps:
     - name: clear disc
       run: |
@@ -49,7 +49,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ env.VENV }}
-        key: ${{env.VENV }}-${{env.DLIO_PROFILER}}-${{ matrix.gcc }}-${{ matrix.python }}-${{ hashFiles('setup.py') }}
+        key: ${{env.VENV }}-${{env.DFTRACER_ENABLE}}-${{ matrix.gcc }}-${{ matrix.python }}-${{ hashFiles('setup.py') }}
     - name: Install System Tools
       run: |
         sudo apt update
@@ -68,7 +68,7 @@ jobs:
     - name: Install DLIO
       if: steps.cache-modules.outputs.cache-hit != 'true'
       run: |
-        echo "Profiler ${DLIO_PROFILER} gcc $CC"
+        echo "Profiler ${DFTRACER_ENABLE} gcc $CC"
         python -m pip install --upgrade pip
         pip install virtualenv
         python -m venv ${VENV}
@@ -76,9 +76,9 @@ jobs:
         pip install .[test]       
     - name: Install DLIO Profiler
       run: |
-        echo "Profiler ${DLIO_PROFILER} gcc $CC"
+        echo "Profiler ${DFTRACER_ENABLE} gcc $CC"
         source ${VENV}/bin/activate
-        pip install --force-reinstall dlio_profiler_py
+        pip install --force-reinstall pydftracer
     - name: test_gen_data
       run: |
         source ${VENV}/bin/activate
