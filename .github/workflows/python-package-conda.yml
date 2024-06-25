@@ -20,7 +20,7 @@ jobs:
       CC: gcc-${{ matrix.gcc }}
       CXX: g++-${{ matrix.gcc }}
       DFTRACER_ENABLE: ${{ matrix.profiler }}
-      DFTRACER_LOG_LEVEL: "INFO"
+      DFTRACER_LOG_LEVEL: "DEBUG"
       GOTCHA_DEBUG: 3
       PYTHON_VER: ${{ matrix.python }}
       RDMAV_FORK_SAFE: "1"
