@@ -24,6 +24,7 @@ jobs:
       GOTCHA_DEBUG: 3
       PYTHON_VER: ${{ matrix.python }}
       RDMAV_FORK_SAFE: "1"
+      DFTRACER_BUILD_TYPE: "Debug"
       VENV: "/home/runner/work/venv"
     steps:
     - name: clear disc
