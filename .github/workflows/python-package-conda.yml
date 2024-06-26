@@ -59,7 +59,7 @@ jobs:
     - name: Install DLIO
       if: steps.cache-modules.outputs.cache-hit != 'true'
       run: |
-        echo "Profiler ${DFTRACER_ENABLE} gcc $CC"
+        echo "Tracer ${DFTRACER_ENABLE} gcc $CC"
         python -m pip install --upgrade pip
         pip install virtualenv
         python -m venv ${VENV}

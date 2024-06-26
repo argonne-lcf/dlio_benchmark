@@ -15,7 +15,7 @@ core_deps = [
  'h5py>=3.7.0',
  'pandas>=1.5.1',
  'psutil',
- 'pydftracer @ git+https://github.com/hariharan-devarajan/dlio-profiler.git@rebrand/dftracer'
+ 'pydftracer==1.0.0'
 ]
 x86_deps = [
  'hydra-core >= 1.2.0',
