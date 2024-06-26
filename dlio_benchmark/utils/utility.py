@@ -34,7 +34,7 @@ import importlib.util
 # UTC timestamp format with microsecond precision
 from dlio_benchmark.common.enumerations import LoggerType, MPIState
 try:
-    from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile, DLIO_PROFILER_ENABLE
+    from dftracer.logger import dftracer as PerfTrace, dft_fn as Profile, DFTRACER_ENABLE as DFTRACER_ENABLE
 except:
     class Profile(object):
         def __init__(self, name=None, cat=None):
@@ -51,15 +51,15 @@ except:
             return
         def update(self, *, epoch=0, step=0, size=0, default=None):
             return
-    class dlio_logger(object):
+    class dftracer(object):
         def __init__(self,):
             self.type = None
         def initialize_log(self, logfile=None, data_dir=None, process_id=-1):
             return
         def iter(self, a):
             return a
-    PerfTrace = dlio_logger()
-    DLIO_PROFILER_ENABLE = False
+    PerfTrace = dftracer()
+    DFTRACER_ENABLE = False
 
 LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 

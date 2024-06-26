@@ -75,19 +75,19 @@ These files are in chrome tracing's json line format. This can be visualized usi
 Full Stack Profiling
 '''''''''''''''''''''
 
-DLIO_Benchmark has a optional full stack profiler called `dlio-profiler https://github.com/hariharan-devarajan/dlio-profiler`_. 
+DLIO_Benchmark has a optional full stack profiler called `dftracer https://github.com/hariharan-devarajan/dftracer`_. 
 
 Installing Profiler
 *******************
 
-Installing just dlio-profiler
+Installing just dftracer
 
 .. code-block:: bash
 
-    pip install git+https://github.com/hariharan-devarajan/dlio-profiler.git@dev
+    pip install git+https://github.com/hariharan-devarajan/dftracer.git@dev
 
 
-DLIO Profiler is always installed along with dlio_benchmark
+DFTracer is always installed along with dlio_benchmark
 
 .. code-block:: bash
 

@@ -94,7 +94,7 @@ class DLIOBenchmark(object):
         self.comm.barrier()
         # Configure the logging library
         self.args.configure_dlio_logging(is_child=False)
-        self.dlio_profiler = self.args.configure_dlio_profiler(is_child=False, use_pid=False)
+        self.dftracer = self.args.configure_dftracer(is_child=False, use_pid=False)
         with Profile(name=f"{self.__init__.__qualname__}", cat=MODULE_DLIO_BENCHMARK):
             if self.args.my_rank == 0:
                 logging.info(f"{utcnow()} Running DLIO with {self.args.comm_size} process(es)")
@@ -381,7 +381,7 @@ class DLIOBenchmark(object):
             self.stats.finalize()
             self.stats.save_data()
         self.comm.barrier()
-        self.args.finalize_dlio_profiler(self.dlio_profiler)
+        self.args.finalize_dftracer(self.dftracer)
 
 
 @hydra.main(version_base=None, config_path="configs", config_name="config")

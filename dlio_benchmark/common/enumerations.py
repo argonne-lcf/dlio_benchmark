@@ -184,7 +184,7 @@ class LoggerType(Enum):
     Logger types supported by the benchmark.
     """
     DEFAULT = 'default'
-    DLIO_PROFILER = 'dlio_profiler'
+    DFTRACER = 'dftracer'
 
     def __str__(self):
         return self.value

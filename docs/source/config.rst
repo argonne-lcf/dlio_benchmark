@@ -378,7 +378,7 @@ profiling
 .. note::
    
    We support multi-level profiling using:
-    * ``dlio_profiler``: https://github.com/hariharan-devarajan/dlio-profiler. DLIO_PROFILER_ENABLE=1 has to be set to enable profiler.
+    * ``dftracer``: https://github.com/hariharan-devarajan/dftracer. DFTRACER_ENABLE=1 has to be set to enable profiler.
     Please refer to :ref:`profiling` on how to enable these profiling tools. 
 
 How to create a DLIO configuration YAML file
