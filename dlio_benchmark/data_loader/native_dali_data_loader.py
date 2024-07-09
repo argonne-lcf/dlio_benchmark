@@ -13,7 +13,7 @@ from dlio_benchmark.common.enumerations import Shuffle, DataLoaderType, DatasetT
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.utils.utility import utcnow
-from dftracer.logger import dlio_logger as PerfTrace, fn_interceptor as Profile
+from dlio_benchmark.utils.utility import PerfTrace, Profile
 
 dlp = Profile(MODULE_DATA_LOADER)
 
