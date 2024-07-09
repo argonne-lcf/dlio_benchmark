@@ -19,7 +19,7 @@ import numpy as np
 from dlio_benchmark.common.constants import MODULE_DATA_READER
 from dlio_benchmark.reader.reader_handler import FormatReader
 
-from dftracer.logger import fn_interceptor as Profile
+from dlio_benchmark.utils.utility import Profile
 
 dlp = Profile(MODULE_DATA_READER)
 
