@@ -28,7 +28,7 @@ from dlio_benchmark.reader.reader_handler import FormatReader
 from dlio_benchmark.utils.utility import utcnow
 from dlio_benchmark.common.enumerations import DatasetType, Shuffle
 import nvidia.dali.tfrecord as tfrec
-from dftracer.logger import dlio_logger as PerfTrace, fn_interceptor as Profile
+from dlio_benchmark.utils.utility import PerfTrace, Profile
 
 dlp = Profile(MODULE_DATA_READER)
 
