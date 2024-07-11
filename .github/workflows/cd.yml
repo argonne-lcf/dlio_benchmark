@@ -1,4 +1,4 @@
-name: Publish DLIO Benchmark
+name: Release
 
 on:
   release:
