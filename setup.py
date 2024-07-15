@@ -9,7 +9,7 @@ test_deps = [
 ]
 core_deps = [
     "Pillow~=9.3.0",
-    "PyYAML~=6.0",
+    "PyYAML~=6.0.0",
     "h5py~=3.11.0",
     "mpi4py~=3.1.4",
     "numpy~=1.23.5",
@@ -21,8 +21,8 @@ core_deps = [
 x86_deps = [
     f"hydra-core=={HYDRA_VERSION}",
     "nvidia-dali-cuda110>=1.34.0",
-    "tensorflow>=2.11",
-    "torch>=2.2",
+    "tensorflow>=2.11.0",
+    "torch>=2.2.0",
     "torchaudio",
     "torchvision",
 ]
