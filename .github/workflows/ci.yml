@@ -62,7 +62,7 @@ jobs:
       - name: Install DLIO via setup.py
         if: matrix.venv == 'via-setup' && steps.cache-modules.outputs.cache-hit != 'true'
         run: |
-          echo "venv: ${matrix.venv} - tracer: ${DFTRACER_ENABLE} - gcc: $CC"
+          echo "venv: ${VENV_PATH} - tracer: ${DFTRACER_ENABLE} - gcc: $CC"
           python -m venv ${VENV_PATH}
           source ${VENV_PATH}/bin/activate
           pip install --upgrade pip
@@ -70,7 +70,7 @@ jobs:
       - name: Install DLIO via requirements.txt
         if: matrix.venv == 'via-reqs' && steps.cache-modules.outputs.cache-hit != 'true'
         run: |
-          echo "venv: ${matrix.venv} - tracer: ${DFTRACER_ENABLE} - gcc: $CC"
+          echo "venv: ${VENV_PATH} - tracer: ${DFTRACER_ENABLE} - gcc: $CC"
           python -m venv ${VENV_PATH}
           source ${VENV_PATH}/bin/activate
           pip install --upgrade pip
