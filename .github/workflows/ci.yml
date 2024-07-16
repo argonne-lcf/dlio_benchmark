@@ -10,18 +10,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04]
-        profiler: [0, 1]
+        os: [ubuntu-22.04]
         gcc: [10]
-        python: ["3.8", "3.9", "3.10"]
+        python: ["3.9", "3.10", "3.11"]
         venv: ["via-setup", "via-reqs"]
-    name: ${{ matrix.os }}-${{ matrix.gcc }}-${{ matrix.python }}-${{ matrix.profiler }}-${{ matrix.venv }}
+    name: ${{ matrix.os }}-${{ matrix.gcc }}-${{ matrix.python }}-${{ matrix.venv }}
     runs-on: ${{ matrix.os }}
     env:
       CC: gcc-${{ matrix.gcc }}
       CXX: g++-${{ matrix.gcc }}
       DFTRACER_BUILD_TYPE: "Debug"
-      DFTRACER_ENABLE: ${{ matrix.profiler }}
+      DFTRACER_ENABLE: 1
       DFTRACER_LOG_LEVEL: "DEBUG"
       DLIO_EXEC: ${{ matrix.venv == 'via-setup' && 'dlio_benchmark' || 'python dlio_benchmark/main.py' }}
       GOTCHA_DEBUG: 3
@@ -57,7 +56,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.VENV_PATH }}
-          key: ${{ matrix.venv }}-gcc${{ matrix.gcc }}-python${{ matrix.python }}-tracer${{ env.DFTRACER_ENABLE }}-${{ hashFiles('setup.py') }}
+          key: ${{ matrix.venv }}-gcc${{ matrix.gcc }}-python${{ matrix.python }}-${{ hashFiles('requirements.txt', 'setup.py') }}
       - name: Install system dependencies
         run: |
           sudo apt update
@@ -66,7 +65,7 @@ jobs:
       - name: Install DLIO via setup.py
         if: matrix.venv == 'via-setup' && steps.cache-modules.outputs.cache-hit != 'true'
         run: |
-          echo "venv: ${VENV_PATH} - tracer: ${DFTRACER_ENABLE} - gcc: $CC"
+          echo "venv: ${VENV_PATH} - gcc: $CC"
           python -m venv ${VENV_PATH}
           source ${VENV_PATH}/bin/activate
           pip install --upgrade pip
@@ -74,7 +73,7 @@ jobs:
       - name: Install DLIO via requirements.txt
         if: matrix.venv == 'via-reqs' && steps.cache-modules.outputs.cache-hit != 'true'
         run: |
-          echo "venv: ${VENV_PATH} - tracer: ${DFTRACER_ENABLE} - gcc: $CC"
+          echo "venv: ${VENV_PATH} - gcc: $CC"
           python -m venv ${VENV_PATH}
           source ${VENV_PATH}/bin/activate
           pip install --upgrade pip
