@@ -2,7 +2,7 @@
 
 Profiling 
 ==========================
-We have a built in support for iostat and DLIO profiler for I/O profiling. Below are instructions on how to use the two profiling tools in `DLIO`. 
+We have a built in support for iostat and DFTracer for I/O profiling. Below are instructions on how to use the two profiling tools in `DLIO`. 
 
 iostat profiling
 ---------------------
@@ -279,28 +279,28 @@ The output is
         ...
 
 
-DLIO profiler
+DFTracer
 --------------------------
 
-ttps://github.com/hariharan-devarajan/dlio-profiler. A profiler developed for capturing I/O calls. If DLIO profiler is enabled, profiling trace will be generated at the end of the run. The profiler provides profiling information at both application levels and system I/O calls level. 
+ttps://github.com/hariharan-devarajan/dftracer. A profiler developed for capturing I/O calls. If DFTracer is enabled, profiling trace will be generated at the end of the run. The profiler provides profiling information at both application levels and system I/O calls level. 
 
-To enable this functionality, one has to install DLIO profiler throught 
+To enable this functionality, one has to install DFTracer throught 
 
 .. code-block:: bash 
 
-    pip install dlio-profiler
+    pip install dftracer
 
 
 or 
 
 .. code-block:: bash 
 
-    git clone git@github.com:hariharan-devarajan/dlio-profiler.git
-    cd dlio-profiler
+    git clone git@github.com:hariharan-devarajan/dftracer.git
+    cd dftracer
     python setup.py build
     python setup.py install
 
-Then set ```DLIO_PROFILER_ENABLE=1``` to enable it. Other environemnt variables setting can be found here: https://dlio-profiler.readthedocs.io/en/latest/api.html#configurations-of-dlio-profiler. 
+Then set ```DFTRACER_ENABLE=1``` to enable it. Other environemnt variables setting can be found here: https://dftracer.readthedocs.io/en/latest/api.html#configurations-of-dftracer. 
 
 The profiler outputs all profiling output in <OUTPUT_FOLDER>/.trace*.pfw files.
 It contains application level profiling as well as low-level I/O calls from POSIX and STDIO layers.

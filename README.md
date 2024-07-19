@@ -22,7 +22,7 @@ dlio_benchmark ++workload.workflow.generate_data=True
 ```bash
 git clone https://github.com/argonne-lcf/dlio_benchmark
 cd dlio_benchmark/
-pip install .[dlio_profiler]
+pip install .[pydftracer]
 ```
 
 ## Container
@@ -85,10 +85,10 @@ Finally, run the benchmark
   ```bash
   mpirun -np 8 dlio_benchmark workload=unet3d
   ```
-Finally, run the benchmark with Profiler
+Finally, run the benchmark with Tracer
   ```bash
-  export DLIO_PROFILER_ENABLE=1
-  export DLIO_PROFILER_INC_METADATA=1
+  export DFTRACER_ENABLE=1
+  export DFTRACER_INC_METADATA=1
   mpirun -np 8 dlio_benchmark workload=unet3d
   ```
 

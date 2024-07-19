@@ -1,2 +1,2 @@
-include requirements.txt
-recursive-include configs *
+prune docs
+recursive-include dlio_benchmark/configs *.yaml
