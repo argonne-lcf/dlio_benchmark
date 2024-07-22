@@ -1,5 +1,5 @@
 # Deep Learning I/O (DLIO) Benchmark
-![test status](https://github.com/argonne-lcf/dlio_benchmark/actions/workflows/python-package-conda.yml/badge.svg)
+![test status](https://github.com/argonne-lcf/dlio_benchmark/actions/workflows/ci.yml/badge.svg)
 
 This README provides an abbreviated documentation of the DLIO code. Please refer to https://dlio-benchmark.readthedocs.io for full user documentation. 
 
