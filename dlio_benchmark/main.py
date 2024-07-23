@@ -16,8 +16,6 @@
 """
 import os
 import math
-from mpi4py import MPI
-comm = MPI.COMM_WORLD
 import logging
 from time import time, sleep
 import json
@@ -51,7 +49,6 @@ from dlio_benchmark.utils.utility import Profile, PerfTrace
 
 dlp = Profile(MODULE_DLIO_BENCHMARK)
 # To make sure the output folder is the same in all the nodes. We have to do this. 
-comm.Barrier()
 import hydra
 
 class DLIOBenchmark(object):
@@ -199,9 +196,9 @@ class DLIOBenchmark(object):
                 file_list_train = fullpaths
             elif dataset_type is DatasetType.VALID:
                 file_list_eval = fullpaths
-        if not self.generate_only and self.num_files_train > len(file_list_train):
-            raise Exception(
-                "Not enough training dataset is found; Please run the code with ++workload.workflow.generate_data=True")
+        #if not self.generate_only and self.num_files_train > len(file_list_train):
+        #    raise Exception(
+        #        "Not enough training dataset is found; Please run the code with ++workload.workflow.generate_data=True")
         if self.do_eval and self.num_files_eval > len(file_list_eval):
             raise Exception(
                 "Not enough evaluation dataset is found; Please run the code with ++workload.workflow.generate_data=True")
@@ -390,14 +387,16 @@ def main(cfg: DictConfig) -> None:
     """
     The main method to start the benchmark runtime.
     """
-    DLIOMPI.get_instance().initialize()
+    
     benchmark = DLIOBenchmark(cfg['workload'])
     os.environ["DARSHAN_DISABLE"] = "1"
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()
-    DLIOMPI.get_instance().finalize()
+    
 
 if __name__ == '__main__':
+    DLIOMPI.get_instance().initialize()
     main()
+    DLIOMPI.get_instance().finalize()
     exit(0)
