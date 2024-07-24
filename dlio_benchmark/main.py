@@ -380,22 +380,26 @@ class DLIOBenchmark(object):
         self.comm.barrier()
         self.args.finalize_dftracer(self.dftracer)
 
-
 @hydra.main(version_base=None, config_path="configs", config_name="config")
-def main(cfg: DictConfig) -> None:
-
-    """
-    The main method to start the benchmark runtime.
-    """
-    
+def run_benchmark(cfg: DictConfig):
     benchmark = DLIOBenchmark(cfg['workload'])
     os.environ["DARSHAN_DISABLE"] = "1"
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()
+
+
+def main() -> None:
+    """
+    The main method to start the benchmark runtime.
+    """
+    DLIOMPI.get_instance().initialize()
+    run_benchmark()
+    DLIOMPI.get_instance().finalize()
+    
     
 
 if __name__ == '__main__':
-    DLIOMPI.get_instance().initialize()
+   
     main()
-    DLIOMPI.get_instance().finalize()
+    
