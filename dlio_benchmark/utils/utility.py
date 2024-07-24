@@ -65,10 +65,8 @@ LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
 # MPI cannot be initialized automatically, or read_thread spawn/forkserver
 # child processes will abort trying to open a non-existant PMI_fd file.
-import mpi4py
-mpi4py.rc.initialize = False
-from mpi4py import MPI
 
+import mpi4py
 p = psutil.Process()
 
 
@@ -112,6 +110,7 @@ class DLIOMPI:
         return cls.__qualname__
 
     def initialize(self):
+        from mpi4py import MPI
         if self.mpi_state == MPIState.UNINITIALIZED:
             # MPI may have already been initialized by dlio_benchmark_test.py
             if not MPI.Is_initialized():
@@ -181,6 +180,7 @@ class DLIOMPI:
         else:
             return self.mpi_size//self.mpi_ppn
     def finalize(self):
+        from mpi4py import MPI
         if self.mpi_state == MPIState.MPI_INITIALIZED and MPI.Is_initialized():
             MPI.Finalize()
 
