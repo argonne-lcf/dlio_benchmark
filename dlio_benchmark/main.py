@@ -399,4 +399,3 @@ if __name__ == '__main__':
     DLIOMPI.get_instance().initialize()
     main()
     DLIOMPI.get_instance().finalize()
-    exit(0)

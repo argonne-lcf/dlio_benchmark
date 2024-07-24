@@ -76,7 +76,7 @@ class StatsCounter(object):
         if self.args.total_training_steps > 0:
             if self.args.total_training_steps > max_steps:
                 logging.error(f"Only have enough data for {max_steps} steps but {self.args.total_training_steps} wanted")
-                exit(-1)
+                return 
             self.steps_override = True
             self.steps = self.args.total_training_steps
         else:
