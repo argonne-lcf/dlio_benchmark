@@ -196,9 +196,9 @@ class DLIOBenchmark(object):
                 file_list_train = fullpaths
             elif dataset_type is DatasetType.VALID:
                 file_list_eval = fullpaths
-        #if not self.generate_only and self.num_files_train > len(file_list_train):
-        #    raise Exception(
-        #        "Not enough training dataset is found; Please run the code with ++workload.workflow.generate_data=True")
+        if not self.generate_only and self.num_files_train > len(file_list_train):
+            raise Exception(
+                "Not enough training dataset is found; Please run the code with ++workload.workflow.generate_data=True")
         if self.do_eval and self.num_files_eval > len(file_list_eval):
             raise Exception(
                 "Not enough evaluation dataset is found; Please run the code with ++workload.workflow.generate_data=True")
