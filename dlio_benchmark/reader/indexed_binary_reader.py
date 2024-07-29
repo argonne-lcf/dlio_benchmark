@@ -35,7 +35,7 @@ class IndexedBinaryReader(FormatReader):
     @dlp.log_init
     def __init__(self, dataset_type, thread_index, epoch):
         super().__init__(dataset_type, thread_index)
-        self.file_map = {}
+        self.file_map_ibr = {}
         self.load_index()
 
     def index_file_path_off(self, prefix_path):
@@ -50,25 +50,25 @@ class IndexedBinaryReader(FormatReader):
         return a
 
     def load_index_file(self, global_sample_idx, filename, sample_index):
-        if filename not in self.file_map:
+        if filename not in self.file_map_ibr:
             offset_file = self.index_file_path_off(filename)
             sz_file = self.index_file_path_size(filename)
-            self.file_map[filename] = []
+            self.file_map_ibr[filename] = []
             with open(offset_file, 'rb') as f:
                 offsets = self.read_longs(f, self._args.num_samples_per_file)
                 logging.debug(f"read offsets {offsets} from file {offset_file}")
-                self.file_map[filename].append(offsets)
+                self.file_map_ibr[filename].append(offsets)
             with open(sz_file, 'rb') as f:
                 sizes = self.read_longs(f, self._args.num_samples_per_file)
                 logging.debug(f"read sizes {sizes} from file {sz_file}")
-                self.file_map[filename].append(sizes)
+                self.file_map_ibr[filename].append(sizes)
     @dlp.log
     def load_index(self):
         if self._args.data_loader_sampler == DataLoaderSampler.ITERATIVE:
-            for global_sample_idx, filename, sample_index in self._args.file_map[self.thread_index]:
+            for global_sample_idx, filename, sample_index in self.file_map[self.thread_index]:
                 self.load_index_file(global_sample_idx, filename, sample_index)
         elif self._args.data_loader_sampler == DataLoaderSampler.INDEX:
-            for global_sample_idx, (filename, sample_index) in self._args.global_index_map.items():
+            for global_sample_idx, (filename, sample_index) in self.global_index_map.items():
                 self.load_index_file(global_sample_idx, filename, sample_index)
 
 
@@ -88,8 +88,8 @@ class IndexedBinaryReader(FormatReader):
     def get_sample(self, filename, sample_index):
         super().get_sample(filename, sample_index)
         file = self.open_file_map[filename]
-        offset = self.file_map[filename][0][sample_index]
-        size = self.file_map[filename][1][sample_index]
+        offset = self.file_map_ibr[filename][0][sample_index]
+        size = self.file_map_ibr[filename][1][sample_index]
         logging.debug(f"reading sample from offset {offset} of size {size} from file {filename}")
         file.seek(offset)
         image = np.empty(size, dtype=np.uint8)

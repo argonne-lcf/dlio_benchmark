@@ -223,7 +223,6 @@ class DLIOBenchmark(object):
         """
         Evaluation loop will read a separate dataset and has its own own computation time.
         """
-        self.args.reconfigure(epoch, DatasetType.VALID)
         step = 1
         total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         loader = self.framework.get_loader(DatasetType.VALID)
@@ -331,7 +330,7 @@ class DLIOBenchmark(object):
             self.next_checkpoint_epoch = self.checkpoint_after_epoch
             epoch = 1
             # Initialize the dataset
-            self.args.reconfigure(epoch, DatasetType.TRAIN)
+            self.args.reconfigure(epoch)
             self.framework.init_loader(self.args.format, epoch=epoch, data_loader=self.args.data_loader)
             self.framework.get_loader(dataset_type=DatasetType.TRAIN).read()
             if self.do_eval:
@@ -339,7 +338,6 @@ class DLIOBenchmark(object):
             for epoch in range(1, self.epochs + 1):
                 self.next_checkpoint_step = self.steps_between_checkpoints
                 self.stats.start_train(epoch)
-                self.args.reconfigure(epoch, DatasetType.TRAIN)
                 steps = self._train(epoch)
                 self.stats.end_train(epoch, steps)
                 logging.debug(f"{utcnow()} Rank {self.my_rank} returned after {steps} steps.")
@@ -347,11 +345,11 @@ class DLIOBenchmark(object):
                 # Perform evaluation if enabled
                 if self.do_eval and epoch >= next_eval_epoch:
                     next_eval_epoch += self.epochs_between_evals
-                    self.args.reconfigure(epoch, DatasetType.VALID)
                     self.stats.start_eval(epoch)
                     self._eval(epoch)
                     self.stats.end_eval(epoch)
                     self.framework.get_loader(DatasetType.VALID).finalize()
+                self.args.reconfigure(epoch + 1) # reconfigure once per epoch
                     
         self.stats.end_run()
 
