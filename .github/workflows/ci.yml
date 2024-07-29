@@ -81,118 +81,118 @@ jobs:
       - name: test_gen_data
         run: |
           source ${VENV_PATH}/bin/activate
-          mpirun -np 2 pytest -k test_gen_data[png-tensorflow] -v
-          mpirun -np 2 pytest -k test_gen_data[npz-tensorflow] -v
-          mpirun -np 2 pytest -k test_gen_data[jpeg-tensorflow] -v
-          mpirun -np 2 pytest -k test_gen_data[tfrecord-tensorflow] -v
-          mpirun -np 2 pytest -k test_gen_data[hdf5-tensorflow] -v
-          mpirun -np 2 pytest -k test_gen_data[indexed_binary-tensorflow] -v
-          mpirun -np 2 pytest -k test_gen_data[mmap_indexed_binary-tensorflow] -v
+          mpirun -np 2 pytest -k test_gen_data[png-tensorflow]
+          mpirun -np 2 pytest -k test_gen_data[npz-tensorflow]
+          mpirun -np 2 pytest -k test_gen_data[jpeg-tensorflow]
+          mpirun -np 2 pytest -k test_gen_data[tfrecord-tensorflow]
+          mpirun -np 2 pytest -k test_gen_data[hdf5-tensorflow]
+          mpirun -np 2 pytest -k test_gen_data[indexed_binary-tensorflow]
+          mpirun -np 2 pytest -k test_gen_data[mmap_indexed_binary-tensorflow]
           rm -rf data
       - name: test_custom_storage_root_gen_data
         run: |
           source ${VENV_PATH}/bin/activate
-          mpirun -np 2 pytest -k test_storage_root_gen_data[png-tensorflow] -v
-          mpirun -np 2 pytest -k test_storage_root_gen_data[npz-tensorflow] -v
-          mpirun -np 2 pytest -k test_storage_root_gen_data[jpeg-tensorflow] -v
-          mpirun -np 2 pytest -k test_storage_root_gen_data[tfrecord-tensorflow] -v
-          mpirun -np 2 pytest -k test_storage_root_gen_data[hdf5-tensorflow] -v
-          mpirun -np 2 pytest -k test_storage_root_gen_data[indexed_binary-tensorflow] -v
-          mpirun -np 2 pytest -k test_storage_root_gen_data[mmap_indexed_binary-tensorflow] -v
+          mpirun -np 2 pytest -k test_storage_root_gen_data[png-tensorflow]
+          mpirun -np 2 pytest -k test_storage_root_gen_data[npz-tensorflow]
+          mpirun -np 2 pytest -k test_storage_root_gen_data[jpeg-tensorflow]
+          mpirun -np 2 pytest -k test_storage_root_gen_data[tfrecord-tensorflow]
+          mpirun -np 2 pytest -k test_storage_root_gen_data[hdf5-tensorflow]
+          mpirun -np 2 pytest -k test_storage_root_gen_data[indexed_binary-tensorflow]
+          mpirun -np 2 pytest -k test_storage_root_gen_data[mmap_indexed_binary-tensorflow]
           rm -rf data
       - name: test_train
         run: |
           source ${VENV_PATH}/bin/activate
-          mpirun -np 2 pytest -k test_train[png-tensorflow-tensorflow] -v
-          mpirun -np 2 pytest -k test_train[npz-tensorflow-tensorflow] -v
-          mpirun -np 2 pytest -k test_train[jpeg-tensorflow-tensorflow] -v
-          mpirun -np 2 pytest -k test_train[tfrecord-tensorflow-tensorflow] -v
-          mpirun -np 2 pytest -k test_train[hdf5-tensorflow-tensorflow] -v
-          mpirun -np 2 pytest -k test_train[csv-tensorflow-tensorflow] -v
-          mpirun -np 2 pytest -k test_train[png-pytorch-pytorch] -v
-          mpirun -np 2 pytest -k test_train[npz-pytorch-pytorch] -v
-          mpirun -np 2 pytest -k test_train[jpeg-pytorch-pytorch] -v
-          mpirun -np 2 pytest -k test_train[hdf5-pytorch-pytorch] -v
-          mpirun -np 2 pytest -k test_train[csv-pytorch-pytorch] -v
-          mpirun -np 2 pytest -k test_train[png-tensorflow-dali] -v
-          mpirun -np 2 pytest -k test_train[npz-tensorflow-dali] -v
-          mpirun -np 2 pytest -k test_train[jpeg-tensorflow-dali] -v
-          mpirun -np 2 pytest -k test_train[hdf5-tensorflow-dali] -v
-          mpirun -np 2 pytest -k test_train[csv-tensorflow-dali] -v
-          mpirun -np 2 pytest -k test_train[png-pytorch-dali] -v
-          mpirun -np 2 pytest -k test_train[npz-pytorch-dali] -v
-          mpirun -np 2 pytest -k test_train[jpeg-pytorch-dali] -v
-          mpirun -np 2 pytest -k test_train[hdf5-pytorch-dali] -v
-          mpirun -np 2 pytest -k test_train[csv-pytorch-dali] -v
-          mpirun -np 2 pytest -k test_train[indexed_binary-tensorflow-tensorflow] -v
-          mpirun -np 2 pytest -k test_train[indexed_binary-pytorch-pytorch] -v
-          mpirun -np 2 pytest -k test_train[indexed_binary-tensorflow-dali] -v
-          mpirun -np 2 pytest -k test_train[indexed_binary-pytorch-dali] -v
-          mpirun -np 2 pytest -k test_train[mmap_indexed_binary-tensorflow-tensorflow] -v
-          mpirun -np 2 pytest -k test_train[mmap_indexed_binary-pytorch-pytorch] -v
-          mpirun -np 2 pytest -k test_train[mmap_indexed_binary-tensorflow-dali] -v
-          mpirun -np 2 pytest -k test_train[mmap_indexed_binary-pytorch-dali] -v
+          mpirun -np 2 pytest -k test_train[png-tensorflow-tensorflow]
+          mpirun -np 2 pytest -k test_train[npz-tensorflow-tensorflow]
+          mpirun -np 2 pytest -k test_train[jpeg-tensorflow-tensorflow]
+          mpirun -np 2 pytest -k test_train[tfrecord-tensorflow-tensorflow]
+          mpirun -np 2 pytest -k test_train[hdf5-tensorflow-tensorflow]
+          mpirun -np 2 pytest -k test_train[csv-tensorflow-tensorflow]
+          mpirun -np 2 pytest -k test_train[png-pytorch-pytorch]
+          mpirun -np 2 pytest -k test_train[npz-pytorch-pytorch]
+          mpirun -np 2 pytest -k test_train[jpeg-pytorch-pytorch]
+          mpirun -np 2 pytest -k test_train[hdf5-pytorch-pytorch]
+          mpirun -np 2 pytest -k test_train[csv-pytorch-pytorch]
+          mpirun -np 2 pytest -k test_train[png-tensorflow-dali]
+          mpirun -np 2 pytest -k test_train[npz-tensorflow-dali]
+          mpirun -np 2 pytest -k test_train[jpeg-tensorflow-dali]
+          mpirun -np 2 pytest -k test_train[hdf5-tensorflow-dali]
+          mpirun -np 2 pytest -k test_train[csv-tensorflow-dali]
+          mpirun -np 2 pytest -k test_train[png-pytorch-dali]
+          mpirun -np 2 pytest -k test_train[npz-pytorch-dali]
+          mpirun -np 2 pytest -k test_train[jpeg-pytorch-dali]
+          mpirun -np 2 pytest -k test_train[hdf5-pytorch-dali]
+          mpirun -np 2 pytest -k test_train[csv-pytorch-dali]
+          mpirun -np 2 pytest -k test_train[indexed_binary-tensorflow-tensorflow]
+          mpirun -np 2 pytest -k test_train[indexed_binary-pytorch-pytorch]
+          mpirun -np 2 pytest -k test_train[indexed_binary-tensorflow-dali]
+          mpirun -np 2 pytest -k test_train[indexed_binary-pytorch-dali]
+          mpirun -np 2 pytest -k test_train[mmap_indexed_binary-tensorflow-tensorflow]
+          mpirun -np 2 pytest -k test_train[mmap_indexed_binary-pytorch-pytorch]
+          mpirun -np 2 pytest -k test_train[mmap_indexed_binary-tensorflow-dali]
+          mpirun -np 2 pytest -k test_train[mmap_indexed_binary-pytorch-dali]
           rm -rf data
       - name: test_custom_storage_root_train
         run: |
           source ${VENV_PATH}/bin/activate
-          mpirun -np 2 pytest -k test_custom_storage_root_train[png-tensorflow] -v
-          mpirun -np 2 pytest -k test_custom_storage_root_train[npz-tensorflow] -v
-          mpirun -np 2 pytest -k test_custom_storage_root_train[jpeg-tensorflow] -v
-          mpirun -np 2 pytest -k test_custom_storage_root_train[tfrecord-tensorflow] -v
-          mpirun -np 2 pytest -k test_custom_storage_root_train[hdf5-tensorflow] -v
-          mpirun -np 2 pytest -k test_custom_storage_root_train[csv-tensorflow] -v
-          mpirun -np 2 pytest -k test_custom_storage_root_train[png-pytorch] -v
-          mpirun -np 2 pytest -k test_custom_storage_root_train[npz-pytorch] -v
-          mpirun -np 2 pytest -k test_custom_storage_root_train[jpeg-pytorch] -v
-          mpirun -np 2 pytest -k test_custom_storage_root_train[hdf5-pytorch] -v
-          mpirun -np 2 pytest -k test_custom_storage_root_train[csv-pytorch] -v
-          mpirun -np 2 pytest -k test_custom_storage_root_train[indexed_binary-tensorflow] -v
-          mpirun -np 2 pytest -k test_custom_storage_root_train[indexed_binary-pytorch] -v
-          mpirun -np 2 pytest -k test_custom_storage_root_train[mmap_indexed_binary-tensorflow] -v
-          mpirun -np 2 pytest -k test_custom_storage_root_train[mmap_indexed_binary-pytorch] -v
+          mpirun -np 2 pytest -k test_custom_storage_root_train[png-tensorflow]
+          mpirun -np 2 pytest -k test_custom_storage_root_train[npz-tensorflow]
+          mpirun -np 2 pytest -k test_custom_storage_root_train[jpeg-tensorflow]
+          mpirun -np 2 pytest -k test_custom_storage_root_train[tfrecord-tensorflow]
+          mpirun -np 2 pytest -k test_custom_storage_root_train[hdf5-tensorflow]
+          mpirun -np 2 pytest -k test_custom_storage_root_train[csv-tensorflow]
+          mpirun -np 2 pytest -k test_custom_storage_root_train[png-pytorch]
+          mpirun -np 2 pytest -k test_custom_storage_root_train[npz-pytorch]
+          mpirun -np 2 pytest -k test_custom_storage_root_train[jpeg-pytorch]
+          mpirun -np 2 pytest -k test_custom_storage_root_train[hdf5-pytorch]
+          mpirun -np 2 pytest -k test_custom_storage_root_train[csv-pytorch]
+          mpirun -np 2 pytest -k test_custom_storage_root_train[indexed_binary-tensorflow]
+          mpirun -np 2 pytest -k test_custom_storage_root_train[indexed_binary-pytorch]
+          mpirun -np 2 pytest -k test_custom_storage_root_train[mmap_indexed_binary-tensorflow]
+          mpirun -np 2 pytest -k test_custom_storage_root_train[mmap_indexed_binary-pytorch]
           rm -rf data
       - name: test_checkpoint_epoch
         run: |
           source ${VENV_PATH}/bin/activate
-          mpirun -np 2 pytest -k test_checkpoint_epoch[tensorflow-1024-optimizers0-2-layer_params0-all_ranks] -v
-          mpirun -np 2 pytest -k test_checkpoint_epoch[pytorch-1024-optimizers1-2-layer_params1-all_ranks] -v
-          mpirun -np 2 pytest -k test_checkpoint_epoch[tensorflow-1024-optimizers2-2-layer_params2-rank_zero] -v
-          mpirun -np 2 pytest -k test_checkpoint_epoch[pytorch-1024-optimizers3-2-layer_params3-rank_zero] -v
-          mpirun -np 2 pytest -k test_checkpoint_epoch[tensorflow-1024-optimizers4-1-layer_params4-all_ranks] -v
-          mpirun -np 2 pytest -k test_checkpoint_epoch[pytorch-1024-optimizers5-1-layer_params5-all_ranks] -v
+          mpirun -np 2 pytest -k test_checkpoint_epoch[tensorflow-1024-optimizers0-2-layer_params0-all_ranks]
+          mpirun -np 2 pytest -k test_checkpoint_epoch[pytorch-1024-optimizers1-2-layer_params1-all_ranks]
+          mpirun -np 2 pytest -k test_checkpoint_epoch[tensorflow-1024-optimizers2-2-layer_params2-rank_zero]
+          mpirun -np 2 pytest -k test_checkpoint_epoch[pytorch-1024-optimizers3-2-layer_params3-rank_zero]
+          mpirun -np 2 pytest -k test_checkpoint_epoch[tensorflow-1024-optimizers4-1-layer_params4-all_ranks]
+          mpirun -np 2 pytest -k test_checkpoint_epoch[pytorch-1024-optimizers5-1-layer_params5-all_ranks]
           rm -rf data
       - name: test_checkpoint_step
         run: |
           source ${VENV_PATH}/bin/activate
-          mpirun -np 2 pytest -k test_checkpoint_step -v
+          mpirun -np 2 pytest -k test_checkpoint_step
       - name: test_eval
         run: |
           source ${VENV_PATH}/bin/activate
-          mpirun -np 2 pytest -k test_eval -v
+          mpirun -np 2 pytest -k test_eval
       - name: test_multi_threads
         run: |
           source ${VENV_PATH}/bin/activate
-          mpirun -np 2 pytest -k test_multi_threads[tensorflow-0]  -v
-          mpirun -np 2 pytest -k test_multi_threads[tensorflow-1]  -v
-          mpirun -np 2 pytest -k test_multi_threads[tensorflow-2]  -v
-          mpirun -np 2 pytest -k test_multi_threads[pytorch-0]  -v
-          mpirun -np 2 pytest -k test_multi_threads[pytorch-1]  -v
-          mpirun -np 2 pytest -k test_multi_threads[pytorch-2]  -v
+          mpirun -np 2 pytest -k test_multi_threads[tensorflow-0] 
+          mpirun -np 2 pytest -k test_multi_threads[tensorflow-1] 
+          mpirun -np 2 pytest -k test_multi_threads[tensorflow-2] 
+          mpirun -np 2 pytest -k test_multi_threads[pytorch-0] 
+          mpirun -np 2 pytest -k test_multi_threads[pytorch-1] 
+          mpirun -np 2 pytest -k test_multi_threads[pytorch-2] 
           rm -rf data
       - name: test-pytorch-multiprocessing-context
         run: |
           source ${VENV_PATH}/bin/activate
-          mpirun -np 2 pytest -k test_pytorch_multiprocessing_context[0-None] -v
-          mpirun -np 2 pytest -k test_pytorch_multiprocessing_context[1-fork] -v
-          mpirun -np 2 pytest -k test_pytorch_multiprocessing_context[2-forkserver] -v
-          mpirun -np 2 pytest -k test_pytorch_multiprocessing_context[2-spawn] -v
+          mpirun -np 2 pytest -k test_pytorch_multiprocessing_context[0-None]
+          mpirun -np 2 pytest -k test_pytorch_multiprocessing_context[1-fork]
+          mpirun -np 2 pytest -k test_pytorch_multiprocessing_context[2-forkserver]
+          mpirun -np 2 pytest -k test_pytorch_multiprocessing_context[2-spawn]
           rm -rf data
       - name: test_subset
         run: |
           source ${VENV_PATH}/bin/activate
           rm -rf output data checkpoints
-          mpirun -np 2 pytest -k test_subset -v
+          mpirun -np 2 pytest -k test_subset
           rm -rf data
       - name: test-tf-loader-tfrecord
         run: |
