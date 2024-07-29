@@ -138,6 +138,7 @@ class ConfigArguments:
     data_loader_class = None
     reader_class = None
     checkpoint_mechanism_class = None
+    native_data_loader = False
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -300,6 +301,13 @@ class ConfigArguments:
                         logging.info(f"Discovered custom data reader {class_name}")
                     self.reader_class = obj
                     break
+        self.native_data_loader = False
+        if self.data_loader == DataLoaderType.TENSORFLOW:
+            if self.format == FormatType.TFRECORD:
+                self.native_data_loader = True
+        elif self.data_loader == DataLoaderType.NATIVE_DALI:
+            if self.format in [FormatType.JPEG, FormatType.PNG, FormatType.NPY, FormatType.TFRECORD]:
+                self.native_data_loader = True
 
     @dlp.log
     def build_sample_map_iter(self, file_list, total_samples, epoch_number):
@@ -369,18 +377,20 @@ class ConfigArguments:
                     np.random.seed(self.seed)
                 np.random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else np.random.shuffle(
                     self.file_list_eval)
-        if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
-            if dataset_type is DatasetType.TRAIN:
-                global_file_map = self.build_sample_map_iter(self.file_list_train, self.total_samples_train,
-                                                             epoch_number)
-            else:
-                global_file_map = self.build_sample_map_iter(self.file_list_eval, self.total_samples_eval, epoch_number)
-            self.file_map = global_file_map[self.my_rank]
-        elif self.data_loader_sampler == DataLoaderSampler.INDEX:
-            if dataset_type is DatasetType.TRAIN:
-                self.global_index_map = self.get_global_map_index(self.file_list_train, self.total_samples_train)
-            else:
-                self.global_index_map = self.get_global_map_index(self.file_list_eval, self.total_samples_eval)
+        # the code assumes that file and sample shuffling is handled by the native data loader code.
+        if not self.native_data_loader:
+            if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
+                if dataset_type is DatasetType.TRAIN:
+                    global_file_map = self.build_sample_map_iter(self.file_list_train, self.total_samples_train,
+                                                                epoch_number)
+                else:
+                    global_file_map = self.build_sample_map_iter(self.file_list_eval, self.total_samples_eval, epoch_number)
+                self.file_map = global_file_map[self.my_rank]
+            elif self.data_loader_sampler == DataLoaderSampler.INDEX:
+                if dataset_type is DatasetType.TRAIN:
+                    self.global_index_map = self.get_global_map_index(self.file_list_train, self.total_samples_train)
+                else:
+                    self.global_index_map = self.get_global_map_index(self.file_list_eval, self.total_samples_eval)
 
 
 def LoadConfig(args, config):
