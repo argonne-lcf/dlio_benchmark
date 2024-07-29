@@ -81,7 +81,13 @@ jobs:
       - name: test_gen_data
         run: |
           source ${VENV_PATH}/bin/activate
-          mpirun -np 2 pytest -k test_gen_data
+          mpirun -np 2 pytest -k test_gen_data[png-tensorflow]
+          mpirun -np 2 pytest -k test_gen_data[npz-tensorflow]
+          mpirun -np 2 pytest -k test_gen_data[jpeg-tensorflow]
+          mpirun -np 2 pytest -k test_gen_data[tfrecord-tensorflow]
+          mpirun -np 2 pytest -k test_gen_data[hdf5-tensorflow]
+          mpirun -np 2 pytest -k test_gen_data[indexed_binary-tensorflow]
+          mpirun -np 2 pytest -k test_gen_data[mmap_indexed_binary-tensorflow]
           rm -rf data
       - name: test_custom_storage_root_gen_data
         run: |
