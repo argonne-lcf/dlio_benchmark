@@ -21,7 +21,7 @@ jobs:
       CXX: g++-${{ matrix.gcc }}
       DFTRACER_BUILD_TYPE: "Debug"
       DFTRACER_ENABLE: 1
-      DFTRACER_LOG_LEVEL: "DEBUG"
+      DFTRACER_LOG_LEVEL: "INFO"
       DLIO_EXEC: ${{ matrix.venv == 'via-setup' && 'dlio_benchmark' || 'python dlio_benchmark/main.py' }}
       GOTCHA_DEBUG: 3
       OMPI_ALLOW_RUN_AS_ROOT: 1
