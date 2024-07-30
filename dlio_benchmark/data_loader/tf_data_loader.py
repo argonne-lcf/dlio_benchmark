@@ -95,7 +95,7 @@ class TFDataLoader(BaseDataLoader):
             self._dataset = ReaderFactory.get_reader(type=self.format_type,
                                           dataset_type=self.dataset_type,
                                           thread_index=-1,
-                                          epoch_number=0).next()
+                                          epoch_number=self.epoch_number).next()
 
     @dlp.log
     def next(self):
