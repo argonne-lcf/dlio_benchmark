@@ -61,7 +61,7 @@ class DaliIndexDataset(object):
                 np.random.seed(self.seed)
             np.random.shuffle(self.indices)
     def __call__(self, sample_info):
-        logging.info(
+        logging.debug(
             f"{utcnow()} Reading {sample_info.idx_in_epoch} out of {self.samples_per_worker} by worker {self.worker_index} with {self.indices} indices")
         step = sample_info.iteration       
         if step >= self.total_num_steps or sample_info.idx_in_epoch >= self.samples_per_worker:
