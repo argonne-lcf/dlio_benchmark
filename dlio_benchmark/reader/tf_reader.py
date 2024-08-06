@@ -67,7 +67,7 @@ class TFReader(FormatReader):
                 'image': tf.io.FixedLenFeature([], tf.string),
                 'size': tf.io.FixedLenFeature([], tf.int64)
             }
-        parsed_example = tf.io.parse_example(serialized=serialized, features=features)
+        #parsed_example = tf.io.parse_example(serialized=serialized, features=features)
         # Get the image as raw bytes.
         #image_raw = parsed_example['image']
         #dimension = tf.cast(parsed_example['size'], tf.int32).numpy()
@@ -109,6 +109,7 @@ class TFReader(FormatReader):
         self._dataset = self._dataset.repeat()
         total = math.floor(len(self._file_list)/self._args.comm_size / self.batch_size * self._args.num_samples_per_file)
         return self._dataset.take(total*self._args.epochs).prefetch(buffer_size=self._args.prefetch_size)
+    
     @dlp.log
     def read_index(self, image_idx, step):
         return super().read_index(image_idx, step)
