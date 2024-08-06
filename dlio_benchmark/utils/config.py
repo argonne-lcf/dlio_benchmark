@@ -33,7 +33,7 @@ from dataclasses import dataclass
 import math
 import os
 import numpy as np
-from dlio_benchmark.utils.utility import Profile, PerfTrace, DLIO_PROFILER_ENABLE
+from dlio_benchmark.utils.utility import Profile, PerfTrace, DFTRACER_ENABLE
 
 dlp = Profile(MODULE_CONFIG)
 @dataclass
@@ -138,6 +138,7 @@ class ConfigArguments:
     data_loader_class = None
     reader_class = None
     checkpoint_mechanism_class = None
+    native_data_loader = False
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -178,12 +179,12 @@ class ConfigArguments:
             # logging's max timestamp resolution is msecs, we will pass in usecs in the message
         )
 
-    def configure_dlio_profiler(self, is_child=False, use_pid=False):
+    def configure_dftracer(self, is_child=False, use_pid=False):
         # with "multiprocessing_context=fork" the profiler file remains open in the child process
         if is_child and self.multiprocessing_context == "fork":
             return
         # Configure the profiler
-        if DLIO_PROFILER_ENABLE:
+        if DFTRACER_ENABLE:
             dlp_trace = get_trace_name(self.output_folder, use_pid)
             if DLIOMPI.get_instance().rank() == 0:
                 logging.info(f"{utcnow()} Profiling DLIO {dlp_trace}")
@@ -195,8 +196,8 @@ class ConfigArguments:
                                                    process_id=self.my_rank)
         return None
 
-    def finalize_dlio_profiler(self, dlp_logger):
-        if DLIO_PROFILER_ENABLE and dlp_logger:
+    def finalize_dftracer(self, dlp_logger):
+        if DFTRACER_ENABLE and dlp_logger:
             dlp_logger.finalize()
 
     @dlp.log
@@ -300,6 +301,13 @@ class ConfigArguments:
                         logging.info(f"Discovered custom data reader {class_name}")
                     self.reader_class = obj
                     break
+        self.native_data_loader = False
+        if self.data_loader == DataLoaderType.TENSORFLOW:
+            if self.format == FormatType.TFRECORD:
+                self.native_data_loader = True
+        elif self.data_loader == DataLoaderType.NATIVE_DALI:
+            if self.format in [FormatType.JPEG, FormatType.PNG, FormatType.NPY, FormatType.TFRECORD]:
+                self.native_data_loader = True
 
     @dlp.log
     def build_sample_map_iter(self, file_list, total_samples, epoch_number):
@@ -369,18 +377,20 @@ class ConfigArguments:
                     np.random.seed(self.seed)
                 np.random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else np.random.shuffle(
                     self.file_list_eval)
-        if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
-            if dataset_type is DatasetType.TRAIN:
-                global_file_map = self.build_sample_map_iter(self.file_list_train, self.total_samples_train,
-                                                             epoch_number)
-            else:
-                global_file_map = self.build_sample_map_iter(self.file_list_eval, self.total_samples_eval, epoch_number)
-            self.file_map = global_file_map[self.my_rank]
-        elif self.data_loader_sampler == DataLoaderSampler.INDEX:
-            if dataset_type is DatasetType.TRAIN:
-                self.global_index_map = self.get_global_map_index(self.file_list_train, self.total_samples_train)
-            else:
-                self.global_index_map = self.get_global_map_index(self.file_list_eval, self.total_samples_eval)
+        # the code assumes that file and sample shuffling is handled by the native data loader code.
+        if not self.native_data_loader:
+            if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
+                if dataset_type is DatasetType.TRAIN:
+                    global_file_map = self.build_sample_map_iter(self.file_list_train, self.total_samples_train,
+                                                                epoch_number)
+                else:
+                    global_file_map = self.build_sample_map_iter(self.file_list_eval, self.total_samples_eval, epoch_number)
+                self.file_map = global_file_map[self.my_rank]
+            elif self.data_loader_sampler == DataLoaderSampler.INDEX:
+                if dataset_type is DatasetType.TRAIN:
+                    self.global_index_map = self.get_global_map_index(self.file_list_train, self.total_samples_train)
+                else:
+                    self.global_index_map = self.get_global_map_index(self.file_list_eval, self.total_samples_eval)
 
 
 def LoadConfig(args, config):
