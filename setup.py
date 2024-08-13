@@ -8,18 +8,18 @@ test_deps = [
     "pytest",
 ]
 core_deps = [
-    "Pillow~=9.3.0",
-    "PyYAML~=6.0.0",
-    "h5py~=3.11.0",
-    "mpi4py~=3.1.4",
-    "numpy~=1.23.5",
-    "omegaconf~=2.2.0",
-    "pandas~=1.5.1",
-    "psutil~=5.9.8",
+    "Pillow>=9.3.0",
+    "PyYAML>=6.0.0",
+    "h5py>=3.11.0",
+    "mpi4py>=3.1.4",
+    "numpy>=1.23.5",
+    "omegaconf>=2.2.0",
+    "pandas>=1.5.1",
+    "psutil>=5.9.8",
     "pydftracer==1.0.2",
 ]
 x86_deps = [
-    f"hydra-core=={HYDRA_VERSION}",
+    f"hydra-core>={HYDRA_VERSION}",
     "nvidia-dali-cuda110>=1.34.0",
     "tensorflow>=2.11.0",
     "torch>=2.2.0",
