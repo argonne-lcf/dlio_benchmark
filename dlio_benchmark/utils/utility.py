@@ -55,7 +55,7 @@ except:
             return
         def reset(self):
             return
-        def log_static(self, func)
+        def log_static(self, func):
             return
     class dftracer(object):
         def __init__(self,):
