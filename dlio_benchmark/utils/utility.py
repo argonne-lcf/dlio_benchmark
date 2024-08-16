@@ -37,27 +37,42 @@ try:
     from dftracer.logger import dftracer as PerfTrace, dft_fn as Profile, DFTRACER_ENABLE as DFTRACER_ENABLE
 except:
     class Profile(object):
-        def __init__(self, name=None, cat=None):
+        def __init__(self, cat, name=None, epoch=None, step=None, image_idx=None, image_size=None):
             self.type = type
         def log(self, func):
             return func
         def log_init(self, func):
             return func
-        def iter(self, a):
+        def iter(self, func, iter_name="step"):
             return a
         def __enter__(self):
             return
         def __exit__(self, type, value, traceback):
             return
-        def update(self, *, epoch=0, step=0, size=0, default=None):
+        def update(self, epoch=None, step=None, image_idx=None, image_size=None, args={}):
+            return
+        def flush(self):
+            return
+        def reset(self):
+            return
+        def log_static(self, func)
             return
     class dftracer(object):
         def __init__(self,):
             self.type = None
         def initialize_log(self, logfile=None, data_dir=None, process_id=-1):
             return
-        def iter(self, a):
-            return a
+        def get_time(self):
+            return
+        def enter_event(self):
+            return
+        def exit_event(self):
+            return
+        def log_event(self, name, cat, start_time, duration, string_args=None):
+            return
+        def finalize(self):
+            return
+        
     PerfTrace = dftracer()
     DFTRACER_ENABLE = False
 
