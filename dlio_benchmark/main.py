@@ -146,8 +146,6 @@ class DLIOBenchmark(object):
         - Start profiling session for Darshan and Tensorboard.
         """
         self.comm.barrier()
-        if self.args.debug and self.args.my_rank == 0:
-            input("Debug mode: Press enter to start\n")
 
         if self.args.generate_data:
             if self.args.my_rank == 0:
