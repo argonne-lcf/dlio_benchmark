@@ -51,6 +51,12 @@ class FormatReader(ABC):
         self.image_idx = 0
         self._file_list = self._args.file_list_train if self.dataset_type is DatasetType.TRAIN else self._args.file_list_eval 
         self.batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
+        if dataset_type is DatasetType.TRAIN:
+            self.global_index_map = self._args.train_global_index_map
+            self.file_map = self._args.train_file_map
+        else:
+            self.file_map = self._args.val_file_map
+            self.global_index_map = self._args.val_global_index_map
 
     @dlp.log
     def preprocess(self, a=None):
@@ -76,10 +82,10 @@ class FormatReader(ABC):
         batch = []
         image_processed = 0
         self.step = 1
-        total_images = len(self._args.file_map[self.thread_index])
+        total_images = len(self.file_map[self.thread_index])
         logging.debug(f"{utcnow()} Reading {total_images} images thread {self.thread_index} rank {self._args.my_rank}")
 
-        for global_sample_idx, filename, sample_index in self._args.file_map[self.thread_index]:
+        for global_sample_idx, filename, sample_index in self.file_map[self.thread_index]:
             self.image_idx = global_sample_idx
             if filename not in self.open_file_map or self.open_file_map[filename] is None:
                 self.open_file_map[filename] = self.open(filename)
@@ -106,7 +112,8 @@ class FormatReader(ABC):
     def read_index(self, global_sample_idx, step):
         self.step = step
         self.image_idx = global_sample_idx
-        filename, sample_index = self._args.global_index_map[global_sample_idx]
+        logging.debug(f"{self.global_index_map}")
+        filename, sample_index = self.global_index_map[global_sample_idx]
         logging.debug(f"{utcnow()} read_index {filename}, {sample_index}")
         FormatReader.read_images += 1
         if self._args.read_type is ReadType.ON_DEMAND or filename not in self.open_file_map or self.open_file_map[filename] is None:

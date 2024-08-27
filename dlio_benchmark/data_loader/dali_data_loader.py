@@ -52,23 +52,25 @@ class DaliIndexDataset(object):
                                                epoch_number=self.epoch)
         assert(self.reader.is_index_based())
         self.seed = seed
+        start_sample = self.worker_index * samples_per_worker
+        end_sample = (self.worker_index + 1) * samples_per_worker
         if not hasattr(self, 'indices'):
-            self.indices = np.arange(self.total_num_samples, dtype=np.int64)
+            self.indices = list(range(start_sample, end_sample))
         if self.shuffle != Shuffle.OFF:
             if self.shuffle == Shuffle.SEED:
                 np.random.seed(self.seed)
             np.random.shuffle(self.indices)
     def __call__(self, sample_info):
         logging.debug(
-            f"{utcnow()} Reading {sample_info.idx_in_epoch} out of {self.samples_per_worker} by worker {self.worker_index}")
-        sample_idx = sample_info.idx_in_epoch + self.samples_per_worker * self.worker_index
+            f"{utcnow()} Reading {sample_info.idx_in_epoch} out of {self.samples_per_worker} by worker {self.worker_index} with {self.indices} indices")
         step = sample_info.iteration       
-        if step >= self.total_num_steps or sample_idx >= self.total_num_samples:
+        if step >= self.total_num_steps or sample_info.idx_in_epoch >= self.samples_per_worker:
             # Indicate end of the epoch
             raise StopIteration()
+        sample_idx = self.indices[sample_info.idx_in_epoch]
         with Profile(MODULE_DATA_LOADER, epoch=self.epoch, image_idx=sample_idx, step=step):
-            image = self.reader.read_index(self.indices[sample_idx], step)
-        return image, np.uint8([self.indices[sample_idx]])
+            image = self.reader.read_index(sample_idx, step)
+        return image, np.uint8([sample_idx])
 
 class DaliIteratorDataset(object):
     def __init__(self, format_type, dataset_type, epoch, worker_index,
@@ -89,8 +91,10 @@ class DaliIteratorDataset(object):
                                                epoch_number=self.epoch)
         assert(self.reader.is_iterator_based())
         self.seed = seed
+        start_sample = self.worker_index * samples_per_worker
+        end_sample = (self.worker_index + 1) * samples_per_worker
         if not hasattr(self, 'indices'):
-            self.indices = np.arange(self.total_num_samples, dtype=np.int64)
+            self.indices = list(range(start_sample, end_sample))
         if self.shuffle != Shuffle.OFF:
             if self.shuffle == Shuffle.SEED:
                 np.random.seed(self.seed)
