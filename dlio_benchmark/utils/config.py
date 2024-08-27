@@ -169,7 +169,7 @@ class ConfigArguments:
         # Configure the logging library
         if self.log_level == LogLevel.DEBUG:
             log_level = logging.DEBUG
-        elif self.log_level == LogLevel.WARN
+        elif self.log_level == LogLevel.WARN:
             log_level = logging.WARN
         else:
             log_level = logging.INFO
