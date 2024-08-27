@@ -80,7 +80,6 @@ LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
 # MPI cannot be initialized automatically, or read_thread spawn/forkserver
 # child processes will abort trying to open a non-existant PMI_fd file.
-
 import mpi4py
 p = psutil.Process()
 
