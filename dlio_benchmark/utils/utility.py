@@ -40,11 +40,11 @@ except:
         def __init__(self,  cat, name=None, epoch=None, step=None, image_idx=None, image_size=None):
             return 
         def log(self,  func):
-            return 
+            return func
         def log_init(self,  func):
-            return 
+            return func
         def iter(self,  func, iter_name="step"):
-            return 
+            return func
         def __enter__(self):
             return
         def __exit__(self, type, value, traceback):
