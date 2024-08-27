@@ -26,7 +26,7 @@ from typing import List, ClassVar
 
 from dlio_benchmark.common.constants import MODULE_CONFIG
 from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
-    FrameworkType, \
+    FrameworkType, LogLevel, \
     DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointLocationType, CheckpointMechanismType
 from dlio_benchmark.utils.utility import DLIOMPI, get_trace_name, utcnow
 from dataclasses import dataclass
@@ -91,7 +91,7 @@ class ConfigArguments:
     chunk_size: int = 0
     compression: Compression = Compression.NONE
     compression_level: int = 4
-    debug: bool = False
+    log_level: LogLevel = LogLevel.INFO
     total_training_steps: int = -1
     do_eval: bool = False
     batch_size_eval: int = 1
@@ -167,7 +167,12 @@ class ConfigArguments:
         if is_child and self.multiprocessing_context == "fork":
             return
         # Configure the logging library
-        log_level = logging.DEBUG if self.debug else logging.INFO
+        if self.log_level == LogLevel.DEBUG:
+            log_level = logging.DEBUG
+        elif self.log_level == LogLevel.WARN
+            log_level = logging.WARN
+        else:
+            log_level = logging.INFO
         logging.basicConfig(
             level=log_level,
             force=True,
@@ -569,8 +574,8 @@ def LoadConfig(args, config):
             args.generate_only = True
         else:
             args.generate_only = False
-        if 'debug' in config['workflow']:
-            args.debug = config['workflow']['debug']
+        if 'log_level' in config['workflow']:
+            args.log_level = LogLevel(config['workflow']['log_level'])
         if 'evaluation' in config['workflow']:
             args.do_eval = config['workflow']['evaluation']
         if 'checkpoint' in config['workflow']:

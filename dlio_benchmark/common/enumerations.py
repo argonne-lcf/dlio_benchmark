@@ -50,6 +50,15 @@ class StorageType(Enum):
 
     def __str__(self):
         return self.value
+class LogLevel(Enum):
+    """
+    Different levels of logging
+    """
+    DEBUG = "debug"
+    INFO = "info"
+    WARN = "warn"
+    def __str__(self):
+        return self.value
 
 class MetadataType(Enum):
     """
