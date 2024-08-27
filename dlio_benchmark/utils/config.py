@@ -138,6 +138,7 @@ class ConfigArguments:
     data_loader_class = None
     reader_class = None
     checkpoint_mechanism_class = None
+    native_data_loader = False
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -304,6 +305,13 @@ class ConfigArguments:
         self.val_file_map = {self.my_rank : {}}
         self.train_global_index_map = {}
         self.val_global_index_map = {}
+        self.native_data_loader = False
+        if self.data_loader == DataLoaderType.TENSORFLOW:
+            if self.format == FormatType.TFRECORD:
+                self.native_data_loader = True
+        elif self.data_loader == DataLoaderType.NATIVE_DALI:
+            if self.format in [FormatType.JPEG, FormatType.PNG, FormatType.NPY, FormatType.TFRECORD]:
+                self.native_data_loader = True
 
     @dlp.log
     def build_sample_map_iter(self, file_list, total_samples, epoch_number):

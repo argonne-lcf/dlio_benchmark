@@ -16,8 +16,6 @@
 """
 import os
 import math
-from mpi4py import MPI
-comm = MPI.COMM_WORLD
 import logging
 from time import time, sleep
 import json
@@ -50,8 +48,7 @@ from dlio_benchmark.storage.storage_factory import StorageFactory
 from dlio_benchmark.utils.utility import Profile, PerfTrace
 
 dlp = Profile(MODULE_DLIO_BENCHMARK)
-# To make sure the output folder is the same in all the nodes. We have to do this. 
-comm.Barrier()
+# To make sure the output folder is the same in all the nodes. We have to do this.
 import hydra
 
 class DLIOBenchmark(object):
@@ -381,19 +378,21 @@ class DLIOBenchmark(object):
         self.comm.barrier()
         self.args.finalize_dftracer(self.dftracer)
 
-
 @hydra.main(version_base=None, config_path="configs", config_name="config")
-def main(cfg: DictConfig) -> None:
-
-    """
-    The main method to start the benchmark runtime.
-    """
-    DLIOMPI.get_instance().initialize()
+def run_benchmark(cfg: DictConfig):    
     benchmark = DLIOBenchmark(cfg['workload'])
     os.environ["DARSHAN_DISABLE"] = "1"
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()
+
+
+def main() -> None:
+    """
+    The main method to start the benchmark runtime.
+    """
+    DLIOMPI.get_instance().initialize()
+    run_benchmark()
     DLIOMPI.get_instance().finalize()
 
 if __name__ == '__main__':

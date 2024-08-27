@@ -37,27 +37,42 @@ try:
     from dftracer.logger import dftracer as PerfTrace, dft_fn as Profile, DFTRACER_ENABLE as DFTRACER_ENABLE
 except:
     class Profile(object):
-        def __init__(self, name=None, cat=None):
-            self.type = type
-        def log(self, func):
-            return func
-        def log_init(self, func):
-            return func
-        def iter(self, a):
-            return a
+        def __init__(self,  **kwargs):
+            return 
+        def log(self,  **kwargs):
+            return 
+        def log_init(self,  **kwargs):
+            return 
+        def iter(self,  **kwargs):
+            return 
         def __enter__(self):
             return
-        def __exit__(self, type, value, traceback):
+        def __exit__(self, **kwargs):
             return
-        def update(self, *, epoch=0, step=0, size=0, default=None):
+        def update(self, **kwargs):
+            return
+        def flush(self):
+            return
+        def reset(self):
+            return
+        def log_static(self, **kwargs):
             return
     class dftracer(object):
         def __init__(self,):
             self.type = None
-        def initialize_log(self, logfile=None, data_dir=None, process_id=-1):
+        def initialize_log(self, **kwargs):
             return
-        def iter(self, a):
-            return a
+        def get_time(self):
+            return
+        def enter_event(self):
+            return
+        def exit_event(self):
+            return
+        def log_event(self,  **kwargs):
+            return
+        def finalize(self):
+            return
+        
     PerfTrace = dftracer()
     DFTRACER_ENABLE = False
 
@@ -66,7 +81,6 @@ LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 # MPI cannot be initialized automatically, or read_thread spawn/forkserver
 # child processes will abort trying to open a non-existant PMI_fd file.
 import mpi4py
-
 p = psutil.Process()
 
 

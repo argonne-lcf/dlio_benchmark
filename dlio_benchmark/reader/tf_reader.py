@@ -86,7 +86,8 @@ class TFReader(FormatReader):
         # sharding in the file list if we have enought files. 
         if (len(self._file_list) >= self._args.comm_size):
             filenames = filenames.shard(num_shards=self._args.comm_size, index=self._args.my_rank)
-			
+            logging.debug(f"{utcnow()} shard {filenames} files index {self._args.my_rank} number {self._args.comm_size}")
+        
         self._dataset = tf.data.TFRecordDataset(filenames=filenames, buffer_size=self._args.transfer_size,
                                                 num_parallel_reads=self._args.read_threads)
 				  
