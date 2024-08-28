@@ -17,6 +17,7 @@
 
 import h5py
 import numpy as np
+import math # is needed for chunking case.
 
 from dlio_benchmark.common.enumerations import Compression
 from dlio_benchmark.data_generator.data_generator import DataGenerator
