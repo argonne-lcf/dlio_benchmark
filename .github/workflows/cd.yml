@@ -28,8 +28,6 @@ jobs:
     runs-on: ubuntu-22.04
     needs:
       - release-build
-    permissions:
-      id-token: write
     steps:
       - name: Retrieve release distributions
         uses: actions/download-artifact@v3
