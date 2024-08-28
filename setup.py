@@ -47,7 +47,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 setup(
     name="dlio_benchmark",
     version="2.0.0",
-    description="An I/O benchmark for deep Learning applications",
+    description="An I/O benchmark for deep learning applications",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/argonne-lcf/dlio_benchmark",
@@ -77,8 +77,10 @@ setup(
     ],
     keywords="deep learning, I/O, benchmark, NPZ, pytorch benchmark, tensorflow benchmark",
     project_urls={  # Optional
-        "Bug Reports": "https://github.com/argonne-lcf/dlio_benchmark/issues",
+        "Documentation": "https://dlio-benchmark.readthedocs.io",
         "Source": "https://github.com/argonne-lcf/dlio_benchmark",
+        "Release Notes": "https://github.com/argonne-lcf/dlio_benchmark/releases",
+        "Bug Reports": "https://github.com/argonne-lcf/dlio_benchmark/issues",
     },
     # Main package definition
     packages=find_namespace_packages(where="."),
