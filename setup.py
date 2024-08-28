@@ -77,8 +77,10 @@ setup(
     ],
     keywords="deep learning, I/O, benchmark, NPZ, pytorch benchmark, tensorflow benchmark",
     project_urls={  # Optional
-        "Bug Reports": "https://github.com/argonne-lcf/dlio_benchmark/issues",
+        "Documentation": "https://dlio-benchmark.readthedocs.io",
         "Source": "https://github.com/argonne-lcf/dlio_benchmark",
+        "Release Notes": "https://github.com/argonne-lcf/dlio_benchmark/releases",
+        "Bug Reports": "https://github.com/argonne-lcf/dlio_benchmark/issues",
     },
     # Main package definition
     packages=find_namespace_packages(where="."),
