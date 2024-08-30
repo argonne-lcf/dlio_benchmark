@@ -193,6 +193,14 @@ class DLIOMPI:
             raise Exception(f"method {self.classname()}.size() called before initializing MPI")
         else:
             return self.mpi_size//self.mpi_ppn
+    
+    def reduce(self, num):
+        from mpi4py import MPI
+        if self.mpi_state == MPIState.UNINITIALIZED:
+            raise Exception(f"method {self.classname()}.reduce() called before initializing MPI")
+        else:
+            return MPI.COMM_WORLD.allreduce(num, op=MPI.SUM)
+    
     def finalize(self):
         from mpi4py import MPI
         if self.mpi_state == MPIState.MPI_INITIALIZED and MPI.Is_initialized():

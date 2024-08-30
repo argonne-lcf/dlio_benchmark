@@ -389,26 +389,46 @@ def test_pytorch_multiprocessing_context(nt, context) -> None:
     finalize()
 
 @pytest.mark.timeout(60, method="thread")
-@pytest.mark.parametrize("fmt, framework, dataloader", [("png", "tensorflow","tensorflow"), ("npz", "tensorflow","tensorflow"),
-                                            ("jpeg", "tensorflow","tensorflow"), ("tfrecord", "tensorflow","tensorflow"),
-                                            ("hdf5", "tensorflow","tensorflow"), ("csv", "tensorflow","tensorflow"),
-                                            ("indexed_binary", "tensorflow","tensorflow"), ("mmap_indexed_binary", "tensorflow","tensorflow"),
-                                            ("png", "pytorch", "pytorch"), ("npz", "pytorch", "pytorch"),
-                                            ("jpeg", "pytorch", "pytorch"), ("hdf5", "pytorch", "pytorch"),
-                                            ("csv", "pytorch", "pytorch"), ("indexed_binary", "pytorch", "pytorch"),
-                                            ("mmap_indexed_binary", "pytorch", "pytorch"),
-                                            ("png", "tensorflow", "dali"), ("npz", "tensorflow", "dali"),
-                                            ("jpeg", "tensorflow", "dali"), ("hdf5", "tensorflow", "dali"),
-                                            ("csv", "tensorflow", "dali"), ("indexed_binary", "tensorflow", "dali"),
-                                            ("mmap_indexed_binary", "tensorflow", "dali"),
-                                            ("png", "pytorch", "dali"), ("npz", "pytorch", "dali"),
-                                            ("jpeg", "pytorch", "dali"), ("hdf5", "pytorch", "dali"),
-                                            ("csv", "pytorch", "dali"), ("indexed_binary", "pytorch", "dali"),
-                                            ("mmap_indexed_binary", "pytorch", "dali"),
+@pytest.mark.parametrize("fmt, framework, dataloader, is_even", [("png", "tensorflow","tensorflow", True), ("npz", "tensorflow","tensorflow", True),
+                                            ("jpeg", "tensorflow","tensorflow", True), ("tfrecord", "tensorflow","tensorflow", True),
+                                            ("hdf5", "tensorflow","tensorflow", True), ("csv", "tensorflow","tensorflow", True),
+                                            ("indexed_binary", "tensorflow","tensorflow", True), ("mmap_indexed_binary", "tensorflow","tensorflow", True),
+                                            ("png", "pytorch", "pytorch", True), ("npz", "pytorch", "pytorch", True),
+                                            ("jpeg", "pytorch", "pytorch", True), ("hdf5", "pytorch", "pytorch", True),
+                                            ("csv", "pytorch", "pytorch", True), ("indexed_binary", "pytorch", "pytorch", True),
+                                            ("mmap_indexed_binary", "pytorch", "pytorch", True),
+                                            ("png", "tensorflow", "dali", True), ("npz", "tensorflow", "dali", True),
+                                            ("jpeg", "tensorflow", "dali", True), ("hdf5", "tensorflow", "dali", True),
+                                            ("csv", "tensorflow", "dali", True), ("indexed_binary", "tensorflow", "dali", True),
+                                            ("mmap_indexed_binary", "tensorflow", "dali", True),
+                                            ("png", "pytorch", "dali", True), ("npz", "pytorch", "dali", True),
+                                            ("jpeg", "pytorch", "dali", True), ("hdf5", "pytorch", "dali", True),
+                                            ("csv", "pytorch", "dali", True), ("indexed_binary", "pytorch", "dali", True),
+                                            ("mmap_indexed_binary", "pytorch", "dali", True),
+                                            ("png", "tensorflow","tensorflow", False), ("npz", "tensorflow","tensorflow", False),
+                                            ("jpeg", "tensorflow","tensorflow", False), ("tfrecord", "tensorflow","tensorflow", False),
+                                            ("hdf5", "tensorflow","tensorflow", False), ("csv", "tensorflow","tensorflow", False),
+                                            ("indexed_binary", "tensorflow","tensorflow", False), ("mmap_indexed_binary", "tensorflow","tensorflow", False),
+                                            ("png", "pytorch", "pytorch", False), ("npz", "pytorch", "pytorch", False),
+                                            ("jpeg", "pytorch", "pytorch", False), ("hdf5", "pytorch", "pytorch", False),
+                                            ("csv", "pytorch", "pytorch", False), ("indexed_binary", "pytorch", "pytorch", False),
+                                            ("mmap_indexed_binary", "pytorch", "pytorch", False),
+                                            ("png", "tensorflow", "dali", False), ("npz", "tensorflow", "dali", False),
+                                            ("jpeg", "tensorflow", "dali", False), ("hdf5", "tensorflow", "dali", False),
+                                            ("csv", "tensorflow", "dali", False), ("indexed_binary", "tensorflow", "dali", False),
+                                            ("mmap_indexed_binary", "tensorflow", "dali", False),
+                                            ("png", "pytorch", "dali", False), ("npz", "pytorch", "dali", False),
+                                            ("jpeg", "pytorch", "dali", False), ("hdf5", "pytorch", "dali", False),
+                                            ("csv", "pytorch", "dali", False), ("indexed_binary", "pytorch", "dali", False),
+                                            ("mmap_indexed_binary", "pytorch", "dali", False),
                                             ])
-def test_train(fmt, framework, dataloader) -> None:
+def test_train(fmt, framework, dataloader, is_even) -> None:
     init()
     clean()
+    if is_even:
+        num_files = 16
+    else:
+        num_files = 17
     if comm.rank == 0:
         logging.info("")
         logging.info("=" * 80)
@@ -423,7 +443,7 @@ def test_train(fmt, framework, dataloader) -> None:
                                                        'workload.train.computation_time=0.01', \
                                                        'workload.evaluation.eval_time=0.005', \
                                                        '++workload.train.epochs=1', \
-                                                       '++workload.dataset.num_files_train=16', \
+                                                       f'++workload.dataset.num_files_train={num_files}', \
                                                        '++workload.reader.read_threads=1'])
         benchmark = run_benchmark(cfg)
     #clean()
