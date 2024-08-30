@@ -227,9 +227,9 @@ jobs:
         run: |
           source ${VENV_PATH}/bin/activate
           rm -rf output data checkpoints
-          mpirun -np 2 ${DLIO_EXEC} workload=resnet50_a100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=8 ++workload.reader.read_threads=1
-          mpirun -np 2 ${DLIO_EXEC} workload=resnet50_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=8 ++workload.reader.read_threads=1
-          mpirun -np 2 ${DLIO_EXEC} workload=resnet50_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=8 ++workload.reader.read_threads=1 ++workload.dataset.format=synthetic
+          mpirun -np 2 ${DLIO_EXEC} workload=resnet50_a100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.reader.read_threads=1
+          mpirun -np 2 ${DLIO_EXEC} workload=resnet50_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.reader.read_threads=1
+          mpirun -np 2 ${DLIO_EXEC} workload=resnet50_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.reader.read_threads=1 ++workload.dataset.format=synthetic
           rm -rf data
       - name: test_cosmoflow
         run: |
