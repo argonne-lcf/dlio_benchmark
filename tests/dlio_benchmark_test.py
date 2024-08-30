@@ -48,7 +48,8 @@ def init():
     DLIOMPI.get_instance().initialize()
 
 def finalize():
-    DLIOMPI.get_instance().finalize()
+    # DLIOMPI.get_instance().finalize()
+    pass
 
 def clean(storage_root="./") -> None:
     comm.Barrier()
