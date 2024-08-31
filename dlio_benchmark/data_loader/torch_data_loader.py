@@ -92,8 +92,10 @@ class dlio_sampler(Sampler):
         self.epochs = epochs
         samples_per_proc = int(math.ceil(num_samples/size)) 
         start_sample = self.rank * samples_per_proc
-        end_sample = (self.rank + 1) * samples_per_proc
-        self.indices = list(range(start_sample, end_sample))
+        end_sample = (self.rank + 1) * samples_per_proc - 1
+        if end_sample > num_samples - 1:
+            end_sample = num_samples - 1
+        self.indices = list(range(start_sample, end_sample + 1))
 
 
     def __len__(self):
