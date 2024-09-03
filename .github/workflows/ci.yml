@@ -21,9 +21,9 @@ jobs:
       CXX: g++-${{ matrix.gcc }}
       DFTRACER_BUILD_TYPE: "Debug"
       DFTRACER_ENABLE: 1
-      DFTRACER_LOG_LEVEL: "DEBUG"
+      DFTRACER_LOG_LEVEL: "INFO"
       DLIO_EXEC: ${{ matrix.venv == 'via-setup' && 'dlio_benchmark' || 'python dlio_benchmark/main.py' }}
-      GOTCHA_DEBUG: 3
+      GOTCHA_DEBUG: 1
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
       PYTHON_VER: ${{ matrix.python }}
@@ -227,9 +227,9 @@ jobs:
         run: |
           source ${VENV_PATH}/bin/activate
           rm -rf output data checkpoints
-          mpirun -np 2 ${DLIO_EXEC} workload=resnet50_a100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=4
-          mpirun -np 2 ${DLIO_EXEC} workload=resnet50_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=4
-          mpirun -np 2 ${DLIO_EXEC} workload=resnet50_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=4 ++workload.dataset.format=synthetic
+          mpirun -np 2 ${DLIO_EXEC} workload=resnet50_a100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.reader.read_threads=1
+          mpirun -np 2 ${DLIO_EXEC} workload=resnet50_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.reader.read_threads=1
+          mpirun -np 2 ${DLIO_EXEC} workload=resnet50_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.reader.read_threads=1 ++workload.dataset.format=synthetic
           rm -rf data
       - name: test_cosmoflow
         run: |
