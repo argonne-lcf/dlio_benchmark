@@ -54,9 +54,10 @@ class LogLevel(Enum):
     """
     Different levels of logging
     """
-    DEBUG = "debug"
-    INFO = "info"
+    ERROR = "error" 
     WARN = "warn"
+    INFO = "info"
+    DEBUG = "debug"
     def __str__(self):
         return self.value
 
@@ -115,7 +116,6 @@ class ComputationType(Enum):
     NONE = 'none'
     SYNC = 'sync'
     ASYNC = 'async'
-
 
 class FormatType(Enum):
     """

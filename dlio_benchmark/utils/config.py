@@ -167,10 +167,17 @@ class ConfigArguments:
         if is_child and self.multiprocessing_context == "fork":
             return
         # Configure the logging library
+        log_format_verbose = '[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'
+        log_format_simple = '[%(levelname)s] %(message)s'
+        # Set logging format to be simple only when debug_level <= INFO
+        log_format = log_format_simple
         if self.log_level == LogLevel.DEBUG:
             log_level = logging.DEBUG
+            log_format = log_format_verbose 
         elif self.log_level == LogLevel.WARN:
             log_level = logging.WARN
+        elif self.log_level == LogLevel.ERROR:
+            log_level = logging.ERROR
         else:
             log_level = logging.INFO
         logging.basicConfig(
@@ -180,10 +187,9 @@ class ConfigArguments:
                 logging.FileHandler(self.logfile_path, mode="a", encoding='utf-8'),
                 logging.StreamHandler()
             ],
-            format='[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'
+            format = log_format
             # logging's max timestamp resolution is msecs, we will pass in usecs in the message
         )
-
     def configure_dftracer(self, is_child=False, use_pid=False):
         # with "multiprocessing_context=fork" the profiler file remains open in the child process
         if is_child and self.multiprocessing_context == "fork":

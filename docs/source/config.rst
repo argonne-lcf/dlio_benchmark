@@ -102,7 +102,7 @@ workflow
      - whether to perform profiling
    * - log_level
      - "info"
-     - select the logging level [warn|info|debug]
+     - select the logging level [error|warn|info|debug|]
 
 .. note:: 
 
@@ -113,6 +113,7 @@ workflow
 .. note:: 
   
   ``log_level=debug`` will output detailed logging info per steps; whereas ``log_level=info`` only output log at the end of each epoch. 
+  For performance mode, we would suggest using error mode to suppress unnecessory logs. 
 
 dataset
 ------------------
