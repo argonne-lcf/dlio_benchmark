@@ -54,10 +54,10 @@ class LogLevel(Enum):
     """
     Different levels of logging
     """
-    ERROR = "error" 
-    WARN = "warn"
-    INFO = "info"
     DEBUG = "debug"
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error" 
     def __str__(self):
         return self.value
 

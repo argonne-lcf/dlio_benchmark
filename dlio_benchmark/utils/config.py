@@ -174,8 +174,8 @@ class ConfigArguments:
         if self.log_level == LogLevel.DEBUG:
             log_level = logging.DEBUG
             log_format = log_format_verbose 
-        elif self.log_level == LogLevel.WARN:
-            log_level = logging.WARN
+        elif self.log_level == LogLevel.WARNING:
+            log_level = logging.WARNING
         elif self.log_level == LogLevel.ERROR:
             log_level = logging.ERROR
         else:
@@ -553,7 +553,8 @@ def LoadConfig(args, config):
             args.output_folder = config['output']['folder']
         if 'log_file' in config['output']:
             args.log_file = config['output']['log_file']
-
+        if 'log_level' in config['output']:
+            args.log_level = LogLevel(config['output']['log_level'])
     if args.output_folder is None:
         try:
             hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
@@ -569,8 +570,6 @@ def LoadConfig(args, config):
             args.generate_only = True
         else:
             args.generate_only = False
-        if 'log_level' in config['workflow']:
-            args.log_level = LogLevel(config['workflow']['log_level'])
         if 'evaluation' in config['workflow']:
             args.do_eval = config['workflow']['evaluation']
         if 'checkpoint' in config['workflow']:

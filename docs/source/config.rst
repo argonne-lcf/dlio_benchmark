@@ -100,20 +100,12 @@ workflow
    * - profiling
      - False
      - whether to perform profiling
-   * - log_level
-     - "info"
-     - select the logging level [error|warn|info|debug|]
 
 .. note:: 
 
  ``evaluation``, ``checkpoint``, and ``profiling`` have depency on ``train``. If ``train`` is set to be ```False```, ``evaluation``, ``checkpoint``, ``profiling`` will be reset to ```False``` automatically. 
 
   Even though ``generate_data`` and ``train`` can be performed together in one job, we suggest to perform them seperately to eliminate potential caching effect. One can generate the data first by running DLIO with ```generate_data=True``` and ```train=False```, and then run training benchmark with ```generate_data=False``` and ```train=True```. 
-
-.. note:: 
-  
-  ``log_level=debug`` will output detailed logging info per steps; whereas ``log_level=info`` only output log at the end of each epoch. 
-  For performance mode, we would suggest using error mode to suppress unnecessory logs. 
 
 dataset
 ------------------
@@ -365,10 +357,18 @@ output
    * - log_file
      - dlio.log
      - log file name  
+   * - log_level
+     - "info"
+     - select the logging level [error|warning|info|debug]
 
 .. note::
    
    If ``folder`` is not set (None), the output folder will be ```hydra_log/unet3d/$DATE-$TIME```. 
+
+.. note:: 
+  
+  ``log_level=debug`` will output detailed logging info per steps; whereas ``log_level=info`` only output log at the end of each epoch. 
+  For performance mode, we would suggest using error mode to suppress unnecessory logs. 
 
 profiling
 ------------------
