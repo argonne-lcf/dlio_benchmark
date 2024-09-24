@@ -322,7 +322,7 @@ class StatsCounter(object):
         else:
             self.output[epoch]['proc'] = [duration]
             self.output[epoch]['compute']=[computation_time]
-        logging.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size} samples in {duration} s")
+        logging.debug(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size} samples in {duration} s")
 
     def compute_metrics_train(self, epoch, block):
         key = f"block{block}"
@@ -358,7 +358,7 @@ class StatsCounter(object):
         duration = time() - t0
         self.output[epoch]['proc']['eval'].append(duration)
         self.output[epoch]['compute']['eval'].append(computation_time)
-        logging.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size_eval} samples in {duration} s")
+        logging.debug(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size_eval} samples in {duration} s")
     def finalize(self):
         self.summary['end'] = utcnow()
     def save_data(self):
