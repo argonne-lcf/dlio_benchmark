@@ -85,27 +85,23 @@ class TorchDataset(Dataset):
 
 
 class dlio_sampler(Sampler):
-    def __init__(self, rank, size, num_samples, shuffle, epochs, seed):
+    def __init__(self, rank, size, num_samples, epochs):
         self.size = size
         self.rank = rank
         self.num_samples = num_samples
-        self.shuffle = shuffle
         self.epochs = epochs
-        self.seed = seed
         samples_per_proc = int(math.ceil(num_samples/size)) 
         start_sample = self.rank * samples_per_proc
-        end_sample = (self.rank + 1) * samples_per_proc
-        self.indices = list(range(start_sample, end_sample))
+        end_sample = (self.rank + 1) * samples_per_proc - 1
+        if end_sample > num_samples - 1:
+            end_sample = num_samples - 1
+        self.indices = list(range(start_sample, end_sample + 1))
 
 
     def __len__(self):
         return self.num_samples
 
     def __iter__(self):
-        if self.shuffle != Shuffle.OFF:
-            if self.shuffle == Shuffle.SEED:
-                np.random.seed(self.seed)
-            np.random.shuffle(self.indices)
         for sample in self.indices:
             yield sample
 
@@ -118,8 +114,7 @@ class TorchDataLoader(BaseDataLoader):
     def read(self):
         dataset = TorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples,
                                self._args.read_threads, self.batch_size)
-        sampler = dlio_sampler(self._args.my_rank, self._args.comm_size, self.num_samples, self._args.sample_shuffle,
-                               self._args.epochs, self._args.seed)
+        sampler = dlio_sampler(self._args.my_rank, self._args.comm_size, self.num_samples, self._args.epochs)
         if self._args.read_threads >= 1:
             prefetch_factor = math.ceil(self._args.prefetch_size / self._args.read_threads)
         else:

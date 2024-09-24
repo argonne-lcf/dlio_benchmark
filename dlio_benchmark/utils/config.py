@@ -139,6 +139,8 @@ class ConfigArguments:
     reader_class = None
     checkpoint_mechanism_class = None
     native_data_loader = False
+    train_sample_index_sum = 1
+    eval_sample_index_sum = 1
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -261,6 +263,8 @@ class ConfigArguments:
             self.num_files_train = len(file_list_train)
             self.total_samples_train = self.num_samples_per_file * len(self.file_list_train)
             self.total_samples_eval = self.num_samples_per_file * len(self.file_list_eval)
+            self.train_sample_index_sum = self.total_samples_train * (self.total_samples_train - 1) // 2
+            self.eval_sample_index_sum = self.total_samples_eval * (self.total_samples_eval - 1) // 2
             self.required_samples = self.comm_size * self.batch_size
             if self.read_threads > 0:
                 self.required_samples *= self.read_threads
@@ -316,53 +320,75 @@ class ConfigArguments:
     @dlp.log
     def build_sample_map_iter(self, file_list, total_samples, epoch_number):
         logging.debug(f"ranks {self.comm_size} threads {self.read_threads} tensors")
-        num_threads = 1
-        if self.read_threads > 0 and self.data_loader is not DataLoaderType.DALI:
-            num_threads = self.read_threads
-        samples_per_proc = int(math.ceil(total_samples/self.comm_size)) 
-        self.samples_per_thread = samples_per_proc // num_threads
-        start_sample_index = samples_per_proc * self.my_rank
-        end_sample_index = samples_per_proc * (self.my_rank + 1)
-        sample_list = np.arange(start_sample_index, end_sample_index)
-        if self.sample_shuffle is not Shuffle.OFF:
-            if self.seed_change_epoch:
-                np.random.seed(self.seed + epoch_number)
-            else:
-                np.random.seed(self.seed)
-            np.random.shuffle(sample_list)
-        sample_index = 0
+        
         num_files = len(file_list)
+        samples_sum = 0
         process_thread_file_map = {}
         if num_files > 0:
-            files_per_rank = (num_files // self.comm_size) % num_files
-            file_index = self.my_rank * files_per_rank
-            for thread_index in range(num_threads):
-                process_thread_file_map[thread_index] = []
-            for sample in sample_list:
-                thread_index = (sample_index // self.samples_per_thread) % num_threads
-                abs_path = os.path.abspath(file_list[file_index])
-                process_thread_file_map[thread_index].append((sample,
-                                            abs_path,
-                                            sample_list[sample_index] % self.num_samples_per_file))
-                sample_index += 1
-                file_index = (sample_index // self.num_samples_per_file) % num_files
-        return process_thread_file_map
+            num_threads = 1
+            if self.read_threads > 0 and self.data_loader is not DataLoaderType.DALI:
+                num_threads = self.read_threads
+            samples_per_proc = int(math.ceil(total_samples/self.comm_size)) 
+            self.samples_per_thread = samples_per_proc // num_threads
+            start_sample_index = samples_per_proc * self.my_rank
+            end_sample_index = samples_per_proc * (self.my_rank + 1) - 1
+            if end_sample_index > total_samples - 1:
+                end_sample_index = total_samples - 1
+            sample_list = np.arange(start_sample_index, end_sample_index + 1)
+            logging.debug(f"{self.my_rank} {start_sample_index} {end_sample_index}")
+            if self.sample_shuffle is not Shuffle.OFF:
+                if self.seed_change_epoch:
+                    np.random.seed(self.seed + epoch_number)
+                else:
+                    np.random.seed(self.seed)
+                np.random.shuffle(sample_list)
+            sample_index = 0
+            if num_files > 0:
+                files_per_rank = (num_files // self.comm_size) % num_files
+                file_index = self.my_rank * files_per_rank
+                for thread_index in range(num_threads):
+                    process_thread_file_map[thread_index] = []
+                for sample in sample_list:
+                    samples_sum += sample
+                    thread_index = (sample_index // self.samples_per_thread) % num_threads
+                    abs_path = os.path.abspath(file_list[file_index])
+                    process_thread_file_map[thread_index].append((sample,
+                                                abs_path,
+                                                sample_list[sample_index] % self.num_samples_per_file))
+                    sample_index += 1
+                    file_index = (sample_index // self.num_samples_per_file) % num_files
+        return process_thread_file_map, samples_sum
 
     @dlp.log
-    def get_global_map_index(self, file_list, total_samples):
+    def get_global_map_index(self, file_list, total_samples, epoch_number):
         process_thread_file_map = {}
         num_files = len(file_list)
+        start_sample = 0
+        end_sample = 0
+        samples_sum = 0
         if num_files > 0:
+            end_sample = total_samples - 1
             samples_per_proc = int(math.ceil(total_samples/self.comm_size)) 
             start_sample = self.my_rank * samples_per_proc
-            end_sample = (self.my_rank + 1) * samples_per_proc
-            for global_sample_index in range(start_sample, end_sample):
-                file_index = global_sample_index//self.num_samples_per_file
-                abs_path = os.path.abspath(file_list[file_index]) 
+            end_sample = (self.my_rank + 1) * samples_per_proc - 1
+            if end_sample > total_samples - 1:
+                end_sample = total_samples - 1
+            logging.debug(f"{self.my_rank} {start_sample} {end_sample}")
+            sample_list = np.arange(start_sample, end_sample + 1)
+            if self.sample_shuffle is not Shuffle.OFF:
+                if self.seed_change_epoch:
+                    np.random.seed(self.seed + epoch_number)
+                else:
+                    np.random.seed(self.seed)
+                np.random.shuffle(sample_list)
+            for sample_index in range(end_sample - start_sample + 1):
+                global_sample_index = sample_list[sample_index]
+                samples_sum += global_sample_index
+                file_index = int(math.floor(global_sample_index/self.num_samples_per_file))
+                abs_path = os.path.abspath(file_list[file_index])
                 sample_index = global_sample_index % self.num_samples_per_file
                 process_thread_file_map[global_sample_index] = (abs_path, sample_index)
-            logging.debug(f"{self.my_rank} {process_thread_file_map}")
-        return process_thread_file_map
+        return process_thread_file_map, samples_sum
 
     @dlp.log
     def reconfigure(self, epoch_number):
@@ -375,13 +401,23 @@ class ConfigArguments:
                 np.random.shuffle(self.file_list_train) 
                 np.random.shuffle(self.file_list_eval)
         if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
-            self.train_file_map = self.build_sample_map_iter(self.file_list_train, self.total_samples_train,
+            self.train_file_map, local_train_sample_sum = self.build_sample_map_iter(self.file_list_train, self.total_samples_train,
                                                              epoch_number)
-            self.val_file_map = self.build_sample_map_iter(self.file_list_eval, self.total_samples_eval, epoch_number)
+            self.val_file_map, local_eval_sample_sum = self.build_sample_map_iter(self.file_list_eval, self.total_samples_eval, epoch_number)
         elif self.data_loader_sampler == DataLoaderSampler.INDEX:
-            self.train_global_index_map = self.get_global_map_index(self.file_list_train, self.total_samples_train)
-            self.val_global_index_map = self.get_global_map_index(self.file_list_eval, self.total_samples_eval)
-
+            self.train_global_index_map, local_train_sample_sum = self.get_global_map_index(self.file_list_train, self.total_samples_train,
+                                                             epoch_number)
+            self.val_global_index_map, local_eval_sample_sum = self.get_global_map_index(self.file_list_eval, self.total_samples_eval,
+                                                             epoch_number)
+        global_train_sample_sum = DLIOMPI.get_instance().reduce(local_train_sample_sum)
+        global_eval_sample_sum = DLIOMPI.get_instance().reduce(local_eval_sample_sum)        
+        if self.my_rank == 0:
+            logging.info(f"total sample: train {global_train_sample_sum} eval {global_eval_sample_sum}")
+            if self.train_sample_index_sum != global_train_sample_sum:
+                raise Exception(f"Sharding of train samples are missing samples got {global_train_sample_sum} but expected {self.train_sample_index_sum}")
+            
+            if self.eval_sample_index_sum != global_eval_sample_sum:
+                raise Exception(f"Sharding of eval samples are missing samples got {global_eval_sample_sum} but expected {self.eval_sample_index_sum}")
 
 def LoadConfig(args, config):
     '''
