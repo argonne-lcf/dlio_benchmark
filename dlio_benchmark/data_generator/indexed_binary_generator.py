@@ -69,7 +69,7 @@ class IndexedBinaryGenerator(DataGenerator):
                 out_path_spec_off_idx = self.index_file_path_off(out_path_spec)
                 out_path_spec_sz_idx = self.index_file_path_size(out_path_spec)
                 fh = MPI.File.Open(comm, out_path_spec, amode)
-                samples_per_loop = int(MB / sample_size)
+                samples_per_loop = int(MB * 16 / sample_size)
 
                 for sample_index in range(self.my_rank*samples_per_rank, samples_per_rank*(self.my_rank+1), samples_per_loop):
                     #logging.info(f"{utcnow()} rank {self.my_rank} writing {sample_index} * {samples_per_loop} for {samples_per_rank} samples")
