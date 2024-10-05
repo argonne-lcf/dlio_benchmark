@@ -273,7 +273,6 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
         num_optimizer_files = 1
         num_layer_files = num_layers
         files_per_checkpoint = (num_model_files + num_optimizer_files + num_layer_files) * nranks
-        comm.Barrier()
         if framework == "tensorflow":
             file_per_ckp = 2
             num_check_files = epochs / epoch_per_ckp * files_per_checkpoint * file_per_ckp + 1
