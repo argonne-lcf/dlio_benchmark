@@ -23,7 +23,8 @@ reader:
   sample_shuffle: seed
 
 train:
-  epochs: 311541
+  total_training_steps: 311541
+  epochs: 1
   computation_time: 0.03 # every iteration has 290 steps and each iteration is 8.9 sec.
 
 checkpoint:
@@ -32,5 +33,7 @@ checkpoint:
   model_size: 30102
   type: all_ranks
   optimization_groups: [1009254400, 865075200, 793600]
-  num_layers: 44
-  layer_parameters: [129761280, 20971520]
+  num_layers: 40
+  pipeline_parallelism: 8
+  tensor_parallelism: 4
+  layer_parameters: [52583936, 209715200]
