@@ -54,7 +54,7 @@ class BaseCheckpointing(ABC):
                 self.layer_state = dict()
                 for index, state in enumerate(self.args.layer_parameters):
                     if state > 0:
-                        self.layer_state[str(index)] = self.get_tensor(state / self.args.tensor_parallelism)
+                        self.layer_state[str(index)] = self.get_tensor(state // self.args.tensor_parallelism)
 
     @abstractmethod
     def get_tensor(self, size):
