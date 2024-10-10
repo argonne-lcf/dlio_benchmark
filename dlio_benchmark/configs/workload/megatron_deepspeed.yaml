@@ -17,19 +17,18 @@ dataset:
   
 reader: 
   data_loader: pytorch
-  batch_size: 1024
+  batch_size: 16
   read_threads: 1
   file_shuffle: seed
   sample_shuffle: seed
 
 train:
-  epochs: 311541
-  total_training_steps: 64
-  computation_time: 0.03 # every iteration has 290 steps and each iteration is 8.9 sec.
+  epochs: 3
+  computation_time: 2.44 # 2.44 sec per step
 
 checkpoint:
   checkpoint_folder: checkpoints/megatron-deepspeed
-  epochs_between_checkpoints: 1000
+  steps_between_checkpoints: 1000
   model_size: 30102
   type: all_ranks
   optimization_groups: [1009254400, 865075200, 793600]
