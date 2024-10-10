@@ -73,16 +73,16 @@ class IndexedBinaryGenerator(DataGenerator):
                     logging.info(f"{utcnow()} Starting metadata generation. ")
                 fh_off = MPI.File.Open(comm, out_path_spec_off_idx, amode)
                 fh_sz = MPI.File.Open(comm, out_path_spec_sz_idx, amode)
-                elements_per_loop = min(int(MB / np.dtype(np.uint32).itemsize), samples_per_rank)
+                off_type = np.uint64
+                elements_per_loop = min(int(MB / np.dtype(off_type).itemsize), samples_per_rank)
                 offsets_processed=0
                 for element_index in range(self.my_rank*samples_per_rank, samples_per_rank*(self.my_rank+1), elements_per_loop):
-                    myfmt = 'Q' * elements_per_loop
                     offsets = np.array(range(self.my_rank * elements_per_loop * sample_size, 
                                     (self.my_rank + 1) * elements_per_loop * sample_size, 
-                                    sample_size), dtype=np.uint32)
+                                    sample_size), dtype=off_type)
                     
-                    sizes = np.array([sample_size] * elements_per_loop, dtype=np.uint32)
-                    offset = element_index * np.dtype(np.uint32).itemsize
+                    sizes = np.array([sample_size] * elements_per_loop, dtype=off_type)
+                    offset = element_index * np.dtype(off_type).itemsize
                     fh_off.Write_at_all(offset, offsets)
                     fh_sz.Write_at_all(offset, sizes)
                     offsets_processed += elements_per_loop
