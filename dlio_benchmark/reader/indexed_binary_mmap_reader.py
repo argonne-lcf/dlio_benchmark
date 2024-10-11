@@ -104,6 +104,7 @@ class IndexedBinaryMMapReader(FormatReader):
     def read_index(self, image_idx, step):
         filename, sample_index = self.global_index_map[image_idx]
         self.get_sample(filename, sample_index)
+        self.preprocess()
         return self._args.resized_image
 
     @dlp.log
