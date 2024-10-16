@@ -12,12 +12,12 @@ dataset:
   data_folder: dataset/megatron-deepspeed/
   format: mmap_indexed_binary
   num_files_train: 1
-  num_samples_per_file: 270706
-  record_length: 2097152
+  num_samples_per_file: 277203535
+  record_length: 2048
   
 reader: 
   data_loader: pytorch
-  batch_size: 1
+  batch_size: 1024
   read_threads: 1
   file_shuffle: seed
   sample_shuffle: seed
