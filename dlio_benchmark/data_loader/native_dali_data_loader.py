@@ -59,9 +59,12 @@ class NativeDaliDataLoader(BaseDataLoader):
         for pipeline in self.pipelines:
             pipeline.reset()
         for step in range(num_samples // batch_size):
-            for batch in self._dataset:
-                logging.debug(f"{utcnow()} Creating {len(batch)} batches by {self._args.my_rank} rank ")
-                yield batch
+            try:
+                for batch in self._dataset:
+                    logging.debug(f"{utcnow()} Creating {len(batch)} batches by {self._args.my_rank} rank ")
+                    yield batch
+            except StopIteration:
+                return
         self.epoch_number += 1
         dlp.update(epoch=self.epoch_number)
     @dlp.log
