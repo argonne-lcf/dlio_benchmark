@@ -229,7 +229,7 @@ class DLIOBenchmark(object):
             eval_time = 0.0
             if self.eval_time > 0:
                 if self.eval_time_stdev > 0:
-                    eval_time = random.normal(self.eval_time, self.eval_time_stdev)
+                    eval_time = abs(random.normal(self.eval_time, self.eval_time_stdev))
                 else:
                     eval_time = self.eval_time
                 self.framework.compute(batch, epoch, step, eval_time)
@@ -265,7 +265,7 @@ class DLIOBenchmark(object):
             if self.computation_time > 0:
                 self.framework.trace_object("Train", overall_step, 1)
                 if self.computation_time_stdev > 0:
-                    computation_time = random.normal(self.computation_time, self.computation_time_stdev)
+                    computation_time = abs(random.normal(self.computation_time, self.computation_time_stdev))
                 else:
                     computation_time = self.computation_time
             self.framework.compute(batch, epoch, block_step, computation_time)
