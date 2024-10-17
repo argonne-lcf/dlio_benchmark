@@ -57,10 +57,10 @@ class IndexedBinaryMMapReader(FormatReader):
             self.file_map_ibr[filename] = []
             bin_buffer_mmap = np.memmap(offset_file, mode='r', order='C')
             bin_buffer = memoryview(bin_buffer_mmap)
-            self.file_map_ibr[filename].append(np.frombuffer(bin_buffer, dtype=np.uint8))
+            self.file_map_ibr[filename].append(np.frombuffer(bin_buffer, dtype=np.uint64))
             bin_buffer_mmap = np.memmap(sz_file, mode='r', order='C')
             bin_buffer = memoryview(bin_buffer_mmap)
-            self.file_map_ibr[filename].append(np.frombuffer(bin_buffer, dtype=np.uint8))
+            self.file_map_ibr[filename].append(np.frombuffer(bin_buffer, dtype=np.uint64))
 
     @dlp.log
     def load_index(self):
