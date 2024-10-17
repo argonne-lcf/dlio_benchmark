@@ -155,7 +155,7 @@ dataset
    * - compression_level
      - 4
      - level of compression for gzip
-   * - chunking
+   * - enable_chunking
      - False
      - whether to use chunking to store hdf5. 
    * - chunk_size
