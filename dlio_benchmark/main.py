@@ -257,6 +257,12 @@ class DLIOBenchmark(object):
         loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
         t0 = time()
         for batch in dlp.iter(loader.next()):
+            if overall_step > max_steps or ((self.total_training_steps > 0) and (overall_step > self.total_training_steps)):
+                if self.args.my_rank == 0:
+                    logging.info(f"{utcnow()} Maximum number of steps reached")
+                if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
+                    self.stats.end_block(epoch, block, block_step - 1)
+                break
             self.stats.batch_loaded(epoch, overall_step, block, t0)
             # Log a new block, unless it's the first one which we've already logged before the loop
             if block_step == 1 and block != 1:
@@ -283,13 +289,6 @@ class DLIOBenchmark(object):
                 self.next_checkpoint_step += self.steps_between_checkpoints
             else:
                 block_step += 1
-
-            if overall_step >= max_steps or overall_step == self.total_training_steps:
-                if self.args.my_rank == 0:
-                    logging.info(f"{utcnow()} Maximum number of steps reached")
-                if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
-                    self.stats.end_block(epoch, block, block_step - 1)
-                break
             overall_step += 1
             t0 = time()
         self.comm.barrier()
