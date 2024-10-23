@@ -224,7 +224,7 @@ class DLIOBenchmark(object):
         total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         loader = self.framework.get_loader(DatasetType.VALID)
         t0 = time()
-        for batch in dlp.iter(loader.next()):
+        for batch in loader.next():
             self.stats.eval_batch_loaded(epoch, step, t0)
             eval_time = 0.0
             if self.eval_time > 0:
@@ -256,7 +256,7 @@ class DLIOBenchmark(object):
 
         loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
         t0 = time()
-        for batch in dlp.iter(loader.next()):
+        for batch in loader.next():
             if overall_step > max_steps or ((self.total_training_steps > 0) and (overall_step > self.total_training_steps)):
                 if self.args.my_rank == 0:
                     logging.info(f"{utcnow()} Maximum number of steps reached")
