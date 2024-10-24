@@ -60,9 +60,9 @@ class FormatReader(ABC):
 
     @dlp.log
     def preprocess(self, a=None):
-        if self._args.preprocess_time != 0. or self._args.preprocess_time_stdev != 0.:
+        if self._args.preprocess_time > 0. or self._args.preprocess_time_stdev > 0.:
             t = np.random.normal(self._args.preprocess_time, self._args.preprocess_time_stdev)
-            sleep(max(t, 0.0))
+            sleep(abs(t))
         return a
     @abstractmethod
     def open(self, filename):
