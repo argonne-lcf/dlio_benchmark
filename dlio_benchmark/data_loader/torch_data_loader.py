@@ -143,7 +143,7 @@ class TorchDataLoader(BaseDataLoader):
                                        batch_size=self.batch_size,
                                        sampler=sampler,
                                        num_workers=self._args.read_threads,
-                                       pin_memory=True,
+                                       pin_memory=self._args.pin_memory,
                                        drop_last=True,
                                        worker_init_fn=dataset.worker_init, 
                                        **kwargs)
@@ -152,7 +152,7 @@ class TorchDataLoader(BaseDataLoader):
                                        batch_size=self.batch_size,
                                        sampler=sampler,
                                        num_workers=self._args.read_threads,
-                                       pin_memory=True,
+                                       pin_memory=self._args.pin_memory,
                                        drop_last=True,
                                        worker_init_fn=dataset.worker_init,
                                        **kwargs)  # 2 is the default value

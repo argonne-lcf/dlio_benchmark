@@ -118,6 +118,7 @@ class ConfigArguments:
     data_loader_sampler: DataLoaderSampler = None
     reader_classname: str = None
     multiprocessing_context: str = "fork"
+    pin_memory: bool = True
 
     # derived fields
     required_samples: int = 1
@@ -521,6 +522,8 @@ def LoadConfig(args, config):
             args.preprocess_time = reader['preprocess_time']
         if 'preprocess_time_stdev' in reader:
             args.preprocess_time_stdev = reader['preprocess_time_stdev']
+        if 'pin_memory' in reader:
+            args.pin_memory = reader['pin_memory']
 
     # training relevant setting
     if 'train' in config:
