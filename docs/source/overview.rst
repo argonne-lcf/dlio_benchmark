@@ -31,7 +31,7 @@ With the above considerations, we design our benchmark using a modular design ar
 1) **Accurate**: `DLIO` should be an accurate representation of
 selected deep learning applications. It should
 incorporate all the I/O behavior seen in various configurations of applications,
- and act as a mini-application that can precisely replay the I/O behavior. 
+and act as a mini-application that can precisely replay the I/O behavior. 
 
 2) **Configurable**: `DLIO` should be easily configurable for
 different scenarios required by the user. These include
