@@ -201,6 +201,9 @@ reader
    * - read_threads* 
      - 1
      - number of threads to load the data (for tensorflow and pytorch data loader)
+   * - pin_memory
+     - True
+     - whether to pin the memory for pytorch data loader
    * - computation_threads
      - 1
      - number of threads to preprocess the data
