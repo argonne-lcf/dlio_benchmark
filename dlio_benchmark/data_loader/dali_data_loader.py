@@ -140,7 +140,10 @@ class DaliDataLoader(BaseDataLoader):
         self.read(True)
         while step < self.num_samples // self.batch_size:
             for pipe in self.pipelines:
-                outputs = pipe.share_outputs()
+                try:
+                    outputs = pipe.share_outputs()
+                except StopIteration:
+                    return
                 logging.debug(f"{utcnow()} Output batch {step} {len(outputs)}")
                 yield outputs
                 step += 1
