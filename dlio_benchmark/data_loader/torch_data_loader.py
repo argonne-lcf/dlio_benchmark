@@ -166,7 +166,9 @@ class TorchDataLoader(BaseDataLoader):
         total = self._args.training_steps if self.dataset_type is DatasetType.TRAIN else self._args.eval_steps
         logging.debug(f"{utcnow()} Rank {self._args.my_rank} should read {total} batches")
         step = 1
-        for batch in self._dataset:
+        # TODO: @hariharan-devarajan: change below line when we bump the dftracer version to 
+        #       `dlp.iter(self._dataset, name=self.next.__qualname__)`
+        for batch in dlp.iter(self._dataset):
             dlp.update(step = step)
             step += 1
             yield batch
