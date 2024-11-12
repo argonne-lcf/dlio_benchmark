@@ -16,7 +16,7 @@ core_deps = [
     "omegaconf>=2.2.0",
     "pandas>=1.5.1",
     "psutil>=5.9.8",
-    "pydftracer==1.0.2",
+    "pydftracer==1.0.6",
 ]
 x86_deps = [
     f"hydra-core>={HYDRA_VERSION}",
