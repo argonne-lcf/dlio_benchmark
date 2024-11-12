@@ -269,3 +269,9 @@ jobs:
           mpirun -np 2 ${DLIO_EXEC} workload=cosmoflow_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16
           mpirun -np 2 ${DLIO_EXEC} workload=cosmoflow_h100 ++workload.workflow.generate_data=True ++workload.dataset.num_files_train=16 ++workload.dataset.format=synthetic
           rm -rf data
+      - name: test_computation_time_distribution
+        run: |
+          source ${VENV_PATH}/bin/activate
+          rm -rf output data checkpoints
+          mpirun -np 2 pytest -k test_computation_time_distribution -v
+          rm -rf data

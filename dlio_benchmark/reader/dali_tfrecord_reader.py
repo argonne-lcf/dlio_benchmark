@@ -18,7 +18,7 @@ import os.path
 
 import math
 import logging
-from time import time, sleep
+from time import time
 import numpy as np
 
 import nvidia

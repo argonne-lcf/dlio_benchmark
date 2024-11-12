@@ -22,11 +22,11 @@ from dlio_benchmark.data_loader.data_loader_factory import DataLoaderFactory
 from dlio_benchmark.storage.storage_factory import StorageFactory
 from dlio_benchmark.utils.utility import utcnow
 
-from time import sleep
 import os
 import logging
 
 from dlio_benchmark.utils.config import ConfigArguments
+from dlio_benchmark.utils.utility import sleep
 
 class DummyTraceObject(object):
     def __init__(self, string, step, r):

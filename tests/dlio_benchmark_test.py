@@ -486,5 +486,43 @@ def test_custom_storage_root_train(fmt, framework) -> None:
     clean(storage_root)
     finalize()
 
+compute_time_distributions = {
+    "uniform": {"type": "uniform", "min": 1.0, "max": 2.0},
+    "normal": {"type": "normal", "mean": 1.0, "stdev": 1.0},
+    "gamma": {"type": "gamma", "shape": 1.0, "scale": 1.0},
+    "exp": {"type": "exponential", "scale": 1.0},
+    "poisson": {"type": "poisson", "lam": 1.0},
+    "normal_v2": {"mean": 1.0}, # mean, dist: normal
+    "normal_v3": {"mean": 1.0, "stdev": 1.0}, # mean, stdev, dist: normal
+    "normal_v4": 2.0, # mean, dist: normal
+}
+
+@pytest.mark.timeout(60, method="thread")
+@pytest.mark.parametrize("dist", list(compute_time_distributions.keys()))
+def test_computation_time_distribution(dist) -> None:
+    init()
+    clean()
+    compute_time_overrides = []
+    dist_val = compute_time_distributions[dist]
+    if isinstance(dist_val, dict):
+        for key, value in dist_val.items():
+            compute_time_overrides.append(f"++workload.train.computation_time.{key}={value}")
+    else:
+        compute_time_overrides.append(f"++workload.train.computation_time={dist_val}")
+
+    if (comm.rank == 0):
+        logging.info("")
+        logging.info("=" * 80)
+        logging.info(f" DLIO test for computation time distribution")
+        logging.info("=" * 80)
+    with initialize_config_dir(version_base=None, config_dir=config_dir):
+        cfg = compose(config_name='config',
+                      overrides=['++workload.workflow.train=True', \
+                                 '++workload.workflow.generate_data=True', \
+                                 '++workload.train.epochs=4'] + compute_time_overrides)
+        benchmark = run_benchmark(cfg)
+        clean()
+    finalize()
+
 if __name__ == '__main__':
     unittest.main()

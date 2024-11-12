@@ -22,18 +22,19 @@ import logging
 from time import time
 
 
-from typing import List, ClassVar
+from typing import Any, Dict, List, ClassVar
 
 from dlio_benchmark.common.constants import MODULE_CONFIG
 from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
     FrameworkType, \
     DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointLocationType, CheckpointMechanismType
 from dlio_benchmark.utils.utility import DLIOMPI, get_trace_name, utcnow
+from dlio_benchmark.utils.utility import Profile, PerfTrace, DFTRACER_ENABLE
 from dataclasses import dataclass
+from omegaconf import OmegaConf, DictConfig
 import math
 import os
 import numpy as np
-from dlio_benchmark.utils.utility import Profile, PerfTrace, DFTRACER_ENABLE
 
 dlp = Profile(MODULE_CONFIG)
 @dataclass
@@ -82,10 +83,8 @@ class ConfigArguments:
     read_threads: int = 1
     dont_use_mmap: bool = False
     computation_threads: int = 1
-    computation_time: float = 0.
-    computation_time_stdev: float = 0.
-    preprocess_time: float = 0.
-    preprocess_time_stdev: float = 0.
+    computation_time: ClassVar[Dict[str, Any]] = {}
+    preprocess_time: ClassVar[Dict[str, Any]] = {}
     prefetch_size: int = 2
     enable_chunking: bool = False
     chunk_size: int = 0
@@ -97,8 +96,7 @@ class ConfigArguments:
     batch_size_eval: int = 1
     num_files_eval: int = 0
     generation_buffer_size: int = 2 * 1073741824  # 2 GB
-    eval_time: float = 0.0
-    eval_time_stdev: float = 0.0
+    eval_time: ClassVar[Dict[str, Any]] = {}
     eval_after_epoch: int = 1
     epochs_between_evals: int = 1
     checkpoint_type: CheckpointLocationType = CheckpointLocationType.RANK_ZERO
@@ -518,10 +516,21 @@ def LoadConfig(args, config):
             args.read_type = reader['read_type']
         if 'transfer_size' in reader:
             args.transfer_size = reader['transfer_size']
+        
+        args.preprocess_time = {}
         if 'preprocess_time' in reader:
-            args.preprocess_time = reader['preprocess_time']
+            preprocess_time = {}
+            if isinstance(reader['preprocess_time'], dict):
+                preprocess_time = reader['preprocess_time']
+            elif isinstance(reader['preprocess_time'], (int, float)):
+                preprocess_time["mean"] = reader['preprocess_time']
+            elif isinstance(reader['preprocess_time'], DictConfig):
+                preprocess_time = OmegaConf.to_container(reader['preprocess_time'])
+            else:
+                args.preprocess_time = reader['preprocess_time']
+            args.preprocess_time = preprocess_time if preprocess_time is not None else {}
         if 'preprocess_time_stdev' in reader:
-            args.preprocess_time_stdev = reader['preprocess_time_stdev']
+            args.preprocess_time["stdev"] = reader['preprocess_time_stdev']
         if 'pin_memory' in reader:
             args.pin_memory = reader['pin_memory']
 
@@ -533,18 +542,39 @@ def LoadConfig(args, config):
             args.total_training_steps = config['train']['total_training_steps']
         if 'seed_change_epoch' in config['train']:
             args.seed_change_epoch = config['train']['seed_change_epoch']
+        args.computation_time = {}
         if 'computation_time' in config['train']:
-            args.computation_time = config['train']['computation_time']
+            computation_time = {}
+            if isinstance(config['train']['computation_time'], dict):
+                computation_time = config['train']['computation_time']
+            elif isinstance(config['train']['computation_time'], (int, float)):
+                computation_time["mean"] = config['train']['computation_time']
+            elif isinstance(config['train']['computation_time'], DictConfig):
+                computation_time = OmegaConf.to_container(config['train']['computation_time'])
+            else:
+                args.computation_time = config['train']['computation_time']
+            args.computation_time = computation_time if computation_time is not None else {}
         if 'computation_time_stdev' in config['train']:
-            args.computation_time_stdev = config['train']['computation_time_stdev']
+            args.computation_time["stdev"] = config['train']['computation_time_stdev']
         if 'seed' in config['train']:
             args.seed = config['train']['seed']
 
     if 'evaluation' in config:
+        args.eval_time = {}
         if 'eval_time' in config['evaluation']:
-            args.eval_time = config['evaluation']['eval_time']
+            eval_time = {}
+            if isinstance(config['evaluation']['eval_time'], dict):
+                eval_time = config['evaluation']['eval_time']
+            elif isinstance(config['evaluation']['eval_time'], (int, float)):
+                eval_time["mean"] = config['evaluation']['eval_time']
+            elif isinstance(config['evaluation']['eval_time'], DictConfig):
+                eval_time = OmegaConf.to_container(config['evaluation']['eval_time'])
+            else:
+                args.eval_time = config['evaluation']['eval_time']
+            args.eval_time = eval_time if eval_time is not None else {}
+                
         if 'eval_time_stdev' in config['evaluation']:
-            args.eval_time_stdev = config['evaluation']['eval_time_stdev']
+            args.eval_time["stdev"] = config['evaluation']['eval_time_stdev']
         if 'eval_after_epoch' in config['evaluation']:
             args.eval_after_epoch = config['evaluation']['eval_after_epoch']
         if 'epochs_between_evals' in config['evaluation']:
