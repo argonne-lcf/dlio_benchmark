@@ -360,10 +360,18 @@ output
    * - log_file
      - dlio.log
      - log file name  
+   * - log_level
+     - "info"
+     - select the logging level [error|warning|info|debug]
 
 .. note::
    
    If ``folder`` is not set (None), the output folder will be ```hydra_log/unet3d/$DATE-$TIME```. 
+
+.. note:: 
+  
+  ``log_level=debug`` will output detailed logging info per steps; whereas ``log_level=info`` only output log at the end of each epoch. 
+  For performance mode, we would suggest using error mode to suppress unnecessory logs. 
 
 profiling
 ------------------
