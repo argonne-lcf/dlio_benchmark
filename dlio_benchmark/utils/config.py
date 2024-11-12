@@ -22,7 +22,7 @@ import logging
 from time import time
 
 
-from typing import List, ClassVar
+from typing import Any, Dict, List, ClassVar
 
 from dlio_benchmark.common.constants import MODULE_CONFIG
 from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
