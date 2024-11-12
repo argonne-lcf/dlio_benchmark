@@ -225,7 +225,7 @@ class DLIOBenchmark(object):
         for batch in loader.next():
             self.stats.eval_batch_loaded(epoch, step, t0)
             eval_time = self.eval_time
-            self.framework.compute(batch, epoch, step, eval_time)
+            eval_time = self.framework.compute(batch, epoch, step, eval_time)
             self.stats.eval_batch_processed(epoch, step, t0, eval_time)
 
             step += 1
@@ -263,7 +263,7 @@ class DLIOBenchmark(object):
             computation_time = self.computation_time
             if (isinstance(computation_time, dict) and len(computation_time) > 0) or (isinstance(computation_time, float) and  computation_time > 0):
                 self.framework.trace_object("Train", overall_step, 1)
-            self.framework.compute(batch, epoch, block_step, computation_time)
+            computation_time = self.framework.compute(batch, epoch, block_step, computation_time)
             self.stats.batch_processed(epoch, overall_step, block, t0, computation_time)
             self.comm.barrier()
             if self.do_checkpoint and (

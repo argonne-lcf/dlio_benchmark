@@ -87,7 +87,7 @@ class TFFramework(Framework):
 
     @dlp.log
     def compute(self, x, epoch_number, step, computation_time):
-        sleep(computation_time)
+        return sleep(computation_time)
         # tf.function(self.model)(epoch_number, step, computation_time)
 
     @dlp.log

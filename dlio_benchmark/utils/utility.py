@@ -335,4 +335,5 @@ def sleep(config):
     sleep_time = abs(sleep_time)
     if sleep_time > 0.0:
         base_sleep(sleep_time)
+    return sleep_time
 
