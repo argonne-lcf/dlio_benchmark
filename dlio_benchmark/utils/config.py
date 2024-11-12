@@ -31,7 +31,7 @@ from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle,
 from dlio_benchmark.utils.utility import DLIOMPI, get_trace_name, utcnow
 from dlio_benchmark.utils.utility import Profile, PerfTrace, DFTRACER_ENABLE
 from dataclasses import dataclass
-from omegaconf import DictConfig
+from omegaconf import OmegaConf, DictConfig
 import math
 import os
 import numpy as np
