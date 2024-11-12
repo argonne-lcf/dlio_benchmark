@@ -524,7 +524,7 @@ def LoadConfig(args, config):
                 preprocess_time = reader['preprocess_time']
             elif isinstance(reader['preprocess_time'], (int, float)):
                 preprocess_time["mean"] = reader['preprocess_time']
-            else isinstance(reader['preprocess_time'], DictConfig):
+            elif isinstance(reader['preprocess_time'], DictConfig):
                 preprocess_time = OmegaConf.to_container(reader['preprocess_time'])
             else:
                 args.preprocess_time = reader['preprocess_time']
@@ -549,7 +549,7 @@ def LoadConfig(args, config):
                 computation_time = config['train']['computation_time']
             elif isinstance(config['train']['computation_time'], (int, float)):
                 computation_time["mean"] = config['train']['computation_time']
-            else isinstance(config['train']['computation_time'], DictConfig):
+            elif isinstance(config['train']['computation_time'], DictConfig):
                 computation_time = OmegaConf.to_container(config['train']['computation_time'])
             else:
                 args.computation_time = config['train']['computation_time']
@@ -567,7 +567,7 @@ def LoadConfig(args, config):
                 eval_time = config['evaluation']['eval_time']
             elif isinstance(config['evaluation']['eval_time'], (int, float)):
                 eval_time["mean"] = config['evaluation']['eval_time']
-            else isinstance(config['evaluation']['eval_time'], DictConfig):
+            elif isinstance(config['evaluation']['eval_time'], DictConfig):
                 eval_time = OmegaConf.to_container(config['evaluation']['eval_time'])
             else:
                 args.eval_time = config['evaluation']['eval_time']
