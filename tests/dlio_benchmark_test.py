@@ -135,7 +135,7 @@ def test_subset() -> None:
                             '++workload.dataset.num_files_train=8', \
                             '++workload.train.computation_time=0.01'])
         benchmark=run_benchmark(cfg, verify=True)
-    clean()
+        clean()
     finalize()
 
 @pytest.mark.timeout(60, method="thread")
