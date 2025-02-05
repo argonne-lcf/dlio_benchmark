@@ -102,9 +102,13 @@ class ConfigArguments:
     checkpoint_type: CheckpointLocationType = CheckpointLocationType.RANK_ZERO
     checkpoint_mechanism: CheckpointMechanismType = CheckpointMechanismType.NONE
     model_size: int = 10240
+    vocab_size: int = 32000
+    hidden_size: int = 2048
+    ffn_hidden_size: int = 8192
+    zero_stage: int = -1
     optimization_groups: ClassVar[List[int]] = []
     num_layers: int = 1
-    layer_parameters: ClassVar[List[int]] = [17371, 24740228]
+    layer_parameters: ClassVar[List[int]] = []
     tensor_parallelism: int = 1
     pipeline_parallelism: int = 1
     data_loader: DataLoaderType = DataLoaderType.TENSORFLOW.value
@@ -424,12 +428,6 @@ def LoadConfig(args, config):
     '''
     if 'framework' in config:
         args.framework = FrameworkType(config['framework'])
-    if 'model' in config:
-        ''' 
-        most of the time, this won't change the benchmark. But in future we might use 
-        as a way to do model specific setting. 
-        '''
-        args.model = config['model']
 
     if 'storage' in config:
         if 'storage_type' in config['storage']:
@@ -594,18 +592,33 @@ def LoadConfig(args, config):
             args.checkpoint_type = CheckpointLocationType(config['checkpoint']['type'])
         if 'checkpoint_mechanism_classname' in config['checkpoint']:
             args.checkpoint_mechanism_classname = config['checkpoint']['checkpoint_mechanism_classname']
+
+    if 'model' in config:
+        if 'type' in config['model']:
+            args.model = config['model']['type']
         if 'model_size' in config['checkpoint']:
             args.model_size = config['checkpoint']['model_size']
-        if 'optimization_groups' in config['checkpoint']:
-            args.optimization_groups = config['checkpoint']['optimization_groups']
-        if 'num_layers' in config['checkpoint']:
-            args.num_layers = config['checkpoint']['num_layers']
-        if 'layer_parameters' in config['checkpoint']:
-            args.layer_parameters = config['checkpoint']['layer_parameters']
-        if 'tensor_parallelism' in config['checkpoint']:
-            args.tensor_parallelism = config['checkpoint']['tensor_parallelism']
-        if 'pipeline_parallelism' in config['checkpoint']:
-            args.pipeline_parallelism = config['checkpoint']['pipeline_parallelism']
+        if 'optimization_groups' in config['model']:
+            args.optimization_groups = config['model']['optimization_groups']
+        if 'num_layers' in config['model']:
+            args.num_layers = config['model']['num_layers']
+        if 'layer_parameters' in config['model']:
+            args.layer_parameters = config['model']['layer_parameters']
+        if 'tensor_parallelism' in config['model']:
+            args.tensor_parallelism = config['model']['tensor_parallelism']
+        if 'pipeline_parallelism' in config['model']:
+            args.pipeline_parallelism = config['model']['pipeline_parallelism']
+
+    if 'transformer' in config:
+        if 'vocab_size' in config['transformer']:
+            args.vocab_size = config['transformer']['vocab_size']
+        if 'hidden_size' in config['transformer']:
+            args.hidden_size = config['transformer']['hidden_size']
+        if 'ffn_hidden_size' in config['transformer']:
+            args.ffn_hidden_size = config['transformer']['ffn_hidden_size']
+        if 'num_layers' in config['transformer']:
+            args.num_layers = config['transformer']['num_layers']
+
     if 'output' in config:
         if 'folder' in config['output']:
             args.output_folder = config['output']['folder']
