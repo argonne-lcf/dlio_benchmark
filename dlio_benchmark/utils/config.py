@@ -107,7 +107,7 @@ class ConfigArguments:
     ffn_hidden_size: int = 8192
     zero_stage: int = -1
     optimization_groups: ClassVar[List[int]] = []
-    num_layers: int = 1
+    num_layers: int = -1
     layer_parameters: ClassVar[List[int]] = []
     tensor_parallelism: int = 1
     pipeline_parallelism: int = 1
