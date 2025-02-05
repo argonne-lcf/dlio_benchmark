@@ -27,10 +27,9 @@ import numpy as np
 import os
 import math
 import logging
-from time import sleep
 import glob
 from dlio_benchmark.common.constants import MODULE_DATA_READER
-
+from dlio_benchmark.utils.utility import sleep
 
 dlp = Profile(MODULE_DATA_READER)
 
@@ -60,10 +59,9 @@ class FormatReader(ABC):
 
     @dlp.log
     def preprocess(self, a=None):
-        if self._args.preprocess_time > 0. or self._args.preprocess_time_stdev > 0.:
-            t = np.random.normal(self._args.preprocess_time, self._args.preprocess_time_stdev)
-            sleep(abs(t))
+        sleep(self._args.preprocess_time)
         return a
+
     @abstractmethod
     def open(self, filename):
         return 

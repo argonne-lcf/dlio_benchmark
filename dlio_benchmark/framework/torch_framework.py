@@ -27,10 +27,11 @@ import logging
 from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 from dlio_benchmark.utils.utility import Profile
 
-from time import sleep, time
+from time import time
 
 from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.storage.storage_factory import StorageFactory
+from dlio_benchmark.utils.utility import sleep
 
 HANDLED_FUNCTIONS = {}
 dlp = Profile(MODULE_AI_FRAMEWORK)
@@ -93,7 +94,7 @@ class TorchFramework(Framework):
 
     @dlp.log
     def compute(self, x, epoch_number, step, computation_time):
-        torch_sleep(computation_time)
+        return torch_sleep(computation_time)
 
     @dlp.log
     def get_loader(self, dataset_type=DatasetType.TRAIN):
