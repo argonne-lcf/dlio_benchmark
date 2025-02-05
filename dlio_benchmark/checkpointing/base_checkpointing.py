@@ -60,7 +60,7 @@ class BaseCheckpointing(ABC):
             optimization_groups = self.get_optimization_groups()
             if len(optimization_groups) > 0:
                 self.optimization_state = dict()
-                if self.optimization_groups_predefined
+                if self.optimization_groups_predefined:
                     # This is for old code, where the optimization groups are predefined, might be deprecated in future
                     tensor_array_size = 0
                     for index, state in enumerate(optimization_groups):
