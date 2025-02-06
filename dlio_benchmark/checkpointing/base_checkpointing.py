@@ -70,7 +70,7 @@ class BaseCheckpointing(ABC):
 
 
             self.layer_state = None
-            start_layer, end_layer = self.get_layer_index(self.args.my_rank, self.tp, self.pp, self.args.num_layers)
+            start_layer, end_layer = self.get_layer_index()
 
             if self.layer_parameters_predefined:
                 # This is for old code, where the layer parameters are predefined
@@ -85,11 +85,8 @@ class BaseCheckpointing(ABC):
                 self.layer_state = dict()
                 ss = 0.0
                 for layer_index in range(start_layer, end_layer + 1):
-                    if self.args.zero_stage < 3:
-                        _, size = self.get_layer_state(layer_index)
-                    else:
-                        self.layer_state[str(layer_index)], size = self.get_layer_state(layer_index)
-                    logging.info(f"{utcnow()} {self.args.my_rank}- {layer_index}: {size/1024./1024./1024:.4f} GB ")
+                    self.layer_state[str(layer_index)], size = self.get_layer_state(layer_index)
+                    #logging.info(f"{utcnow()} {self.args.my_rank} [{start_layer}-{end_layer}]:::{layer_index}: {size/1024./1024./1024:.4f} GB ")
                     ss += size
             if self.args.my_rank == 0:
                 logging.info(f"{utcnow()} Layer states defined! {ss/1024./1024./1024} GB per rank")
@@ -130,9 +127,6 @@ class BaseCheckpointing(ABC):
         if self.args.zero_stage < 3:
             ss /= self.dp
         self.checkpoint_size = ss + opt
-
-
-
         if self.args.my_rank == 0:
             logging.info(f"{utcnow()} Total state size: {ss} GB")
             logging.info(f"{utcnow()} Total checkpoint size: {self.checkpoint_size} GB")
@@ -221,7 +215,7 @@ class BaseCheckpointing(ABC):
             else:
                 return []                                                                                                           
 
-    def get_layer_index(self, rank, tensor_parallelism, pipeline_parallelism, total_layers):
+    def get_layer_index(self):
         '''
         if tensor_parallelism > 1:
             total_layers = total_layers + tensor_parallelism
@@ -248,17 +242,17 @@ class BaseCheckpointing(ABC):
         The transformer layers are from 1 to l. We only distribute the transformer layers among the ranks.                                                
         We assume layer 0 is always on rank 0, and l+1 and l+2 are on the last rank.                                                                      
         '''
-        pipeline_rank = (rank // tensor_parallelism) % pipeline_parallelism
-        remainder = total_layers%pipeline_parallelism
-        nl = total_layers//pipeline_parallelism
+        pipeline_rank = self.pp_rank
+        nl = self.args.num_layers//self.pp
+        remainder = self.args.num_layers%self.pp
         if pipeline_rank < remainder:
             start_layer = pipeline_rank * (nl + 1) + 1
             end_layer = start_layer + nl + 1
         else:
             start_layer = remainder * (nl + 1) + (pipeline_rank - remainder) * nl + 1
             end_layer = start_layer + nl
-        if pipeline_rank == pipeline_parallelism - 1:
-            end_layer = total_layers + 2
+        if pipeline_rank == self.pp - 1:
+            end_layer = self.args.num_layers + 2
         if pipeline_rank == 0:
             start_layer = 0
         return start_layer, end_layer
@@ -266,7 +260,7 @@ class BaseCheckpointing(ABC):
     @abstractmethod
     def checkpoint(self, epoch, step_number):
         my_rank = DLIOMPI.get_instance().rank()
-        start_layer, end_layer = self.get_layer_index(my_rank,self.args.tensor_parallelism, self.args.pipeline_parallelism, self.args.num_layers)
+        start_layer, end_layer = self.get_layer_index()
         # create a specifc folder for each step
         checkpoint_id = f"global_epoch{epoch}_step{step_number}"
         self.checkpoint_storage.create_node(checkpoint_id, exist_ok=True)
@@ -283,7 +277,7 @@ class BaseCheckpointing(ABC):
                     if self.dp_rank == 0 and self.args.num_layers > 0:
                         # in this case, model is saved layer by layer
                         for layer_index in range(start_layer, end_layer + 1):
-                            self.save_state(suffix=f"{checkpoint_id}/layer_{layer_index}-model_{self.mp_rank}_model_states", state=self.get_layer_state(layer_index))
+                            self.save_state(suffix=f"{checkpoint_id}/layer_{layer_index}-model_{self.mp_rank}_model_states", state=self.layer_state[str(layer_index)])
                 else:
                     # in this case, model is sharded across the data parallel ranks
                     assert(self.pp == 1)

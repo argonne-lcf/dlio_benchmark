@@ -608,9 +608,9 @@ def LoadConfig(args, config):
             args.layer_parameters = config['model']['layer_parameters']
 
         if 'parallelism' in config['model']:
-            if 'tensor_parallelism' in config['model']['parallelism']:
+            if 'tensor' in config['model']['parallelism']:
                 args.tensor_parallelism = config['model']['parallelism']['tensor']
-            if 'pipeline_parallelism' in config['model']['parallelism']:
+            if 'pipeline' in config['model']['parallelism']:
                 args.pipeline_parallelism = config['model']['parallelism']['pipeline']
             if 'zero_stage' in config['model']['parallelism']:
                 args.zero_stage = config['model']['parallelism']['zero_stage']
