@@ -101,8 +101,8 @@ class ConfigArguments:
     epochs_between_evals: int = 1
     checkpoint_type: CheckpointLocationType = CheckpointLocationType.RANK_ZERO
     checkpoint_mechanism: CheckpointMechanismType = CheckpointMechanismType.NONE
-    checkpoint_model_datatype: str = "f16"
-    checkpoint_optimizer_datatype: str = "f32"
+    checkpoint_model_datatype: str = "fp16"
+    checkpoint_optimizer_datatype: str = "fp32"
     model_size: int = 10240
     vocab_size: int = 32000
     hidden_size: int = 2048

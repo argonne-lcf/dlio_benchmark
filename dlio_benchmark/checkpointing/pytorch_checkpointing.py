@@ -31,8 +31,10 @@ def get_torch_datatype(datatype):
         return torch.float16
     if datatype == "f64":
         return torch.float64
-    if datatype == "i8":
+    if datatype == "int8":
         return torch.int8
+    if datatype == "uint8":
+        return torch.uint8
     if datatype == "bf16": # bfloat16
         return torch.bfloat16
 
@@ -54,7 +56,7 @@ class PyTorchCheckpointing(BaseCheckpointing):
         super().__init__("pt")
 
     @dlp.log
-    def get_tensor(self, size, datatype="i8"):
+    def get_tensor(self, size, datatype="int8"):
         return torch.ones(size, dtype=get_torch_datatype(datatype))
 
     @dlp.log

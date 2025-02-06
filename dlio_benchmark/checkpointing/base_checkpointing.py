@@ -34,7 +34,7 @@ def get_datatype_size(datatype):
     elif datatype == "fp64":
         return 8
     else:
-        raise Exception("Unsupported datatype")
+        raise Exception("Unsupported datatype {datatype}")
 
 class BaseCheckpointing(ABC):
 
