@@ -251,10 +251,10 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
                                  f'++workload.train.epochs={epochs}', '++workload.workflow.checkpoint=True',
                                  f'++workload.checkpoint.epochs_between_checkpoints={epoch_per_ckp}',
                                  f'++workload.checkpoint.type={type}',
-                                 f'++workload.checkpoint.model_size={model_size}',
-                                 f'++workload.checkpoint.optimization_groups={optimizers}',
-                                 f'++workload.checkpoint.num_layers={num_layers}',
-                                 f'++workload.checkpoint.layer_parameters={layer_params}'])
+                                 f'++workload.model.model_size={model_size}',
+                                 f'++workload.model.optimization_groups={optimizers}',
+                                 f'++workload.model.num_layers={num_layers}',
+                                 f'++workload.model.layer_parameters={layer_params}'])
         comm.Barrier()
         if comm.rank == 0:
             shutil.rmtree("./checkpoints", ignore_errors=True)

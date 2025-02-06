@@ -1,4 +1,5 @@
-model: unet3d
+model: 
+  name: unet3d
 
 framework: pytorch
 

@@ -1,17 +1,17 @@
 # 8 node run with 4 GPUs per node and TPSIZE=4 and PPSIZE=8
-model:
-  name: llama_7b
+model: 
+  name: llama_70b
   type: transformer
   model_size: 30102
-  num_layers: 32
+  num_layers: 80
   parallelism: 
-    pipeline: 1
-    tensor: 1
+    tensor: 8
+    pipeline: 4
     zero_stage: 1
   transformer: 
-    vocab_size: 32000
-    hidden_size: 4096
-    ffn_hidden_size: 11008
+    vocab_size: 128000
+    hidden_size: 8192
+    ffn_hidden_size: 28672
 
 framework: pytorch
 
@@ -21,7 +21,7 @@ workflow:
   checkpoint: True
 
 dataset: 
-  data_folder: data/llama_7b/
+  data_folder: data/llama_70b/
   format: mmap_indexed_binary
   num_files_train: 1
   num_samples_per_file: 1048576
@@ -36,9 +36,9 @@ reader:
 
 train:
   epochs: 1
-  computation_time: 5 # This is not actual measurement. Just set an interval so that checkpoint every 5 seconds
+  computation_time: 5 # 2.44 sec per step
   total_training_steps: 5
 
 checkpoint:
-  checkpoint_folder: checkpoints/llama_7b
+  checkpoint_folder: checkpoints/llama_70b
   steps_between_checkpoints: 1

@@ -110,6 +110,8 @@ class DLIOBenchmark(object):
             self.num_subfolders_eval = self.args.num_subfolders_eval
             self.num_samples = self.args.num_samples_per_file
             self.total_training_steps = self.args.total_training_steps
+            
+            self.overall_step_total = 0
 
             self.epochs = self.args.epochs
             self.batch_size = self.args.batch_size
@@ -250,7 +252,7 @@ class DLIOBenchmark(object):
         loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
         t0 = time()
         for batch in loader.next():
-            if overall_step > max_steps or ((self.total_training_steps > 0) and (overall_step > self.total_training_steps)):
+            if overall_step > max_steps or ((self.total_training_steps > 0) and (self.overall_step_total >= self.total_training_steps)):
                 if self.args.my_rank == 0:
                     logging.info(f"{utcnow()} Maximum number of steps reached")
                 if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
@@ -271,6 +273,7 @@ class DLIOBenchmark(object):
                 self.stats.end_block(epoch, block, block_step)
                 self.stats.start_ckpt(epoch, block, overall_step)
                 self.checkpointing_mechanism.checkpoint(epoch, overall_step)
+                self.comm.barrier()
                 self.stats.end_ckpt(epoch, block)
                 block += 1
                 # Reset the number of steps after every checkpoint to mark the start of a new block
@@ -279,12 +282,14 @@ class DLIOBenchmark(object):
             else:
                 block_step += 1
             overall_step += 1
+            self.overall_step_total += 1
             t0 = time()
         self.comm.barrier()
         if self.do_checkpoint and (self.steps_between_checkpoints < 0) and (epoch == self.next_checkpoint_epoch):
             self.stats.end_block(epoch, block, block_step)
             self.stats.start_ckpt(epoch, block, overall_step)
             self.checkpointing_mechanism.checkpoint(epoch, overall_step)
+            self.comm.barrier()
             self.stats.end_ckpt(epoch, block)
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
         self.comm.barrier()
@@ -304,7 +309,10 @@ class DLIOBenchmark(object):
                 total = math.floor(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
                 logging.info(
                     f"{utcnow()} Max steps per epoch: {total} = {self.num_samples} * {self.num_files_train} / {self.batch_size} / {self.comm_size} (samples per file * num files / batch size / comm size)")
-
+                if self.total_training_steps > 0:
+                    logging.info(
+                        f"{utcnow()} Total training steps is set to be {self.total_training_steps}. Will only run up to {min(total*self.args.epochs, self.total_training_steps)}"
+                    )
                 if self.do_eval:
                     total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
                     logging.info(

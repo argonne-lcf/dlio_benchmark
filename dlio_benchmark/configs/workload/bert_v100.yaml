@@ -1,4 +1,5 @@
-model: bert
+model: 
+  name: bert
 
 framework: tensorflow
 

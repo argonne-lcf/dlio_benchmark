@@ -1,4 +1,5 @@
-model: default
+model: 
+  name: default
 
 framework: pytorch
 

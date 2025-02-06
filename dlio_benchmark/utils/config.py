@@ -417,7 +417,7 @@ class ConfigArguments:
         global_train_sample_sum = DLIOMPI.get_instance().reduce(local_train_sample_sum)
         global_eval_sample_sum = DLIOMPI.get_instance().reduce(local_eval_sample_sum)        
         if self.my_rank == 0:
-            logging.info(f"total sample: train {global_train_sample_sum} eval {global_eval_sample_sum}")
+            logging.info(f"{utcnow()} Total sample: train {global_train_sample_sum} -  eval {global_eval_sample_sum}")
             if self.train_sample_index_sum != global_train_sample_sum:
                 raise Exception(f"Sharding of train samples are missing samples got {global_train_sample_sum} but expected {self.train_sample_index_sum}")
             
@@ -597,7 +597,7 @@ def LoadConfig(args, config):
 
     if 'model' in config:
         if 'type' in config['model']:
-            args.model = config['model']['type']
+            args.model = config['model']['name']
         if 'model_size' in config['model']:
             args.model_size = config['model']['model_size']
         if 'optimization_groups' in config['model']:
@@ -622,8 +622,6 @@ def LoadConfig(args, config):
                 args.hidden_size = config['model']['transformer']['hidden_size']
             if 'ffn_hidden_size' in config['model']['transformer']:
                 args.ffn_hidden_size = config['model']['transformer']['ffn_hidden_size']
-            if 'num_layers' in config['model']['transformer']:
-                args.num_layers = config['model']['transformer']['num_layers']
 
     if 'output' in config:
         if 'folder' in config['output']:

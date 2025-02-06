@@ -1,4 +1,5 @@
-model: cosmoflow
+model: 
+  name: cosmoflow
 
 framework: tensorflow
 

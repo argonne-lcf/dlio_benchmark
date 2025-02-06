@@ -43,7 +43,7 @@ class PyTorchCheckpointing(BaseCheckpointing):
 
     @dlp.log
     def get_tensor(self, size):
-        return torch.randint(high=1, size=(size,), dtype=torch.int8)
+        return torch.ones(size, dtype=torch.int8)
 
     @dlp.log
     def save_state(self, suffix, state):

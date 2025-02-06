@@ -1,4 +1,5 @@
-model: resnet50
+model: 
+  name: resnet50
 
 framework: tensorflow
 
