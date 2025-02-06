@@ -89,7 +89,7 @@ class BaseCheckpointing(ABC):
                 else:
                     for index, state in enumerate(optimization_groups):
                         if state > 0:
-                            logging.info(f"{state/1024./1024./1024. } GB")
+                            #logging.info(f"{state/1024./1024./1024. } GB")
                             self.checkpoint_size += state
                             self.optimization_state[str(index)] = self.get_tensor(state)
             if self.args.my_rank == 0:

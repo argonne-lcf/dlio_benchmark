@@ -315,7 +315,7 @@ def test_checkpoint_step() -> None:
             'reader'].batch_size // benchmark.comm_size
         ncheckpoints = nstep // 2 * 8 * 2
         output = pathlib.Path("./checkpoints")
-        load_bin = list(output.glob("*"))
+        load_bin = list(output.glob("*/"))
         assert (len(load_bin) == ncheckpoints)
         clean()
     finalize()
