@@ -66,6 +66,7 @@ class TorchDataset(Dataset):
                                                dataset_type=self.dataset_type,
                                                thread_index=worker_id,
                                                epoch_number=self.epoch_number)
+        logging.debug(f"{utcnow()} worker initialized {worker_id} with reader {type(self.reader).__name__}")
 
     def __del__(self):
         if self.dlp_logger:
