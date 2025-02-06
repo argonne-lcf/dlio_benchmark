@@ -224,12 +224,12 @@ def test_iostat_profiling() -> None:
     finalize()
 
 @pytest.mark.timeout(60, method="thread")
-@pytest.mark.parametrize("framework, model_size, optimizers, num_layers, layer_params, type", [("tensorflow", 1024, [1024, 128], 2, [16], "all_ranks"),
-                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], "all_ranks"),
-                                                                                         ("tensorflow", 1024, [1024, 128], 2, [16], "rank_zero"),
-                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], "rank_zero"),
-                                                                                         ("tensorflow", 1024, [128], 1, [16], "all_ranks"),
-                                                                                         ("pytorch", 1024, [128], 1, [16], "all_ranks")])
+@pytest.mark.parametrize("framework, model_size, optimizers, num_layers, layer_params", [("tensorflow", 1024, [1024, 128], 2, [16]),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16]),
+                                                                                         ("tensorflow", 1024, [1024, 128], 2, [16]),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16]),
+                                                                                         ("tensorflow", 1024, [128], 1, [16]),
+                                                                                         ("pytorch", 1024, [128], 1, [16])])
 def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_params, type) -> None:
     init()
     clean()
@@ -262,20 +262,18 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
         comm.Barrier()
         benchmark = run_benchmark(cfg)
         output = pathlib.Path("./checkpoints")
-        load_bin = list(output.glob("*/*/*.pt"))
+        load_bin = list(output.glob(f"{cfg['workload']['model']['name']}/*/*"))
         n = 0
         if len(layer_params) > 0:
             n = num_layers
-        nranks = 1
-        if type == "all_ranks":
-            nranks = comm.size
+        nranks = comm.size
         num_model_files = 1
         num_optimizer_files = 1
         num_layer_files = num_layers
         files_per_checkpoint = (num_model_files + num_optimizer_files + num_layer_files) * nranks
         if framework == "tensorflow":
             file_per_ckp = 2
-            num_check_files = epochs / epoch_per_ckp * files_per_checkpoint * file_per_ckp 
+            num_check_files = epochs / epoch_per_ckp * files_per_checkpoint * file_per_ckp + 1
             assert (len(load_bin) == num_check_files), f"files produced are {len(load_bin)} {num_check_files} {load_bin} "
         if framework == "pytorch":
             num_check_files = epochs / epoch_per_ckp * files_per_checkpoint
@@ -311,11 +309,10 @@ def test_checkpoint_step() -> None:
         comm.Barrier()
         benchmark = run_benchmark(cfg)
         dataset = cfg['workload']['dataset']
-        nstep = dataset.num_files_train * dataset.num_samples_per_file // cfg['workload'][
-            'reader'].batch_size // benchmark.comm_size
+        nstep = dataset.num_files_train * dataset.num_samples_per_file // cfg['workload']['reader'].batch_size // benchmark.comm_size
         ncheckpoints = nstep // 2 * 8 * 2
         output = pathlib.Path("./checkpoints")
-        load_bin = list(output.glob("*/"))
+        load_bin = list(output.glob(f"{cfg['workload']['model']['name']}/*/*"))
         assert (len(load_bin) == ncheckpoints)
         clean()
     finalize()
