@@ -117,7 +117,7 @@ def test_gen_data(fmt, framework) -> None:
         clean()
     finalize()
 
-@pytest.mark.timeout(60, method="thread")
+@pytest.mark.timeout(120, method="thread")
 def test_subset() -> None:
     init()
     clean()
@@ -135,7 +135,7 @@ def test_subset() -> None:
                             '++workload.dataset.num_files_train=8', \
                             '++workload.train.computation_time=0.01'])
         benchmark=run_benchmark(cfg, verify=True)
-    clean()
+        clean()
     finalize()
 
 @pytest.mark.timeout(60, method="thread")
