@@ -57,6 +57,59 @@ More built-in examples can be found in the `workload`_ folder. One can also crea
 model
 ------------------
 One can specify the name of the model as 
+.. list-table:: 
+   :widths: 15 10 30
+   :header-rows: 1
+   * - name 
+     - default
+     - The name of the model
+   * - model_size
+     - 10240
+     - the size of the model parameters per GPU in bytes
+   * - optimization_groups
+     - []
+     - List of optimization group tensors. Use Array notation for yaml.
+   * - num_layers
+     - 1
+     - Number of layers to checkpoint. Each layer would be checkpointed separately.
+   * - layer_parameters
+     - []
+     - List of parameters per layer. This is used to perform I/O per layer.
+
+In the model session, one can define ``parallelism``, which have three variables, tensor, pipeline, and zero_stage. 
+by default, zero_stage=-1 in which no sharding at all. If zero_stage = 3, all the model and optimizer states will be sharded accross
+the data parallel group. 
+
+.. list-table:: 
+   :widths: 15 10 30
+   :header-rows: 1
+
+   * - tensor
+     - 1
+     - Tensor parallelism for model. Used to determine the number of layer model files.
+   * - pipeline
+     - 1
+     - Pipeline parallelism for model.
+   * - zero_stage
+     - -1
+     - Zero stage [-1|1|2|3]. default: -1
+
+For transformer architecture, one can define ``transformer`` under ``model``
+In which three paramters 
+
+.. list-table:: 
+   :widths: 15 10 30
+   :header-rows: 1
+
+   * - hidden_size
+     - 2048
+     - Hidden dimension of the transformer layer.
+   * - ffn_hidden_size
+     - 8196
+     - FFN hidden dimension 
+   * - vocab_size
+     - 32000
+     - vocab size for the embedding layer
 
 .. code-block:: yaml
 
@@ -319,27 +372,6 @@ checkpoint
    * - steps_between_checkpoints
      - -1
      - performing one checkpointing per certain number of steps specified
-   * - model_size
-     - 10240
-     - the size of the model parameters per GPU in bytes
-   * - optimization_groups
-     - []
-     - List of optimization group tensors. Use Array notation for yaml.
-   * - num_layers
-     - 1
-     - Number of layers to checkpoint. Each layer would be checkpointed separately.
-   * - layer_parameters
-     - []
-     - List of parameters per layer. This is used to perform I/O per layer.
-   * - type
-     - rank_zero
-     - Which rank performs this checkpoint. All ranks (all_ranks) or Rank 0 (rank_zero).
-   * - tensor_parallelism
-     - 1
-     - Tensor parallelism for model. Used to determine the number of layer model files.
-   * - pipeline_parallelism
-     - 1
-     - Pipeline parallelism for model.
 
 .. note::
    

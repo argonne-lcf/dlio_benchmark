@@ -58,12 +58,7 @@ class BaseCheckpointing(ABC):
             else:
                 self.rank_to_checkpoint = 0
         if self.rank_to_checkpoint == self.args.my_rank:
-            self.model_state = None
-            if self.args.model_size > 0:
-                self.model_state = {"a": self.get_tensor(self.args.model_size)}
-            self.checkpoint_size += self.args.model_size
-            if self.args.my_rank == 0:
-                logging.info(f"{utcnow()} model state defined")
+
             if len(self.args.optimization_groups) > 0:
                 self.optimization_groups_predefined = True
             else:
@@ -93,7 +88,7 @@ class BaseCheckpointing(ABC):
                             self.checkpoint_size += state
                             self.optimization_state[str(index)] = self.get_tensor(state)
             if self.args.my_rank == 0:
-                logging.info(f"{utcnow()} Optimizer state defined")
+                logging.info(f"{utcnow()} Optimizer state defined: {self.checkpoint_size / 1024./1024./1024} GB per rank")
             # layer state
             self.layer_state = None
             start_layer, end_layer = self.get_layer_index(self.args.my_rank, self.tp, self.pp, self.args.num_layers)
@@ -114,12 +109,22 @@ class BaseCheckpointing(ABC):
                     self.layer_state[str(layer_index)], size = self.get_layer_state(layer_index)
                     ss += size
             if self.args.my_rank == 0:
-                logging.info(f"{utcnow()} Layer states defined!")
+                logging.info(f"{utcnow()} Layer states defined! {ss/1024./1024./1024} GB per rank")
+            
+            self.model_state = None
+            if self.args.model_size > 0:
+                self.model_state = {"a": self.get_tensor(self.args.model_size)}
+            if self.args.my_rank == 0:
+                logging.info(f"{utcnow()} Model state defined")
+
         ss = self.comm.allreduce(ss)/1024./1024./1024.
         opt = self.comm.allreduce(self.checkpoint_size)/1024./1024./1024.
         if self.args.zero_stage < 3:
             ss /= self.dp
         self.checkpoint_size = ss + opt
+
+
+
         if self.args.my_rank == 0:
             logging.info(f"{utcnow()} Total state size: {ss} GB")
             logging.info(f"{utcnow()} Total checkpoint size: {self.checkpoint_size} GB")
