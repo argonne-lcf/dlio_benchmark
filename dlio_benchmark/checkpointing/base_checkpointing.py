@@ -168,7 +168,7 @@ class BaseCheckpointing(ABC):
                 sharding_factor = self.dp
             h, l, ffn, voc = self.args.hidden_size, self.args.num_layers, self.args.ffn_hidden_size, self.args.vocab_size
             if layer_index == 0 or layer_index == l + 1:
-                return [h * voc // sharding_factor * dtype_size] # embedding or lm_head
+                return [h * voc // self.tp // sharding_factor * dtype_size] # embedding or lm_head
             elif layer_index == l + 2:
                 return [h//sharding_factor * dtype_size]
             else:
