@@ -262,7 +262,7 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
         comm.Barrier()
         benchmark = run_benchmark(cfg)
         output = pathlib.Path("./checkpoints")
-        load_bin = list(output.glob("*"))
+        load_bin = list(output.glob("*/*.pt"))
         n = 0
         if len(layer_params) > 0:
             n = num_layers
