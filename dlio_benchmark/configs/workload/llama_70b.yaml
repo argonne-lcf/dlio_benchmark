@@ -1,4 +1,3 @@
-# 8 node run with 4 GPUs per node and TPSIZE=4 and PPSIZE=8
 model: 
   name: llama_70b
   type: transformer

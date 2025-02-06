@@ -67,6 +67,34 @@ class BaseCheckpointing(ABC):
                 self.layer_parameters_predefined = True
             else:
                 self.layer_parameters_predefined = False
+
+
+            self.layer_state = None
+            start_layer, end_layer = self.get_layer_index(self.args.my_rank, self.tp, self.pp, self.args.num_layers)
+
+            if self.layer_parameters_predefined:
+                # This is for old code, where the layer parameters are predefined
+                self.layer_state = dict()
+                layer_state = dict()
+                for index, state in enumerate(self.args.layer_parameters):
+                    if state > 0:
+                        layer_state[str(index)] = self.get_tensor(state // self.args.tensor_parallelism)
+                for layer_index in range(start_layer, end_layer + 1):
+                    self.layer_state[str(layer_index)] = layer_state  
+            else:
+                self.layer_state = dict()
+                ss = 0.0
+                for layer_index in range(start_layer, end_layer + 1):
+                    if self.args.zero_stage < 3:
+                        _, size = self.get_layer_state(layer_index)
+                    else:
+                        self.layer_state[str(layer_index)], size = self.get_layer_state(layer_index)
+                    logging.info(f"{utcnow()} {self.args.my_rank}- {layer_index}:
+                     {size/1024./1024./1024:.4f} GB ")
+                    ss += size
+            if self.args.my_rank == 0:
+                logging.info(f"{utcnow()} Layer states defined! {ss/1024./1024./1024} GB per rank")
+
             # optimization state
             self.optimization_state = None
             optimization_groups = self.get_optimization_groups()
@@ -90,26 +118,7 @@ class BaseCheckpointing(ABC):
             if self.args.my_rank == 0:
                 logging.info(f"{utcnow()} Optimizer state defined: {self.checkpoint_size / 1024./1024./1024} GB per rank")
             # layer state
-            self.layer_state = None
-            start_layer, end_layer = self.get_layer_index(self.args.my_rank, self.tp, self.pp, self.args.num_layers)
 
-            if self.layer_parameters_predefined:
-                # This is for old code, where the layer parameters are predefined
-                self.layer_state = dict()
-                layer_state = dict()
-                for index, state in enumerate(self.args.layer_parameters):
-                    if state > 0:
-                        layer_state[str(index)] = self.get_tensor(state // self.args.tensor_parallelism)
-                for layer_index in range(start_layer, end_layer + 1):
-                    self.layer_state[str(layer_index)] = layer_state  
-            else:
-                self.layer_state = dict()
-                ss = 0.0
-                for layer_index in range(start_layer, end_layer + 1):
-                    self.layer_state[str(layer_index)], size = self.get_layer_state(layer_index)
-                    ss += size
-            if self.args.my_rank == 0:
-                logging.info(f"{utcnow()} Layer states defined! {ss/1024./1024./1024} GB per rank")
             
             self.model_state = None
             if self.args.model_size > 0:
@@ -275,7 +284,7 @@ class BaseCheckpointing(ABC):
                     if self.dp_rank == 0 and self.args.num_layers > 0:
                         # in this case, model is saved layer by layer
                         for layer_index in range(start_layer, end_layer + 1):
-                            self.save_state(suffix=f"{checkpoint_id}/layer_{layer_index}-model_{self.mp_rank}_model_states", state=self.layer_state[str(layer_index)])
+                            self.save_state(suffix=f"{checkpoint_id}/layer_{layer_index}-model_{self.mp_rank}_model_states", state=self.get_layer_state(layer_index))
                 else:
                     # in this case, model is sharded across the data parallel ranks
                     assert(self.pp == 1)
