@@ -69,7 +69,6 @@ class BaseCheckpointing(ABC):
             else:
                 self.rank_to_checkpoint = 0
         if self.rank_to_checkpoint == self.args.my_rank:
-
             if len(self.args.optimization_groups) > 0:
                 self.optimization_groups_predefined = True
             else:
@@ -82,7 +81,6 @@ class BaseCheckpointing(ABC):
 
             self.layer_state = None
             start_layer, end_layer = self.get_layer_index()
-
             if self.layer_parameters_predefined:
                 # This is for old code, where the layer parameters are predefined
                 self.layer_state = dict()
@@ -186,7 +184,7 @@ class BaseCheckpointing(ABC):
                         h*h*3//self.tp//sharding_factor, # self_attn
                         h*h//self.tp//sharding_factor, # dense
                         h//sharding_factor, # layer_norm
-                        h*2*ffn//self.tp//sharding_factor, # ffn_h_to_4h
+                        h*2*ffn//self.tp//sharding_factor, # ffn_h_to_4h, 2 is from gated linear unit
                         h*ffn//self.tp//sharding_factor, # ffn_4h_to_h
                 ]
     def get_layer_state(self, layer_index):
@@ -207,7 +205,6 @@ class BaseCheckpointing(ABC):
         else:
             if self.args.num_layers <= 0:
                 return []
-            dtype_size = 4  # 4 bytes for fp32 
             if self.args.zero_stage > 0:
                 # zero stage 1, 2, 3
                 num_p = self.get_num_parameters() // self.args.comm_size
@@ -215,13 +212,7 @@ class BaseCheckpointing(ABC):
                 # if zero is not used. Only the first data parallel instance will save the optimizer states
                 num_p = self.get_num_parameters() // self.mp
             if num_p > 0:
-                return [num_p * dtype_size, 
-                        h*5*dtype_size, 
-                        num_p * dtype_size, 
-                        h*5*dtype_size, 
-                        num_p * dtype_size, 
-                        h*5*dtype_size, 
-                ]   
+                return [num_p, h*5, num_p, h*5, num_p, h*5]   
             else:
                 return []                                                                                                           
 
@@ -261,10 +252,12 @@ class BaseCheckpointing(ABC):
         else:
             start_layer = remainder * (nl + 1) + (pipeline_rank - remainder) * nl + 1
             end_layer = start_layer + nl
-        if pipeline_rank == self.pp - 1:
-            end_layer = self.args.num_layers + 2
-        if pipeline_rank == 0:
-            start_layer = 0
+        if not self.layer_parameters_predefined: 
+            # will turn this on for all the cases in future
+            if pipeline_rank == self.pp - 1:
+                end_layer = self.args.num_layers + 2
+            if pipeline_rank == 0:
+                start_layer = 0
         return start_layer, end_layer
     
     @abstractmethod
