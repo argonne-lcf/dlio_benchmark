@@ -21,7 +21,8 @@ from abc import ABC, abstractmethod
 from dlio_benchmark.common.enumerations import CheckpointLocationType
 from dlio_benchmark.storage.storage_factory import StorageFactory
 from dlio_benchmark.utils.config import ConfigArguments
-from dlio_benchmark.utils.utility import DLIOMPI
+from dlio_benchmark.utils.utility import DLIOMPI, utcnow
+import logging
 
 
 class BaseCheckpointing(ABC):
@@ -44,6 +45,9 @@ class BaseCheckpointing(ABC):
         self.layer_parameters_predefined = False
         self.checkpoint_storage.create_namespace(exist_ok=True)
         self.rank_to_checkpoint = self.args.my_rank
+        self.num_p = self.get_num_parameters()
+        if self.args.my_rank == 0:
+            logging.info(f"utcnow() Total number of parameters in the transformation layer: {self.num_p}")
         if self.args.zero_stage == -1:
             if self.args.my_rank < self.mp:
                 self.rank_to_checkpoint = self.args.my_rank
@@ -55,6 +59,15 @@ class BaseCheckpointing(ABC):
             if self.args.model_size > 0:
                 self.model_state = {"a": self.get_tensor(self.args.model_size)}
 
+            if len(self.args.optimization_groups) > 0:
+                self.optimization_groups_predefined = True
+            else:
+                self.optimization_groups_predefined = False
+            if len(self.args.layer_parameters) > 0:
+                self.layer_parameters_predefined = True
+            else:
+                self.layer_parameters_predefined = False
+    
             # optimization state
             self.optimization_state = None
             optimization_groups = self.get_optimization_groups()
@@ -128,7 +141,7 @@ class BaseCheckpointing(ABC):
                 return []
             if self.args.num_layers <= 0:
                 return []
-            if self.args.model_size < 3:
+            if self.args.zero_stage < 3:
                 sharding_factor = 1
             else:
                 sharding_factor = self.dp
@@ -167,7 +180,7 @@ class BaseCheckpointing(ABC):
             dtype_size = 4  # 4 bytes for fp32 
             if self.args.zero_stage > 0:
                 # zero stage 1, 2, 3
-                num_p = self.get_num_parameters() // self.comm_size
+                num_p = self.get_num_parameters() // self.args.comm_size
             else:
                 # if zero is not used. Only the first data parallel instance will save the optimizer states
                 num_p = self.get_num_parameters() // self.mp

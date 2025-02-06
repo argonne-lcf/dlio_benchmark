@@ -606,20 +606,24 @@ def LoadConfig(args, config):
             args.num_layers = config['model']['num_layers']
         if 'layer_parameters' in config['model']:
             args.layer_parameters = config['model']['layer_parameters']
-        if 'tensor_parallelism' in config['model']:
-            args.tensor_parallelism = config['model']['tensor_parallelism']
-        if 'pipeline_parallelism' in config['model']:
-            args.pipeline_parallelism = config['model']['pipeline_parallelism']
 
-    if 'transformer' in config:
-        if 'vocab_size' in config['transformer']:
-            args.vocab_size = config['transformer']['vocab_size']
-        if 'hidden_size' in config['transformer']:
-            args.hidden_size = config['transformer']['hidden_size']
-        if 'ffn_hidden_size' in config['transformer']:
-            args.ffn_hidden_size = config['transformer']['ffn_hidden_size']
-        if 'num_layers' in config['transformer']:
-            args.num_layers = config['transformer']['num_layers']
+        if 'parallelism' in config['model']:
+            if 'tensor_parallelism' in config['model']['parallelism']:
+                args.tensor_parallelism = config['model']['parallelism']['tensor']
+            if 'pipeline_parallelism' in config['model']['parallelism']:
+                args.pipeline_parallelism = config['model']['parallelism']['pipeline']
+            if 'zero_stage' in config['model']['parallelism']:
+                args.zero_stage = config['model']['parallelism']['zero_stage']
+
+        if 'transformer' in config['model']:
+            if 'vocab_size' in config['model']['transformer']:
+                args.vocab_size = config['model']['transformer']['vocab_size']
+            if 'hidden_size' in config['model']['transformer']:
+                args.hidden_size = config['model']['transformer']['hidden_size']
+            if 'ffn_hidden_size' in config['model']['transformer']:
+                args.ffn_hidden_size = config['model']['transformer']['ffn_hidden_size']
+            if 'num_layers' in config['model']['transformer']:
+                args.num_layers = config['model']['transformer']['num_layers']
 
     if 'output' in config:
         if 'folder' in config['output']:

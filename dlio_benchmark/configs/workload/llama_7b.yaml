@@ -3,15 +3,15 @@ model:
   type: transformer
   model_size: 30102
   num_layers: 2
-  pipeline_parallelism: 1
-  tensor_parallelism: 4
-  zero_stage: 1
-
-transformer: 
-  vocab_size: 32000
-  hidden_size: 4096
-  num_layers: 32
-  ffn_hidden_size: 16384
+  parallelism: 
+    pipeline: 1
+    tensor: 1
+    zero_stage: 1
+  transformer: 
+    vocab_size: 32000
+    hidden_size: 4096
+    num_layers: 32
+    ffn_hidden_size: 16384
 
 framework: pytorch
 
