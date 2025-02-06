@@ -1,0 +1,44 @@
+# 8 node run with 4 GPUs per node and TPSIZE=4 and PPSIZE=8
+model: 
+  type: transformer
+  model_size: 30102
+  num_layers: 2
+  pipeline_parallelism: 1
+  tensor_parallelism: 4
+  zero_stage: 1
+
+transformer: 
+  vocab_size: 32000
+  hidden_size: 4096
+  num_layers: 32
+  ffn_hidden_size: 16384
+
+framework: pytorch
+
+workflow:
+  generate_data: False
+  train: True
+  checkpoint: True
+
+dataset: 
+  data_folder: data/llama_7b/
+  format: mmap_indexed_binary
+  num_files_train: 1
+  num_samples_per_file: 1048576
+  record_length: 2048
+  
+reader: 
+  data_loader: pytorch
+  batch_size: 16
+  read_threads: 1
+  file_shuffle: seed
+  sample_shuffle: seed
+
+train:
+  epochs: 3
+  computation_time: 2.44 # 2.44 sec per step
+
+checkpoint:
+  checkpoint_folder: checkpoints/llama_7b
+  steps_between_checkpoints: 16
+  type: all_ranks
