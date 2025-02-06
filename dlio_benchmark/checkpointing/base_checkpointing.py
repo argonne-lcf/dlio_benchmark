@@ -89,8 +89,7 @@ class BaseCheckpointing(ABC):
                         _, size = self.get_layer_state(layer_index)
                     else:
                         self.layer_state[str(layer_index)], size = self.get_layer_state(layer_index)
-                    logging.info(f"{utcnow()} {self.args.my_rank}- {layer_index}:
-                     {size/1024./1024./1024:.4f} GB ")
+                    logging.info(f"{utcnow()} {self.args.my_rank}- {layer_index}: {size/1024./1024./1024:.4f} GB ")
                     ss += size
             if self.args.my_rank == 0:
                 logging.info(f"{utcnow()} Layer states defined! {ss/1024./1024./1024} GB per rank")
