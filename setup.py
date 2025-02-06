@@ -1,4 +1,5 @@
-from distutils import util
+#from distutils import util
+import sysconfig
 from setuptools import find_namespace_packages, setup
 import pathlib
 
@@ -20,7 +21,7 @@ core_deps = [
 ]
 x86_deps = [
     f"hydra-core>={HYDRA_VERSION}",
-    "nvidia-dali-cuda110>=1.34.0",
+    "nvidia-dali-cuda120>=1.34.0",
     "tensorflow>=2.11.0",
     "torch>=2.2.0",
     "torchaudio",
@@ -32,7 +33,7 @@ ppc_deps = [
 
 deps = core_deps
 
-if "ppc" in util.get_platform():
+if "ppc" in sysconfig.get_platform():
     deps.extend(ppc_deps)
 else:
     deps.extend(x86_deps)

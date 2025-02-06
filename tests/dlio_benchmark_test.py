@@ -251,10 +251,10 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
                                  f'++workload.train.epochs={epochs}', '++workload.workflow.checkpoint=True',
                                  f'++workload.checkpoint.epochs_between_checkpoints={epoch_per_ckp}',
                                  f'++workload.checkpoint.type={type}',
-                                 f'++workload.checkpoint.model_size={model_size}',
-                                 f'++workload.checkpoint.optimization_groups={optimizers}',
-                                 f'++workload.checkpoint.num_layers={num_layers}',
-                                 f'++workload.checkpoint.layer_parameters={layer_params}'])
+                                 f'++workload.model.model_size={model_size}',
+                                 f'++workload.model.optimization_groups={optimizers}',
+                                 f'++workload.model.num_layers={num_layers}',
+                                 f'++workload.model.layer_parameters={layer_params}'])
         comm.Barrier()
         if comm.rank == 0:
             shutil.rmtree("./checkpoints", ignore_errors=True)
@@ -262,7 +262,7 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
         comm.Barrier()
         benchmark = run_benchmark(cfg)
         output = pathlib.Path("./checkpoints")
-        load_bin = list(output.glob("*"))
+        load_bin = list(output.glob("*/*/*.pt"))
         n = 0
         if len(layer_params) > 0:
             n = num_layers
@@ -275,7 +275,7 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
         files_per_checkpoint = (num_model_files + num_optimizer_files + num_layer_files) * nranks
         if framework == "tensorflow":
             file_per_ckp = 2
-            num_check_files = epochs / epoch_per_ckp * files_per_checkpoint * file_per_ckp + 1
+            num_check_files = epochs / epoch_per_ckp * files_per_checkpoint * file_per_ckp 
             assert (len(load_bin) == num_check_files), f"files produced are {len(load_bin)} {num_check_files} {load_bin} "
         if framework == "pytorch":
             num_check_files = epochs / epoch_per_ckp * files_per_checkpoint
@@ -315,7 +315,7 @@ def test_checkpoint_step() -> None:
             'reader'].batch_size // benchmark.comm_size
         ncheckpoints = nstep // 2 * 8 * 2
         output = pathlib.Path("./checkpoints")
-        load_bin = list(output.glob("*"))
+        load_bin = list(output.glob("*/"))
         assert (len(load_bin) == ncheckpoints)
         clean()
     finalize()
