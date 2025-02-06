@@ -76,7 +76,7 @@ class BaseCheckpointing(ABC):
 
             # layer state
             self.layer_state = None
-            start_layer, end_layer = self.get_layer_index(my_rank, self.tp, self.pp, self.args.num_layers)
+            start_layer, end_layer = self.get_layer_index(self.args.my_rank, self.tp, self.pp, self.args.num_layers)
 
             if self.layer_parameters_predefined:
                 # This is for old code, where the layer parameters are predefined
@@ -104,7 +104,7 @@ class BaseCheckpointing(ABC):
         return os.path.join(self.args.checkpoint_folder, f"{suffix}.{self.ext}")
 
     def get_num_parameters(self):
-        if self.args.model is not "transformer":
+        if self.args.model != "transformer":
             return 0
         h, l, ffn, voc = self.args.hidden_size, self.args.num_layers, self.args.ffn_hidden_size, self.args.vocab_size
         embedding = voc*h
@@ -124,7 +124,7 @@ class BaseCheckpointing(ABC):
             self.layer_parameters_predefined = True
             return self.args.layer_parameters
         else:
-            if self.args.model is not "transformer": 
+            if self.args.model != "transformer": 
                 return []
             if self.args.num_layers <= 0:
                 return []
@@ -154,17 +154,23 @@ class BaseCheckpointing(ABC):
         return layer_state
 
     def get_optimization_groups(self):
+        h, l, ffn, voc = self.args.hidden_size, self.args.num_layers, self.args.ffn_hidden_size, self.args.vocab_size
         if len(self.args.optimization_groups) > 0:
             self.optimization_groups_predefined = True
             return self.args.optimization_groups
         else:
-            if self.args.model is not "transformer":
+            if self.args.model != "transformer":
                 # only support transformer model for now
                 return []
             if self.args.num_layers <= 0:
                 return []
             dtype_size = 4  # 4 bytes for fp32 
-            num_p = self.get_num_parameters() // self.comm_size
+            if self.args.zero_stage > 0:
+                # zero stage 1, 2, 3
+                num_p = self.get_num_parameters() // self.comm_size
+            else:
+                # if zero is not used. Only the first data parallel instance will save the optimizer states
+                num_p = self.get_num_parameters() // self.mp
             if num_p > 0:
                 return [num_p * dtype_size, 
                         h*5*dtype_size, 
@@ -233,12 +239,12 @@ class BaseCheckpointing(ABC):
                 self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.dp_rank}_mp_rank_{self.mp_rank}_optim_states", state=self.optimization_state)                
             
             if self.layer_state:
-                if self.zero_stage < 3:
+                if self.args.zero_stage < 3:
                     # if pp is turned on, we assume that the model is sharded across the pipeline stages
-                    if self.dp_rank == 0:
+                    if self.dp_rank == 0 and self.args.num_layers > 0:
                         # in this case, model is saved layer by layer
                         for layer_index in range(start_layer, end_layer + 1):
-                        self.save_state(suffix=f"{checkpoint_id}/layer_{layer_index}-model_{self.mp_rank}_model_states", state=self.layer_state[layer_index])
+                            self.save_state(suffix=f"{checkpoint_id}/layer_{layer_index}-model_{self.mp_rank}_model_states", state=self.layer_state[str(layer_index)])
                 else:
                     # in this case, model is sharded across the data parallel ranks
                     assert(self.pp == 1)

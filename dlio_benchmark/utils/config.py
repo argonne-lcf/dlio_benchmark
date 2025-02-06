@@ -226,13 +226,15 @@ class ConfigArguments:
             raise Exception(
                 f"For custom data loaders workload.reader.data_loader_sampler needs to be defined as iter or index.")
         if self.read_threads > 1:
-            import psutil
-            p = psutil.Process()
-            cores_available = len(p.cpu_affinity())
-            if cores_available < self.read_threads:
-                logging.warning(
-                    f"Running DLIO with {self.read_threads} threads for I/O but core available {cores_available} "
-                    f"are insufficient and can lead to lower performance.")
+            import platform
+            if platform.system() == "Linux" or platform.system() == "Windows":
+                import psutil
+                p = psutil.Process()
+                cores_available = len(p.cpu_affinity())
+                if cores_available < self.read_threads:
+                    logging.warning(
+                        f"Running DLIO with {self.read_threads} threads for I/O but core available {cores_available} "
+                        f"are insufficient and can lead to lower performance.")
         if self.num_layers % self.pipeline_parallelism != 0:
             raise Exception(
                 f"Expected checkpoint.num_layers {self.num_layers} should be multiple of "
@@ -596,8 +598,8 @@ def LoadConfig(args, config):
     if 'model' in config:
         if 'type' in config['model']:
             args.model = config['model']['type']
-        if 'model_size' in config['checkpoint']:
-            args.model_size = config['checkpoint']['model_size']
+        if 'model_size' in config['model']:
+            args.model_size = config['model']['model_size']
         if 'optimization_groups' in config['model']:
             args.optimization_groups = config['model']['optimization_groups']
         if 'num_layers' in config['model']:
