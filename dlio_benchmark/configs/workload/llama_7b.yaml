@@ -42,3 +42,5 @@ train:
 checkpoint:
   checkpoint_folder: checkpoints/llama_7b
   steps_between_checkpoints: 1
+  model_datatype: fp16
+  optimizer_datatype: fp32

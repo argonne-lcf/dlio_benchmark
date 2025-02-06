@@ -39,8 +39,8 @@ train:
   computation_time: 5 # 2.44 sec per step
   total_training_steps: 5
 
-
 checkpoint:
   checkpoint_folder: checkpoints/llama_405b
   steps_between_checkpoints: 1
-  type: all_ranks
+  model_datatype: fp16
+  optimizer_datatype: fp32

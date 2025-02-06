@@ -24,6 +24,18 @@ from dlio_benchmark.common.constants import MODULE_CHECKPOINT
 from dlio_benchmark.common.enumerations import CheckpointLocationType
 from dlio_benchmark.utils.utility import DLIOMPI
 
+def get_torch_datatype(datatype):
+    if datatype == "f32":
+        return torch.float32
+    if datatype == "f16":
+        return torch.float16
+    if datatype == "f64":
+        return torch.float64
+    if datatype == "i8":
+        return torch.int8
+    if datatype == "bf16": # bfloat16
+        return torch.bfloat16
+
 dlp = Profile(MODULE_CHECKPOINT)
 
 
@@ -42,8 +54,8 @@ class PyTorchCheckpointing(BaseCheckpointing):
         super().__init__("pt")
 
     @dlp.log
-    def get_tensor(self, size):
-        return torch.ones(size, dtype=torch.int8)
+    def get_tensor(self, size, datatype="i8"):
+        return torch.ones(size, dtype=get_torch_datatype(datatype))
 
     @dlp.log
     def save_state(self, suffix, state):

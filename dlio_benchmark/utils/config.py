@@ -101,6 +101,8 @@ class ConfigArguments:
     epochs_between_evals: int = 1
     checkpoint_type: CheckpointLocationType = CheckpointLocationType.RANK_ZERO
     checkpoint_mechanism: CheckpointMechanismType = CheckpointMechanismType.NONE
+    checkpoint_model_datatype: str = "f16"
+    checkpoint_optimizer_datatype: str = "f32"
     model_size: int = 10240
     vocab_size: int = 32000
     hidden_size: int = 2048
@@ -594,6 +596,10 @@ def LoadConfig(args, config):
             args.checkpoint_type = CheckpointLocationType(config['checkpoint']['type'])
         if 'checkpoint_mechanism_classname' in config['checkpoint']:
             args.checkpoint_mechanism_classname = config['checkpoint']['checkpoint_mechanism_classname']
+        if 'checkpoint_model_datatype' in config['checkpoint']:
+            args.checkpoint_model_datatype = config['checkpoint']['checkpoint_model_datatype']
+        if 'checkpoint_optimizer_data_type' in config['checkpoint']:
+            args.checkpoint_optimizer_datatype = config['checkpoint']['checkpoint_optimizer_data_type']
 
     if 'model' in config:
         if 'type' in config['model']:

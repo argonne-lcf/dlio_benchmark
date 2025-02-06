@@ -24,6 +24,17 @@ from dlio_benchmark.utils.config import ConfigArguments
 from dlio_benchmark.utils.utility import DLIOMPI, utcnow
 import logging
 
+def get_datatype_size(datatype):
+    if datatype == "int8" or datatype == "uint8":
+        return 1
+    elif datatype == "fp16" or datatype == "bf16":
+        return 2
+    elif datatype == "fp32":
+        return 4
+    elif datatype == "fp64":
+        return 8
+    else:
+        raise Exception("Unsupported datatype")
 
 class BaseCheckpointing(ABC):
 
@@ -109,8 +120,8 @@ class BaseCheckpointing(ABC):
                     for index, state in enumerate(optimization_groups):
                         if state > 0:
                             #logging.info(f"{state/1024./1024./1024. } GB")
-                            self.checkpoint_size += state
-                            self.optimization_state[str(index)] = self.get_tensor(state)
+                            self.checkpoint_size += state * get_datatype_size(self.args.checkpoint_optimizer_datatype)
+                            self.optimization_state[str(index)] = self.get_tensor(state, self.args.checkpoint_optimizer_datatype)
             if self.args.my_rank == 0:
                 logging.info(f"{utcnow()} Optimizer state defined: {self.checkpoint_size / 1024./1024./1024} GB per rank")
             # layer state
@@ -155,7 +166,6 @@ class BaseCheckpointing(ABC):
         return embedding  + (input_norm + qkv + dense + layer_norm + mlp_h_to_4h + mlp_4h_to_h)*l + weight + lm_head
 
     def get_layer_parameters(self, layer_index):
-        dtype_size = 2 # 2 bytes for fp16
         if len(self.args.layer_parameters) > 0:
             self.layer_parameters_predefined = True
             return self.args.layer_parameters
@@ -168,16 +178,16 @@ class BaseCheckpointing(ABC):
                 sharding_factor = self.dp
             h, l, ffn, voc = self.args.hidden_size, self.args.num_layers, self.args.ffn_hidden_size, self.args.vocab_size
             if layer_index == 0 or layer_index == l + 1:
-                return [h * voc // self.tp // sharding_factor * dtype_size] # embedding or lm_head
+                return [h * voc // self.tp // sharding_factor] # embedding or lm_head
             elif layer_index == l + 2:
-                return [h//sharding_factor * dtype_size]
+                return [h//sharding_factor]
             else:
-                return [ h // sharding_factor * dtype_size, # input_norm, 
-                        h*h*3//self.tp//sharding_factor * dtype_size, # self_attn
-                        h*h//self.tp//sharding_factor * dtype_size, # dense
-                        h//sharding_factor * dtype_size, # layer_norm
-                        h*2*ffn//self.tp//sharding_factor * dtype_size, # ffn_h_to_4h
-                        h*ffn//self.tp//sharding_factor * dtype_size, # ffn_4h_to_h
+                return [ h // sharding_factor, # input_norm, 
+                        h*h*3//self.tp//sharding_factor, # self_attn
+                        h*h//self.tp//sharding_factor, # dense
+                        h//sharding_factor, # layer_norm
+                        h*2*ffn//self.tp//sharding_factor, # ffn_h_to_4h
+                        h*ffn//self.tp//sharding_factor, # ffn_4h_to_h
                 ]
     def get_layer_state(self, layer_index):
         layer_parameters = self.get_layer_parameters(layer_index)
@@ -185,8 +195,8 @@ class BaseCheckpointing(ABC):
         size = 0.0
         for index, state in enumerate(layer_parameters):
             if state > 0:
-                layer_state[str(index)] = self.get_tensor(state)
-                size += state
+                layer_state[str(index)] = self.get_tensor(state, self.args.checkpoint_model_datatype)
+                size += state*get_datatype_size(self.args.checkpoint_model_datatype)
         return layer_state, size
 
     def get_optimization_groups(self):
