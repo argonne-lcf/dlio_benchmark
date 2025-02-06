@@ -55,15 +55,24 @@ class ReaderFactory(object):
             if _args.data_loader == DataLoaderType.NATIVE_DALI:
                 from dlio_benchmark.reader.dali_npy_reader import DaliNPYReader
                 return DaliNPYReader(dataset_type, thread_index, epoch_number)
+            elif _args.data_loader == DataLoaderType.PYTORCH_DIRECT:                        
+                from dlio_benchmark.reader.odirect_reader import ODirectReader, parse_npy
+                return ODirectReader(dataset_type, thread_index, epoch_number, parse_npy)
             else:
                 from dlio_benchmark.reader.npy_reader import NPYReader
-                return NPYReader(dataset_type, thread_index, epoch_number)                         
+                return NPYReader(dataset_type, thread_index, epoch_number)                 
         elif type == FormatType.NPZ:
             if _args.data_loader == DataLoaderType.NATIVE_DALI:
                 raise Exception("Loading data of %s format is not supported without framework data loader; please use npy format instead." %type)
+            elif _args.data_loader == DataLoaderType.PYTORCH_DIRECT:
+                from dlio_benchmark.reader.odirect_reader import ODirectReader, parse_npz
+                def parse_npz_x(mem_view):
+                    return parse_npz(mem_view)["x"]
+                return ODirectReader(dataset_type, thread_index, epoch_number, parse_npz_x)
             else:
                 from dlio_benchmark.reader.npz_reader import NPZReader
                 return NPZReader(dataset_type, thread_index, epoch_number)
+  
         elif type == FormatType.TFRECORD:
             if _args.data_loader == DataLoaderType.NATIVE_DALI: 
                 from dlio_benchmark.reader.dali_tfrecord_reader import DaliTFRecordReader

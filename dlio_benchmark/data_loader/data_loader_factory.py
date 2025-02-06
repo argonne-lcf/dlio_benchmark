@@ -37,7 +37,7 @@ class DataLoaderFactory(object):
             if DLIOMPI.get_instance().rank() == 0:
                 logging.info(f"{utcnow()} Running DLIO with custom data loader class {_args.data_loader_class.__name__}")
             return _args.data_loader_class(format_type, dataset_type, epoch)
-        elif type == DataLoaderType.PYTORCH:
+        elif type == DataLoaderType.PYTORCH or type == DataLoaderType.PYTORCH_DIRECT:
             from dlio_benchmark.data_loader.torch_data_loader import TorchDataLoader
             return TorchDataLoader(format_type, dataset_type, epoch)
         elif type == DataLoaderType.TENSORFLOW:
