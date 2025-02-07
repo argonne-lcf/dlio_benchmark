@@ -390,5 +390,3 @@ class StatsCounter(object):
             outfile.flush()
         if self.my_rank == 0:
             logging.info(f"{utcnow()} outputs saved in RANKID_output.json")
-
-

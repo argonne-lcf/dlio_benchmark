@@ -323,6 +323,10 @@ different ZeRO stages for the model and optimizer.
 * For Stage 3, both the model and optimizer are sharded across all the data parallel instances. 
 * For Stage 1 and 2 the optimizer is sharded across all the data parallel instances, but the model is sharded only across the first data parallel instance. 
 * Pipeline parallelism and ZeRO 3 are not compatiable to each other. 
+  
+One can also specify the datatype for the model and optimizer to be saved. By default, the model is saved in fp16 and the optimizer in fp32.
+
+The output log will contain the checkpoint duration and throughput. In the final summary.json, `checkpoint_duration` and `checkpoint_io` will be reported.
 
 .. code-block:: yaml
     
