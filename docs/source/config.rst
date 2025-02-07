@@ -62,6 +62,9 @@ model
    :widths: 15 10 30
    :header-rows: 1
 
+   * - Parameter
+     - Default
+     - Description
    * - name 
      - default
      - The name of the model
@@ -70,7 +73,7 @@ model
      - A string that specifies the type of the model, such as transformer, CNN, etc.
    * - model_size
      - 10240
-     - the size of the model parameters per GPU in bytes
+     - The size of the model parameters per GPU in bytes
    * - optimization_groups
      - []
      - List of optimization group tensors. Use Array notation for yaml.
@@ -110,9 +113,9 @@ optimization_groups and layer_parameters.
    :widths: 15 10 30
    :header-rows: 1
 
-   * - name 
-     - default
-     - The name of the model
+   * - Parameter
+     - Default
+     - Description
    * - hidden_size
      - 2048
      - Hidden dimension of the transformer layer.
