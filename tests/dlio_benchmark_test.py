@@ -47,8 +47,9 @@ import glob
 def init():
     DLIOMPI.get_instance().initialize()
 
-def finalize():
-    # DLIOMPI.get_instance().finalize()
+def finalize(cleanup=False):
+    if cleanup:
+        DLIOMPI.get_instance().finalize()
     pass
 
 def clean(storage_root="./") -> None:
@@ -135,8 +136,8 @@ def test_subset() -> None:
                             '++workload.dataset.num_files_train=8', \
                             '++workload.train.computation_time=0.01'])
         benchmark=run_benchmark(cfg, verify=True)
-        clean()
-    finalize()
+    clean()
+    finalize(cleanup=True)
 
 @pytest.mark.timeout(60, method="thread")
 @pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
