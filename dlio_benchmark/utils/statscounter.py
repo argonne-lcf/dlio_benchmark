@@ -374,6 +374,7 @@ class StatsCounter(object):
             self.summary['metric']['checkpoint_io_stdev_GB_per_second'] = np.std(io)
             self.summary['metric']['checkpoint_duration_mean_seconds'] = np.mean(duration)
             self.summary['metric']['checkpoint_duration_stdev_seconds'] = np.std(duration)
+            self.summary['metric']['checkpoint_size_GB'] = self.checkpoint_size
         self.summary['end'] = utcnow()
     def save_data(self):
         # Dump statistic counters to files for postprocessing
