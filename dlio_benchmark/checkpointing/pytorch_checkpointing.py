@@ -67,7 +67,6 @@ class PyTorchCheckpointing(BaseCheckpointing):
             if fsync: 
                 os.fsync(f.fileno())
 
-
     @dlp.log
     def checkpoint(self, epoch, step_number):
         super().checkpoint(epoch, step_number)

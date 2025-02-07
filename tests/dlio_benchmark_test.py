@@ -230,7 +230,7 @@ def test_iostat_profiling() -> None:
                                                                                          ("pytorch", 1024, [1024, 128], 2, [16]),
                                                                                          ("tensorflow", 1024, [128], 1, [16]),
                                                                                          ("pytorch", 1024, [128], 1, [16])])
-def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_params, type) -> None:
+def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_params) -> None:
     init()
     clean()
     if comm.rank == 0:
@@ -250,7 +250,6 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
                                  '++workload.evaluation.eval_time=0.005',
                                  f'++workload.train.epochs={epochs}', '++workload.workflow.checkpoint=True',
                                  f'++workload.checkpoint.epochs_between_checkpoints={epoch_per_ckp}',
-                                 f'++workload.checkpoint.type={type}',
                                  f'++workload.model.model_size={model_size}',
                                  f'++workload.model.optimization_groups={optimizers}',
                                  f'++workload.model.num_layers={num_layers}',
