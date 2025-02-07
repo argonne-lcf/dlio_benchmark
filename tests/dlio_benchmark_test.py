@@ -224,13 +224,13 @@ def test_iostat_profiling() -> None:
     finalize()
 
 @pytest.mark.timeout(60, method="thread")
-@pytest.mark.parametrize("framework, model_size, optimizers, num_layers, layer_params", [("tensorflow", 1024, [1024, 128], 2, [16]),
-                                                                                         ("pytorch", 1024, [1024, 128], 2, [16]),
-                                                                                         ("tensorflow", 1024, [1024, 128], 2, [16]),
-                                                                                         ("pytorch", 1024, [1024, 128], 2, [16]),
-                                                                                         ("tensorflow", 1024, [128], 1, [16]),
-                                                                                         ("pytorch", 1024, [128], 1, [16])])
-def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_params) -> None:
+@pytest.mark.parametrize("framework, model_size, optimizers, num_layers, layer_params, zero_stage", [("tensorflow", 1024, [1024, 128], 2, [16], -1),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], -1),
+                                                                                         ("tensorflow", 1024, [1024, 128], 2, [16], 3),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 3),
+                                                                                         ("tensorflow", 1024, [128], 1, [16], -1),
+                                                                                         ("pytorch", 1024, [128], 1, [16], -1)])
+def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_params, zero_stage) -> None:
     init()
     clean()
     if comm.rank == 0:
@@ -253,6 +253,7 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
                                  f'++workload.model.model_size={model_size}',
                                  f'++workload.model.optimization_groups={optimizers}',
                                  f'++workload.model.num_layers={num_layers}',
+                                 f'++workload.model.parallelism.zero_stage={zero_stage}',
                                  f'++workload.model.layer_parameters={layer_params}'])
         comm.Barrier()
         if comm.rank == 0:
@@ -261,7 +262,7 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
         comm.Barrier()
         benchmark = run_benchmark(cfg)
         output = pathlib.Path("./checkpoints")
-        load_bin = list(output.glob(f"{cfg['workload']['model']['name']}/*/*"))
+        load_bin = list(output.glob(f"*/*"))
         n = 0
         if len(layer_params) > 0:
             n = num_layers
@@ -311,7 +312,7 @@ def test_checkpoint_step() -> None:
         nstep = dataset.num_files_train * dataset.num_samples_per_file // cfg['workload']['reader'].batch_size // benchmark.comm_size
         ncheckpoints = nstep // 2 * 8 * 2
         output = pathlib.Path("./checkpoints")
-        load_bin = list(output.glob(f"{cfg['workload']['model']['name']}/*/*"))
+        load_bin = list(output.glob("*/*"))
         assert (len(load_bin) == ncheckpoints)
         clean()
     finalize()

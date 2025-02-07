@@ -62,7 +62,7 @@ class BaseCheckpointing(ABC):
         self.checkpoint_size = 0.0
         ss = 0.0
         if self.args.my_rank == 0:
-            logging.info(f"{utcnow()} Total number of parameters in the transformation model: {self.num_p}")
+            logging.info(f"{utcnow()} Total number of parameters in the model: {self.num_p}")
         if self.args.zero_stage == -1:
             if self.args.my_rank < self.mp:
                 self.rank_to_checkpoint = self.args.my_rank
@@ -152,6 +152,8 @@ class BaseCheckpointing(ABC):
 
     def get_num_parameters(self):
         h, l, ffn, voc = self.args.hidden_size, self.args.num_layers, self.args.ffn_hidden_size, self.args.vocab_size
+        if l <= 0:
+            return 0
         embedding = voc*h
         input_norm = h
         qkv = 3*h*h
