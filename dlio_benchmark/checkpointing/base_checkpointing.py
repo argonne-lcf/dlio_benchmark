@@ -140,9 +140,9 @@ class BaseCheckpointing(ABC):
             logging.info(f"{utcnow()} Layer size: {ss} GB")
             logging.info(f"{utcnow()} Optimizer state size: {opt} GB")
             logging.info(f"{utcnow()} Total checkpoint size: {self.checkpoint_size} GB")
-            
+
     @abstractmethod
-    def get_tensor(self, size):
+    def get_tensor(self, size, datatype="int8"):
         return []
 
     @abstractmethod

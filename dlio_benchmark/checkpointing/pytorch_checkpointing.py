@@ -25,18 +25,21 @@ from dlio_benchmark.common.enumerations import CheckpointLocationType
 from dlio_benchmark.utils.utility import DLIOMPI
 
 def get_torch_datatype(datatype):
-    if datatype == "f32":
+    if datatype == "fp32":
         return torch.float32
-    if datatype == "f16":
+    elif datatype == "fp16":
         return torch.float16
-    if datatype == "f64":
+    elif datatype == "fp64":
         return torch.float64
-    if datatype == "int8":
+    elif datatype == "int8":
         return torch.int8
-    if datatype == "uint8":
+    elif datatype == "uint8":
         return torch.uint8
-    if datatype == "bf16": # bfloat16
+    elif datatype == "bf16": # bfloat16
         return torch.bfloat16
+    else:
+        raise Exception(f"Invalid datatype {datatype}")
+    
 
 dlp = Profile(MODULE_CHECKPOINT)
 
