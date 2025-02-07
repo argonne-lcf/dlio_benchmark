@@ -362,6 +362,18 @@ class StatsCounter(object):
         self.output[epoch]['compute']['eval'].append(computation_time)
         logging.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size_eval} samples in {duration} s")
     def finalize(self):
+        if self.args.do_checkpoint and self.my_rank == 0:
+            duration = []
+            io = []
+            for e in self.per_epoch_stats:
+                for t in self.per_epoch_stats[e]:
+                    if t.find("ckpt")!=-1:
+                        duration.append(float(self.per_epoch_stats[e][t]['duration']))
+                        io.append(self.per_epoch_stats[e][t]['throughput'])
+            self.summary['metric']['checkpoint_io_mean_GB_per_second'] = np.mean(io)
+            self.summary['metric']['checkpoint_io_stdev_GB_per_second'] = np.std(io)
+            self.summary['metric']['checkpoint_duration_mean_seconds'] = np.mean(duration)
+            self.summary['metric']['checkpoint_duration_stdev_seconds'] = np.std(duration)
         self.summary['end'] = utcnow()
     def save_data(self):
         # Dump statistic counters to files for postprocessing
