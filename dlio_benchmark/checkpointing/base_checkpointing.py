@@ -137,8 +137,10 @@ class BaseCheckpointing(ABC):
             ss /= self.dp
         self.checkpoint_size = ss + opt
         if self.args.my_rank == 0:
-            logging.info(f"{utcnow()} Total state size: {ss} GB")
+            logging.info(f"{utcnow()} Layer size: {ss} GB")
+            logging.info(f"{utcnow()} Optimizer state size: {opt} GB")
             logging.info(f"{utcnow()} Total checkpoint size: {self.checkpoint_size} GB")
+            
     @abstractmethod
     def get_tensor(self, size):
         return []

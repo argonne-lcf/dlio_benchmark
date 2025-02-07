@@ -54,6 +54,7 @@ class StatsCounter(object):
         self.record_size = self.args.record_length
         self.batch_size = self.args.batch_size
         self.batch_size_eval = self.args.batch_size_eval
+        self.checkpoint_size = 0.0
         self.summary = {}
         self.summary['start'] = utcnow()
         self.summary['num_accelerators'] = self.comm_size
@@ -298,10 +299,11 @@ class StatsCounter(object):
             ts = utcnow()
             duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch][f'ckpt{block}']['start'])
             duration = '{:.2f}'.format(duration.total_seconds())
-            logging.info(f"{ts} Ending checkpoint {block} for epoch {epoch}")
+            logging.info(f"{ts} Finished checkpoint {block} for epoch {epoch} in {duration} s; Throughput: {self.checkpoint_size / float(duration)} GB/s")
 
             self.per_epoch_stats[epoch][f'ckpt{block}']['end'] = ts
             self.per_epoch_stats[epoch][f'ckpt{block}']['duration'] = duration
+            self.per_epoch_stats[epoch][f'ckpt{block}']['throughput'] = self.checkpoint_size / float(duration)
 
     def batch_loaded(self, epoch, step, block, t0):
         duration = time() - t0

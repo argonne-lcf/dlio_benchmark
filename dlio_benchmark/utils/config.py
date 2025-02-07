@@ -238,14 +238,12 @@ class ConfigArguments:
                     logging.warning(
                         f"Running DLIO with {self.read_threads} threads for I/O but core available {cores_available} "
                         f"are insufficient and can lead to lower performance.")
-        if self.num_layers % self.pipeline_parallelism != 0:
-            raise Exception(
-                f"Expected checkpoint.num_layers {self.num_layers} should be multiple of "
-                f"checkpoint.pipeline_parallelism {self.pipeline_parallelism}.")
         if self.num_layers > 0 and self.num_layers < self.pipeline_parallelism:
             raise Exception(
                 f"Expected model.num_layers {self.num_layers} should be larger than "
                 f"model.parallelism.pipeline {self.pipeline_parallelism}.")
+        if self.pipeline_parallelism > 1 and self.zero_stage == 3:
+            raise Exception(f"ZeRO stage {self.zero_stage} is not compatible with pipeline parallelism.")
 
     @staticmethod
     def reset():
