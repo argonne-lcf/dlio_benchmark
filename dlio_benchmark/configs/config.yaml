@@ -7,4 +7,4 @@ defaults:
  - override hydra/hydra_logging: disabled
 hydra:
   run:
-    dir: ./hydra_log/${workload.model}/${now:%Y-%m-%d}-${now:%H-%M-%S}
+    dir: ./hydra_log/${workload.model.name}/${now:%Y-%m-%d}-${now:%H-%M-%S}
