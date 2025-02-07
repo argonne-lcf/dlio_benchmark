@@ -254,7 +254,8 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
                                  f'++workload.model.optimization_groups={optimizers}',
                                  f'++workload.model.num_layers={num_layers}',
                                  f'++workload.model.parallelism.zero_stage={zero_stage}',
-                                 f'++workload.model.layer_parameters={layer_params}'])
+                                 f'++workload.model.layer_parameters={layer_params}', 
+                                 f'++workload.model.parallelism.tensor={comm.size}'])
         comm.Barrier()
         if comm.rank == 0:
             shutil.rmtree("./checkpoints", ignore_errors=True)
@@ -273,7 +274,7 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
         files_per_checkpoint = (num_model_files + num_optimizer_files + num_layer_files) * nranks
         if framework == "tensorflow":
             file_per_ckp = 2
-            num_check_files = epochs / epoch_per_ckp * files_per_checkpoint * file_per_ckp + 1
+            num_check_files = epochs / epoch_per_ckp * (files_per_checkpoint * file_per_ckp + 1)
             assert (len(load_bin) == num_check_files), f"files produced are {len(load_bin)} {num_check_files} {load_bin} "
         if framework == "pytorch":
             num_check_files = epochs / epoch_per_ckp * files_per_checkpoint
@@ -310,9 +311,9 @@ def test_checkpoint_step() -> None:
         benchmark = run_benchmark(cfg)
         dataset = cfg['workload']['dataset']
         nstep = dataset.num_files_train * dataset.num_samples_per_file // cfg['workload']['reader'].batch_size // benchmark.comm_size
-        ncheckpoints = nstep // 2 * 8 * 2
+        ncheckpoints = nstep // 2 * 8
         output = pathlib.Path("./checkpoints")
-        load_bin = list(output.glob("*/*"))
+        load_bin = list(output.glob(f"*/*"))
         assert (len(load_bin) == ncheckpoints)
         clean()
     finalize()

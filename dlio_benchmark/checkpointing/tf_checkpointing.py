@@ -26,13 +26,19 @@ from dlio_benchmark.utils.utility import DLIOMPI
 
 def get_tf_datatype(datatype):
     if datatype == "fp32":
-        return tf.dtypes.float32
-    if datatype == "fp16":
-        return tf.dtypes.float16
-    if datatype == "fp64":
-        return tf.dtypes.float64
-    if datatype == "bf16": # bfloat16
-        return tf.dtypes.bfloat16
+        return tf.float32
+    elif datatype == "fp16":
+        return tf.float16
+    elif datatype == "fp64":
+        return tf.float64
+    elif datatype == "bf16": # bfloat16
+        return tf.bfloat16
+    elif datatype == "int8":
+        return tf.int8
+    elif datatype == "uint8":
+        return tf.uint8
+    else:
+        raise Exception(f"Invalid datatype {datatype}")
 
 dlp = Profile(MODULE_CHECKPOINT)
 
@@ -52,8 +58,8 @@ class TFCheckpointing(BaseCheckpointing):
         super().__init__("pb")
 
     @dlp.log
-    def get_tensor(self, size, datatype="fp16"):
-        return tf.random.uniform((size), maxval=100, dtype=get_tf_datatype(datatype))
+    def get_tensor(self, size, datatype="int8"):
+        return tf.ones((size), dtype=get_tf_datatype(datatype))
 
     @dlp.log
     def save_state(self, suffix, state, fsync = False):

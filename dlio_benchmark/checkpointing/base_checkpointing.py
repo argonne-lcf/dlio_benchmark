@@ -250,10 +250,10 @@ class BaseCheckpointing(ABC):
         remainder = self.args.num_layers%self.pp
         if pipeline_rank < remainder:
             start_layer = pipeline_rank * (nl + 1) + 1
-            end_layer = start_layer + nl + 1
+            end_layer = start_layer + nl
         else:
             start_layer = remainder * (nl + 1) + (pipeline_rank - remainder) * nl + 1
-            end_layer = start_layer + nl
+            end_layer = start_layer + nl - 1
         if not self.layer_parameters_predefined: 
             # will turn this on for all the cases in future
             if pipeline_rank == self.pp - 1:

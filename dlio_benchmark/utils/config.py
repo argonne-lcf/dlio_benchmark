@@ -242,10 +242,10 @@ class ConfigArguments:
             raise Exception(
                 f"Expected checkpoint.num_layers {self.num_layers} should be multiple of "
                 f"checkpoint.pipeline_parallelism {self.pipeline_parallelism}.")
-        if self.num_layers % self.tensor_parallelism != 0:
+        if self.num_layers > 0 and self.num_layers < self.pipeline_parallelism:
             raise Exception(
-                f"Expected checkpoint.num_layers {self.num_layers} should be multiple of "
-                f"checkpoint.tensor_parallelism {self.tensor_parallelism}.")
+                f"Expected model.num_layers {self.num_layers} should be larger than "
+                f"model.parallelism.pipeline {self.pipeline_parallelism}.")
 
     @staticmethod
     def reset():
