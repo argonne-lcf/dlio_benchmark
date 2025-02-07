@@ -144,7 +144,7 @@ class BaseCheckpointing(ABC):
         return []
 
     @abstractmethod
-    def save_state(self, suffix, state):
+    def save_state(self, suffix, state, fsync=False):
         pass
 
     def get_name(self, suffix):
@@ -269,10 +269,10 @@ class BaseCheckpointing(ABC):
         self.checkpoint_storage.create_node(checkpoint_id, exist_ok=True)
         if self.rank_to_checkpoint == my_rank:
             if self.model_state:
-                self.save_state(suffix=f"{checkpoint_id}/model_states-{my_rank}", state=self.model_state)
+                self.save_state(suffix=f"{checkpoint_id}/model_states-{my_rank}", state=self.model_state, fsync = self.args.checkpoint_fsync)
 
             if self.optimization_state:
-                self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.dp_rank}_mp_rank_{self.mp_rank}_optim_states", state=self.optimization_state)                
+                self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.dp_rank}_mp_rank_{self.mp_rank}_optim_states", state=self.optimization_state, fsync = self.args.checkpoint_fsync)                
             
             if self.layer_state:
                 if self.args.zero_stage < 3:
@@ -280,11 +280,11 @@ class BaseCheckpointing(ABC):
                     if self.dp_rank == 0 and self.args.num_layers > 0:
                         # in this case, model is saved layer by layer
                         for layer_index in range(start_layer, end_layer + 1):
-                            self.save_state(suffix=f"{checkpoint_id}/layer_{layer_index}-model_{self.mp_rank}_model_states", state=self.layer_state[str(layer_index)])
+                            self.save_state(suffix=f"{checkpoint_id}/layer_{layer_index}-model_{self.mp_rank}_model_states", state=self.layer_state[str(layer_index)], fsync = self.args.checkpoint_fsync)
                 else:
                     # in this case, model is sharded across the data parallel ranks
                     assert(self.pp == 1)
-                    self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.dp_rank}_mp_rank_{self.mp_rank}_model_states", state=self.layer_state)
+                    self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.dp_rank}_mp_rank_{self.mp_rank}_model_states", state=self.layer_state, fsync = self.args.checkpoint_fsync)
 
     @abstractmethod
     def finalize(self):

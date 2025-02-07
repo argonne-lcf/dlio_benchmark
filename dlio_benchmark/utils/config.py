@@ -103,6 +103,7 @@ class ConfigArguments:
     checkpoint_mechanism: CheckpointMechanismType = CheckpointMechanismType.NONE
     checkpoint_model_datatype: str = "fp16"
     checkpoint_optimizer_datatype: str = "fp32"
+    checkpoint_fsync: bool = False
     model_size: int = 10240
     vocab_size: int = 32000
     hidden_size: int = 2048
@@ -600,6 +601,8 @@ def LoadConfig(args, config):
             args.checkpoint_model_datatype = config['checkpoint']['checkpoint_model_datatype']
         if 'checkpoint_optimizer_data_type' in config['checkpoint']:
             args.checkpoint_optimizer_datatype = config['checkpoint']['checkpoint_optimizer_data_type']
+        if 'fsync' in config['checkpoint']:
+            args.checkpoint_sync = config['checkpoint']['fsync']
 
     if 'model' in config:
         if 'type' in config['model']:

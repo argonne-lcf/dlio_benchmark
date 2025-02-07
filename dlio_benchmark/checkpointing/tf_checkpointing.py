@@ -56,7 +56,7 @@ class TFCheckpointing(BaseCheckpointing):
         return tf.random.uniform((size), maxval=100, dtype=get_tf_datatype(datatype))
 
     @dlp.log
-    def save_state(self, suffix, state):
+    def save_state(self, suffix, state, fsync = False):
         name = self.get_name(suffix)
         checkpoint = tf.train.Checkpoint()
         checkpoint.mapped = state

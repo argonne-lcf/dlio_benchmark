@@ -60,10 +60,13 @@ class PyTorchCheckpointing(BaseCheckpointing):
         return torch.ones(size, dtype=get_torch_datatype(datatype))
 
     @dlp.log
-    def save_state(self, suffix, state):
+    def save_state(self, suffix, state, fsync = False):
         name = self.get_name(suffix)
         with open(name, "wb") as f:
             torch.save(state, f)
+            if fsync: 
+                os.fsync(f.fileno())
+
 
     @dlp.log
     def checkpoint(self, epoch, step_number):
