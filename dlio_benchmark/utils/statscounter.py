@@ -298,12 +298,11 @@ class StatsCounter(object):
         if self.my_rank == 0:
             ts = utcnow()
             duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch][f'ckpt{block}']['start'])
-            duration = '{:.2f}'.format(duration.total_seconds())
-            logging.info(f"{ts} Finished checkpoint {block} for epoch {epoch} in {duration} s; Throughput: {self.checkpoint_size / float(duration)} GB/s")
+            logging.info(f"{ts} Finished checkpoint {block} for epoch {epoch} in {duration.total_seconds():.4f} s; Throughput: {self.checkpoint_size / float(duration.total_seconds()):.4f} GB/s")
 
             self.per_epoch_stats[epoch][f'ckpt{block}']['end'] = ts
-            self.per_epoch_stats[epoch][f'ckpt{block}']['duration'] = duration
-            self.per_epoch_stats[epoch][f'ckpt{block}']['throughput'] = self.checkpoint_size / float(duration)
+            self.per_epoch_stats[epoch][f'ckpt{block}']['duration'] = float(duration.total_seconds())
+            self.per_epoch_stats[epoch][f'ckpt{block}']['throughput'] = self.checkpoint_size / float(duration.total_seconds())
 
     def batch_loaded(self, epoch, step, block, t0):
         duration = time() - t0
