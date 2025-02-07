@@ -41,7 +41,9 @@ The characteristics of a workload is specified through a YAML file. This file wi
     epochs_between_checkpoints: 2
     model_size: 499153191
 
+
 A `DLIO` YAML configuration file contains following sections: 
+
 * **model** - specifying the name of the model. This is simply an indentifyer of the configuration file. It does not have impact on the actual simulation. 
 * **framework** - specifying the framework to use for the benchmark, available options: tensorflow, pytorch
 * **workflow** - specifying what workflow operations to execute in the pipeline. Workflow operations include: dataset generation (``generate_data``), training (``train``), evaluation (``evaluation``), checkpointing (``checkpoint``), debugging (``debug``), etc. 
@@ -56,7 +58,6 @@ More built-in examples can be found in the `workload`_ folder. One can also crea
 
 model
 ------------------
-One can specify the name of the model as 
 .. list-table:: 
    :widths: 15 10 30
    :header-rows: 1
@@ -103,12 +104,15 @@ optimization_groups and layer_parameters.
   Please note that if optimization_groups and layer_parameters are specified, the transformer configuration will be ignored. But we 
   always suggest to specify the transformer configuration for better readability.
 
-  Please also note that ZeRO stage 3 is not compatiable with ``parallelism.pipeline == 3``.  
+  Please also note that ZeRO stage 3 is not compatiable with ``parallelism.pipeline > 1``.  
 
 .. list-table:: 
    :widths: 15 10 30
    :header-rows: 1
 
+   * - name 
+     - default
+     - The name of the model
    * - hidden_size
      - 2048
      - Hidden dimension of the transformer layer.
