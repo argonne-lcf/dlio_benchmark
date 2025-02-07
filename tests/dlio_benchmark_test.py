@@ -270,7 +270,10 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
         nranks = comm.size
         num_model_files = 1
         num_optimizer_files = 1
-        num_layer_files = num_layers
+        if zero_stage != 3:
+            num_layer_files = num_layers
+        else:
+            num_layer_files = 1
         files_per_checkpoint = (num_model_files + num_optimizer_files + num_layer_files) * nranks
         if framework == "tensorflow":
             file_per_ckp = 2
