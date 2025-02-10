@@ -70,7 +70,7 @@ class DLIOBenchmark(object):
             <li> local variables </li>
         </ul>
         """
-        global dftracer, dftracer_init, dftracer_finalize
+        global dftracer, dftracer_initialize, dftracer_finalize
 
         t0 = time()
         self.args = ConfigArguments.get_instance()
@@ -351,7 +351,7 @@ class DLIOBenchmark(object):
         It finalizes the dataset once training is completed.
         """
 
-        global dftracer, dftracer_init, dftracer_finalize
+        global dftracer, dftracer_initialize, dftracer_finalize
 
         self.comm.barrier()
         self.checkpointing_mechanism.finalize()
@@ -385,12 +385,12 @@ def run_benchmark(cfg: DictConfig):
     benchmark.run()
     benchmark.finalize()
 
-def set_dftracer_init(status):
-    global dftracer, dftracer_init, dftracer_finalize
+def set_dftracer_initialize(status):
+    global dftracer, dftracer_initialize, dftracer_finalize
     dftracer_initialize = status
 
 def set_dftracer_finalize(status):
-    global dftracer, dftracer_init, dftracer_finalize
+    global dftracer, dftracer_initialize, dftracer_finalize
     dftracer_finalize = status
 
 def main() -> None:

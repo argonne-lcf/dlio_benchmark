@@ -41,7 +41,7 @@ logging.basicConfig(
     # logging's max timestamp resolution is msecs, we will pass in usecs in the message
 )
 
-from dlio_benchmark.main import DLIOBenchmark, set_dftracer_init, set_dftracer_finalize
+from dlio_benchmark.main import DLIOBenchmark, set_dftracer_initialize, set_dftracer_finalize
 import glob
 
 def init():
@@ -131,7 +131,7 @@ def test_subset() -> None:
         cfg = compose(config_name='config', overrides=['++workload.workflow.train=False', \
                     '++workload.workflow.generate_data=True'])
         benchmark=run_benchmark(cfg, verify=False)
-        set_dftracer_init(False)
+        set_dftracer_initialize(False)
         cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', \
                         '++workload.workflow.generate_data=False', \
                             '++workload.dataset.num_files_train=8', \
@@ -508,7 +508,7 @@ compute_time_distributions = {
 
 @pytest.mark.timeout(60, method="thread")
 @pytest.mark.parametrize("dist", list(compute_time_distributions.keys()))
-def test_computation_time_distribution(dist) -> None:
+def test_computation_time_distribution(request, dist) -> None:
     init()
     clean()
     compute_time_overrides = []
@@ -525,11 +525,18 @@ def test_computation_time_distribution(dist) -> None:
         logging.info(f" DLIO test for computation time distribution")
         logging.info("=" * 80)
     with initialize_config_dir(version_base=None, config_dir=config_dir):
+        if request.config.is_dftracer_initialized:
+            set_dftracer_initialize(False)
+        else:
+            set_dftracer_finalize(False)
+
         cfg = compose(config_name='config',
                       overrides=['++workload.workflow.train=True', \
                                  '++workload.workflow.generate_data=True', \
                                  '++workload.train.epochs=4'] + compute_time_overrides)
         benchmark = run_benchmark(cfg)
+        if not request.config.is_dftracer_initialized:
+            request.config.is_dftracer_initialized = True
         clean()
     finalize()
 
