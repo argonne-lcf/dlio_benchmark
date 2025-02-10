@@ -41,15 +41,14 @@ logging.basicConfig(
     # logging's max timestamp resolution is msecs, we will pass in usecs in the message
 )
 
-from dlio_benchmark.main import DLIOBenchmark
+from dlio_benchmark.main import DLIOBenchmark, set_dftracer_init, set_dftracer_finalize
 import glob
 
 def init():
     DLIOMPI.get_instance().initialize()
 
-def finalize(cleanup=False):
-    if cleanup:
-        DLIOMPI.get_instance().finalize()
+def finalize():
+    # DLIOMPI.get_instance().finalize()
     pass
 
 def clean(storage_root="./") -> None:
@@ -118,7 +117,7 @@ def test_gen_data(fmt, framework) -> None:
         clean()
     finalize()
 
-@pytest.mark.timeout(180, method="thread")
+@pytest.mark.timeout(60, method="thread")
 def test_subset() -> None:
     init()
     clean()
@@ -128,16 +127,18 @@ def test_subset() -> None:
         logging.info(f" DLIO training test for subset")
         logging.info("=" * 80)
     with initialize_config_dir(version_base=None, config_dir=config_dir):
+        set_dftracer_finalize(False)
         cfg = compose(config_name='config', overrides=['++workload.workflow.train=False', \
                     '++workload.workflow.generate_data=True'])
         benchmark=run_benchmark(cfg, verify=False)
+        set_dftracer_init(False)
         cfg = compose(config_name='config', overrides=['++workload.workflow.train=True', \
                         '++workload.workflow.generate_data=False', \
                             '++workload.dataset.num_files_train=8', \
                             '++workload.train.computation_time=0.01'])
         benchmark=run_benchmark(cfg, verify=True)
     clean()
-    finalize(cleanup=True)
+    finalize()
 
 @pytest.mark.timeout(60, method="thread")
 @pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
