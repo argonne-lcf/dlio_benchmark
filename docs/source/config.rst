@@ -458,7 +458,10 @@ Environment variables
 ============================================
 There are a few environment variables that controls and logging and profiling information. 
 
-
+.. list-table:: 
+   :widths: 15 10 30
+   :header-rows: 1
+   
    * - Variable name
      - Default
      - Description
