@@ -61,7 +61,7 @@ class BaseCheckpointing(ABC):
         ss = 0.0
         if self.args.my_rank == 0:
             logging.info(f"{utcnow()} Total number of parameters in the model: {self.num_parameters}")
-        if self.args.zero_stage == -1:
+        if self.args.zero_stage == 0:
             if self.args.my_rank < self.model_parallelism:
                 self.rank_to_checkpoint = self.args.my_rank
             else:

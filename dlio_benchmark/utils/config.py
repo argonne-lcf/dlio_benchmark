@@ -108,7 +108,7 @@ class ConfigArguments:
     vocab_size: int = 32000
     hidden_size: int = 2048
     ffn_hidden_size: int = 8192
-    zero_stage: int = -1
+    zero_stage: int = 0
     optimization_groups: ClassVar[List[int]] = []
     num_layers: int = -1
     layer_parameters: ClassVar[List[int]] = []

@@ -84,7 +84,7 @@ model
      - []
      - List of parameters per layer. This is used to perform I/O per layer. 
    * - parallelism
-     - {tensor: 1, pipeline: 1, zero_stage: -1}
+     - {tensor: 1, pipeline: 1, zero_stage: 0}
      - Parallelism configuration for the model. 
    * - transformer
      - {hidden_size: 2048, ffn_hidden_size: 8196, vocab_size: 32000}
