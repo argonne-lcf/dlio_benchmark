@@ -174,17 +174,11 @@ class StatsCounter(object):
                 metric = metric + f"[METRIC] Training Accelerator Utilization [AU] (%): {np.mean(train_au):.4f} ({np.std(train_au):.4f})\n"
                 metric = metric + f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput):.4f} ({np.std(train_throughput):.4f})\n"
                 metric = metric + f"[METRIC] Training I/O Throughput (MB/second): {np.mean(train_throughput)*self.record_size/1024/1024:.4f} ({np.std(train_throughput)*self.record_size/1024/1024:.4f})\n"
-                metric = metric + f"[METRIC] **Expected Throughputs if compute-bound\n"
-                metric = metric + f"[METRIC] Training Throughput (expected) (samples/second): {np.mean(train_throughput/train_au)*100:.4f}\n"
-                metric = metric + f"[METRIC] Training I/O Throughput (expected) (MB/second): {np.mean(train_throughput/train_au)*100*self.record_size/1024/1024:.4f}\n"
 
                 if self.args.do_eval:
                     metric = metric + f"[METRIC] Eval Accelerator Utilization [AU] (%): {np.mean(eval_au):.4f} ({np.std(eval_au):.4f})\n"
                     metric = metric + f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput):.6f} ({np.std(eval_throughput):.6f})\n"
                     metric = metric + f"[METRIC] Eval Throughput (MB/second): {np.mean(eval_throughput)*self.record_size/1024/1024:.6f} ({np.std(eval_throughput)*self.record_size/1024/1024:.6f})\n"
-                    metric = metric + f"[METRIC] **Expected Throughputs if compute-bound\n"
-                    metric = metric + f"[METRIC] Eval Throughput (expected) (samples/second): {np.mean(eval_throughput/eval_au)*100:.4f}\n"
-                    metric = metric + f"[METRIC] Eval I/O Throughput (expected) (MB/second): {np.mean(eval_throughput/eval_au) * self.record_size/1024/1024:.4f}\n"
                 metric+="[METRIC] ==========================================================\n"
                 logging.info(metric)   
     def start_train(self, epoch):   
@@ -319,7 +313,7 @@ class StatsCounter(object):
             self.output[epoch]['load'][key].append(duration)
         else:
             self.output[epoch]['load'][key] = [duration]
-        logging.debug(f"{utcnow()} Rank {self.my_rank} step {step}: loaded {self.batch_size} samples in {duration} s")
+        logging.debug(f"{utcnow()} Rank {self.my_rank} step {step}: loaded {self.batch_size} samples in {duration:.4f} s")
 
     def batch_processed(self, epoch, step, block):
         current_time = time()
@@ -332,7 +326,7 @@ class StatsCounter(object):
         else:
             self.output[epoch]['proc'] = [duration]
             self.output[epoch]['compute']=[self.computation_time]
-        logging.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size} samples in {duration}s)")
+        logging.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size} samples in {duration:.4f}s)")
 
     def compute_metrics_train(self, epoch, block):
         key = f"block{block}"
@@ -361,7 +355,7 @@ class StatsCounter(object):
     def eval_batch_loaded(self, epoch, step):
         duration = time() - self.start_time_loading
         self.output[epoch]['load']['eval'].append(duration)
-        logging.debug(f"{utcnow()} Rank {self.my_rank} step {step} loaded {self.batch_size_eval} samples in {duration} s")
+        logging.debug(f"{utcnow()} Rank {self.my_rank} step {step} loaded {self.batch_size_eval} samples in {duration:.4f} s")
 
     def eval_batch_processed(self, epoch, step):
         current_time = time()
@@ -369,7 +363,7 @@ class StatsCounter(object):
         computation_time = current_time - self.start_time_compute
         self.output[epoch]['proc']['eval'].append(duration)
         self.output[epoch]['compute']['eval'].append(computation_time)
-        logging.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size_eval} samples in {duration} s")
+        logging.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size_eval} samples in {duration:.4f} s")
     def finalize(self):
         self.summary['end'] = utcnow()
     def save_data(self):

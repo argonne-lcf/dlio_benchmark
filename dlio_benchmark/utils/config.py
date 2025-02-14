@@ -411,7 +411,6 @@ class ConfigArguments:
         global_train_sample_sum = DLIOMPI.get_instance().reduce(local_train_sample_sum)
         global_eval_sample_sum = DLIOMPI.get_instance().reduce(local_eval_sample_sum)        
         if self.my_rank == 0:
-            logging.info(f"total sample: train {global_train_sample_sum} eval {global_eval_sample_sum}")
             if self.train_sample_index_sum != global_train_sample_sum:
                 raise Exception(f"Sharding of train samples are missing samples got {global_train_sample_sum} but expected {self.train_sample_index_sum}")
             
