@@ -48,7 +48,8 @@ def init():
     DLIOMPI.get_instance().initialize()
 
 def finalize():
-    DLIOMPI.get_instance().finalize()
+    # DLIOMPI.get_instance().finalize()
+    pass
 
 def clean(storage_root="./") -> None:
     comm.Barrier()
@@ -227,8 +228,8 @@ def test_iostat_profiling() -> None:
                                                                                          ("pytorch", 1024, [1024, 128], 2, [16], "all_ranks"),
                                                                                          ("tensorflow", 1024, [1024, 128], 2, [16], "rank_zero"),
                                                                                          ("pytorch", 1024, [1024, 128], 2, [16], "rank_zero"),
-                                                                                         ("tensorflow", 1024, [128], 1, [], "all_ranks"),
-                                                                                         ("pytorch", 1024, [128], 1, [], "all_ranks")])
+                                                                                         ("tensorflow", 1024, [128], 1, [16], "all_ranks"),
+                                                                                         ("pytorch", 1024, [128], 1, [16], "all_ranks")])
 def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_params, type) -> None:
     init()
     clean()
@@ -238,6 +239,8 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
         logging.info(f" DLIO test for checkpointing at the end of epochs")
         logging.info("=" * 80)
     with initialize_config_dir(version_base=None, config_dir=config_dir):
+        epochs = 8
+        epoch_per_ckp = 2
         cfg = compose(config_name='config',
                       overrides=[f'++workload.framework={framework}',
                                  f'++workload.reader.data_loader={framework}',
@@ -245,8 +248,8 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
                                  '++workload.workflow.generate_data=True',
                                  '++workload.train.computation_time=0.01',
                                  '++workload.evaluation.eval_time=0.005',
-                                 '++workload.train.epochs=8', '++workload.workflow.checkpoint=True',
-                                 '++workload.checkpoint.epochs_between_checkpoints=2',
+                                 f'++workload.train.epochs={epochs}', '++workload.workflow.checkpoint=True',
+                                 f'++workload.checkpoint.epochs_between_checkpoints={epoch_per_ckp}',
                                  f'++workload.checkpoint.type={type}',
                                  f'++workload.checkpoint.model_size={model_size}',
                                  f'++workload.checkpoint.optimization_groups={optimizers}',
@@ -266,11 +269,16 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
         nranks = 1
         if type == "all_ranks":
             nranks = comm.size
+        num_model_files = 1
+        num_optimizer_files = 1
+        num_layer_files = num_layers
+        files_per_checkpoint = (num_model_files + num_optimizer_files + num_layer_files) * nranks
         if framework == "tensorflow":
-            num_check_files = 8 / 2 * (2 + 2 + 2*n) * nranks + 1
+            file_per_ckp = 2
+            num_check_files = epochs / epoch_per_ckp * files_per_checkpoint * file_per_ckp + 1
             assert (len(load_bin) == num_check_files), f"files produced are {len(load_bin)} {num_check_files} {load_bin} "
         if framework == "pytorch":
-            num_check_files = 8 / 2 * (1 + 1 + n) * nranks
+            num_check_files = epochs / epoch_per_ckp * files_per_checkpoint
             assert (len(load_bin) == num_check_files), f"files produced are {len(load_bin)} {num_check_files} {load_bin}"
         comm.Barrier()
         if comm.rank == 0:
@@ -389,26 +397,46 @@ def test_pytorch_multiprocessing_context(nt, context) -> None:
     finalize()
 
 @pytest.mark.timeout(60, method="thread")
-@pytest.mark.parametrize("fmt, framework, dataloader", [("png", "tensorflow","tensorflow"), ("npz", "tensorflow","tensorflow"),
-                                            ("jpeg", "tensorflow","tensorflow"), ("tfrecord", "tensorflow","tensorflow"),
-                                            ("hdf5", "tensorflow","tensorflow"), ("csv", "tensorflow","tensorflow"),
-                                            ("indexed_binary", "tensorflow","tensorflow"), ("mmap_indexed_binary", "tensorflow","tensorflow"),
-                                            ("png", "pytorch", "pytorch"), ("npz", "pytorch", "pytorch"),
-                                            ("jpeg", "pytorch", "pytorch"), ("hdf5", "pytorch", "pytorch"),
-                                            ("csv", "pytorch", "pytorch"), ("indexed_binary", "pytorch", "pytorch"),
-                                            ("mmap_indexed_binary", "pytorch", "pytorch"),
-                                            ("png", "tensorflow", "dali"), ("npz", "tensorflow", "dali"),
-                                            ("jpeg", "tensorflow", "dali"), ("hdf5", "tensorflow", "dali"),
-                                            ("csv", "tensorflow", "dali"), ("indexed_binary", "tensorflow", "dali"),
-                                            ("mmap_indexed_binary", "tensorflow", "dali"),
-                                            ("png", "pytorch", "dali"), ("npz", "pytorch", "dali"),
-                                            ("jpeg", "pytorch", "dali"), ("hdf5", "pytorch", "dali"),
-                                            ("csv", "pytorch", "dali"), ("indexed_binary", "pytorch", "dali"),
-                                            ("mmap_indexed_binary", "pytorch", "dali"),
+@pytest.mark.parametrize("fmt, framework, dataloader, is_even", [("png", "tensorflow","tensorflow", True), ("npz", "tensorflow","tensorflow", True),
+                                            ("jpeg", "tensorflow","tensorflow", True), ("tfrecord", "tensorflow","tensorflow", True),
+                                            ("hdf5", "tensorflow","tensorflow", True), ("csv", "tensorflow","tensorflow", True),
+                                            ("indexed_binary", "tensorflow","tensorflow", True), ("mmap_indexed_binary", "tensorflow","tensorflow", True),
+                                            ("png", "pytorch", "pytorch", True), ("npz", "pytorch", "pytorch", True),
+                                            ("jpeg", "pytorch", "pytorch", True), ("hdf5", "pytorch", "pytorch", True),
+                                            ("csv", "pytorch", "pytorch", True), ("indexed_binary", "pytorch", "pytorch", True),
+                                            ("mmap_indexed_binary", "pytorch", "pytorch", True),
+                                            ("png", "tensorflow", "dali", True), ("npz", "tensorflow", "dali", True),
+                                            ("jpeg", "tensorflow", "dali", True), ("hdf5", "tensorflow", "dali", True),
+                                            ("csv", "tensorflow", "dali", True), ("indexed_binary", "tensorflow", "dali", True),
+                                            ("mmap_indexed_binary", "tensorflow", "dali", True),
+                                            ("png", "pytorch", "dali", True), ("npz", "pytorch", "dali", True),
+                                            ("jpeg", "pytorch", "dali", True), ("hdf5", "pytorch", "dali", True),
+                                            ("csv", "pytorch", "dali", True), ("indexed_binary", "pytorch", "dali", True),
+                                            ("mmap_indexed_binary", "pytorch", "dali", True),
+                                            ("png", "tensorflow","tensorflow", False), ("npz", "tensorflow","tensorflow", False),
+                                            ("jpeg", "tensorflow","tensorflow", False), ("tfrecord", "tensorflow","tensorflow", False),
+                                            ("hdf5", "tensorflow","tensorflow", False), ("csv", "tensorflow","tensorflow", False),
+                                            ("indexed_binary", "tensorflow","tensorflow", False), ("mmap_indexed_binary", "tensorflow","tensorflow", False),
+                                            ("png", "pytorch", "pytorch", False), ("npz", "pytorch", "pytorch", False),
+                                            ("jpeg", "pytorch", "pytorch", False), ("hdf5", "pytorch", "pytorch", False),
+                                            ("csv", "pytorch", "pytorch", False), ("indexed_binary", "pytorch", "pytorch", False),
+                                            ("mmap_indexed_binary", "pytorch", "pytorch", False),
+                                            ("png", "tensorflow", "dali", False), ("npz", "tensorflow", "dali", False),
+                                            ("jpeg", "tensorflow", "dali", False), ("hdf5", "tensorflow", "dali", False),
+                                            ("csv", "tensorflow", "dali", False), ("indexed_binary", "tensorflow", "dali", False),
+                                            ("mmap_indexed_binary", "tensorflow", "dali", False),
+                                            ("png", "pytorch", "dali", False), ("npz", "pytorch", "dali", False),
+                                            ("jpeg", "pytorch", "dali", False), ("hdf5", "pytorch", "dali", False),
+                                            ("csv", "pytorch", "dali", False), ("indexed_binary", "pytorch", "dali", False),
+                                            ("mmap_indexed_binary", "pytorch", "dali", False),
                                             ])
-def test_train(fmt, framework, dataloader) -> None:
+def test_train(fmt, framework, dataloader, is_even) -> None:
     init()
     clean()
+    if is_even:
+        num_files = 16
+    else:
+        num_files = 17
     if comm.rank == 0:
         logging.info("")
         logging.info("=" * 80)
@@ -423,7 +451,7 @@ def test_train(fmt, framework, dataloader) -> None:
                                                        'workload.train.computation_time=0.01', \
                                                        'workload.evaluation.eval_time=0.005', \
                                                        '++workload.train.epochs=1', \
-                                                       '++workload.dataset.num_files_train=16', \
+                                                       f'++workload.dataset.num_files_train={num_files}', \
                                                        '++workload.reader.read_threads=1'])
         benchmark = run_benchmark(cfg)
     #clean()
@@ -463,6 +491,44 @@ def test_custom_storage_root_train(fmt, framework) -> None:
                                                        '++workload.reader.read_threads=1'])
         benchmark = run_benchmark(cfg)
     clean(storage_root)
+    finalize()
+
+compute_time_distributions = {
+    "uniform": {"type": "uniform", "min": 1.0, "max": 2.0},
+    "normal": {"type": "normal", "mean": 1.0, "stdev": 1.0},
+    "gamma": {"type": "gamma", "shape": 1.0, "scale": 1.0},
+    "exp": {"type": "exponential", "scale": 1.0},
+    "poisson": {"type": "poisson", "lam": 1.0},
+    "normal_v2": {"mean": 1.0}, # mean, dist: normal
+    "normal_v3": {"mean": 1.0, "stdev": 1.0}, # mean, stdev, dist: normal
+    "normal_v4": 2.0, # mean, dist: normal
+}
+
+@pytest.mark.timeout(60, method="thread")
+@pytest.mark.parametrize("dist", list(compute_time_distributions.keys()))
+def test_computation_time_distribution(dist) -> None:
+    init()
+    clean()
+    compute_time_overrides = []
+    dist_val = compute_time_distributions[dist]
+    if isinstance(dist_val, dict):
+        for key, value in dist_val.items():
+            compute_time_overrides.append(f"++workload.train.computation_time.{key}={value}")
+    else:
+        compute_time_overrides.append(f"++workload.train.computation_time={dist_val}")
+
+    if (comm.rank == 0):
+        logging.info("")
+        logging.info("=" * 80)
+        logging.info(f" DLIO test for computation time distribution")
+        logging.info("=" * 80)
+    with initialize_config_dir(version_base=None, config_dir=config_dir):
+        cfg = compose(config_name='config',
+                      overrides=['++workload.workflow.train=True', \
+                                 '++workload.workflow.generate_data=True', \
+                                 '++workload.train.epochs=4'] + compute_time_overrides)
+        benchmark = run_benchmark(cfg)
+        clean()
     finalize()
 
 if __name__ == '__main__':

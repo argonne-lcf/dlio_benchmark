@@ -59,9 +59,14 @@ class NativeDaliDataLoader(BaseDataLoader):
         for pipeline in self.pipelines:
             pipeline.reset()
         for step in range(num_samples // batch_size):
-            for batch in self._dataset:
-                logging.debug(f"{utcnow()} Creating {len(batch)} batches by {self._args.my_rank} rank ")
-                yield batch
+            try:
+                # TODO: @hariharan-devarajan: change below line when we bump the dftracer version to 
+                #       `dlp.iter(self._dataset, name=self.next.__qualname__)`
+                for batch in dlp.iter(self._dataset):
+                    logging.debug(f"{utcnow()} Creating {len(batch)} batches by {self._args.my_rank} rank ")
+                    yield batch
+            except StopIteration:
+                return
         self.epoch_number += 1
         dlp.update(epoch=self.epoch_number)
     @dlp.log

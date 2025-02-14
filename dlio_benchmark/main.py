@@ -17,7 +17,7 @@
 import os
 import math
 import logging
-from time import time, sleep
+from time import time
 import json
 import numpy as np
 
@@ -115,7 +115,6 @@ class DLIOBenchmark(object):
             self.epochs = self.args.epochs
             self.batch_size = self.args.batch_size
             self.computation_time = self.args.computation_time
-            self.computation_time_stdev = self.args.computation_time_stdev
 
             if self.do_profiling:
                 self.profiler = ProfilerFactory().get_profiler(self.args.profiler)
@@ -134,7 +133,6 @@ class DLIOBenchmark(object):
 
             self.batch_size_eval = self.args.batch_size_eval
             self.eval_time = self.args.eval_time
-            self.eval_time_stdev = self.args.eval_time_stdev
             self.eval_after_epoch = self.args.eval_after_epoch
             self.epochs_between_evals = self.args.epochs_between_evals
         self.stats = StatsCounter()
@@ -223,15 +221,10 @@ class DLIOBenchmark(object):
         total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         loader = self.framework.get_loader(DatasetType.VALID)
         t0 = time()
-        for batch in dlp.iter(loader.next()):
+        for batch in loader.next():
             self.stats.eval_batch_loaded(epoch, step, t0)
-            eval_time = 0.0
-            if self.eval_time > 0:
-                if self.eval_time_stdev > 0:
-                    eval_time = random.normal(self.eval_time, self.eval_time_stdev)
-                else:
-                    eval_time = self.eval_time
-                self.framework.compute(batch, epoch, step, eval_time)
+            eval_time = self.eval_time
+            eval_time = self.framework.compute(batch, epoch, step, eval_time)
             self.stats.eval_batch_processed(epoch, step, t0, eval_time)
 
             step += 1
@@ -255,19 +248,21 @@ class DLIOBenchmark(object):
 
         loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
         t0 = time()
-        for batch in dlp.iter(loader.next()):
+        for batch in loader.next():
+            if overall_step > max_steps or ((self.total_training_steps > 0) and (overall_step > self.total_training_steps)):
+                if self.args.my_rank == 0:
+                    logging.info(f"{utcnow()} Maximum number of steps reached")
+                if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
+                    self.stats.end_block(epoch, block, block_step - 1)
+                break
             self.stats.batch_loaded(epoch, overall_step, block, t0)
             # Log a new block, unless it's the first one which we've already logged before the loop
             if block_step == 1 and block != 1:
                 self.stats.start_block(epoch, block)
             computation_time = self.computation_time
-            if self.computation_time > 0:
+            if (isinstance(computation_time, dict) and len(computation_time) > 0) or (isinstance(computation_time, float) and  computation_time > 0):
                 self.framework.trace_object("Train", overall_step, 1)
-                if self.computation_time_stdev > 0:
-                    computation_time = random.normal(self.computation_time, self.computation_time_stdev)
-                else:
-                    computation_time = self.computation_time
-            self.framework.compute(batch, epoch, block_step, computation_time)
+            computation_time = self.framework.compute(batch, epoch, block_step, computation_time)
             self.stats.batch_processed(epoch, overall_step, block, t0, computation_time)
             self.comm.barrier()
             if self.do_checkpoint and (
@@ -282,13 +277,6 @@ class DLIOBenchmark(object):
                 self.next_checkpoint_step += self.steps_between_checkpoints
             else:
                 block_step += 1
-
-            if overall_step >= max_steps or overall_step == self.total_training_steps:
-                if self.args.my_rank == 0:
-                    logging.info(f"{utcnow()} Maximum number of steps reached")
-                if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
-                    self.stats.end_block(epoch, block, block_step - 1)
-                break
             overall_step += 1
             t0 = time()
         self.comm.barrier()
