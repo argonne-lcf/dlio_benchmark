@@ -220,26 +220,6 @@ class BaseCheckpointing(ABC):
 
     def get_layer_index(self):
         '''
-        if tensor_parallelism > 1:
-            total_layers = total_layers + tensor_parallelism
-        
-        divisible_layers = total_layers - (total_layers % pipeline_parallelism)
-        min_layers_per_pipeline = divisible_layers // pipeline_parallelism
-        max_layer_per_pipeline = min_layers_per_pipeline + 1
-        pipeline_rank = (rank // tensor_parallelism) % pipeline_parallelism
-        left_layers = total_layers - divisible_layers
-        num_layers_per_pipeline = max_layer_per_pipeline
-        if pipeline_rank >= left_layers:
-            num_layers_per_pipeline = min_layers_per_pipeline
-        if pipeline_rank < left_layers:
-            start_layer = pipeline_rank * max_layer_per_pipeline
-            end_layer = start_layer + num_layers_per_pipeline - 1
-        else:
-            start_layer = left_layers * max_layer_per_pipeline + (pipeline_rank - left_layers) * (min_layers_per_pipeline)
-            end_layer = start_layer + num_layers_per_pipeline - 1
-        return start_layer, end_layer
-        '''
-        '''
         The layers indcies are [0, 1, ..., l, l+1, l+2], where l is the total number of transformer layers.                                               
         Layer 0, and layer l+1, l+2 are embedding, lm_head, and weight layers, respectively, they are not part of the transformer layers.                 
         The transformer layers are from 1 to l. We only distribute the transformer layers among the ranks.                                                
