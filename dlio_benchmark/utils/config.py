@@ -230,7 +230,7 @@ class ConfigArguments:
                 f"For custom data loaders workload.reader.data_loader_sampler needs to be defined as iter or index.")
         if self.read_threads > 1:
             import platform
-            if platform.system() == "Linux" or platform.system() == "Windows":
+            if platform.system() in ["Linux", "Windows"]:
                 import psutil
                 p = psutil.Process()
                 cores_available = len(p.cpu_affinity())
