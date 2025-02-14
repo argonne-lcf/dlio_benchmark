@@ -73,7 +73,6 @@ class Framework(ABC):
 
     def model(epoch, x, computation_time):
         sleep(computation_time)
-        comm.barrier()
 
     @abstractmethod
     def compute(self, x, epoch_number, step, computation_time):
