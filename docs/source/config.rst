@@ -363,6 +363,10 @@ output
    * - log_file
      - dlio.log
      - log file name  
+   * - metric
+     - {exclude_start_steps: 1, exclude_end_steps: 0}
+     - To specify the steps to be excluded in the metric calculation. By default, we exclude the first step in 
+   the beginning. 
 
 .. note::
    
