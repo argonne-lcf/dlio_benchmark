@@ -301,3 +301,36 @@ def get_trace_name(output_folder, use_pid=False):
     if use_pid:
         val = f"-{os.getpid()}"
     return f"{output_folder}/trace-{DLIOMPI.get_instance().rank()}-of-{DLIOMPI.get_instance().size()}{val}.pfw"
+
+
+
+class DLIOOutput:
+    __instance = None
+
+    def __init__(self):
+        self.fout = None
+        if DLIOOutput.__instance is not None:
+            raise Exception(f"Class {self.classname()} is a singleton!")
+        else:
+            DLIOOutput.__instance = self
+
+    @staticmethod
+    def get_instance():
+        if DLIOOutput.__instance is None:
+            DLIOOutput()
+        return DLIOOutput.__instance
+
+    @staticmethod
+    def reset():
+        DLIOOutput.__instance = None
+
+    @classmethod
+    def classname(cls):
+        return cls.__qualname__
+    def initialize(self, filename):
+        self.fout = open(filename, "w+")
+    def finalize(self):
+        self.fout.close()
+    def print(msg, flush=True):
+        print(msg, flush=flush)
+        DLIOOutput.__instance.fout.write(f"{msg}\n")

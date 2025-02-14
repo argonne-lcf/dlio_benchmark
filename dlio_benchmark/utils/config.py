@@ -91,7 +91,7 @@ class ConfigArguments:
     chunk_size: int = 0
     compression: Compression = Compression.NONE
     compression_level: int = 4
-    log_level: LogLevel = LogLevel.INFO
+    log_level: LogLevel = LogLevel.WARNING
     total_training_steps: int = -1
     do_eval: bool = False
     batch_size_eval: int = 1
@@ -171,6 +171,8 @@ class ConfigArguments:
         log_format_simple = '[%(levelname)s] %(message)s'
         # Set logging format to be simple only when debug_level <= INFO
         log_format = log_format_simple
+        if 'DLIO_LOG_LEVEL' in os.environ:
+            self.log_level = LogLevel(os.environ["DLIO_LOG_LEVEL"])
         if self.log_level == LogLevel.DEBUG:
             log_level = logging.DEBUG
             log_format = log_format_verbose 
@@ -178,8 +180,11 @@ class ConfigArguments:
             log_level = logging.WARNING
         elif self.log_level == LogLevel.ERROR:
             log_level = logging.ERROR
-        else:
+        elif self.log_level == LogLevel.INFO:
             log_level = logging.INFO
+        else:
+            log_level = logging.WARNING
+
         logging.basicConfig(
             level=log_level,
             force=True,
@@ -553,8 +558,6 @@ def LoadConfig(args, config):
             args.output_folder = config['output']['folder']
         if 'log_file' in config['output']:
             args.log_file = config['output']['log_file']
-        if 'log_level' in config['output']:
-            args.log_level = LogLevel(config['output']['log_level'])
     if args.output_folder is None:
         try:
             hydra_cfg = hydra.core.hydra_config.HydraConfig.get()

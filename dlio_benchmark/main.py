@@ -35,7 +35,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 from dataclasses import dataclass
-from dlio_benchmark.utils.utility import utcnow, measure_performance, get_trace_name, DLIOMPI
+from dlio_benchmark.utils.utility import utcnow, measure_performance, get_trace_name, DLIOMPI, DLIOOutput
 from omegaconf import DictConfig, OmegaConf
 from dlio_benchmark.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
@@ -88,15 +88,16 @@ class DLIOBenchmark(object):
         if self.my_rank == 0:
             if os.path.isfile(self.args.logfile_path):
                 os.remove(self.args.logfile_path)
+        DLIOOutput.get_instance().initialize(self.args.logfile_path)
         self.comm.barrier()
         # Configure the logging library
         self.args.configure_dlio_logging(is_child=False)
         self.dftracer = self.args.configure_dftracer(is_child=False, use_pid=False)
         with Profile(name=f"{self.__init__.__qualname__}", cat=MODULE_DLIO_BENCHMARK):
             if self.args.my_rank == 0:
-                logging.info(f"{utcnow()} Running DLIO with {self.args.comm_size} process(es)")
+                DLIOOutput.print(f"{utcnow()} Running DLIO with {self.args.comm_size} process(es)")
                 try:
-                    logging.info(
+                    DLIOOutput.print(
                         f"{utcnow()} Reading workload YAML config file '{hydra_cfg.runtime.config_sources[1]['path']}/workload/{hydra_cfg.runtime.choices.workload}.yaml'")
                 except:
                     pass
@@ -149,12 +150,12 @@ class DLIOBenchmark(object):
 
         if self.args.generate_data:
             if self.args.my_rank == 0:
-                logging.info(f"{utcnow()} Starting data generation")
+                DLIOOutput.print(f"{utcnow()} Starting data generation")
             self.data_generator.generate()
             # important to have this barrier to ensure that the data generation is done for all the ranks
             self.comm.barrier()
             if self.args.my_rank == 0:
-                logging.info(f"{utcnow()} Generation done")
+                DLIOOutput.print(f"{utcnow()} Generation done")
 
         if not self.generate_only and self.do_profiling:
             self.profiler.start()
@@ -312,12 +313,12 @@ class DLIOBenchmark(object):
             # Print out the expected number of steps for each epoch and evaluation
             if self.my_rank == 0:
                 total = math.floor(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
-                logging.info(
+                DLIOOutput.print(
                     f"{utcnow()} Max steps per epoch: {total} = {self.num_samples} * {self.num_files_train} / {self.batch_size} / {self.comm_size} (samples per file * num files / batch size / comm size)")
 
                 if self.do_eval:
                     total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
-                    logging.info(
+                    DLIOOutput.print(
                         f"{utcnow()} Steps per eval: {total} = {self.num_samples} * {self.num_files_eval} / {self.batch_size_eval} / {self.comm_size} (samples per file * num files / batch size eval / comm size)")
 
             # Keep track of the next epoch at which we will evaluate
@@ -375,6 +376,8 @@ class DLIOBenchmark(object):
             self.stats.save_data()
         self.comm.barrier()
         self.args.finalize_dftracer(self.dftracer)
+        DLIOOutput.get_instance().finalize()
+
 
 @hydra.main(version_base=None, config_path="configs", config_name="config")
 def run_benchmark(cfg: DictConfig):    
@@ -392,6 +395,7 @@ def main() -> None:
     DLIOMPI.get_instance().initialize()
     run_benchmark()
     DLIOMPI.get_instance().finalize()
+
 
 if __name__ == '__main__':
     main()
