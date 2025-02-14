@@ -50,6 +50,16 @@ class StorageType(Enum):
 
     def __str__(self):
         return self.value
+class LogLevel(Enum):
+    """
+    Different levels of logging
+    """
+    DEBUG = "debug"
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error" 
+    def __str__(self):
+        return self.value
 
 class MetadataType(Enum):
     """
@@ -106,7 +116,6 @@ class ComputationType(Enum):
     NONE = 'none'
     SYNC = 'sync'
     ASYNC = 'async'
-
 
 class FormatType(Enum):
     """

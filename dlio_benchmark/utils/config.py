@@ -26,7 +26,7 @@ from typing import Any, Dict, List, ClassVar
 
 from dlio_benchmark.common.constants import MODULE_CONFIG
 from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
-    FrameworkType, \
+    FrameworkType, LogLevel, \
     DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointLocationType, CheckpointMechanismType
 from dlio_benchmark.utils.utility import DLIOMPI, get_trace_name, utcnow
 from dlio_benchmark.utils.utility import Profile, PerfTrace, DFTRACER_ENABLE
@@ -90,7 +90,7 @@ class ConfigArguments:
     chunk_size: int = 0
     compression: Compression = Compression.NONE
     compression_level: int = 4
-    debug: bool = False
+    log_level: LogLevel = LogLevel.WARNING
     total_training_steps: int = -1
     do_eval: bool = False
     batch_size_eval: int = 1
@@ -168,7 +168,24 @@ class ConfigArguments:
         if is_child and self.multiprocessing_context == "fork":
             return
         # Configure the logging library
-        log_level = logging.DEBUG if self.debug else logging.INFO
+        log_format_verbose = '[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'
+        log_format_simple = '[%(levelname)s] %(message)s'
+        # Set logging format to be simple only when debug_level <= INFO
+        log_format = log_format_simple
+        if 'DLIO_LOG_LEVEL' in os.environ:
+            self.log_level = LogLevel(os.environ["DLIO_LOG_LEVEL"])
+        if self.log_level == LogLevel.DEBUG:
+            log_level = logging.DEBUG
+            log_format = log_format_verbose 
+        elif self.log_level == LogLevel.WARNING:
+            log_level = logging.WARNING
+        elif self.log_level == LogLevel.ERROR:
+            log_level = logging.ERROR
+        elif self.log_level == LogLevel.INFO:
+            log_level = logging.INFO
+        else:
+            log_level = logging.WARNING
+
         logging.basicConfig(
             level=log_level,
             force=True,
@@ -176,10 +193,9 @@ class ConfigArguments:
                 logging.FileHandler(self.logfile_path, mode="a", encoding='utf-8'),
                 logging.StreamHandler()
             ],
-            format='[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'
+            format = log_format
             # logging's max timestamp resolution is msecs, we will pass in usecs in the message
         )
-
     def configure_dftracer(self, is_child=False, use_pid=False):
         # with "multiprocessing_context=fork" the profiler file remains open in the child process
         if is_child and self.multiprocessing_context == "fork":
@@ -611,7 +627,6 @@ def LoadConfig(args, config):
             args.output_folder = config['output']['folder']
         if 'log_file' in config['output']:
             args.log_file = config['output']['log_file']
-
     if args.output_folder is None:
         try:
             hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
@@ -627,8 +642,6 @@ def LoadConfig(args, config):
             args.generate_only = True
         else:
             args.generate_only = False
-        if 'debug' in config['workflow']:
-            args.debug = config['workflow']['debug']
         if 'evaluation' in config['workflow']:
             args.do_eval = config['workflow']['evaluation']
         if 'checkpoint' in config['workflow']:

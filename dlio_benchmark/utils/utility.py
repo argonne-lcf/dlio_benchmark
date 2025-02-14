@@ -37,30 +37,30 @@ try:
     from dftracer.logger import dftracer as PerfTrace, dft_fn as Profile, DFTRACER_ENABLE as DFTRACER_ENABLE
 except:
     class Profile(object):
-        def __init__(self,  **kwargs):
+        def __init__(self,  cat, name=None, epoch=None, step=None, image_idx=None, image_size=None):
             return 
-        def log(self,  **kwargs):
-            return 
-        def log_init(self,  **kwargs):
-            return 
-        def iter(self,  **kwargs):
-            return 
+        def log(self,  func):
+            return func
+        def log_init(self,  func):
+            return func
+        def iter(self,  func, iter_name="step"):
+            return func
         def __enter__(self):
             return
-        def __exit__(self, **kwargs):
+        def __exit__(self, type, value, traceback):
             return
-        def update(self, **kwargs):
+        def update(self, epoch=None, step=None, image_idx=None, image_size=None, args={}):
             return
         def flush(self):
             return
         def reset(self):
             return
-        def log_static(self, **kwargs):
-            return
+        def log_static(self, func):
+            return func
     class dftracer(object):
         def __init__(self,):
             self.type = None
-        def initialize_log(self, **kwargs):
+        def initialize_log(self, logfile=None, data_dir=None, process_id=-1):
             return
         def get_time(self):
             return
@@ -68,7 +68,7 @@ except:
             return
         def exit_event(self):
             return
-        def log_event(self,  **kwargs):
+        def log_event(self, name, cat, start_time, duration, string_args=None):
             return
         def finalize(self):
             return
@@ -310,6 +310,38 @@ def get_trace_name(output_folder, use_pid=False):
         val = f"-{os.getpid()}"
     return f"{output_folder}/trace-{DLIOMPI.get_instance().rank()}-of-{DLIOMPI.get_instance().size()}{val}.pfw"
 
+
+class DLIOOutput:
+    __instance = None
+
+    def __init__(self):
+        self.fout = None
+        if DLIOOutput.__instance is not None:
+            raise Exception(f"Class {self.classname()} is a singleton!")
+        else:
+            DLIOOutput.__instance = self
+
+    @staticmethod
+    def get_instance():
+        if DLIOOutput.__instance is None:
+            DLIOOutput()
+        return DLIOOutput.__instance
+
+    @staticmethod
+    def reset():
+        DLIOOutput.__instance = None
+
+    @classmethod
+    def classname(cls):
+        return cls.__qualname__
+    def initialize(self, filename):
+        self.fout = open(filename, "w+")
+    def finalize(self):
+        self.fout.close()
+    def print(msg, flush=True):
+        print(msg, flush=flush)
+        DLIOOutput.__instance.fout.write(f"{msg}\n")
+        
 def sleep(config):
     sleep_time = 0.0
     if isinstance(config, dict) and len(config) > 0:
@@ -336,4 +368,3 @@ def sleep(config):
     if sleep_time > 0.0:
         base_sleep(sleep_time)
     return sleep_time
-
