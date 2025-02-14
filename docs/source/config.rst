@@ -356,19 +356,11 @@ output
      - The output folder name.
    * - log_file
      - dlio.log
-     - log file name  
-   * - log_level
-     - "info"
-     - select the logging level [error|warning|info|debug]
+     - log file name
 
 .. note::
    
    If ``folder`` is not set (None), the output folder will be ```hydra_log/unet3d/$DATE-$TIME```. 
-
-.. note:: 
-  
-  ``log_level=debug`` will output detailed logging info per steps; whereas ``log_level=info`` only output log at the end of each epoch. 
-  For performance mode, we would suggest using error mode to suppress unnecessory logs. 
 
 profiling
 ------------------
@@ -397,3 +389,22 @@ The YAML files are stored in the `workload`_ folder.
 It then can be loaded by ```dlio_benchmark``` through hydra (https://hydra.cc/). This will override the default settings. One can override the configurations through command line (https://hydra.cc/docs/advanced/override_grammar/basic/).
 
 .. _workload: https://github.com/argonne-lcf/dlio_benchmark/tree/main/dlio_benchmark/configs/workload
+
+
+Environment variables
+============================================
+There are a few environment variables that controls and logging and profiling information. 
+
+
+   * - Variable name
+     - Default
+     - Description
+   * - DLIO_LOG_LEVEL
+     - warning
+     - Specifying the loging level [error|warning|info|debug]. If info is set, it will output the progress for each step. 
+   * - DFTRACER_ENABLE
+     - 0
+     - Enabling the dftracer profiling or not [0|1]
+   * - DFTRACER_INC_METADATA
+     - 0
+     - Whether to include the meta data in the trace output or not [0|1] 
