@@ -35,7 +35,7 @@ dlp = Profile(MODULE_DATA_LOADER)
 class DaliIndexDataset(object):
 
     def __init__(self, format_type, dataset_type, epoch, worker_index,
-                 total_num_workers, total_num_samples, samples_per_worker, batch_size, shuffle=Shuffle.OFF, seed=1234):
+                 total_num_workers, total_num_samples, samples_per_worker, batch_size):
         self.format_type = format_type
         self.dataset_type = dataset_type
         self.epoch = epoch
@@ -44,22 +44,19 @@ class DaliIndexDataset(object):
         self.samples_per_worker = samples_per_worker
         self.batch_size = batch_size
         self.worker_index = worker_index
-        self.shuffle = shuffle
         self.total_num_steps = self.samples_per_worker//batch_size
         self.reader = ReaderFactory.get_reader(type=self.format_type,
                                                dataset_type=self.dataset_type,
                                                thread_index=worker_index,
                                                epoch_number=self.epoch)
         assert(self.reader.is_index_based())
-        self.seed = seed
         start_sample = self.worker_index * samples_per_worker
-        end_sample = (self.worker_index + 1) * samples_per_worker
+        end_sample = (self.worker_index + 1) * samples_per_worker - 1
+        if end_sample > total_num_samples - 1:
+            end_sample = total_num_samples - 1
         if not hasattr(self, 'indices'):
-            self.indices = list(range(start_sample, end_sample))
-        if self.shuffle != Shuffle.OFF:
-            if self.shuffle == Shuffle.SEED:
-                np.random.seed(self.seed)
-            np.random.shuffle(self.indices)
+            self.indices = list(range(start_sample, end_sample + 1))
+        self.samples_per_worker = len(self.indices)
     def __call__(self, sample_info):
         logging.debug(
             f"{utcnow()} Reading {sample_info.idx_in_epoch} out of {self.samples_per_worker} by worker {self.worker_index} with {self.indices} indices")
@@ -74,7 +71,7 @@ class DaliIndexDataset(object):
 
 class DaliIteratorDataset(object):
     def __init__(self, format_type, dataset_type, epoch, worker_index,
-                 total_num_workers, total_num_samples, samples_per_worker, batch_size, shuffle=Shuffle.OFF, seed=1234):
+                 total_num_workers, total_num_samples, samples_per_worker, batch_size):
         self.format_type = format_type
         self.dataset_type = dataset_type
         self.epoch = epoch
@@ -83,22 +80,12 @@ class DaliIteratorDataset(object):
         self.samples_per_worker = samples_per_worker
         self.batch_size = batch_size
         self.worker_index = worker_index
-        self.shuffle = shuffle
         self.total_num_steps = self.samples_per_worker//batch_size
         self.reader = ReaderFactory.get_reader(type=self.format_type,
                                                dataset_type=self.dataset_type,
                                                thread_index=worker_index,
                                                epoch_number=self.epoch)
         assert(self.reader.is_iterator_based())
-        self.seed = seed
-        start_sample = self.worker_index * samples_per_worker
-        end_sample = (self.worker_index + 1) * samples_per_worker
-        if not hasattr(self, 'indices'):
-            self.indices = list(range(start_sample, end_sample))
-        if self.shuffle != Shuffle.OFF:
-            if self.shuffle == Shuffle.SEED:
-                np.random.seed(self.seed)
-            np.random.shuffle(self.indices)
     def __iter__(self):
         with Profile(MODULE_DATA_LOADER):
             for image in self.reader.next():
@@ -124,12 +111,12 @@ class DaliDataLoader(BaseDataLoader):
         if self._args.prefetch_size > 0:
             prefetch_size = self._args.prefetch_size
         num_pipelines = 1
-        samples_per_worker = self.num_samples // num_pipelines // self._args.comm_size
+        samples_per_worker = int(math.ceil(self.num_samples/num_pipelines/self._args.comm_size))
         for worker_index in range(num_pipelines):
             global_worker_index = self._args.my_rank * num_pipelines + worker_index
             # None executes pipeline on CPU and the reader does the batching
             self.dataset = DaliIndexDataset(self.format_type, self.dataset_type, self.epoch_number, global_worker_index,
-                                self._args.comm_size * num_pipelines, self.num_samples, samples_per_worker, 1, self._args.sample_shuffle, self._args.seed)
+                                self._args.comm_size * num_pipelines, self.num_samples, samples_per_worker, 1)
             pipeline = Pipeline(batch_size=self.batch_size, num_threads=num_threads, device_id=None, py_num_workers=num_threads//num_pipelines,
                                 prefetch_queue_depth=prefetch_size, py_start_method=self._args.multiprocessing_context, exec_async=True)
             with pipeline:
@@ -153,7 +140,10 @@ class DaliDataLoader(BaseDataLoader):
         self.read(True)
         while step < self.num_samples // self.batch_size:
             for pipe in self.pipelines:
-                outputs = pipe.share_outputs()
+                try:
+                    outputs = pipe.share_outputs()
+                except StopIteration:
+                    return
                 logging.debug(f"{utcnow()} Output batch {step} {len(outputs)}")
                 yield outputs
                 step += 1

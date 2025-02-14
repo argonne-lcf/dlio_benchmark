@@ -17,12 +17,12 @@
 
 import os
 import logging
-from time import time, sleep
+from time import time
 
 from dlio_benchmark.common.constants import MODULE_AI_FRAMEWORK
 from dlio_benchmark.data_loader.data_loader_factory import DataLoaderFactory
 from dlio_benchmark.utils.utility import utcnow, DLIOMPI
-from dlio_benchmark.utils.utility import Profile
+from dlio_benchmark.utils.utility import Profile, sleep
 from dlio_benchmark.common.error_code import ErrorCodes
 from dlio_benchmark.framework.framework import Framework
 from dlio_benchmark.reader.reader_factory import ReaderFactory
@@ -87,7 +87,7 @@ class TFFramework(Framework):
 
     @dlp.log
     def compute(self, x, epoch_number, step, computation_time):
-        sleep(computation_time)
+        return sleep(computation_time)
         # tf.function(self.model)(epoch_number, step, computation_time)
 
     @dlp.log

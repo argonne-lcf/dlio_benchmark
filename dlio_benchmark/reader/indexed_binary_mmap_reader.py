@@ -36,8 +36,8 @@ class IndexedBinaryMMapReader(FormatReader):
     def __init__(self, dataset_type, thread_index, epoch):
         super().__init__(dataset_type, thread_index)
         self.file_map_ibr = {}
-        self.load_index()
         self.buffer_map = {}
+        self.load_index()
 
     def index_file_path_off(self, prefix_path):
         return prefix_path + '.off.idx'
@@ -57,10 +57,13 @@ class IndexedBinaryMMapReader(FormatReader):
             self.file_map_ibr[filename] = []
             bin_buffer_mmap = np.memmap(offset_file, mode='r', order='C')
             bin_buffer = memoryview(bin_buffer_mmap)
-            self.file_map_ibr[filename].append(np.frombuffer(bin_buffer, dtype=np.uint8))
+            self.file_map_ibr[filename].append(np.frombuffer(bin_buffer, dtype=np.uint64))
             bin_buffer_mmap = np.memmap(sz_file, mode='r', order='C')
             bin_buffer = memoryview(bin_buffer_mmap)
-            self.file_map_ibr[filename].append(np.frombuffer(bin_buffer, dtype=np.uint8))
+            self.file_map_ibr[filename].append(np.frombuffer(bin_buffer, dtype=np.uint64))
+            bin_buffer_mmap = np.memmap(filename, mode='r', order='C')
+            bin_buffer = memoryview(bin_buffer_mmap)
+            self.buffer_map[filename] = np.frombuffer(bin_buffer, dtype=np.uint8)
 
     @dlp.log
     def load_index(self):
@@ -76,16 +79,13 @@ class IndexedBinaryMMapReader(FormatReader):
 
     @dlp.log
     def open(self, filename):
-        super().open(filename)
-        bin_buffer_mmap = np.memmap(filename, mode='r', order='C')
-        bin_buffer = memoryview(bin_buffer_mmap)
-        self.buffer_map[filename] = np.frombuffer(bin_buffer, dtype=np.uint8)
-        return bin_buffer_mmap
+        super().open(filename)        
+        return self.buffer_map[filename]
 
     @dlp.log
     def close(self, filename):
         super().close(filename)
-        self.open_file_map[filename]._mmap.close()
+        
 
     @dlp.log
     def get_sample(self, filename, sample_index):
@@ -93,7 +93,6 @@ class IndexedBinaryMMapReader(FormatReader):
         buffer = self.buffer_map[filename]
         offset = self.file_map_ibr[filename][0][sample_index]
         size = self.file_map_ibr[filename][1][sample_index]
-        logging.debug(f"reading sample from offset {offset} of size {size} from file {filename}")
         image = buffer[offset:offset+size]
         dlp.update(image_size=size)
 
@@ -103,11 +102,25 @@ class IndexedBinaryMMapReader(FormatReader):
 
     @dlp.log
     def read_index(self, image_idx, step):
-        return super().read_index(image_idx, step)
+        filename, sample_index = self.global_index_map[image_idx]
+        self.get_sample(filename, sample_index)
+        self.preprocess()
+        return self._args.resized_image
 
     @dlp.log
     def finalize(self):
-        return super().finalize()
+        super().finalize()
+        if self._args.data_loader_sampler == DataLoaderSampler.ITERATIVE:
+            for global_sample_idx, filename, sample_index in self.file_map[self.thread_index]:
+                self.buffer_map[filename]._mmap.close()
+                self.file_map_ibr[filename][0]._mmap.close()
+                self.file_map_ibr[filename][1]._mmap.close()
+        elif self._args.data_loader_sampler == DataLoaderSampler.INDEX:
+            for global_sample_idx, (filename, sample_index) in self.global_index_map.items():
+                self.buffer_map[filename]._mmap.close()
+                self.file_map_ibr[filename][0]._mmap.close()
+                self.file_map_ibr[filename][1]._mmap.close()
+            
 
     def is_index_based(self):
         return True

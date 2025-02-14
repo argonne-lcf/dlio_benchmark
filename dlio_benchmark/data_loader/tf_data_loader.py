@@ -100,7 +100,9 @@ class TFDataLoader(BaseDataLoader):
     @dlp.log
     def next(self):
         super().next()
-        for batch in self._dataset:
+        # TODO: @hariharan-devarajan: change below line when we bump the dftracer version to 
+        #       `dlp.iter(self._dataset, name=self.next.__qualname__)`
+        for batch in dlp.iter(self._dataset):
             yield batch
         self.epoch_number += 1
         dlp.update(epoch=self.epoch_number)

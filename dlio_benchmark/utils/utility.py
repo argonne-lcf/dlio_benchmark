@@ -18,7 +18,7 @@
 import os
 from datetime import datetime
 import logging
-from time import time
+from time import time, sleep as base_sleep
 from functools import wraps
 import threading
 import json
@@ -193,6 +193,14 @@ class DLIOMPI:
             raise Exception(f"method {self.classname()}.size() called before initializing MPI")
         else:
             return self.mpi_size//self.mpi_ppn
+    
+    def reduce(self, num):
+        from mpi4py import MPI
+        if self.mpi_state == MPIState.UNINITIALIZED:
+            raise Exception(f"method {self.classname()}.reduce() called before initializing MPI")
+        else:
+            return MPI.COMM_WORLD.allreduce(num, op=MPI.SUM)
+    
     def finalize(self):
         from mpi4py import MPI
         if self.mpi_state == MPIState.MPI_INITIALIZED and MPI.Is_initialized():
@@ -303,7 +311,6 @@ def get_trace_name(output_folder, use_pid=False):
     return f"{output_folder}/trace-{DLIOMPI.get_instance().rank()}-of-{DLIOMPI.get_instance().size()}{val}.pfw"
 
 
-
 class DLIOOutput:
     __instance = None
 
@@ -334,3 +341,30 @@ class DLIOOutput:
     def print(msg, flush=True):
         print(msg, flush=flush)
         DLIOOutput.__instance.fout.write(f"{msg}\n")
+        
+def sleep(config):
+    sleep_time = 0.0
+    if isinstance(config, dict) and len(config) > 0:
+        if "type" in config:
+            if config["type"] == "normal":
+                sleep_time = np.random.normal(config["mean"], config["stdev"])
+            elif config["type"] == "uniform":
+                sleep_time = np.random.uniform(config["min"], config["max"])
+            elif config["type"] == "gamma":
+                sleep_time = np.random.gamma(config["shape"], config["scale"])
+            elif config["type"] == "exponential":
+                sleep_time = np.random.exponential(config["scale"])
+            elif config["type"] == "poisson":
+                sleep_time = np.random.poisson(config["lam"])
+        else:
+            if "mean" in config:
+                if "stdev" in config:
+                    sleep_time = np.random.normal(config["mean"], config["stdev"])
+                else:
+                    sleep_time = config["mean"]
+    elif isinstance(config, (int, float)):
+        sleep_time = config
+    sleep_time = abs(sleep_time)
+    if sleep_time > 0.0:
+        base_sleep(sleep_time)
+    return sleep_time
