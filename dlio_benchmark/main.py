@@ -260,6 +260,7 @@ class DLIOBenchmark(object):
             # Log a new block, unless it's the first one which we've already logged before the loop
             if block_step == 1 and block != 1:
                 self.stats.start_block(epoch, block)
+            computation_time = self.args.computation_time
             if (isinstance(computation_time, dict) and len(computation_time) > 0) or (isinstance(computation_time, float) and  computation_time > 0):
                 self.framework.trace_object("Train", overall_step, 1)
             self.stats.start_compute()
