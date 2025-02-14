@@ -16,9 +16,8 @@
 """
 import os
 import math
-
 import logging
-from time import time, sleep
+from time import time
 import json
 import numpy as np
 
@@ -49,9 +48,7 @@ from dlio_benchmark.storage.storage_factory import StorageFactory
 from dlio_benchmark.utils.utility import Profile, PerfTrace
 
 dlp = Profile(MODULE_DLIO_BENCHMARK)
-from mpi4py import MPI
-# To make sure the output folder is the same in all the nodes. We have to do this. 
-MPI.COMM_WORLD.Barrier()
+# To make sure the output folder is the same in all the nodes. We have to do this.
 import hydra
 
 class DLIOBenchmark(object):
@@ -94,7 +91,7 @@ class DLIOBenchmark(object):
         self.comm.barrier()
         # Configure the logging library
         self.args.configure_dlio_logging(is_child=False)
-        self.dlio_profiler = self.args.configure_dlio_profiler(is_child=False, use_pid=False)
+        self.dftracer = self.args.configure_dftracer(is_child=False, use_pid=False)
         with Profile(name=f"{self.__init__.__qualname__}", cat=MODULE_DLIO_BENCHMARK):
             if self.args.my_rank == 0:
                 logging.info(f"{utcnow()} Running DLIO with {self.args.comm_size} process(es)")
@@ -117,7 +114,6 @@ class DLIOBenchmark(object):
             self.epochs = self.args.epochs
             self.batch_size = self.args.batch_size
             self.computation_time = self.args.computation_time
-            self.computation_time_stdev = self.args.computation_time_stdev
 
             if self.do_profiling:
                 self.profiler = ProfilerFactory().get_profiler(self.args.profiler)
@@ -136,7 +132,6 @@ class DLIOBenchmark(object):
 
             self.batch_size_eval = self.args.batch_size_eval
             self.eval_time = self.args.eval_time
-            self.eval_time_stdev = self.args.eval_time_stdev
             self.eval_after_epoch = self.args.eval_after_epoch
             self.epochs_between_evals = self.args.epochs_between_evals
         self.stats = StatsCounter()
@@ -223,23 +218,16 @@ class DLIOBenchmark(object):
         """
         Evaluation loop will read a separate dataset and has its own own computation time.
         """
-        self.args.reconfigure(epoch, DatasetType.VALID)
         step = 1
         total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         loader = self.framework.get_loader(DatasetType.VALID)
         self.stats.start_loading()
         for batch in dlp.iter(loader.next()):
             self.stats.eval_batch_loaded(epoch, step)
-            eval_time = 0.0
-            if self.eval_time > 0:
-                if self.eval_time_stdev > 0:
-                    eval_time = random.normal(self.eval_time, self.eval_time_stdev)
-                else:
-                    eval_time = self.eval_time
-                self.stats.start_compute()
-                self.framework.compute(batch, epoch, step, eval_time)
+            eval_time = self.eval_time
+            self.stats.start_compute()
+            self.framework.compute(batch, epoch, step, eval_time)
             self.stats.eval_batch_processed(epoch, step)
-
             step += 1
             if step > total:
                 break
@@ -262,6 +250,12 @@ class DLIOBenchmark(object):
         loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
         self.stats.start_loading()
         for batch in loader.next():
+            if overall_step > max_steps or ((self.total_training_steps > 0) and (overall_step > self.total_training_steps)):
+            if self.args.my_rank == 0:
+               logging.info(f"{utcnow()} Maximum number of steps reached")
+            if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
+                self.stats.end_block(epoch, block, block_step - 1)
+                break
             self.stats.batch_loaded(epoch, overall_step, block)
             # Log a new block, unless it's the first one which we've already logged before the loop
             if block_step == 1 and block != 1:
@@ -269,6 +263,7 @@ class DLIOBenchmark(object):
             self.stats.start_compute()
             self.framework.compute(batch, epoch, block_step, self.computation_time)
             self.stats.batch_processed(epoch, overall_step, block)
+            self.comm.barrier()
             if self.do_checkpoint and (
                     self.steps_between_checkpoints >= 0) and overall_step == self.next_checkpoint_step:
                 self.stats.end_block(epoch, block, block_step)
@@ -281,13 +276,6 @@ class DLIOBenchmark(object):
                 self.next_checkpoint_step += self.steps_between_checkpoints
             else:
                 block_step += 1
-
-            if overall_step >= max_steps or overall_step == self.total_training_steps:
-                if self.args.my_rank == 0:
-                    logging.info(f"{utcnow()} Maximum number of steps reached")
-                if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
-                    self.stats.end_block(epoch, block, block_step - 1)
-                break
             overall_step += 1
             self.stats.start_loading()
         self.comm.barrier()
@@ -325,7 +313,7 @@ class DLIOBenchmark(object):
             self.next_checkpoint_epoch = self.checkpoint_after_epoch
             epoch = 1
             # Initialize the dataset
-            self.args.reconfigure(epoch, DatasetType.TRAIN)
+            self.args.reconfigure(epoch)
             self.framework.init_loader(self.args.format, epoch=epoch, data_loader=self.args.data_loader)
             self.framework.get_loader(dataset_type=DatasetType.TRAIN).read()
             if self.do_eval:
@@ -333,7 +321,6 @@ class DLIOBenchmark(object):
             for epoch in range(1, self.epochs + 1):
                 self.next_checkpoint_step = self.steps_between_checkpoints
                 self.stats.start_train(epoch)
-                self.args.reconfigure(epoch, DatasetType.TRAIN)
                 steps = self._train(epoch)
                 self.stats.end_train(epoch, steps)
                 logging.debug(f"{utcnow()} Rank {self.my_rank} returned after {steps} steps.")
@@ -341,11 +328,11 @@ class DLIOBenchmark(object):
                 # Perform evaluation if enabled
                 if self.do_eval and epoch >= next_eval_epoch:
                     next_eval_epoch += self.epochs_between_evals
-                    self.args.reconfigure(epoch, DatasetType.VALID)
                     self.stats.start_eval(epoch)
                     self._eval(epoch)
                     self.stats.end_eval(epoch)
                     self.framework.get_loader(DatasetType.VALID).finalize()
+                self.args.reconfigure(epoch + 1) # reconfigure once per epoch
                     
         self.stats.end_run()
 
@@ -375,21 +362,23 @@ class DLIOBenchmark(object):
             self.stats.finalize()
             self.stats.save_data()
         self.comm.barrier()
-        self.args.finalize_dlio_profiler(self.dlio_profiler)
-
+        self.args.finalize_dftracer(self.dftracer)
 
 @hydra.main(version_base=None, config_path="configs", config_name="config")
-def main(cfg: DictConfig) -> None:
-
-    """
-    The main method to start the benchmark runtime.
-    """
-    DLIOMPI.get_instance().initialize()
+def run_benchmark(cfg: DictConfig):    
     benchmark = DLIOBenchmark(cfg['workload'])
     os.environ["DARSHAN_DISABLE"] = "1"
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()
+
+
+def main() -> None:
+    """
+    The main method to start the benchmark runtime.
+    """
+    DLIOMPI.get_instance().initialize()
+    run_benchmark()
     DLIOMPI.get_instance().finalize()
 
 if __name__ == '__main__':

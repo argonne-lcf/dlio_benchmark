@@ -13,7 +13,7 @@ from dlio_benchmark.common.enumerations import Shuffle, DataLoaderType, DatasetT
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.utils.utility import utcnow
-from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile
+from dlio_benchmark.utils.utility import PerfTrace, Profile
 
 dlp = Profile(MODULE_DATA_LOADER)
 
@@ -59,9 +59,14 @@ class NativeDaliDataLoader(BaseDataLoader):
         for pipeline in self.pipelines:
             pipeline.reset()
         for step in range(num_samples // batch_size):
-            for batch in self._dataset:
-                logging.debug(f"{utcnow()} Creating {len(batch)} batches by {self._args.my_rank} rank ")
-                yield batch
+            try:
+                # TODO: @hariharan-devarajan: change below line when we bump the dftracer version to 
+                #       `dlp.iter(self._dataset, name=self.next.__qualname__)`
+                for batch in dlp.iter(self._dataset):
+                    logging.debug(f"{utcnow()} Creating {len(batch)} batches by {self._args.my_rank} rank ")
+                    yield batch
+            except StopIteration:
+                return
         self.epoch_number += 1
         dlp.update(epoch=self.epoch_number)
     @dlp.log

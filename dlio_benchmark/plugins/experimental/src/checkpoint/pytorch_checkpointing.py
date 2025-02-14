@@ -18,7 +18,7 @@ import os
 import torch
 
 from dlio_benchmark.checkpointing.base_checkpointing import BaseCheckpointing
-from dlio_profiler.logger import fn_interceptor as Profile
+from dlio_benchmark.utils.utility import Profile
 
 from dlio_benchmark.common.constants import MODULE_CHECKPOINT
 from dlio_benchmark.common.enumerations import CheckpointLocationType

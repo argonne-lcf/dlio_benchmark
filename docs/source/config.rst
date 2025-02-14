@@ -155,7 +155,7 @@ dataset
    * - compression_level
      - 4
      - level of compression for gzip
-   * - chunking
+   * - enable_chunking
      - False
      - whether to use chunking to store hdf5. 
    * - chunk_size
@@ -201,6 +201,9 @@ reader
    * - read_threads* 
      - 1
      - number of threads to load the data (for tensorflow and pytorch data loader)
+   * - pin_memory
+     - True
+     - whether to pin the memory for pytorch data loader
    * - computation_threads
      - 1
      - number of threads to preprocess the data
@@ -218,7 +221,8 @@ reader
      - transfer size in byte for tensorflow data loader. 
    * - preprocess_time
      - 0.0
-     - The amount of emulated preprocess time (sleep) in second. 
+     - | The amount of emulated preprocess time (sleep) in second. 
+       | Can be specified as a distribution, see :ref:`Time Configuration` for more details.
    * - preprocess_time_stdev
      - 0.0
      - The standard deviation of the amount of emulated preprocess time (sleep) in second. 
@@ -252,7 +256,11 @@ train
      - number of epochs to simulate
    * - computation_time
      - 0.0
-     - emulated computation time per step in second
+     - | emulated computation time per step in second
+       | Can be specified as a distribution, see :ref:`Time Configuration` for more details.
+   * - computation_time_stdev
+     - 0.0
+     - standard deviation of the emulated computation time per step in second
    * - total_training_steps
      - -1
      - number of training steps to simulate, assuming running the benchmark less than one epoch. 
@@ -281,7 +289,8 @@ evaluation
      - Description
    * - eval_time
      - 0
-     - emulated computation time (sleep) for each evaluation step. 
+     - | emulated computation time (sleep) for each evaluation step. 
+       | Can be specified as a distribution, see :ref:`Time Configuration` for more details.
    * - eval_time_stdev
      - 0
      - standard deviation of the emulated computation time (sleep) for each evaluation step. 
@@ -375,8 +384,65 @@ profiling
 .. note::
    
    We support multi-level profiling using:
-    * ``dlio_profiler``: https://github.com/hariharan-devarajan/dlio-profiler. DLIO_PROFILER_ENABLE=1 has to be set to enable profiler.
+    * ``dftracer``: https://github.com/hariharan-devarajan/dftracer. DFTRACER_ENABLE=1 has to be set to enable profiler.
     Please refer to :ref:`profiling` on how to enable these profiling tools. 
+
+Time Configuration
+============================================
+
+The time configuration is crucial for the emulation. Here, we are able to specify distribution of the time configuration.
+
+For example, to specify distribution of the computation time, one can specify the configuration as ``dictionary`` with the following format:
+
+
+* Normal Distribution
+
+.. code-block:: yaml
+   computation_time:
+      mean: 1.0
+      stdev: 0.1
+      type: normal
+
+   # or
+
+   computation_time:
+      mean: 1.0
+
+   # or
+
+   computation_time:
+      mean: 1.0
+      stdev: 0.1
+
+* Uniform Distribution
+
+.. code-block:: yaml
+   computation_time:
+      min: 0.5
+      max: 1.5
+      type: uniform
+
+* Gamma Distribution
+
+.. code-block:: yaml
+   computation_time:
+      shape: 1.0
+      scale: 1.0
+      type: gamma
+
+* Exponential Distribution
+
+.. code-block:: yaml
+   computation_time:
+      scale: 1.0
+      type: exponential
+
+* Poisson Distribution
+
+.. code-block:: yaml
+   computation_time:
+      lam: 1.0
+      type: poisson
 
 How to create a DLIO configuration YAML file
 =============================================

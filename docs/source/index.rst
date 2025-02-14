@@ -7,7 +7,7 @@ Deep Learning I/O (`DLIO`) Benchmark is a benchmark suite aiming at emulating th
 The main features of `DLIO` include: 
    * Easy-to-use configuration through YAML files which represent the I/O process of different deep learing applications.
    * Easy-to-use data generator capable to generate synthetic datasets of different formats, different data organizations and layouts. 
-   * Full transparency over emulation of I/O access with logging and profiling at different levels with DLIO profiler.
+   * Full transparency over emulation of I/O access with logging and profiling at different levels with DFTracer.
    * Supporting emulating both sequential training and distributed data parallel training. 
 
 GitHub repo: https://github.com/argonne-lcf/dlio_benchmark. 

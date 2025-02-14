@@ -18,7 +18,7 @@
 import os
 from datetime import datetime
 import logging
-from time import time
+from time import time, sleep as base_sleep
 from functools import wraps
 import threading
 import json
@@ -34,41 +34,53 @@ import importlib.util
 # UTC timestamp format with microsecond precision
 from dlio_benchmark.common.enumerations import LoggerType, MPIState
 try:
-    from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile, DLIO_PROFILER_ENABLE
+    from dftracer.logger import dftracer as PerfTrace, dft_fn as Profile, DFTRACER_ENABLE as DFTRACER_ENABLE
 except:
     class Profile(object):
-        def __init__(self, name=None, cat=None):
-            self.type = type
-        def log(self, func):
-            return func
-        def log_init(self, func):
-            return func
-        def iter(self, a):
-            return a
+        def __init__(self,  **kwargs):
+            return 
+        def log(self,  **kwargs):
+            return 
+        def log_init(self,  **kwargs):
+            return 
+        def iter(self,  **kwargs):
+            return 
         def __enter__(self):
             return
-        def __exit__(self, type, value, traceback):
+        def __exit__(self, **kwargs):
             return
-        def update(self, *, epoch=0, step=0, size=0, default=None):
+        def update(self, **kwargs):
             return
-    class dlio_logger(object):
+        def flush(self):
+            return
+        def reset(self):
+            return
+        def log_static(self, **kwargs):
+            return
+    class dftracer(object):
         def __init__(self,):
             self.type = None
-        def initialize_log(self, logfile=None, data_dir=None, process_id=-1):
+        def initialize_log(self, **kwargs):
             return
-        def iter(self, a):
-            return a
-    PerfTrace = dlio_logger()
-    DLIO_PROFILER_ENABLE = False
+        def get_time(self):
+            return
+        def enter_event(self):
+            return
+        def exit_event(self):
+            return
+        def log_event(self,  **kwargs):
+            return
+        def finalize(self):
+            return
+        
+    PerfTrace = dftracer()
+    DFTRACER_ENABLE = False
 
 LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
 # MPI cannot be initialized automatically, or read_thread spawn/forkserver
 # child processes will abort trying to open a non-existant PMI_fd file.
 import mpi4py
-mpi4py.rc.initialize = False
-from mpi4py import MPI
-
 p = psutil.Process()
 
 
@@ -112,6 +124,7 @@ class DLIOMPI:
         return cls.__qualname__
 
     def initialize(self):
+        from mpi4py import MPI
         if self.mpi_state == MPIState.UNINITIALIZED:
             # MPI may have already been initialized by dlio_benchmark_test.py
             if not MPI.Is_initialized():
@@ -180,7 +193,16 @@ class DLIOMPI:
             raise Exception(f"method {self.classname()}.size() called before initializing MPI")
         else:
             return self.mpi_size//self.mpi_ppn
+    
+    def reduce(self, num):
+        from mpi4py import MPI
+        if self.mpi_state == MPIState.UNINITIALIZED:
+            raise Exception(f"method {self.classname()}.reduce() called before initializing MPI")
+        else:
+            return MPI.COMM_WORLD.allreduce(num, op=MPI.SUM)
+    
     def finalize(self):
+        from mpi4py import MPI
         if self.mpi_state == MPIState.MPI_INITIALIZED and MPI.Is_initialized():
             MPI.Finalize()
 
@@ -287,3 +309,31 @@ def get_trace_name(output_folder, use_pid=False):
     if use_pid:
         val = f"-{os.getpid()}"
     return f"{output_folder}/trace-{DLIOMPI.get_instance().rank()}-of-{DLIOMPI.get_instance().size()}{val}.pfw"
+
+def sleep(config):
+    sleep_time = 0.0
+    if isinstance(config, dict) and len(config) > 0:
+        if "type" in config:
+            if config["type"] == "normal":
+                sleep_time = np.random.normal(config["mean"], config["stdev"])
+            elif config["type"] == "uniform":
+                sleep_time = np.random.uniform(config["min"], config["max"])
+            elif config["type"] == "gamma":
+                sleep_time = np.random.gamma(config["shape"], config["scale"])
+            elif config["type"] == "exponential":
+                sleep_time = np.random.exponential(config["scale"])
+            elif config["type"] == "poisson":
+                sleep_time = np.random.poisson(config["lam"])
+        else:
+            if "mean" in config:
+                if "stdev" in config:
+                    sleep_time = np.random.normal(config["mean"], config["stdev"])
+                else:
+                    sleep_time = config["mean"]
+    elif isinstance(config, (int, float)):
+        sleep_time = config
+    sleep_time = abs(sleep_time)
+    if sleep_time > 0.0:
+        base_sleep(sleep_time)
+    return sleep_time
+

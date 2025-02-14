@@ -54,7 +54,7 @@ class IndexedBinaryGenerator(DataGenerator):
         samples_processed = 0
         total_samples = self.total_files_to_generate * self.num_samples
         dim = self.get_dimension(self.total_files_to_generate)
-        logging.info(dim)
+        # logging.info(dim)
         if self.total_files_to_generate <= self.comm_size:
             # Use collective I/O
             # we need even number os samples for collective I/O
@@ -68,8 +68,32 @@ class IndexedBinaryGenerator(DataGenerator):
                 out_path_spec = self.storage.get_uri(self._file_list[file_index])
                 out_path_spec_off_idx = self.index_file_path_off(out_path_spec)
                 out_path_spec_sz_idx = self.index_file_path_size(out_path_spec)
+                
+                if self.my_rank == 0:
+                    logging.info(f"{utcnow()} Starting metadata generation. ")
+                fh_off = MPI.File.Open(comm, out_path_spec_off_idx, amode)
+                fh_sz = MPI.File.Open(comm, out_path_spec_sz_idx, amode)
+                off_type = np.uint64
+                elements_per_loop = min(int(MB / np.dtype(off_type).itemsize), samples_per_rank)
+                offsets_processed=0
+                for element_index in range(self.my_rank*samples_per_rank, samples_per_rank*(self.my_rank+1), elements_per_loop):
+                    offsets = np.array(range(self.my_rank * elements_per_loop * sample_size, 
+                                    (self.my_rank + 1) * elements_per_loop * sample_size, 
+                                    sample_size), dtype=off_type)
+                    
+                    sizes = np.array([sample_size] * elements_per_loop, dtype=off_type)
+                    offset = element_index * np.dtype(off_type).itemsize
+                    fh_off.Write_at_all(offset, offsets)
+                    fh_sz.Write_at_all(offset, sizes)
+                    offsets_processed += elements_per_loop
+                    progress(offsets_processed * self.comm_size, total_samples, "Generating Indexed Binary Data Index for Samples")
+                fh_off.Close()
+                fh_sz.Close()
+                if self.my_rank == 0:
+                    logging.info(f"{utcnow()} Starting Sample generation. ")
+                
                 fh = MPI.File.Open(comm, out_path_spec, amode)
-                samples_per_loop = int(MB / sample_size)
+                samples_per_loop = int(MB * 16 / sample_size)
 
                 for sample_index in range(self.my_rank*samples_per_rank, samples_per_rank*(self.my_rank+1), samples_per_loop):
                     #logging.info(f"{utcnow()} rank {self.my_rank} writing {sample_index} * {samples_per_loop} for {samples_per_rank} samples")
@@ -79,24 +103,6 @@ class IndexedBinaryGenerator(DataGenerator):
                     samples_processed += samples_per_loop
                     progress(samples_processed * self.comm_size, total_samples, "Generating Indexed Binary Data Samples")
                 fh.Close()
-                logging.info(f"{utcnow()} rank {self.my_rank} writing metadata")
-                off_file = open(out_path_spec_off_idx, "wb")
-                sz_file = open(out_path_spec_sz_idx, "wb")
-                if int(file_index / self.comm_size) == self.my_rank:
-                    # Write offsets
-                    myfmt = 'Q' * self.num_samples
-                    data_to_write = self.num_samples * sample_size
-                    samples_to_write = self.num_samples
-                    offsets = range(0, data_to_write, sample_size)
-                    offsets = offsets[:samples_to_write]
-                    binary_offsets = struct.pack(myfmt, *offsets)
-                    off_file.write(binary_offsets)
-
-                    # Write sizes
-                    myfmt = 'Q' * samples_to_write
-                    sample_sizes = [sample_size] * samples_to_write
-                    binary_sizes = struct.pack(myfmt, *sample_sizes)
-                    sz_file.write(binary_sizes)
         else:
             for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
                 dim1 = dim[2*i]

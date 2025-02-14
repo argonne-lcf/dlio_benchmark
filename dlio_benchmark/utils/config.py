@@ -22,18 +22,19 @@ import logging
 from time import time
 
 
-from typing import List, ClassVar
+from typing import Any, Dict, List, ClassVar
 
 from dlio_benchmark.common.constants import MODULE_CONFIG
 from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
     FrameworkType, \
     DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointLocationType, CheckpointMechanismType
 from dlio_benchmark.utils.utility import DLIOMPI, get_trace_name, utcnow
+from dlio_benchmark.utils.utility import Profile, PerfTrace, DFTRACER_ENABLE
 from dataclasses import dataclass
+from omegaconf import OmegaConf, DictConfig
 import math
 import os
 import numpy as np
-from dlio_benchmark.utils.utility import Profile, PerfTrace, DLIO_PROFILER_ENABLE
 
 dlp = Profile(MODULE_CONFIG)
 @dataclass
@@ -82,10 +83,8 @@ class ConfigArguments:
     read_threads: int = 1
     dont_use_mmap: bool = False
     computation_threads: int = 1
-    computation_time: float = 0.
-    computation_time_stdev: float = 0.
-    preprocess_time: float = 0.
-    preprocess_time_stdev: float = 0.
+    computation_time: ClassVar[Dict[str, Any]] = {}
+    preprocess_time: ClassVar[Dict[str, Any]] = {}
     prefetch_size: int = 2
     enable_chunking: bool = False
     chunk_size: int = 0
@@ -97,8 +96,7 @@ class ConfigArguments:
     batch_size_eval: int = 1
     num_files_eval: int = 0
     generation_buffer_size: int = 2 * 1073741824  # 2 GB
-    eval_time: float = 0.0
-    eval_time_stdev: float = 0.0
+    eval_time: ClassVar[Dict[str, Any]] = {}
     eval_after_epoch: int = 1
     epochs_between_evals: int = 1
     checkpoint_type: CheckpointLocationType = CheckpointLocationType.RANK_ZERO
@@ -118,6 +116,7 @@ class ConfigArguments:
     data_loader_sampler: DataLoaderSampler = None
     reader_classname: str = None
     multiprocessing_context: str = "fork"
+    pin_memory: bool = True
 
     # derived fields
     required_samples: int = 1
@@ -138,6 +137,9 @@ class ConfigArguments:
     data_loader_class = None
     reader_class = None
     checkpoint_mechanism_class = None
+    native_data_loader = False
+    train_sample_index_sum = 1
+    eval_sample_index_sum = 1
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -178,12 +180,12 @@ class ConfigArguments:
             # logging's max timestamp resolution is msecs, we will pass in usecs in the message
         )
 
-    def configure_dlio_profiler(self, is_child=False, use_pid=False):
+    def configure_dftracer(self, is_child=False, use_pid=False):
         # with "multiprocessing_context=fork" the profiler file remains open in the child process
         if is_child and self.multiprocessing_context == "fork":
             return
         # Configure the profiler
-        if DLIO_PROFILER_ENABLE:
+        if DFTRACER_ENABLE:
             dlp_trace = get_trace_name(self.output_folder, use_pid)
             if DLIOMPI.get_instance().rank() == 0:
                 logging.info(f"{utcnow()} Profiling DLIO {dlp_trace}")
@@ -195,8 +197,8 @@ class ConfigArguments:
                                                    process_id=self.my_rank)
         return None
 
-    def finalize_dlio_profiler(self, dlp_logger):
-        if DLIO_PROFILER_ENABLE and dlp_logger:
+    def finalize_dftracer(self, dlp_logger):
+        if DFTRACER_ENABLE and dlp_logger:
             dlp_logger.finalize()
 
     @dlp.log
@@ -260,6 +262,8 @@ class ConfigArguments:
             self.num_files_train = len(file_list_train)
             self.total_samples_train = self.num_samples_per_file * len(self.file_list_train)
             self.total_samples_eval = self.num_samples_per_file * len(self.file_list_eval)
+            self.train_sample_index_sum = self.total_samples_train * (self.total_samples_train - 1) // 2
+            self.eval_sample_index_sum = self.total_samples_eval * (self.total_samples_eval - 1) // 2
             self.required_samples = self.comm_size * self.batch_size
             if self.read_threads > 0:
                 self.required_samples *= self.read_threads
@@ -300,88 +304,119 @@ class ConfigArguments:
                         logging.info(f"Discovered custom data reader {class_name}")
                     self.reader_class = obj
                     break
+        self.train_file_map = {self.my_rank : {}}
+        self.val_file_map = {self.my_rank : {}}
+        self.train_global_index_map = {}
+        self.val_global_index_map = {}
+        self.native_data_loader = False
+        if self.data_loader == DataLoaderType.TENSORFLOW:
+            if self.format == FormatType.TFRECORD:
+                self.native_data_loader = True
+        elif self.data_loader == DataLoaderType.NATIVE_DALI:
+            if self.format in [FormatType.JPEG, FormatType.PNG, FormatType.NPY, FormatType.TFRECORD]:
+                self.native_data_loader = True
 
     @dlp.log
     def build_sample_map_iter(self, file_list, total_samples, epoch_number):
         logging.debug(f"ranks {self.comm_size} threads {self.read_threads} tensors")
+        
         num_files = len(file_list)
-        num_threads = 1
-        if self.read_threads > 0 and self.data_loader is not DataLoaderType.DALI:
-            num_threads = self.read_threads
-        samples_per_proc = total_samples//self.comm_size            
-        self.samples_per_thread = samples_per_proc // num_threads
-        file_index = 0
-        sample_index = 0
-        sample_global_list = np.arange(total_samples)
-        if self.file_shuffle is not Shuffle.OFF:
-            if self.seed_change_epoch:
-                np.random.seed(self.seed + epoch_number)
-            else:
-                np.random.seed(self.seed)
-            np.random.shuffle(sample_global_list)
+        samples_sum = 0
         process_thread_file_map = {}
-        abs_path = os.path.abspath(file_list[file_index])
-
-        for rank in range(self.comm_size):
-            if rank not in process_thread_file_map:
-                process_thread_file_map[rank] = {}            
-            for thread_index in range(num_threads):
-                if (thread_index < samples_per_proc%num_threads):
-                    addition = 1
+        if num_files > 0:
+            num_threads = 1
+            if self.read_threads > 0 and self.data_loader is not DataLoaderType.DALI:
+                num_threads = self.read_threads
+            samples_per_proc = int(math.ceil(total_samples/self.comm_size)) 
+            self.samples_per_thread = samples_per_proc // num_threads
+            start_sample_index = samples_per_proc * self.my_rank
+            end_sample_index = samples_per_proc * (self.my_rank + 1) - 1
+            if end_sample_index > total_samples - 1:
+                end_sample_index = total_samples - 1
+            sample_list = np.arange(start_sample_index, end_sample_index + 1)
+            logging.debug(f"{self.my_rank} {start_sample_index} {end_sample_index}")
+            if self.sample_shuffle is not Shuffle.OFF:
+                if self.seed_change_epoch:
+                    np.random.seed(self.seed + epoch_number)
                 else:
-                    addition = 0
-                if thread_index not in process_thread_file_map[rank]:
-                    process_thread_file_map[rank][thread_index] = []
-                selected_samples = 0
-                while selected_samples < self.samples_per_thread+addition:
-                    process_thread_file_map[rank][thread_index].append((sample_global_list[sample_index],
-                                                                        abs_path,
-                                                                        sample_global_list[
-                                                                        sample_index] % self.num_samples_per_file))
-
+                    np.random.seed(self.seed)
+                np.random.shuffle(sample_list)
+            sample_index = 0
+            if num_files > 0:
+                files_per_rank = (num_files // self.comm_size) % num_files
+                file_index = self.my_rank * files_per_rank
+                for thread_index in range(num_threads):
+                    process_thread_file_map[thread_index] = []
+                for sample in sample_list:
+                    samples_sum += sample
+                    thread_index = (sample_index // self.samples_per_thread) % num_threads
+                    abs_path = os.path.abspath(file_list[file_index])
+                    process_thread_file_map[thread_index].append((sample,
+                                                abs_path,
+                                                sample_list[sample_index] % self.num_samples_per_file))
                     sample_index += 1
-                    selected_samples += 1
-                    if sample_index >= self.num_samples_per_file:
-                        sample_index = 0
-                        file_index += 1
-                        if file_index >= num_files:
-                            break
-                        abs_path = os.path.abspath(file_list[file_index])
-        return process_thread_file_map
+                    file_index = (sample_index // self.num_samples_per_file) % num_files
+        return process_thread_file_map, samples_sum
 
     @dlp.log
-    def get_global_map_index(self, file_list, total_samples):
+    def get_global_map_index(self, file_list, total_samples, epoch_number):
         process_thread_file_map = {}
-        for global_sample_index in range(total_samples):
-            file_index = global_sample_index//self.num_samples_per_file
-            abs_path = os.path.abspath(file_list[file_index]) 
-            sample_index = global_sample_index % self.num_samples_per_file
-            process_thread_file_map[global_sample_index] = (abs_path, sample_index)
-        return process_thread_file_map
+        num_files = len(file_list)
+        start_sample = 0
+        end_sample = 0
+        samples_sum = 0
+        if num_files > 0:
+            end_sample = total_samples - 1
+            samples_per_proc = int(math.ceil(total_samples/self.comm_size)) 
+            start_sample = self.my_rank * samples_per_proc
+            end_sample = (self.my_rank + 1) * samples_per_proc - 1
+            if end_sample > total_samples - 1:
+                end_sample = total_samples - 1
+            logging.debug(f"{self.my_rank} {start_sample} {end_sample}")
+            sample_list = np.arange(start_sample, end_sample + 1)
+            if self.sample_shuffle is not Shuffle.OFF:
+                if self.seed_change_epoch:
+                    np.random.seed(self.seed + epoch_number)
+                else:
+                    np.random.seed(self.seed)
+                np.random.shuffle(sample_list)
+            for sample_index in range(end_sample - start_sample + 1):
+                global_sample_index = sample_list[sample_index]
+                samples_sum += global_sample_index
+                file_index = int(math.floor(global_sample_index/self.num_samples_per_file))
+                abs_path = os.path.abspath(file_list[file_index])
+                sample_index = global_sample_index % self.num_samples_per_file
+                process_thread_file_map[global_sample_index] = (abs_path, sample_index)
+        return process_thread_file_map, samples_sum
 
     @dlp.log
-    def reconfigure(self, epoch_number, dataset_type):
+    def reconfigure(self, epoch_number):
         if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
             if self.file_shuffle is not Shuffle.OFF:
                 if self.seed_change_epoch:
                     np.random.seed(self.seed + epoch_number)
                 else:
                     np.random.seed(self.seed)
-                np.random.shuffle(self.file_list_train) if dataset_type is DatasetType.TRAIN else np.random.shuffle(
-                    self.file_list_eval)
+                np.random.shuffle(self.file_list_train) 
+                np.random.shuffle(self.file_list_eval)
         if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
-            if dataset_type is DatasetType.TRAIN:
-                global_file_map = self.build_sample_map_iter(self.file_list_train, self.total_samples_train,
+            self.train_file_map, local_train_sample_sum = self.build_sample_map_iter(self.file_list_train, self.total_samples_train,
                                                              epoch_number)
-            else:
-                global_file_map = self.build_sample_map_iter(self.file_list_eval, self.total_samples_eval, epoch_number)
-            self.file_map = global_file_map[self.my_rank]
+            self.val_file_map, local_eval_sample_sum = self.build_sample_map_iter(self.file_list_eval, self.total_samples_eval, epoch_number)
         elif self.data_loader_sampler == DataLoaderSampler.INDEX:
-            if dataset_type is DatasetType.TRAIN:
-                self.global_index_map = self.get_global_map_index(self.file_list_train, self.total_samples_train)
-            else:
-                self.global_index_map = self.get_global_map_index(self.file_list_eval, self.total_samples_eval)
-
+            self.train_global_index_map, local_train_sample_sum = self.get_global_map_index(self.file_list_train, self.total_samples_train,
+                                                             epoch_number)
+            self.val_global_index_map, local_eval_sample_sum = self.get_global_map_index(self.file_list_eval, self.total_samples_eval,
+                                                             epoch_number)
+        global_train_sample_sum = DLIOMPI.get_instance().reduce(local_train_sample_sum)
+        global_eval_sample_sum = DLIOMPI.get_instance().reduce(local_eval_sample_sum)        
+        if self.my_rank == 0:
+            logging.info(f"total sample: train {global_train_sample_sum} eval {global_eval_sample_sum}")
+            if self.train_sample_index_sum != global_train_sample_sum:
+                raise Exception(f"Sharding of train samples are missing samples got {global_train_sample_sum} but expected {self.train_sample_index_sum}")
+            
+            if self.eval_sample_index_sum != global_eval_sample_sum:
+                raise Exception(f"Sharding of eval samples are missing samples got {global_eval_sample_sum} but expected {self.eval_sample_index_sum}")
 
 def LoadConfig(args, config):
     '''
@@ -481,10 +516,23 @@ def LoadConfig(args, config):
             args.read_type = reader['read_type']
         if 'transfer_size' in reader:
             args.transfer_size = reader['transfer_size']
+        
+        args.preprocess_time = {}
         if 'preprocess_time' in reader:
-            args.preprocess_time = reader['preprocess_time']
+            preprocess_time = {}
+            if isinstance(reader['preprocess_time'], dict):
+                preprocess_time = reader['preprocess_time']
+            elif isinstance(reader['preprocess_time'], (int, float)):
+                preprocess_time["mean"] = reader['preprocess_time']
+            elif isinstance(reader['preprocess_time'], DictConfig):
+                preprocess_time = OmegaConf.to_container(reader['preprocess_time'])
+            else:
+                args.preprocess_time = reader['preprocess_time']
+            args.preprocess_time = preprocess_time if preprocess_time is not None else {}
         if 'preprocess_time_stdev' in reader:
-            args.preprocess_time_stdev = reader['preprocess_time_stdev']
+            args.preprocess_time["stdev"] = reader['preprocess_time_stdev']
+        if 'pin_memory' in reader:
+            args.pin_memory = reader['pin_memory']
 
     # training relevant setting
     if 'train' in config:
@@ -494,16 +542,39 @@ def LoadConfig(args, config):
             args.total_training_steps = config['train']['total_training_steps']
         if 'seed_change_epoch' in config['train']:
             args.seed_change_epoch = config['train']['seed_change_epoch']
+        args.computation_time = {}
         if 'computation_time' in config['train']:
-            args.computation_time = config['train']['computation_time']
+            computation_time = {}
+            if isinstance(config['train']['computation_time'], dict):
+                computation_time = config['train']['computation_time']
+            elif isinstance(config['train']['computation_time'], (int, float)):
+                computation_time["mean"] = config['train']['computation_time']
+            elif isinstance(config['train']['computation_time'], DictConfig):
+                computation_time = OmegaConf.to_container(config['train']['computation_time'])
+            else:
+                args.computation_time = config['train']['computation_time']
+            args.computation_time = computation_time if computation_time is not None else {}
+        if 'computation_time_stdev' in config['train']:
+            args.computation_time["stdev"] = config['train']['computation_time_stdev']
         if 'seed' in config['train']:
             args.seed = config['train']['seed']
 
     if 'evaluation' in config:
+        args.eval_time = {}
         if 'eval_time' in config['evaluation']:
-            args.eval_time = config['evaluation']['eval_time']
+            eval_time = {}
+            if isinstance(config['evaluation']['eval_time'], dict):
+                eval_time = config['evaluation']['eval_time']
+            elif isinstance(config['evaluation']['eval_time'], (int, float)):
+                eval_time["mean"] = config['evaluation']['eval_time']
+            elif isinstance(config['evaluation']['eval_time'], DictConfig):
+                eval_time = OmegaConf.to_container(config['evaluation']['eval_time'])
+            else:
+                args.eval_time = config['evaluation']['eval_time']
+            args.eval_time = eval_time if eval_time is not None else {}
+                
         if 'eval_time_stdev' in config['evaluation']:
-            args.eval_time_stdev = config['evaluation']['eval_time_stdev']
+            args.eval_time["stdev"] = config['evaluation']['eval_time_stdev']
         if 'eval_after_epoch' in config['evaluation']:
             args.eval_after_epoch = config['evaluation']['eval_after_epoch']
         if 'epochs_between_evals' in config['evaluation']:

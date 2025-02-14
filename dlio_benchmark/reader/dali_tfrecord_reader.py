@@ -18,7 +18,7 @@ import os.path
 
 import math
 import logging
-from time import time, sleep
+from time import time
 import numpy as np
 
 import nvidia
@@ -28,7 +28,7 @@ from dlio_benchmark.reader.reader_handler import FormatReader
 from dlio_benchmark.utils.utility import utcnow
 from dlio_benchmark.common.enumerations import DatasetType, Shuffle
 import nvidia.dali.tfrecord as tfrec
-from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile
+from dlio_benchmark.utils.utility import PerfTrace, Profile
 
 dlp = Profile(MODULE_DATA_READER)
 

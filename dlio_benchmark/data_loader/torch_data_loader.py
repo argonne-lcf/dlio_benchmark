@@ -60,7 +60,7 @@ class TorchDataset(Dataset):
         pickle.loads(self.serial_args)
         _args = ConfigArguments.get_instance()
         _args.configure_dlio_logging(is_child=True)
-        self.dlp_logger = _args.configure_dlio_profiler(is_child=True, use_pid=True)
+        self.dlp_logger = _args.configure_dftracer(is_child=True, use_pid=True)
         logging.debug(f"{utcnow()} worker initialized {worker_id} with format {self.format_type}")
         self.reader = ReaderFactory.get_reader(type=self.format_type,
                                                dataset_type=self.dataset_type,
@@ -85,29 +85,25 @@ class TorchDataset(Dataset):
 
 
 class dlio_sampler(Sampler):
-    def __init__(self, rank, size, num_samples, shuffle, epochs, seed):
+    def __init__(self, rank, size, num_samples, epochs):
         self.size = size
         self.rank = rank
         self.num_samples = num_samples
-        self.shuffle = shuffle
         self.epochs = epochs
-        self.seed = seed
-        self.indices = list(range(self.num_samples))
+        samples_per_proc = int(math.ceil(num_samples/size)) 
+        start_sample = self.rank * samples_per_proc
+        end_sample = (self.rank + 1) * samples_per_proc - 1
+        if end_sample > num_samples - 1:
+            end_sample = num_samples - 1
+        self.indices = list(range(start_sample, end_sample + 1))
 
 
     def __len__(self):
         return self.num_samples
 
     def __iter__(self):
-        if self.shuffle != Shuffle.OFF:
-            if self.shuffle == Shuffle.SEED:
-                np.random.seed(self.seed)
-            np.random.shuffle(self.indices)
-        samples_per_gpu = self.num_samples // self.size
-        start = self.rank * samples_per_gpu
-        end = (self.rank + 1) * samples_per_gpu
-        for i in range(start, end):
-            yield self.indices[i % self.num_samples]
+        for sample in self.indices:
+            yield sample
 
 
 class TorchDataLoader(BaseDataLoader):
@@ -118,8 +114,7 @@ class TorchDataLoader(BaseDataLoader):
     def read(self):
         dataset = TorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples,
                                self._args.read_threads, self.batch_size)
-        sampler = dlio_sampler(self._args.my_rank, self._args.comm_size, self.num_samples, self._args.sample_shuffle,
-                               self._args.epochs, self._args.seed)
+        sampler = dlio_sampler(self._args.my_rank, self._args.comm_size, self.num_samples, self._args.epochs)
         if self._args.read_threads >= 1:
             prefetch_factor = math.ceil(self._args.prefetch_size / self._args.read_threads)
         else:
@@ -148,7 +143,7 @@ class TorchDataLoader(BaseDataLoader):
                                        batch_size=self.batch_size,
                                        sampler=sampler,
                                        num_workers=self._args.read_threads,
-                                       pin_memory=True,
+                                       pin_memory=self._args.pin_memory,
                                        drop_last=True,
                                        worker_init_fn=dataset.worker_init, 
                                        **kwargs)
@@ -157,7 +152,7 @@ class TorchDataLoader(BaseDataLoader):
                                        batch_size=self.batch_size,
                                        sampler=sampler,
                                        num_workers=self._args.read_threads,
-                                       pin_memory=True,
+                                       pin_memory=self._args.pin_memory,
                                        drop_last=True,
                                        worker_init_fn=dataset.worker_init,
                                        **kwargs)  # 2 is the default value
@@ -171,7 +166,9 @@ class TorchDataLoader(BaseDataLoader):
         total = self._args.training_steps if self.dataset_type is DatasetType.TRAIN else self._args.eval_steps
         logging.debug(f"{utcnow()} Rank {self._args.my_rank} should read {total} batches")
         step = 1
-        for batch in self._dataset:
+        # TODO: @hariharan-devarajan: change below line when we bump the dftracer version to 
+        #       `dlp.iter(self._dataset, name=self.next.__qualname__)`
+        for batch in dlp.iter(self._dataset):
             dlp.update(step = step)
             step += 1
             yield batch
