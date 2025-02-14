@@ -21,87 +21,252 @@ from abc import ABC, abstractmethod
 from dlio_benchmark.common.enumerations import CheckpointLocationType
 from dlio_benchmark.storage.storage_factory import StorageFactory
 from dlio_benchmark.utils.config import ConfigArguments
-from dlio_benchmark.utils.utility import DLIOMPI
+from dlio_benchmark.utils.utility import DLIOMPI, utcnow
+import logging
 
+def get_datatype_size(datatype):
+    if datatype == "int8" or datatype == "uint8":
+        return 1
+    elif datatype == "fp16" or datatype == "bf16":
+        return 2
+    elif datatype == "fp32":
+        return 4
+    elif datatype == "fp64":
+        return 8
+    else:
+        raise Exception("Unsupported datatype {datatype}")
 
 class BaseCheckpointing(ABC):
 
     def __init__(self, ext):
         self.ext = ext
         self.args = ConfigArguments.get_instance()
-        checkpoint_storage = StorageFactory().get_storage(self.args.storage_type, self.args.checkpoint_folder,
+        self.checkpoint_storage = StorageFactory().get_storage(self.args.storage_type, self.args.checkpoint_folder,
                                                           self.args.framework)
-        checkpoint_storage.create_namespace(exist_ok=True)
-        rank_to_checkpoint = self.args.my_rank
-        if self.args.checkpoint_type == CheckpointLocationType.RANK_ZERO:
-            rank_to_checkpoint = 0
-        if rank_to_checkpoint == self.args.my_rank:
+        self.MPI = DLIOMPI.get_instance()
+        self.comm = self.MPI.comm()
+        # define parallelism
+        self.model_parallelism = self.args.pipeline_parallelism*self.args.tensor_parallelism
+        self.data_parallelism = self.args.comm_size//self.model_parallelism
+        self.pipeline_parallism_rank = (self.args.my_rank // self.args.tensor_parallelism) % self.args.pipeline_parallelism
+        self.tensor_parallism_rank = self.args.my_rank % self.args.tensor_parallelism
+        self.data_parallelism_rank = self.args.my_rank // (self.args.pipeline_parallelism*self.args.tensor_parallelism)
+        self.model_parallelism_rank = self.args.my_rank%self.model_parallelism
+        self.optimization_groups_predefined = False
+        self.layer_parameters_predefined = False
+        self.checkpoint_storage.create_namespace(exist_ok=True)
+        self.rank_to_checkpoint = self.args.my_rank
+        self.num_parameters = self.get_num_parameters()
+        self.checkpoint_size = 0.0
+        ss = 0.0
+        if self.args.my_rank == 0:
+            logging.info(f"{utcnow()} Total number of parameters in the model: {self.num_parameters}")
+        if self.args.zero_stage == 0:
+            if self.args.my_rank < self.model_parallelism:
+                self.rank_to_checkpoint = self.args.my_rank
+            else:
+                self.rank_to_checkpoint = 0
+        if self.rank_to_checkpoint == self.args.my_rank:
+            if len(self.args.optimization_groups) > 0:
+                self.optimization_groups_predefined = True
+            else:
+                self.optimization_groups_predefined = False
+            if len(self.args.layer_parameters) > 0:
+                self.layer_parameters_predefined = True
+            else:
+                self.layer_parameters_predefined = False
+
+
+            self.layer_state = None
+            start_layer, end_layer = self.get_layer_index()
+            if self.layer_parameters_predefined:
+                # This is for old code, where the layer parameters are predefined
+                self.layer_state = dict()
+                layer_state = dict()
+                for index, state in enumerate(self.args.layer_parameters):
+                    if state > 0:
+                        layer_state[str(index)] = self.get_tensor(state // self.args.tensor_parallelism)
+                for layer_index in range(start_layer, end_layer + 1):
+                    self.layer_state[str(layer_index)] = layer_state  
+            else:
+                self.layer_state = dict()
+                ss = 0.0
+                for layer_index in range(start_layer, end_layer + 1):
+                    self.layer_state[str(layer_index)], size = self.get_layer_state(layer_index)
+                    #logging.info(f"{utcnow()} {self.args.my_rank} [{start_layer}-{end_layer}]:::{layer_index}: {size/1024./1024./1024:.4f} GB ")
+                    ss += size
+            if self.args.my_rank == 0:
+                logging.info(f"{utcnow()} Layer states defined! {ss/1024./1024./1024} GB per rank")
+
+            # optimization state
+            self.optimization_state = None
+            optimization_groups = self.get_optimization_groups()
+            if len(optimization_groups) > 0:
+                self.optimization_state = dict()
+                if self.optimization_groups_predefined:
+                    # This is for old code, where the optimization groups are predefined, might be deprecated in future
+                    tensor_array_size = 0
+                    for index, state in enumerate(optimization_groups):
+                        if state > 0:
+                            self.optimization_state[str(index)] = {'a': self.get_tensor(state),
+                                                                'b': self.get_tensor(state)}
+                            tensor_array_size += state
+                    self.optimization_state["combined"] = self.get_tensor(tensor_array_size)
+                else:
+                    for index, state in enumerate(optimization_groups):
+                        if state > 0:
+                            #logging.info(f"{state/1024./1024./1024. } GB")
+                            self.checkpoint_size += state * get_datatype_size(self.args.checkpoint_optimizer_datatype)
+                            self.optimization_state[str(index)] = self.get_tensor(state, self.args.checkpoint_optimizer_datatype)
+            if self.args.my_rank == 0:
+                logging.info(f"{utcnow()} Optimizer state defined: {self.checkpoint_size / 1024./1024./1024} GB per rank")
+            # layer state
+
+            
             self.model_state = None
             if self.args.model_size > 0:
                 self.model_state = {"a": self.get_tensor(self.args.model_size)}
-            self.optimization_state = None
-            if len(self.args.optimization_groups) > 0:
-                self.optimization_state = dict()
-                tensor_array_size = 0
-                for index, state in enumerate(self.args.optimization_groups):
-                    if state > 0:
-                        self.optimization_state[str(index)] = {'a': self.get_tensor(state),
-                                                               'b': self.get_tensor(state)}
-                        tensor_array_size += state
-                self.optimization_state["combined"] = self.get_tensor(tensor_array_size)
-            self.layer_state = None
-            if len(self.args.layer_parameters) > 0:
-                self.layer_state = dict()
-                for index, state in enumerate(self.args.layer_parameters):
-                    if state > 0:
-                        self.layer_state[str(index)] = self.get_tensor(state // self.args.tensor_parallelism)
+            if self.args.my_rank == 0:
+                logging.info(f"{utcnow()} Model state defined")
+
+        ss = self.comm.allreduce(ss)/1024./1024./1024.
+        opt = self.comm.allreduce(self.checkpoint_size)/1024./1024./1024.
+        if self.args.zero_stage < 3:
+            ss /= self.data_parallelism
+        self.checkpoint_size = ss + opt
+        if self.args.my_rank == 0:
+            logging.info(f"{utcnow()} Layer size: {ss} GB")
+            logging.info(f"{utcnow()} Optimizer state size: {opt} GB")
+            logging.info(f"{utcnow()} Total checkpoint size: {self.checkpoint_size} GB")
 
     @abstractmethod
-    def get_tensor(self, size):
+    def get_tensor(self, size, datatype="int8"):
         return []
 
     @abstractmethod
-    def save_state(self, suffix, state):
+    def save_state(self, suffix, state, fsync=False):
         pass
 
     def get_name(self, suffix):
         return os.path.join(self.args.checkpoint_folder, f"{suffix}.{self.ext}")
 
-    def get_layer_index(self, rank, tensor_parallelism, pipeline_parallelism, total_layers):
-        if tensor_parallelism > 1:
-            total_layers = total_layers + tensor_parallelism
-        
-        divisible_layers = total_layers - (total_layers % pipeline_parallelism)
-        min_layers_per_pipeline = divisible_layers // pipeline_parallelism
-        max_layer_per_pipeline = min_layers_per_pipeline + 1
-        pipeline_rank = (rank // tensor_parallelism) % pipeline_parallelism
-        left_layers = total_layers - divisible_layers
-        num_layers_per_pipeline = max_layer_per_pipeline
-        if pipeline_rank >= left_layers:
-            num_layers_per_pipeline = min_layers_per_pipeline
-        if pipeline_rank < left_layers:
-            start_layer = pipeline_rank * max_layer_per_pipeline
-            end_layer = start_layer + num_layers_per_pipeline - 1
+    def get_num_parameters(self):
+        h, l, ffn, voc = self.args.hidden_size, self.args.num_layers, self.args.ffn_hidden_size, self.args.vocab_size
+        if l <= 0:
+            return 0
+        embedding = voc*h
+        input_norm = h
+        qkv = 3*h*h
+        dense = h*h
+        layer_norm = h
+        mlp_h_to_4h = ffn*2*h # the factor of 2 is because of gated linear unit                                                                           
+        mlp_4h_to_h = ffn*h
+        weight = h
+        lm_head = embedding
+        return embedding  + (input_norm + qkv + dense + layer_norm + mlp_h_to_4h + mlp_4h_to_h)*l + weight + lm_head
+
+    def get_layer_parameters(self, layer_index):
+        if len(self.args.layer_parameters) > 0:
+            self.layer_parameters_predefined = True
+            return self.args.layer_parameters
         else:
-            start_layer = left_layers * max_layer_per_pipeline + (pipeline_rank - left_layers) * (min_layers_per_pipeline)
-            end_layer = start_layer + num_layers_per_pipeline - 1
+            if self.args.num_layers <= 0:
+                return []
+            if self.args.zero_stage < 3:
+                sharding_factor = 1
+            else:
+                sharding_factor = self.data_parallelism
+            h, l, ffn, voc = self.args.hidden_size, self.args.num_layers, self.args.ffn_hidden_size, self.args.vocab_size
+            if layer_index == 0 or layer_index == l + 1:
+                return [h * voc // self.args.tensor_parallelism // sharding_factor] # embedding or lm_head
+            elif layer_index == l + 2:
+                return [h//sharding_factor]
+            else:
+                return [ h // sharding_factor, # input_norm, 
+                        h*h*3//self.args.tensor_parallelism//sharding_factor, # self_attn
+                        h*h//self.args.tensor_parallelism//sharding_factor, # dense
+                        h//sharding_factor, # layer_norm
+                        h*2*ffn//self.args.tensor_parallelism//sharding_factor, # ffn_h_to_4h, 2 is from gated linear unit
+                        h*ffn//self.args.tensor_parallelism//sharding_factor, # ffn_4h_to_h
+                ]
+    def get_layer_state(self, layer_index):
+        layer_parameters = self.get_layer_parameters(layer_index)
+        layer_state = dict()
+        size = 0.0
+        for index, state in enumerate(layer_parameters):
+            if state > 0:
+                layer_state[str(index)] = self.get_tensor(state, self.args.checkpoint_model_datatype)
+                size += state*get_datatype_size(self.args.checkpoint_model_datatype)
+        return layer_state, size
+
+    def get_optimization_groups(self):
+        h, l, ffn, voc = self.args.hidden_size, self.args.num_layers, self.args.ffn_hidden_size, self.args.vocab_size
+        if len(self.args.optimization_groups) > 0:
+            self.optimization_groups_predefined = True
+            return self.args.optimization_groups
+        else:
+            if self.args.num_layers <= 0:
+                return []
+            if self.args.zero_stage > 0:
+                # zero stage 1, 2, 3
+                num_p = self.get_num_parameters() // self.args.comm_size
+            else:
+                # if zero is not used. Only the first data parallel instance will save the optimizer states
+                num_p = self.get_num_parameters() // self.model_parallelism
+            if num_p > 0:
+                return [num_p, h*5, num_p, h*5, num_p, h*5]   
+            else:
+                return []                                                                                                           
+
+    def get_layer_index(self):
+        '''
+        The layers indcies are [0, 1, ..., l, l+1, l+2], where l is the total number of transformer layers.                                               
+        Layer 0, and layer l+1, l+2 are embedding, lm_head, and weight layers, respectively, they are not part of the transformer layers.                 
+        The transformer layers are from 1 to l. We only distribute the transformer layers among the ranks.                                                
+        We assume layer 0 is always on rank 0, and l+1 and l+2 are on the last rank.                                                                      
+        '''
+        pipeline_rank = self.pipeline_parallism_rank
+        nl = self.args.num_layers//self.args.pipeline_parallelism
+        remainder = self.args.num_layers%self.args.pipeline_parallelism
+        if pipeline_rank < remainder:
+            start_layer = pipeline_rank * (nl + 1) + 1
+            end_layer = start_layer + nl
+        else:
+            start_layer = remainder * (nl + 1) + (pipeline_rank - remainder) * nl + 1
+            end_layer = start_layer + nl - 1
+        if not self.layer_parameters_predefined: 
+            # will turn this on for all the cases in future
+            if pipeline_rank == self.args.pipeline_parallelism - 1:
+                end_layer = self.args.num_layers + 2
+            if pipeline_rank == 0:
+                start_layer = 0
         return start_layer, end_layer
     
     @abstractmethod
     def checkpoint(self, epoch, step_number):
         my_rank = DLIOMPI.get_instance().rank()
-        rank_to_checkpoint = my_rank
-        if self.args.checkpoint_type == CheckpointLocationType.RANK_ZERO:
-            rank_to_checkpoint = 0
-        if rank_to_checkpoint == my_rank:
+        start_layer, end_layer = self.get_layer_index()
+        # create a specifc folder for each step
+        checkpoint_id = f"global_epoch{epoch}_step{step_number}"
+        self.checkpoint_storage.create_node(checkpoint_id, exist_ok=True)
+        if self.rank_to_checkpoint == my_rank:
             if self.model_state:
-                self.save_state(suffix=f"model-{epoch}-{step_number}-{my_rank}", state=self.model_state)
+                self.save_state(suffix=f"{checkpoint_id}/model_states-{my_rank}", state=self.model_state, fsync = self.args.checkpoint_fsync)
+
             if self.optimization_state:
-                self.save_state(suffix=f"optimizer-{epoch}-{step_number}-{my_rank}", state=self.optimization_state)
+                self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states", state=self.optimization_state, fsync = self.args.checkpoint_fsync)                
             
-            start_layer, end_layer = self.get_layer_index(my_rank,self.args.tensor_parallelism, self.args.pipeline_parallelism, self.args.num_layers)
-            for layer_index in range(start_layer, end_layer + 1):
-                self.save_state(suffix=f"layer-{layer_index}-{epoch}-{step_number}-{my_rank}", state=self.layer_state)
+            if self.layer_state:
+                if self.args.zero_stage < 3:
+                    # if pp is turned on, we assume that the model is sharded across the pipeline stages
+                    if self.data_parallelism_rank == 0 and self.args.num_layers > 0:
+                        # in this case, model is saved layer by layer
+                        for layer_index in range(start_layer, end_layer + 1):
+                            self.save_state(suffix=f"{checkpoint_id}/layer_{layer_index}-model_{self.model_parallelism_rank}_model_states", state=self.layer_state[str(layer_index)], fsync = self.args.checkpoint_fsync)
+                else:
+                    # in this case, model is sharded across the data parallel ranks
+                    assert(self.args.pipeline_parallelism == 1)
+                    self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_model_states", state=self.layer_state, fsync = self.args.checkpoint_fsync)
 
     @abstractmethod
     def finalize(self):

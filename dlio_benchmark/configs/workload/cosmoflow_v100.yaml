@@ -1,4 +1,6 @@
-model: cosmoflow
+model: 
+  name: cosmoflow
+  type: CNN
 
 framework: tensorflow
 

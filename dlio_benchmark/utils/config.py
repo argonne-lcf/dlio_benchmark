@@ -101,10 +101,17 @@ class ConfigArguments:
     epochs_between_evals: int = 1
     checkpoint_type: CheckpointLocationType = CheckpointLocationType.RANK_ZERO
     checkpoint_mechanism: CheckpointMechanismType = CheckpointMechanismType.NONE
+    checkpoint_model_datatype: str = "fp16"
+    checkpoint_optimizer_datatype: str = "fp32"
+    checkpoint_fsync: bool = False
     model_size: int = 10240
+    vocab_size: int = 32000
+    hidden_size: int = 2048
+    ffn_hidden_size: int = 8192
+    zero_stage: int = 0
     optimization_groups: ClassVar[List[int]] = []
-    num_layers: int = 1
-    layer_parameters: ClassVar[List[int]] = [17371, 24740228]
+    num_layers: int = -1
+    layer_parameters: ClassVar[List[int]] = []
     tensor_parallelism: int = 1
     pipeline_parallelism: int = 1
     data_loader: DataLoaderType = DataLoaderType.TENSORFLOW.value
@@ -222,21 +229,21 @@ class ConfigArguments:
             raise Exception(
                 f"For custom data loaders workload.reader.data_loader_sampler needs to be defined as iter or index.")
         if self.read_threads > 1:
-            import psutil
-            p = psutil.Process()
-            cores_available = len(p.cpu_affinity())
-            if cores_available < self.read_threads:
-                logging.warning(
-                    f"Running DLIO with {self.read_threads} threads for I/O but core available {cores_available} "
-                    f"are insufficient and can lead to lower performance.")
-        if self.num_layers % self.pipeline_parallelism != 0:
+            import platform
+            if platform.system() in ["Linux", "Windows"]:
+                import psutil
+                p = psutil.Process()
+                cores_available = len(p.cpu_affinity())
+                if cores_available < self.read_threads:
+                    logging.warning(
+                        f"Running DLIO with {self.read_threads} threads for I/O but core available {cores_available} "
+                        f"are insufficient and can lead to lower performance.")
+        if self.num_layers > 0 and self.num_layers < self.pipeline_parallelism:
             raise Exception(
-                f"Expected checkpoint.num_layers {self.num_layers} should be multiple of "
-                f"checkpoint.pipeline_parallelism {self.pipeline_parallelism}.")
-        if self.num_layers % self.tensor_parallelism != 0:
-            raise Exception(
-                f"Expected checkpoint.num_layers {self.num_layers} should be multiple of "
-                f"checkpoint.tensor_parallelism {self.tensor_parallelism}.")
+                f"Expected model.num_layers {self.num_layers} should be larger than "
+                f"model.parallelism.pipeline {self.pipeline_parallelism}.")
+        if self.pipeline_parallelism > 1 and self.zero_stage == 3:
+            raise Exception(f"ZeRO stage {self.zero_stage} is not compatible with pipeline parallelism.")
 
     @staticmethod
     def reset():
@@ -411,7 +418,7 @@ class ConfigArguments:
         global_train_sample_sum = DLIOMPI.get_instance().reduce(local_train_sample_sum)
         global_eval_sample_sum = DLIOMPI.get_instance().reduce(local_eval_sample_sum)        
         if self.my_rank == 0:
-            logging.info(f"total sample: train {global_train_sample_sum} eval {global_eval_sample_sum}")
+            logging.info(f"{utcnow()} Total sample: train {global_train_sample_sum} -  eval {global_eval_sample_sum}")
             if self.train_sample_index_sum != global_train_sample_sum:
                 raise Exception(f"Sharding of train samples are missing samples got {global_train_sample_sum} but expected {self.train_sample_index_sum}")
             
@@ -424,12 +431,6 @@ def LoadConfig(args, config):
     '''
     if 'framework' in config:
         args.framework = FrameworkType(config['framework'])
-    if 'model' in config:
-        ''' 
-        most of the time, this won't change the benchmark. But in future we might use 
-        as a way to do model specific setting. 
-        '''
-        args.model = config['model']
 
     if 'storage' in config:
         if 'storage_type' in config['storage']:
@@ -594,18 +595,41 @@ def LoadConfig(args, config):
             args.checkpoint_type = CheckpointLocationType(config['checkpoint']['type'])
         if 'checkpoint_mechanism_classname' in config['checkpoint']:
             args.checkpoint_mechanism_classname = config['checkpoint']['checkpoint_mechanism_classname']
-        if 'model_size' in config['checkpoint']:
-            args.model_size = config['checkpoint']['model_size']
-        if 'optimization_groups' in config['checkpoint']:
-            args.optimization_groups = config['checkpoint']['optimization_groups']
-        if 'num_layers' in config['checkpoint']:
-            args.num_layers = config['checkpoint']['num_layers']
-        if 'layer_parameters' in config['checkpoint']:
-            args.layer_parameters = config['checkpoint']['layer_parameters']
-        if 'tensor_parallelism' in config['checkpoint']:
-            args.tensor_parallelism = config['checkpoint']['tensor_parallelism']
-        if 'pipeline_parallelism' in config['checkpoint']:
-            args.pipeline_parallelism = config['checkpoint']['pipeline_parallelism']
+        if 'checkpoint_model_datatype' in config['checkpoint']:
+            args.checkpoint_model_datatype = config['checkpoint']['checkpoint_model_datatype']
+        if 'checkpoint_optimizer_data_type' in config['checkpoint']:
+            args.checkpoint_optimizer_datatype = config['checkpoint']['checkpoint_optimizer_data_type']
+        if 'fsync' in config['checkpoint']:
+            args.checkpoint_sync = config['checkpoint']['fsync']
+
+    if 'model' in config:
+        if 'type' in config['model']:
+            args.model = config['model']['name']
+        if 'model_size' in config['model']:
+            args.model_size = config['model']['model_size']
+        if 'optimization_groups' in config['model']:
+            args.optimization_groups = config['model']['optimization_groups']
+        if 'num_layers' in config['model']:
+            args.num_layers = config['model']['num_layers']
+        if 'layer_parameters' in config['model']:
+            args.layer_parameters = config['model']['layer_parameters']
+
+        if 'parallelism' in config['model']:
+            if 'tensor' in config['model']['parallelism']:
+                args.tensor_parallelism = config['model']['parallelism']['tensor']
+            if 'pipeline' in config['model']['parallelism']:
+                args.pipeline_parallelism = config['model']['parallelism']['pipeline']
+            if 'zero_stage' in config['model']['parallelism']:
+                args.zero_stage = config['model']['parallelism']['zero_stage']
+
+        if 'transformer' in config['model']:
+            if 'vocab_size' in config['model']['transformer']:
+                args.vocab_size = config['model']['transformer']['vocab_size']
+            if 'hidden_size' in config['model']['transformer']:
+                args.hidden_size = config['model']['transformer']['hidden_size']
+            if 'ffn_hidden_size' in config['model']['transformer']:
+                args.ffn_hidden_size = config['model']['transformer']['ffn_hidden_size']
+
     if 'output' in config:
         if 'folder' in config['output']:
             args.output_folder = config['output']['folder']
