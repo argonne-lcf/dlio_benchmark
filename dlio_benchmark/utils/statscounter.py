@@ -82,8 +82,15 @@ class StatsCounter(object):
         else:
             self.steps_override = False
             self.steps = max_steps
-        
+        self.metric_steps = self.steps - (self.args.metric_exclude_end_steps + self.args.metric_exclude_start_steps)
+        self.metric_start_step = self.args.metric_exclude_start_steps
+        self.metric_end_step = self.steps - 1 - self.args.metric_exclude_end_steps 
+        if self.comm.rank == 0:
+            logging.info(f"{utcnow()} Metric calculation will exclude the beginning {self.args.metric_exclude_start_steps} and end {self.args.metric_exclude_end_steps} steps, only includes {self.metric_steps} steps.")
         self.steps_eval = math.floor(self.args.num_samples_per_file * self.args.num_files_eval / self.args.batch_size_eval / self.args.comm_size)
+        self.metric_steps_eval = self.steps_eval - (self.args.metric_exclude_end_steps + self.args.metric_exclude_start_steps)
+        self.metric_start_step_eval = self.args.metric_exclude_start_steps
+        self.metric_end_step_eval = self.steps_eval - 1 - self.args.metric_exclude_end_steps 
         # Only the root process keeps track of overall stats
         if self.my_rank == 0:
             self.per_epoch_stats = {}
@@ -282,7 +289,7 @@ class StatsCounter(object):
             self.per_epoch_stats[epoch][f'block{block}']['duration'] = duration
             logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Accelerator Utilization [AU] (%): {self.output[epoch]['au'][f'block{block}']:.4f}")
             logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Throughput (samples/second): {self.output[epoch]['throughput'][f'block{block}']*self.comm_size:.4f}")
-            logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Computation time per step (second): {np.mean(self.output[epoch]['compute'][f'block{block}'][1:-1]):.4f}+/-{np.std(self.output[epoch]['compute'][f'block{block}'][1:-1]):.4f} (set value: {self.args.computation_time})")
+            logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Computation time per step (second): {np.mean(self.output[epoch]['compute'][f'block{block}'][self.metric_start_step:self.metric_end_step+1]):.4f}+/-{np.std(self.output[epoch]['compute'][f'block{block}'][self.metric_start_step:self.metric_end_step+1]):.4f} (set value: {self.args.computation_time})")
 
     def start_ckpt(self, epoch, block, steps_taken):
         if self.my_rank == 0:
@@ -330,8 +337,8 @@ class StatsCounter(object):
 
     def compute_metrics_train(self, epoch, block):
         key = f"block{block}"
-        total_compute_time = np.sum(self.output[epoch]['compute'][key][1:-1])
-        total_time = self.end_timestamp - self.start_timestamp - self.output[epoch]['proc'][key][0] - self.output[epoch]['proc'][key][-1]
+        total_compute_time = np.sum(self.output[epoch]['compute'][key][self.metric_start_step:self.metric_end_step+1])
+        total_time = self.end_timestamp - self.start_timestamp - np.sum(self.output[epoch]['proc'][key][:self.metric_start_step]) - np.sum(self.output[epoch]['proc'][key][self.metric_end_step+1:])
         if (total_compute_time==0):
             au=0.0
         else:
@@ -342,11 +349,11 @@ class StatsCounter(object):
 
     def compute_metrics_eval(self, epoch):
         key = 'eval'
-        total_compute_time = np.sum(self.output[epoch]['compute'][key][1:-1])
+        total_compute_time = np.sum(self.output[epoch]['compute'][key][self.metric_start_step_eval:self.metric_end_step_eval+1])
         if (total_compute_time==0):
             au=0.0
         else:
-            total_time = self.end_timestamp - self.start_timestamp - self.output[epoch]['proc'][key][0]
+            total_time = self.end_timestamp - self.start_timestamp - np.sum(self.output[epoch]['proc'][key][:self.metric_start_step_eval]) - np.sum(self.output[epoch]['proc'][key][self.metric_end_step_eval+1:])
             au = total_compute_time / total_time
         throughput = len(self.output[epoch]['compute'][key])/(self.end_timestamp - self.start_timestamp)*self.batch_size_eval
         self.output[epoch]['au'][key] = au*100
