@@ -46,12 +46,12 @@ class BaseCheckpointing(ABC):
         self.MPI = DLIOMPI.get_instance()
         self.comm = self.MPI.comm()
         # define parallelism
-        self.model_parallism = self.args.pipeline_parallelism*self.args.tensor_parallelism
-        self.data_parallism = self.args.comm_size//self.model_parallelism
+        self.model_parallelism = self.args.pipeline_parallelism*self.args.tensor_parallelism
+        self.data_parallelism = self.args.comm_size//self.model_parallelism
         self.pipeline_parallism_rank = (self.args.my_rank // self.args.tensor_parallelism) % self.args.pipeline_parallelism
         self.tensor_parallism_rank = self.args.my_rank % self.args.tensor_parallelism
-        self.data_parallism_rank = self.args.my_rank // (self.args.pipeline_parallelism*self.args.tensor_parallelism)
-        self.model_parallism_rank = self.args.my_rank%self.model_parallelism
+        self.data_parallelism_rank = self.args.my_rank // (self.args.pipeline_parallelism*self.args.tensor_parallelism)
+        self.model_parallelism_rank = self.args.my_rank%self.model_parallelism
         self.optimization_groups_predefined = False
         self.layer_parameters_predefined = False
         self.checkpoint_storage.create_namespace(exist_ok=True)
@@ -132,7 +132,7 @@ class BaseCheckpointing(ABC):
         ss = self.comm.allreduce(ss)/1024./1024./1024.
         opt = self.comm.allreduce(self.checkpoint_size)/1024./1024./1024.
         if self.args.zero_stage < 3:
-            ss /= self.dp
+            ss /= self.data_parallelism
         self.checkpoint_size = ss + opt
         if self.args.my_rank == 0:
             logging.info(f"{utcnow()} Layer size: {ss} GB")
@@ -175,7 +175,7 @@ class BaseCheckpointing(ABC):
             if self.args.zero_stage < 3:
                 sharding_factor = 1
             else:
-                sharding_factor = self.dp
+                sharding_factor = self.data_parallelism
             h, l, ffn, voc = self.args.hidden_size, self.args.num_layers, self.args.ffn_hidden_size, self.args.vocab_size
             if layer_index == 0 or layer_index == l + 1:
                 return [h * voc // self.args.tensor_parallelism // sharding_factor] # embedding or lm_head
@@ -254,19 +254,19 @@ class BaseCheckpointing(ABC):
                 self.save_state(suffix=f"{checkpoint_id}/model_states-{my_rank}", state=self.model_state, fsync = self.args.checkpoint_fsync)
 
             if self.optimization_state:
-                self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallism_rank}_mp_rank_{self.model_parallism_rank}_optim_states", state=self.optimization_state, fsync = self.args.checkpoint_fsync)                
+                self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states", state=self.optimization_state, fsync = self.args.checkpoint_fsync)                
             
             if self.layer_state:
                 if self.args.zero_stage < 3:
                     # if pp is turned on, we assume that the model is sharded across the pipeline stages
-                    if self.data_parallism_rank == 0 and self.args.num_layers > 0:
+                    if self.data_parallelism_rank == 0 and self.args.num_layers > 0:
                         # in this case, model is saved layer by layer
                         for layer_index in range(start_layer, end_layer + 1):
-                            self.save_state(suffix=f"{checkpoint_id}/layer_{layer_index}-model_{self.model_parallism_rank}_model_states", state=self.layer_state[str(layer_index)], fsync = self.args.checkpoint_fsync)
+                            self.save_state(suffix=f"{checkpoint_id}/layer_{layer_index}-model_{self.model_parallelism_rank}_model_states", state=self.layer_state[str(layer_index)], fsync = self.args.checkpoint_fsync)
                 else:
                     # in this case, model is sharded across the data parallel ranks
                     assert(self.args.pipeline_parallelism == 1)
-                    self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallism_rank}_mp_rank_{self.model_parallism_rank}_model_states", state=self.layer_state, fsync = self.args.checkpoint_fsync)
+                    self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_model_states", state=self.layer_state, fsync = self.args.checkpoint_fsync)
 
     @abstractmethod
     def finalize(self):

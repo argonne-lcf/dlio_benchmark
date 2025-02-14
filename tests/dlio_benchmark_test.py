@@ -224,12 +224,12 @@ def test_iostat_profiling() -> None:
     finalize()
 
 @pytest.mark.timeout(60, method="thread")
-@pytest.mark.parametrize("framework, model_size, optimizers, num_layers, layer_params, zero_stage", [("tensorflow", 1024, [1024, 128], 2, [16], -1),
-                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], -1),
+@pytest.mark.parametrize("framework, model_size, optimizers, num_layers, layer_params, zero_stage", [("tensorflow", 1024, [1024, 128], 2, [16], 0),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 0),
                                                                                          ("tensorflow", 1024, [1024, 128], 2, [16], 3),
                                                                                          ("pytorch", 1024, [1024, 128], 2, [16], 3),
-                                                                                         ("tensorflow", 1024, [128], 1, [16], -1),
-                                                                                         ("pytorch", 1024, [128], 1, [16], -1)])
+                                                                                         ("tensorflow", 1024, [128], 1, [16], 0),
+                                                                                         ("pytorch", 1024, [128], 1, [16], 0)])
 def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_params, zero_stage) -> None:
     init()
     clean()
