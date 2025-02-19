@@ -7,6 +7,8 @@ The characteristics of a workload is specified through a YAML file. This file wi
 .. code-block:: yaml
   
   model: unet3d
+    model_size_bytes: 99153191
+
 
   framework: pytorch
 
@@ -20,9 +22,9 @@ The characteristics of a workload is specified through a YAML file. This file wi
     format: npz
     num_files_train: 168
     num_samples_per_file: 1
-    record_length: 146600628
-    record_length_stdev: 68341808
-    record_length_resize: 2097152
+    record_length_bytes: 146600628
+    record_length_bytes_stdev: 68341808
+    record_length_bytes_resize: 2097152
     
   reader: 
     data_loader: pytorch
@@ -39,7 +41,6 @@ The characteristics of a workload is specified through a YAML file. This file wi
     checkpoint_folder: checkpoints/unet3d
     checkpoint_after_epoch: 5
     epochs_between_checkpoints: 2
-    model_size: 499153191
 
 
 A `DLIO` YAML configuration file contains following sections: 
@@ -71,9 +72,15 @@ model
    * - type
      - default
      - A string that specifies the type of the model, such as transformer, CNN, etc.
-   * - model_size
+   * - model_size_bytes
      - 10240
      - The size of the model parameters per GPU in bytes
+   * - model_datatype
+     - fp16
+     - the datatype of the model parameters. Available options are fp16, fp32, int8, uint8, bf16. 
+   * - optimizer_datatype
+     - fp32
+     - the datatype of the optimizer parameters. Available options are fp16, fp32, int8, uint8, bf16. 
    * - optimization_groups
      - []
      - List of optimization group tensors. Use Array notation for yaml.
@@ -125,6 +132,12 @@ optimization_groups and layer_parameters.
    * - vocab_size
      - 32000
      - vocab size for the embedding layer
+   * - num_attention_heads:
+     - 32
+     - number of attention heads
+   * - num_kv_heads
+     - 8 
+     - Number of key-value heads 
   
 In future, we would support more non-transformer type of layers. 
 
@@ -385,12 +398,6 @@ checkpoint
    * - fsync
      - False
      - whether to perform fsync after writing the checkpoint
-   * - model_datatype
-     - fp16
-     - the datatype of the model parameters. Available options are fp16, fp32, int8, uint8, bf16. 
-   * - optimizer_datatype
-     - fp32
-     - the datatype of the optimizer parameters. Available options are fp16, fp32, int8, uint8, bf16. 
 
 .. note::
    
