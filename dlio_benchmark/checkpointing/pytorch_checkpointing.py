@@ -59,8 +59,8 @@ class PyTorchCheckpointing(BaseCheckpointing):
         super().__init__("pt")
 
     @dlp.log
-    def get_tensor(self, size, datatype="int8"):
-        return torch.ones(size, dtype=get_torch_datatype(datatype))
+    def get_tensor(self, length, datatype="int8"):
+        return torch.ones(length, dtype=get_torch_datatype(datatype))
 
     @dlp.log
     def save_state(self, suffix, state, fsync = False):

@@ -268,12 +268,14 @@ class DLIOBenchmark(object):
                 self.framework.trace_object("Train", overall_step, 1)
             computation_time = self.framework.compute(batch, epoch, block_step, computation_time)
             self.stats.batch_processed(epoch, overall_step, block, t0, computation_time)
+            # This is the barrier to simulate allreduce. It is required to simulate the actual workloads.
             self.comm.barrier()
             if self.do_checkpoint and (
                     self.steps_between_checkpoints >= 0) and overall_step == self.next_checkpoint_step:
                 self.stats.end_block(epoch, block, block_step)
                 self.stats.start_ckpt(epoch, block, overall_step)
                 self.checkpointing_mechanism.checkpoint(epoch, overall_step)
+                # TO FIX: let us capture the timing per rank, and then report mean, std
                 self.comm.barrier()
                 self.stats.end_ckpt(epoch, block)
                 block += 1
@@ -285,6 +287,7 @@ class DLIOBenchmark(object):
             overall_step += 1
             self.overall_step_total += 1
             t0 = time()
+        #FIXME(Huihuo)
         self.comm.barrier()
         if self.do_checkpoint and (self.steps_between_checkpoints < 0) and (epoch == self.next_checkpoint_epoch):
             self.stats.end_block(epoch, block, block_step)
@@ -293,6 +296,8 @@ class DLIOBenchmark(object):
             self.comm.barrier()
             self.stats.end_ckpt(epoch, block)
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
+        # Fixed me: to remove this
+        #FIXME(Huihuo)
         self.comm.barrier()
         return overall_step
 

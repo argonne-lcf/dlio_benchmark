@@ -1,5 +1,6 @@
 model: 
   name: bert
+  model_size: 4034713312
 
 framework: tensorflow
 
@@ -34,4 +35,4 @@ reader:
 checkpoint:
   checkpoint_folder: checkpoints/bert
   steps_between_checkpoints: 250
-  model_size: 4034713312
+

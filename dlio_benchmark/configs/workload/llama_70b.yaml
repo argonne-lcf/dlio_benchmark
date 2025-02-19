@@ -4,6 +4,8 @@ model:
   type: transformer
   model_size: 30102
   num_layers: 80
+  model_datatype: fp16
+  optimizer_datatype: fp32
   parallelism: 
     tensor: 8
     pipeline: 4
@@ -44,5 +46,3 @@ train:
 checkpoint:
   checkpoint_folder: checkpoints/llama_70b
   steps_between_checkpoints: 1
-  model_datatype: fp16
-  optimizer_datatype: fp32

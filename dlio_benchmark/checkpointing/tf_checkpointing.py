@@ -58,8 +58,8 @@ class TFCheckpointing(BaseCheckpointing):
         super().__init__("pb")
 
     @dlp.log
-    def get_tensor(self, size, datatype="int8"):
-        return tf.ones((size), dtype=get_tf_datatype(datatype))
+    def get_tensor(self, length, datatype="int8"):
+        return tf.ones((length), dtype=get_tf_datatype(datatype))
 
     @dlp.log
     def save_state(self, suffix, state, fsync = False):

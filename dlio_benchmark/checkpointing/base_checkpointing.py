@@ -117,8 +117,8 @@ class BaseCheckpointing(ABC):
                     for index, state in enumerate(optimization_groups):
                         if state > 0:
                             #logging.info(f"{state/1024./1024./1024. } GB")
-                            optimizer_checkpoint_size += state * get_datatype_size(self.args.checkpoint_optimizer_datatype)
-                            self.optimization_state[str(index)] = self.get_tensor(state, self.args.checkpoint_optimizer_datatype)
+                            optimizer_checkpoint_size += state * get_datatype_size(self.args.optimizer_datatype)
+                            self.optimization_state[str(index)] = self.get_tensor(state, self.args.optimizer_datatype)
             if self.args.my_rank == 0:
                 logging.info(f"{utcnow()} Optimizer state defined: {self.checkpoint_size / 1024./1024./1024} GB per rank")
             # layer state
@@ -141,7 +141,7 @@ class BaseCheckpointing(ABC):
             logging.info(f"{utcnow()} Total checkpoint size: {self.checkpoint_size} GB")
 
     @abstractmethod
-    def get_tensor(self, size, datatype="int8"):
+    def get_tensor(self, length, datatype="int8"):
         return []
 
     @abstractmethod
@@ -198,8 +198,8 @@ class BaseCheckpointing(ABC):
         size = 0.0
         for index, state in enumerate(layer_parameters):
             if state > 0:
-                layer_state[str(index)] = self.get_tensor(state, self.args.checkpoint_model_datatype)
-                size += state*get_datatype_size(self.args.checkpoint_model_datatype)
+                layer_state[str(index)] = self.get_tensor(state, self.args.model_datatype)
+                size += state*get_datatype_size(self.args.model_datatype)
         return layer_state, size
 
     def get_optimization_groups(self):
