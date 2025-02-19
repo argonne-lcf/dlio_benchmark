@@ -35,3 +35,4 @@ reader:
 checkpoint:
   checkpoint_folder: checkpoints/bert
   steps_between_checkpoints: 250
+  

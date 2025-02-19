@@ -45,4 +45,3 @@ checkpoint:
   checkpoint_folder: checkpoints/llama_8b_zero3
   time_between_checkpoints: 5
   num_checkpoints: 10
-

@@ -33,3 +33,4 @@ checkpoint:
   checkpoint_after_epoch: 5
   epochs_between_checkpoints: 2
   model_size: 499153191
+

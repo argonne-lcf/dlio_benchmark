@@ -46,4 +46,3 @@ checkpoint:
   checkpoint_folder: checkpoints/llama_405b
   time_between_checkpoints: 5
   num_checkpoints: 10
-
