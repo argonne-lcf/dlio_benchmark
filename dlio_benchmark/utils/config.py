@@ -105,6 +105,7 @@ class ConfigArguments:
     optimizer_datatype: str = "fp32"
     checkpoint_fsync: bool = False
     model_size: int = 10240
+    model_type: str = None
     vocab_size: int = 32000
     hidden_size: int = 2048
     num_attention_heads: int = 32
@@ -601,8 +602,10 @@ def LoadConfig(args, config):
             args.checkpoint_sync = config['checkpoint']['fsync']
 
     if 'model' in config:
-        if 'type' in config['model']:
+        if 'name' in config['model']:
             args.model = config['model']['name']
+        if 'type' in config['model']:
+            args.model_type = config['model']['type']
         if 'model_size_bytes' in config['model']:
             args.model_size = config['model']['model_size_bytes']
         if 'optimization_groups' in config['model']:

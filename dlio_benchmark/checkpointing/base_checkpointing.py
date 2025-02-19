@@ -39,6 +39,7 @@ def get_datatype_size(datatype):
 class BaseCheckpointing(ABC):
 
     def __init__(self, ext):
+        #TODO(Huihuo): Add support for checkpointing rng states for transformer type of architecture
         self.ext = ext
         self.args = ConfigArguments.get_instance()
         self.checkpoint_storage = StorageFactory().get_storage(self.args.storage_type, self.args.checkpoint_folder,
@@ -125,10 +126,10 @@ class BaseCheckpointing(ABC):
 
             
             self.model_state = None
-            if self.args.model_size > 0:
+            if self.args.model_size > 0 and self.args.model_type != "transformer":
                 self.model_state = {"a": self.get_tensor(self.args.model_size)}
-            if self.args.my_rank == 0:
-                logging.info(f"{utcnow()} Model state defined")
+                if self.args.my_rank == 0:
+                    logging.info(f"{utcnow()} Model state defined")
 
         model_checkpoint_size = self.comm.allreduce(model_checkpoint_size)/1024./1024./1024.
         optimizer_checkpoint_size = self.comm.allreduce(optimizer_checkpoint_size)/1024./1024./1024.
