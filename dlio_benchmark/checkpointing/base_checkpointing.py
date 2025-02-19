@@ -58,7 +58,8 @@ class BaseCheckpointing(ABC):
         self.rank_to_checkpoint = self.args.my_rank
         self.num_parameters = self.get_num_parameters()
         self.checkpoint_size = 0.0
-        ss = 0.0
+        model_checkpoint_size = 0.0
+        optimizer_checkpoint_size = 0.0
         if self.args.my_rank == 0:
             logging.info(f"{utcnow()} Total number of parameters in the model: {self.num_parameters}")
         if self.args.zero_stage == 0:
@@ -90,13 +91,13 @@ class BaseCheckpointing(ABC):
                     self.layer_state[str(layer_index)] = layer_state  
             else:
                 self.layer_state = dict()
-                ss = 0.0
+                model_checkpoint_size = 0.0
                 for layer_index in range(start_layer, end_layer + 1):
                     self.layer_state[str(layer_index)], size = self.get_layer_state(layer_index)
                     #logging.info(f"{utcnow()} {self.args.my_rank} [{start_layer}-{end_layer}]:::{layer_index}: {size/1024./1024./1024:.4f} GB ")
-                    ss += size
+                    model_checkpoint_size += size
             if self.args.my_rank == 0:
-                logging.info(f"{utcnow()} Layer states defined! {ss/1024./1024./1024} GB per rank")
+                logging.info(f"{utcnow()} Layer states defined! {model_checkpoint_size/1024./1024./1024} GB per rank")
 
             # optimization state
             self.optimization_state = None
@@ -116,7 +117,7 @@ class BaseCheckpointing(ABC):
                     for index, state in enumerate(optimization_groups):
                         if state > 0:
                             #logging.info(f"{state/1024./1024./1024. } GB")
-                            self.checkpoint_size += state * get_datatype_size(self.args.checkpoint_optimizer_datatype)
+                            optimizer_checkpoint_size += state * get_datatype_size(self.args.checkpoint_optimizer_datatype)
                             self.optimization_state[str(index)] = self.get_tensor(state, self.args.checkpoint_optimizer_datatype)
             if self.args.my_rank == 0:
                 logging.info(f"{utcnow()} Optimizer state defined: {self.checkpoint_size / 1024./1024./1024} GB per rank")
@@ -129,14 +130,14 @@ class BaseCheckpointing(ABC):
             if self.args.my_rank == 0:
                 logging.info(f"{utcnow()} Model state defined")
 
-        ss = self.comm.allreduce(ss)/1024./1024./1024.
-        opt = self.comm.allreduce(self.checkpoint_size)/1024./1024./1024.
+        model_checkpoint_size = self.comm.allreduce(model_checkpoint_size)/1024./1024./1024.
+        optimizer_checkpoint_size = self.comm.allreduce(optimizer_checkpoint_size)/1024./1024./1024.
         if self.args.zero_stage < 3:
-            ss /= self.data_parallelism
-        self.checkpoint_size = ss + opt
+            model_checkpoint_size /= self.data_parallelism
+        self.checkpoint_size = model_checkpoint_size + optimizer_checkpoint_size
         if self.args.my_rank == 0:
-            logging.info(f"{utcnow()} Layer size: {ss} GB")
-            logging.info(f"{utcnow()} Optimizer state size: {opt} GB")
+            logging.info(f"{utcnow()} Layer size: {model_checkpoint_size} GB")
+            logging.info(f"{utcnow()} Optimizer state size: {optimizer_checkpoint_size} GB")
             logging.info(f"{utcnow()} Total checkpoint size: {self.checkpoint_size} GB")
 
     @abstractmethod
@@ -151,21 +152,20 @@ class BaseCheckpointing(ABC):
         return os.path.join(self.args.checkpoint_folder, f"{suffix}.{self.ext}")
 
     def get_num_parameters(self):
-        h, l, ffn, voc = self.args.hidden_size, self.args.num_layers, self.args.ffn_hidden_size, self.args.vocab_size
-        if l <= 0:
+        if self.args.hidden_size <= 0:
             return 0
         head_size = self.args.hidden_size//self.args.num_attention_heads
         dim_kv = head_size * self.args.num_kv_heads        
-        embedding = voc*h
-        input_norm = h
-        qkv = h * (h + 2*dim_kv)
-        dense = h*h
-        layer_norm = h
-        mlp_h_to_4h = ffn*2*h # the factor of 2 is because of gated linear unit                                                                           
-        mlp_4h_to_h = ffn*h
-        weight = h
+        embedding = self.args.vocab_size*self.args.hidden_size
+        input_norm = self.args.hidden_size
+        qkv = self.args.hidden_size * (self.args.hidden_size + 2*dim_kv)
+        dense = self.args.hidden_size*self.args.hidden_size
+        layer_norm = self.args.hidden_size
+        mlp_h_to_4h = self.args.ffn_hidden_size*2*self.args.hidden_size # the factor of 2 is because of gated linear unit                                                                           
+        mlp_4h_to_h = self.args.ffn_hidden_size*self.args.hidden_size
+        weight = self.args.hidden_size
         lm_head = embedding
-        return embedding  + (input_norm + qkv + dense + layer_norm + mlp_h_to_4h + mlp_4h_to_h)*l + weight + lm_head
+        return embedding  + (input_norm + qkv + dense + layer_norm + mlp_h_to_4h + mlp_4h_to_h)*self.args.num_layers + weight + lm_head
 
     def get_layer_parameters(self, layer_index):
         head_size = self.args.hidden_size//self.args.num_attention_heads
@@ -180,18 +180,17 @@ class BaseCheckpointing(ABC):
                 sharding_factor = 1
             else:
                 sharding_factor = self.data_parallelism
-            h, l, ffn, voc = self.args.hidden_size, self.args.num_layers, self.args.ffn_hidden_size, self.args.vocab_size
-            if layer_index == 0 or layer_index == l + 1:
-                return [h * voc // self.args.tensor_parallelism // sharding_factor] # embedding or lm_head
-            elif layer_index == l + 2:
-                return [h//sharding_factor]
+            if layer_index == 0 or layer_index == self.args.num_layers + 1:
+                return [self.args.hidden_size * self.args.vocab_size // self.args.tensor_parallelism // sharding_factor] # embedding or lm_head
+            elif layer_index == self.args.num_layers + 2:
+                return [self.args.hidden_size //sharding_factor]
             else:
-                return [ h // sharding_factor, # input_norm, 
-                        h*(h+2*dim_kv)//self.args.tensor_parallelism//sharding_factor, # self_attn - this is the 
-                        h*h//self.args.tensor_parallelism//sharding_factor, # dense - this is the o matrix
-                        h//sharding_factor, # layer_norm
-                        h*2*ffn//self.args.tensor_parallelism//sharding_factor, # ffn_h_to_4h, 2 is from gated linear unit
-                        h*ffn//self.args.tensor_parallelism//sharding_factor, # ffn_4h_to_h
+                return [ self.args.hidden_size // sharding_factor, # input_norm, 
+                        self.args.hidden_size*(self.args.hidden_size+2*dim_kv)//self.args.tensor_parallelism//sharding_factor, # self_attn - this is the 
+                        self.args.hidden_size*self.args.hidden_size//self.args.tensor_parallelism//sharding_factor, # dense - this is the o matrix
+                        self.args.hidden_size//sharding_factor, # layer_norm
+                        self.args.hidden_size*2*self.args.ffn_hidden_size//self.args.tensor_parallelism//sharding_factor, # ffn_h_to_4h, 2 is from gated linear unit
+                        self.args.hidden_size*self.args.ffn_hidden_size//self.args.tensor_parallelism//sharding_factor, # ffn_4h_to_h
                 ]
     def get_layer_state(self, layer_index):
         layer_parameters = self.get_layer_parameters(layer_index)
@@ -204,7 +203,6 @@ class BaseCheckpointing(ABC):
         return layer_state, size
 
     def get_optimization_groups(self):
-        h, l, ffn, voc = self.args.hidden_size, self.args.num_layers, self.args.ffn_hidden_size, self.args.vocab_size
         if len(self.args.optimization_groups) > 0:
             self.optimization_groups_predefined = True
             return self.args.optimization_groups
@@ -213,12 +211,14 @@ class BaseCheckpointing(ABC):
                 return []
             if self.args.zero_stage > 0:
                 # zero stage 1, 2, 3
-                num_p = self.get_num_parameters() // self.args.comm_size
+                num_parameters = self.get_num_parameters() // self.args.comm_size
             else:
                 # if zero is not used. Only the first data parallel instance will save the optimizer states
-                num_p = self.get_num_parameters() // self.model_parallelism
-            if num_p > 0:
-                return [num_p, h*5, num_p, h*5, num_p, h*5]   
+                num_parameters= self.get_num_parameters() // self.model_parallelism
+            if num_parameters> 0:
+                return [num_parameters, self.args.hidden_size*5, 
+                        num_parameters, self.args.hidden_size*5, 
+                        num_parameters, self.args.hidden_size*5]   
             else:
                 return []                                                                                                           
 

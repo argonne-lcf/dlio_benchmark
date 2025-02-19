@@ -41,7 +41,7 @@ train:
   total_training_steps: 5
 
 checkpoint:
-  checkpoint_folder: checkpoints/llama_7b_zero3
+  checkpoint_folder: checkpoints/llama_8b_zero3
   steps_between_checkpoints: 1
   model_datatype: fp16
   optimizer_datatype: fp32
