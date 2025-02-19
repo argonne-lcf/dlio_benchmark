@@ -104,7 +104,7 @@ class ConfigArguments:
     model_datatype: str = "fp16"
     optimizer_datatype: str = "fp32"
     checkpoint_fsync: bool = False
-    model_size_bytes: int = 10240
+    model_size: int = 10240
     vocab_size: int = 32000
     hidden_size: int = 2048
     num_attention_heads: int = 32
@@ -442,11 +442,11 @@ def LoadConfig(args, config):
 
     # dataset related settings
     if 'dataset' in config:
-        if 'record_length' in config['dataset']:
+        if 'record_length_bytes' in config['dataset']:
             args.record_length = config['dataset']['record_length_bytes']
-        if 'record_length_stdev' in config['dataset']:
+        if 'record_length_byte_stdev' in config['dataset']:
             args.record_length_stdev = config['dataset']['record_length_bytes_stdev']
-        if 'record_length_resize' in config['dataset']:
+        if 'record_length_bytes_resize' in config['dataset']:
             args.record_length_resize = config['dataset']['record_length_bytes_resize']
         if 'num_files_train' in config['dataset']:
             args.num_files_train = config['dataset']['num_files_train']
