@@ -87,7 +87,7 @@ model
      - {tensor: 1, pipeline: 1, zero_stage: 0}
      - Parallelism configuration for the model. 
    * - transformer
-     - {hidden_size: 2048, ffn_hidden_size: 8196, vocab_size: 32000}
+     - {hidden_size: 2048, ffn_hidden_size: 8196, vocab_size: 32000, num_attention_heads: 32, num_kv_heads: 8}
      - Transformer layer configuration for the model.
 
 The model information is used to determine the checkpoint files. 
@@ -99,7 +99,7 @@ Suppose layer_parameters is [1024, 2048], each rank in the tensor parallelism gr
 {'0': array of 1024/TP, "1": array of (2048/TP)}. Please notice the difference in how the optimization groups and layer parameters are treated internally.
 
 We do not suggest the users to specify the model architeure in this way. Instead, we suggest the users to specify the transformer configuration directly which is more intuitive. 
-The ``transformer`` configuration is used to specify the hidden size, FFN hidden size, and vocab size for the transformer layer, which together determined the 
+The ``transformer`` configuration is used to specify the hidden size, FFN hidden size, vocab size, number of attention heads and number of kv heads for the transformer layer, which together determined the 
 optimization_groups and layer_parameters. 
 
 .. attention::

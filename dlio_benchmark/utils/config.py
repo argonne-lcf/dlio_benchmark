@@ -107,6 +107,8 @@ class ConfigArguments:
     model_size: int = 10240
     vocab_size: int = 32000
     hidden_size: int = 2048
+    num_attention_heads: int = 32
+    num_kv_heads: int = 8
     ffn_hidden_size: int = 8192
     zero_stage: int = 0
     optimization_groups: ClassVar[List[int]] = []
@@ -629,7 +631,11 @@ def LoadConfig(args, config):
                 args.hidden_size = config['model']['transformer']['hidden_size']
             if 'ffn_hidden_size' in config['model']['transformer']:
                 args.ffn_hidden_size = config['model']['transformer']['ffn_hidden_size']
-
+            if 'num_attention_heads' in config['model']['transformer']:
+                args.num_attention_heads = config['model']['transformer']['num_attention_heads']
+            if 'num_kv_heads' in config['model']['transformer']:
+                args.num_kv_heads = config['model']['transformer']['num_kv_heads']
+            
     if 'output' in config:
         if 'folder' in config['output']:
             args.output_folder = config['output']['folder']

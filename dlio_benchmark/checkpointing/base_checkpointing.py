@@ -154,9 +154,11 @@ class BaseCheckpointing(ABC):
         h, l, ffn, voc = self.args.hidden_size, self.args.num_layers, self.args.ffn_hidden_size, self.args.vocab_size
         if l <= 0:
             return 0
+        head_size = self.args.hidden_size//self.args.num_attention_heads
+        dim_kv = head_size * self.args.num_kv_heads        
         embedding = voc*h
         input_norm = h
-        qkv = 3*h*h
+        qkv = h * (h + 2*dim_kv)
         dense = h*h
         layer_norm = h
         mlp_h_to_4h = ffn*2*h # the factor of 2 is because of gated linear unit                                                                           
@@ -166,6 +168,8 @@ class BaseCheckpointing(ABC):
         return embedding  + (input_norm + qkv + dense + layer_norm + mlp_h_to_4h + mlp_4h_to_h)*l + weight + lm_head
 
     def get_layer_parameters(self, layer_index):
+        head_size = self.args.hidden_size//self.args.num_attention_heads
+        dim_kv = head_size * self.args.num_kv_heads
         if len(self.args.layer_parameters) > 0:
             self.layer_parameters_predefined = True
             return self.args.layer_parameters
@@ -183,8 +187,8 @@ class BaseCheckpointing(ABC):
                 return [h//sharding_factor]
             else:
                 return [ h // sharding_factor, # input_norm, 
-                        h*h*3//self.args.tensor_parallelism//sharding_factor, # self_attn
-                        h*h//self.args.tensor_parallelism//sharding_factor, # dense
+                        h*(h+2*dim_kv)//self.args.tensor_parallelism//sharding_factor, # self_attn - this is the 
+                        h*h//self.args.tensor_parallelism//sharding_factor, # dense - this is the o matrix
                         h//sharding_factor, # layer_norm
                         h*2*ffn//self.args.tensor_parallelism//sharding_factor, # ffn_h_to_4h, 2 is from gated linear unit
                         h*ffn//self.args.tensor_parallelism//sharding_factor, # ffn_4h_to_h
