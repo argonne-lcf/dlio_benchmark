@@ -2,7 +2,7 @@
 model:
   name: llama_7b
   type: transformer
-  model_size: 30102
+  model_size_bytes: 30102
   num_layers: 32
   model_datatype: fp16
   optimizer_datatype: fp32
@@ -29,7 +29,7 @@ dataset:
   format: mmap_indexed_binary
   num_files_train: 1
   num_samples_per_file: 1048576
-  record_length: 2048
+  record_length_bytes: 2048
   
 reader: 
   data_loader: pytorch

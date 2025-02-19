@@ -56,9 +56,9 @@ class ConfigArguments:
     # Set root as the current directory by default
     storage_root: str = "./"
     storage_type: StorageType = StorageType.LOCAL_FS
-    record_length: int = 64 * 1024
-    record_length_stdev: int = 0
-    record_length_resize: int = 0
+    record_length_bytes: int = 64 * 1024
+    record_length_bytes_stdev: int = 0
+    record_length_bytes_resize: int = 0
     num_files_train: int = 8
     num_samples_per_file: int = 1
     batch_size: int = 1
@@ -104,7 +104,7 @@ class ConfigArguments:
     model_datatype: str = "fp16"
     optimizer_datatype: str = "fp32"
     checkpoint_fsync: bool = False
-    model_size: int = 10240
+    model_size_bytes: int = 10240
     vocab_size: int = 32000
     hidden_size: int = 2048
     num_attention_heads: int = 32
@@ -443,11 +443,11 @@ def LoadConfig(args, config):
     # dataset related settings
     if 'dataset' in config:
         if 'record_length' in config['dataset']:
-            args.record_length = config['dataset']['record_length']
+            args.record_length = config['dataset']['record_length_bytes']
         if 'record_length_stdev' in config['dataset']:
-            args.record_length_stdev = config['dataset']['record_length_stdev']
+            args.record_length_stdev = config['dataset']['record_length_bytes_stdev']
         if 'record_length_resize' in config['dataset']:
-            args.record_length_resize = config['dataset']['record_length_resize']
+            args.record_length_resize = config['dataset']['record_length_bytes_resize']
         if 'num_files_train' in config['dataset']:
             args.num_files_train = config['dataset']['num_files_train']
         if 'num_files_eval' in config['dataset']:
@@ -603,8 +603,8 @@ def LoadConfig(args, config):
     if 'model' in config:
         if 'type' in config['model']:
             args.model = config['model']['name']
-        if 'model_size' in config['model']:
-            args.model_size = config['model']['model_size']
+        if 'model_size_bytes' in config['model']:
+            args.model_size = config['model']['model_size_bytes']
         if 'optimization_groups' in config['model']:
             args.optimization_groups = config['model']['optimization_groups']
         if 'num_layers' in config['model']:
