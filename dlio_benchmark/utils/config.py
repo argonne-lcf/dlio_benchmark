@@ -56,9 +56,9 @@ class ConfigArguments:
     # Set root as the current directory by default
     storage_root: str = "./"
     storage_type: StorageType = StorageType.LOCAL_FS
-    record_length_bytes: int = 64 * 1024
-    record_length_bytes_stdev: int = 0
-    record_length_bytes_resize: int = 0
+    record_length: int = 64 * 1024
+    record_length_stdev: int = 0
+    record_length_resize: int = 0
     num_files_train: int = 8
     num_samples_per_file: int = 1
     batch_size: int = 1
@@ -420,7 +420,7 @@ class ConfigArguments:
         global_train_sample_sum = DLIOMPI.get_instance().reduce(local_train_sample_sum)
         global_eval_sample_sum = DLIOMPI.get_instance().reduce(local_eval_sample_sum)        
         if self.my_rank == 0:
-            logging.info(f"{utcnow()} Total sample: train {global_train_sample_sum} -  eval {global_eval_sample_sum}")
+            logging.info(f"{utcnow()} Total number of samples: train {global_train_sample_sum}, eval {global_eval_sample_sum}")
             if self.train_sample_index_sum != global_train_sample_sum:
                 raise Exception(f"Sharding of train samples are missing samples got {global_train_sample_sum} but expected {self.train_sample_index_sum}")
             
