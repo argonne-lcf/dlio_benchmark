@@ -68,6 +68,8 @@ class ConfigArguments:
     generate_only: bool = False
     data_folder: str = "./data/"
     output_folder: str = None
+    metric_exclude_start_steps: int = 1
+    metric_exclude_end_steps: int = 0
     checkpoint_folder: str = "./checkpoints/"
     log_file: str = "dlio.log"
     file_prefix: str = "img"
@@ -411,7 +413,6 @@ class ConfigArguments:
         global_train_sample_sum = DLIOMPI.get_instance().reduce(local_train_sample_sum)
         global_eval_sample_sum = DLIOMPI.get_instance().reduce(local_eval_sample_sum)        
         if self.my_rank == 0:
-            logging.info(f"total sample: train {global_train_sample_sum} eval {global_eval_sample_sum}")
             if self.train_sample_index_sum != global_train_sample_sum:
                 raise Exception(f"Sharding of train samples are missing samples got {global_train_sample_sum} but expected {self.train_sample_index_sum}")
             
@@ -611,6 +612,11 @@ def LoadConfig(args, config):
             args.output_folder = config['output']['folder']
         if 'log_file' in config['output']:
             args.log_file = config['output']['log_file']
+        if 'metric' in config['output']:
+            if 'exclude_start_steps' in config['output']['metric']:
+                args.metric_exclude_start_steps = int(config['output']['metric']['exclude_start_steps'])
+            if 'exclude_end_steps' in config['output']['metric']:
+                args.metric_exclude_end_steps = int(config['output']['metric']['exclude_end_steps'])
 
     if args.output_folder is None:
         try:
