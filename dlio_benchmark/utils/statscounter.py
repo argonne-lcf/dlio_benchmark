@@ -201,15 +201,16 @@ class StatsCounter(object):
                 metric+="[METRIC] ==========================================================\n"
                 logging.info(metric)   
     def start_train(self, epoch):   
+        ts = utcnow()
+        self.per_epoch_stats[epoch] = {
+            'start': ts,
+        }
         if self.my_rank == 0:
-            ts = utcnow()
             if self.steps_override:
                 logging.info(f"{ts} Starting epoch {epoch}: Overriding number of steps to {self.steps}.")
             else:
                 logging.info(f"{ts} Starting epoch {epoch}: {self.steps} steps expected")
-            self.per_epoch_stats[epoch] = {
-                'start': ts,
-            }
+
         # Initialize dicts for the current epoch
         self.output[epoch] = {}
         self.output[epoch]['load'] = {}
@@ -233,22 +234,22 @@ class StatsCounter(object):
         self.train_au.append(au)
         self.train_throughput.append(throughput)
 
+        ts = utcnow()
+        duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch]['start'])
+        duration = '{:.2f}'.format(duration.total_seconds())
+        self.per_epoch_stats[epoch]['end'] = ts
+        self.per_epoch_stats[epoch]['duration'] = duration
         if self.my_rank == 0:
-            ts = utcnow()
-            duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch]['start'])
-            duration = '{:.2f}'.format(duration.total_seconds())
-            self.per_epoch_stats[epoch]['end'] = ts
-            self.per_epoch_stats[epoch]['duration'] = duration
             logging.info(f"{ts} Ending epoch {epoch} - {np.sum(steps)} steps completed in {duration} s")
 
     def start_eval(self, epoch):
         self.start_timestamp = time()
+        ts = utcnow()
+        self.per_epoch_stats[epoch]['eval'] = {
+            'start': ts
+        }
         if self.my_rank == 0:
-            ts = utcnow()
             logging.info(f"{ts} Starting eval - {self.steps_eval} steps expected")
-            self.per_epoch_stats[epoch]['eval'] = {
-                'start': ts
-            }
         self.output[epoch]['load']['eval'] = []
         self.output[epoch]['proc']['eval'] = []
         self.output[epoch]['compute']['eval'] = []
@@ -259,13 +260,13 @@ class StatsCounter(object):
         self.compute_metrics_eval(epoch)
         self.eval_au.append(self.output[epoch]['au']['eval'])
         self.eval_throughput.append(self.output[epoch]['throughput']['eval'] )
+        ts = utcnow()
+        duration = pd.to_datetime(ts)- pd.to_datetime(self.per_epoch_stats[epoch]['eval']['start'])
+        duration = '{:.2f}'.format(duration.total_seconds())
+        self.per_epoch_stats[epoch]['eval']['end'] = ts
+        self.per_epoch_stats[epoch]['eval']['duration'] = duration  
         if self.my_rank == 0:
-            ts = utcnow()
-            duration = pd.to_datetime(ts)- pd.to_datetime(self.per_epoch_stats[epoch]['eval']['start'])
-            duration = '{:.2f}'.format(duration.total_seconds())
             logging.info(f"{ts} Ending eval - {self.steps_eval} steps completed in {duration} s")
-            self.per_epoch_stats[epoch]['eval']['end'] = ts
-            self.per_epoch_stats[epoch]['eval']['duration'] = duration        
             logging.info(f"{utcnow()} Epoch {epoch} [Eval] Accelerator Utilization [AU] (%): {self.output[epoch]['au']['eval']:.4f}")
             logging.info(f"{utcnow()} Epoch {epoch} [Eval] Throughput (samples/second): {self.output[epoch]['throughput']['eval']*self.comm_size:.4f}")
 
@@ -286,12 +287,13 @@ class StatsCounter(object):
         self.output[epoch]['throughput'][f'block{block}'] = []
         self.output[epoch]['au'][f'block{block}'] = []
         self.output[epoch]['compute'][f'block{block}'] = []
+        ts = utcnow()
+        self.per_epoch_stats[epoch][f'block{block}'] = {
+            'start': ts
+        }
         if self.my_rank == 0:
-            ts = utcnow()
             logging.info(f"{ts} Starting block {block}")
-            self.per_epoch_stats[epoch][f'block{block}'] = {
-                'start': ts
-            }
+
 
     def end_block(self, epoch, block, steps_taken):
         self.end_timestamp = time()
@@ -306,9 +308,9 @@ class StatsCounter(object):
 
         if self.my_rank == 0:
             logging.info(f"{ts} Ending block {block} - {steps_taken} steps completed in {duration} s")
-        if self.args.do_train:
-            logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Accelerator Utilization [AU] (%): {self.output[epoch]['au'][f'block{block}']:.4f}")
-            logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Throughput (samples/second): {self.output[epoch]['throughput'][f'block{block}']*self.comm_size:.4f}")
+            if self.args.do_train:
+                logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Accelerator Utilization [AU] (%): {self.output[epoch]['au'][f'block{block}']:.4f}")
+                logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Throughput (samples/second): {self.output[epoch]['throughput'][f'block{block}']*self.comm_size:.4f}")
  
     def start_ckpt(self, epoch, block, steps_taken):
         ts = utcnow()
