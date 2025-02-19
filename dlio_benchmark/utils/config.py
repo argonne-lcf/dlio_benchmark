@@ -76,6 +76,7 @@ class ConfigArguments:
     profiler: Profiler = Profiler.IOSTAT
     seed: int = 123
     do_checkpoint: bool = False
+    do_train: bool = True
     checkpoint_after_epoch: int = 1
     epochs_between_checkpoints: int = 1
     steps_between_checkpoints: int = -1
@@ -104,6 +105,9 @@ class ConfigArguments:
     model_datatype: str = "fp16"
     optimizer_datatype: str = "fp32"
     checkpoint_fsync: bool = False
+    checkpoint_only: bool = False
+    time_between_checkpoints: float = -1
+    num_checkpoints: int = -1
     model_size: int = 10240
     model_type: str = None
     vocab_size: int = 32000
@@ -247,6 +251,8 @@ class ConfigArguments:
                 f"model.parallelism.pipeline {self.pipeline_parallelism}.")
         if self.pipeline_parallelism > 1 and self.zero_stage == 3:
             raise Exception(f"ZeRO stage {self.zero_stage} is not compatible with pipeline parallelism.")
+        if self.comm_size % (self.pipeline_parallelism * self.tensor_parallelism) != 0:
+            raise Exception(f"Number of processes {self.comm_size} is not a multiple of model parallelism size: {self.pipeline_parallelism * self.tensor_parallelism}")
 
     @staticmethod
     def reset():
@@ -600,6 +606,10 @@ def LoadConfig(args, config):
             args.checkpoint_mechanism_classname = config['checkpoint']['checkpoint_mechanism_classname']
         if 'fsync' in config['checkpoint']:
             args.checkpoint_sync = config['checkpoint']['fsync']
+        if 'time_between_checkpoints' in config['checkpoint']:
+            args.time_between_checkpoints = config['checkpoint']['time_between_checkpoints']
+        if 'num_checkpoints' in config['checkpoint']:
+            args.num_checkpoints = config['checkpoint']['num_checkpoints']
 
     if 'model' in config:
         if 'name' in config['model']:
@@ -654,12 +664,10 @@ def LoadConfig(args, config):
     args.logfile_path = os.path.join(args.output_folder, args.log_file)
 
     if 'workflow' in config:
+        if 'train' in config['workflow']:
+            args.do_train = config['workflow']['train']
         if 'generate_data' in config['workflow']:
             args.generate_data = config['workflow']['generate_data']
-        if not (('train' in config['workflow']) and config['workflow']['train']):
-            args.generate_only = True
-        else:
-            args.generate_only = False
         if 'debug' in config['workflow']:
             args.debug = config['workflow']['debug']
         if 'evaluation' in config['workflow']:
@@ -668,6 +676,12 @@ def LoadConfig(args, config):
             args.do_checkpoint = config['workflow']['checkpoint']
         if 'profiling' in config['workflow']:
             args.do_profiling = config['workflow']['profiling']
+    
+    if not args.do_train:
+        if args.generate_data:
+            args.generate_only = True
+        if args.do_checkpoint:
+            args.checkpoint_only = True
 
     if 'profiling' in config:
         if 'profiler' in config['profiling']:

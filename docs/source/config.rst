@@ -398,6 +398,12 @@ checkpoint
    * - fsync
      - False
      - whether to perform fsync after writing the checkpoint
+   * - time_between_checkpoints
+     - -1
+     - performing one checkpointing per {time_between_checkpoint} seconds; this parameter is used only when workflow.train=False
+   * - num_checkpoints
+     - -1
+     - How many checkpoints to write; this parameter is used only when workflow.train=False
 
 .. note::
    

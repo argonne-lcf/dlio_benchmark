@@ -2,7 +2,6 @@
 model: 
   name: llama_405b
   type: transformer
-  model_size_bytes: 30102
   num_layers: 128
   model_datatype: fp16
   optimizer_datatype: fp32
@@ -44,5 +43,6 @@ train:
 
 checkpoint:
   checkpoint_folder: checkpoints/llama_405b
-  steps_between_checkpoints: 1
+  time_between_checkpoints: 5
+  num_checkpoints: 10
 

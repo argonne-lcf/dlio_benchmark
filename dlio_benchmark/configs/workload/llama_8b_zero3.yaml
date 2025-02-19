@@ -1,7 +1,6 @@
 model:
   name: llama_8b_zero3
   type: transformer
-  model_size_bytes: 30102
   num_layers: 32
   model_datatype: fp16
   optimizer_datatype: fp32
@@ -19,8 +18,8 @@ model:
 framework: pytorch
 
 workflow:
-  generate_data: True
-  train: True
+  generate_data: False
+  train: False
   checkpoint: True
 
 dataset: 
@@ -44,4 +43,6 @@ train:
 
 checkpoint:
   checkpoint_folder: checkpoints/llama_8b_zero3
-  steps_between_checkpoints: 1
+  time_between_checkpoints: 5
+  num_checkpoints: 10
+

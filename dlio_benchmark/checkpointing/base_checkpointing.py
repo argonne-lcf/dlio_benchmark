@@ -98,7 +98,7 @@ class BaseCheckpointing(ABC):
                     #logging.info(f"{utcnow()} {self.args.my_rank} [{start_layer}-{end_layer}]:::{layer_index}: {size/1024./1024./1024:.4f} GB ")
                     model_checkpoint_size += size
             if self.args.my_rank == 0:
-                logging.info(f"{utcnow()} Layer states defined! {model_checkpoint_size/1024./1024./1024} GB per rank")
+                logging.debug(f"{utcnow()} Layer states defined! {model_checkpoint_size/1024./1024./1024} GB per rank")
 
             # optimization state
             self.optimization_state = None
@@ -121,7 +121,7 @@ class BaseCheckpointing(ABC):
                             optimizer_checkpoint_size += state * get_datatype_size(self.args.optimizer_datatype)
                             self.optimization_state[str(index)] = self.get_tensor(state, self.args.optimizer_datatype)
             if self.args.my_rank == 0:
-                logging.info(f"{utcnow()} Optimizer state defined: {self.checkpoint_size / 1024./1024./1024} GB per rank")
+                logging.debug(f"{utcnow()} Optimizer state defined: {optimizer_checkpoint_size / 1024./1024./1024} GB per rank")
             # layer state
 
             
@@ -137,7 +137,7 @@ class BaseCheckpointing(ABC):
             model_checkpoint_size /= self.data_parallelism
         self.checkpoint_size = model_checkpoint_size + optimizer_checkpoint_size
         if self.args.my_rank == 0:
-            logging.info(f"{utcnow()} Layer size: {model_checkpoint_size} GB")
+            logging.info(f"{utcnow()} Model size: {model_checkpoint_size} GB")
             logging.info(f"{utcnow()} Optimizer state size: {optimizer_checkpoint_size} GB")
             logging.info(f"{utcnow()} Total checkpoint size: {self.checkpoint_size} GB")
 

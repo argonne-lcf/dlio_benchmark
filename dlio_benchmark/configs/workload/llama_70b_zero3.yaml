@@ -2,7 +2,6 @@
 model: 
   name: llama_70b
   type: transformer
-  model_size_bytes: 30102
   num_layers: 80
   model_datatype: fp16
   optimizer_datatype: fp32
@@ -11,7 +10,7 @@ model:
     pipeline: 1
     zero_stage: 3
   transformer: 
-    vocab_size: 128000
+    vocab_size: 128256
     hidden_size: 8192
     ffn_hidden_size: 28672
     num_attention_heads: 128
@@ -20,8 +19,8 @@ model:
 framework: pytorch
 
 workflow:
-  generate_data: True
-  train: True
+  generate_data: False
+  train: False
   checkpoint: True
 
 dataset: 
@@ -45,4 +44,5 @@ train:
 
 checkpoint:
   checkpoint_folder: checkpoints/llama_70b
-  steps_between_checkpoints: 1
+  time_between_checkpoints: 5
+  num_checkpoints: 10
