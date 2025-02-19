@@ -230,14 +230,14 @@ class BaseCheckpointing(ABC):
         We assume layer 0 is always on rank 0, and l+1 and l+2 are on the last rank.                                                                      
         '''
         pipeline_rank = self.pipeline_parallism_rank
-        nl = self.args.num_layers//self.args.pipeline_parallelism
+        num_layers_per_pipeline_group = self.args.num_layers//self.args.pipeline_parallelism
         remainder = self.args.num_layers%self.args.pipeline_parallelism
         if pipeline_rank < remainder:
-            start_layer = pipeline_rank * (nl + 1) + 1
-            end_layer = start_layer + nl
+            start_layer = pipeline_rank * (num_layers_per_pipeline_group + 1) + 1
+            end_layer = start_layer + num_layers_per_pipeline_group
         else:
-            start_layer = remainder * (nl + 1) + (pipeline_rank - remainder) * nl + 1
-            end_layer = start_layer + nl - 1
+            start_layer = remainder * (num_layers_per_pipeline_group + 1) + (pipeline_rank - remainder) * num_layers_per_pipeline_group + 1
+            end_layer = start_layer + num_layers_per_pipeline_group - 1
         if not self.layer_parameters_predefined: 
             # will turn this on for all the cases in future
             if pipeline_rank == self.args.pipeline_parallelism - 1:
