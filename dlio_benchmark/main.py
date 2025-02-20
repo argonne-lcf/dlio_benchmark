@@ -218,9 +218,8 @@ class DLIOBenchmark(object):
                 file_list_eval = file_list_eval[:self.num_files_eval]
         self.args.derive_configurations(file_list_train, file_list_eval)
         self.args.validate()
-        if self.args.do_checkpoint:
-            self.checkpointing_mechanism = CheckpointingFactory().get_mechanism(self.args.checkpoint_mechanism)
-            self.stats.checkpoint_size = self.checkpointing_mechanism.checkpoint_size    
+        self.checkpointing_mechanism = CheckpointingFactory().get_mechanism(self.args.checkpoint_mechanism)
+        self.stats.checkpoint_size = self.checkpointing_mechanism.checkpoint_size    
         self.comm.barrier()
 
     @dlp.log

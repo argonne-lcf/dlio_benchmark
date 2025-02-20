@@ -266,8 +266,11 @@ class BaseCheckpointing(ABC):
                     # if pp is turned on, we assume that the model is sharded across the pipeline stages
                     if self.data_parallelism_rank == 0 and self.args.num_layers > 0:
                         # in this case, model is saved layer by layer
-                        for layer_index in range(start_layer, end_layer + 1):
-                            self.save_state(suffix=f"{checkpoint_id}/layer_{layer_index}-model_{self.model_parallelism_rank}_model_states", state=self.layer_state[str(layer_index)], fsync = self.args.checkpoint_fsync)
+                        if self.args.pipeline_parallelism > 1:
+                            for layer_index in range(start_layer, end_layer + 1):
+                                self.save_state(suffix=f"{checkpoint_id}/layer_{layer_index}-model_{self.model_parallelism_rank}_model_states", state=self.layer_state[str(layer_index)], fsync = self.args.checkpoint_fsync)
+                        else:
+                            self.save_state(suffix=f"{checkpoint_id}/model_{self.model_parallelism_rank}_model_states", state=self.layer_state, fsync = self.args.checkpoint_fsync)
                 else:
                     # in this case, model is sharded across the data parallel ranks
                     assert(self.args.pipeline_parallelism == 1)
