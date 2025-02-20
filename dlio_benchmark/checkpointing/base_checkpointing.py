@@ -90,15 +90,15 @@ class BaseCheckpointing(ABC):
                         layer_state[str(index)] = self.get_tensor(state // self.args.tensor_parallelism)
                 for layer_index in range(start_layer, end_layer + 1):
                     self.layer_state[str(layer_index)] = layer_state  
-            else:
+            elif self.args.num_layers > 0:
                 self.layer_state = dict()
                 model_checkpoint_size = 0.0
                 for layer_index in range(start_layer, end_layer + 1):
                     self.layer_state[str(layer_index)], size = self.get_layer_state(layer_index)
                     #logging.info(f"{utcnow()} {self.args.my_rank} [{start_layer}-{end_layer}]:::{layer_index}: {size/1024./1024./1024:.4f} GB ")
                     model_checkpoint_size += size
-            if self.args.my_rank == 0:
-                logging.debug(f"{utcnow()} Layer states defined! {model_checkpoint_size/1024./1024./1024} GB per rank")
+                if self.args.my_rank == 0:
+                    logging.debug(f"{utcnow()} Layer states defined! {model_checkpoint_size/1024./1024./1024} GB per rank")
 
             # optimization state
             self.optimization_state = None
