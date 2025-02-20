@@ -149,6 +149,10 @@ class BaseCheckpointing(ABC):
     def save_state(self, suffix, state, fsync=False):
         pass
 
+    @abstractmethod
+    def load_state(self, suffix, state):
+        pass
+
     def get_name(self, suffix):
         return os.path.join(self.args.checkpoint_folder, f"{suffix}.{self.ext}")
 
@@ -248,7 +252,7 @@ class BaseCheckpointing(ABC):
         return start_layer, end_layer
     
     @abstractmethod
-    def checkpoint(self, epoch, step_number):
+    def save_checkpoint(self, epoch, step_number):
         my_rank = DLIOMPI.get_instance().rank()
         start_layer, end_layer = self.get_layer_index()
         # create a specifc folder for each step
@@ -262,7 +266,7 @@ class BaseCheckpointing(ABC):
                 self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states", state=self.optimization_state, fsync = self.args.checkpoint_fsync)                
             
             if self.layer_state:
-                if self.args.zero_stage < 3:
+                if self.args.zero_stage < 3 and self.args.zero_stage > 0:
                     # if pp is turned on, we assume that the model is sharded across the pipeline stages
                     if self.data_parallelism_rank == 0 and self.args.num_layers > 0:
                         # in this case, model is saved layer by layer
@@ -275,6 +279,35 @@ class BaseCheckpointing(ABC):
                     # in this case, model is sharded across the data parallel ranks
                     assert(self.args.pipeline_parallelism == 1)
                     self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_model_states", state=self.layer_state, fsync = self.args.checkpoint_fsync)
+
+    @abstractmethod
+    def load_checkpoint(self, epoch, step_number):
+        my_rank = (DLIOMPI.get_instance().rank() + self.args.checkpoint_load_rank_shift) % DLIOMPI.get_instance().size()
+        start_layer, end_layer = self.get_layer_index()
+        # create a specifc folder for each step
+        checkpoint_id = f"global_epoch{epoch}_step{step_number}"
+        self.checkpoint_storage.create_node(checkpoint_id, exist_ok=True)
+        if self.rank_to_checkpoint == my_rank:
+            if self.model_state:
+                self.load_state(suffix=f"{checkpoint_id}/model_states-{my_rank}", state=self.model_state, fsync = self.args.checkpoint_fsync)
+
+            if self.optimization_state:
+                self.load_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states", state=self.optimization_state)                
+            
+            if self.layer_state:
+                if self.args.zero_stage < 3 and self.args.zero_stage > 0:
+                    # if pp is turned on, we assume that the model is sharded across the pipeline stages
+                    if self.data_parallelism_rank == 0 and self.args.num_layers > 0:
+                        # in this case, model is saved layer by layer
+                        if self.args.pipeline_parallelism > 1:
+                            for layer_index in range(start_layer, end_layer + 1):
+                                self.load_state(suffix=f"{checkpoint_id}/layer_{layer_index}-model_{self.model_parallelism_rank}_model_states", state=self.layer_state[str(layer_index)])
+                        else:
+                            self.load_state(suffix=f"{checkpoint_id}/model_{self.model_parallelism_rank}_model_states", state=self.layer_state, fsync = self.args.checkpoint_fsync)
+                else:
+                    # in this case, model is sharded across the data parallel ranks
+                    assert(self.args.pipeline_parallelism == 1)
+                    self.load_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_model_states", state=self.layer_state)
 
     @abstractmethod
     def finalize(self):

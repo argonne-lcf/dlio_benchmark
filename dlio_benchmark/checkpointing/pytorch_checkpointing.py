@@ -71,8 +71,17 @@ class PyTorchCheckpointing(BaseCheckpointing):
                 os.fsync(f.fileno())
 
     @dlp.log
-    def checkpoint(self, epoch, step_number):
-        super().checkpoint(epoch, step_number)
+    def load_state(self, suffix, state):
+        name = self.get_name(suffix)
+        state = torch.load(name)
+
+    @dlp.log
+    def save_checkpoint(self, epoch, step_number):
+        super().save_checkpoint(epoch, step_number)
+
+    @dlp.log
+    def load_checkpoint(self, epoch, step_number):
+        super().load_checkpoint(epoch, step_number)
 
     @dlp.log
     def finalize(self):

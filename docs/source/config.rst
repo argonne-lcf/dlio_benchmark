@@ -404,6 +404,9 @@ checkpoint
    * - num_checkpoints
      - -1
      - How many checkpoints to write; this parameter is used only when workflow.train=False
+   * - recovery_after_steps:
+     - -1
+     - How many checkpoints to write before doing read for recovery. -1 means never doing recovery. 
 
 .. note::
    

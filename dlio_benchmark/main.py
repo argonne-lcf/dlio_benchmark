@@ -251,11 +251,16 @@ class DLIOBenchmark(object):
         for i in range(self.args.num_checkpoints):
             self.stats.start_block(epoch, block)
             # We still make sure that the checkpoint is done after allreduce; therefore, allreduce here is required. 
-            self.comm.barrier()
-            self.stats.start_ckpt(epoch, block, overall_step)
-            self.checkpointing_mechanism.checkpoint(epoch, overall_step)
             self.framework.compute(None, epoch, block_step, self.args.time_between_checkpoints)
-            self.stats.end_ckpt(epoch, block)
+            self.comm.barrier()
+            self.stats.start_save_ckpt(epoch, block, overall_step)
+            self.checkpointing_mechanism.save_checkpoint(epoch, overall_step)
+            self.stats.end_save_ckpt(epoch, block)
+            if self.args.checkpoint_recovery_after_steps > 0 and (i + 1) % self.args.checkpoint_recovery_after_steps==0:
+                self.comm.barrier()
+                self.stats.start_load_ckpt(epoch, block, overall_step)
+                self.checkpointing_mechanism.load_checkpoint(epoch, overall_step)
+                self.stats.end_load_ckpt(epoch, block)
             block = block+1
             overall_step = overall_step + 1
     @dlp.log
@@ -294,9 +299,9 @@ class DLIOBenchmark(object):
             if self.do_checkpoint and (
                     self.steps_between_checkpoints >= 0) and overall_step == self.next_checkpoint_step:
                 self.stats.end_block(epoch, block, block_step)
-                self.stats.start_ckpt(epoch, block, overall_step)
-                self.checkpointing_mechanism.checkpoint(epoch, overall_step)
-                self.stats.end_ckpt(epoch, block)
+                self.stats.start_save_ckpt(epoch, block, overall_step)
+                self.checkpointing_mechanism.save_checkpoint(epoch, overall_step)
+                self.stats.end_save_ckpt(epoch, block)
                 block += 1
                 # Reset the number of steps after every checkpoint to mark the start of a new block
                 block_step = 1
@@ -308,10 +313,9 @@ class DLIOBenchmark(object):
             t0 = time()
         if self.do_checkpoint and (self.steps_between_checkpoints < 0) and (epoch == self.next_checkpoint_epoch):
             self.stats.end_block(epoch, block, block_step)
-            self.stats.start_ckpt(epoch, block, overall_step)
+            self.stats.start_save_ckpt(epoch, block, overall_step)
             self.checkpointing_mechanism.checkpoint(epoch, overall_step)
-            self.comm.barrier()
-            self.stats.end_ckpt(epoch, block)
+            self.stats.end_save_ckpt(epoch, block)
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
         return overall_step
 
