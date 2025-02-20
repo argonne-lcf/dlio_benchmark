@@ -69,7 +69,7 @@ class TFCheckpointing(BaseCheckpointing):
         checkpoint.save(name)
 
     @dlp.log
-    def save_state(self, suffix, state):
+    def load_state(self, suffix, state):
         name = self.get_name(suffix)
         state = tf.train.load_checkpoint(name)
         
