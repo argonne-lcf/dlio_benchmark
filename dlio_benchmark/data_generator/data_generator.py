@@ -48,6 +48,7 @@ class DataGenerator(ABC):
         self.num_subfolders_train = self._args.num_subfolders_train
         self.num_subfolders_eval = self._args.num_subfolders_eval
         self.format = self._args.format
+        self.logger = self._args.logger
         self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root,
                                                                         self._args.framework)
     def get_dimension(self, num_samples=1):
@@ -74,9 +75,9 @@ class DataGenerator(ABC):
             if self.num_subfolders_eval > 1: 
                 for i in range(self.num_subfolders_eval):
                     self.storage.create_node(self.data_dir + f"/valid/{add_padding(i, nd_sf_eval)}", exist_ok=True)
-            logging.info(f"{utcnow()} Generating dataset in {self.data_dir}/train and {self.data_dir}/valid")
-            logging.info(f"{utcnow()} Number of files for training dataset: {self.num_files_train}")
-            logging.info(f"{utcnow()} Number of files for validation dataset: {self.num_files_eval}")
+            self.logger.info(f"{utcnow()} Generating dataset in {self.data_dir}/train and {self.data_dir}/valid")
+            self.logger.info(f"{utcnow()} Number of files for training dataset: {self.num_files_train}")
+            self.logger.info(f"{utcnow()} Number of files for validation dataset: {self.num_files_eval}")
 
 
         DLIOMPI.get_instance().comm().barrier()

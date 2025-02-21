@@ -37,30 +37,30 @@ try:
     from dftracer.logger import dftracer as PerfTrace, dft_fn as Profile, DFTRACER_ENABLE as DFTRACER_ENABLE
 except:
     class Profile(object):
-        def __init__(self,  **kwargs):
+        def __init__(self,  cat, name=None, epoch=None, step=None, image_idx=None, image_size=None):
             return 
-        def log(self,  **kwargs):
-            return 
-        def log_init(self,  **kwargs):
-            return 
-        def iter(self,  **kwargs):
-            return 
+        def log(self,  func):
+            return func
+        def log_init(self,  func):
+            return func
+        def iter(self,  func, iter_name="step"):
+            return func
         def __enter__(self):
             return
-        def __exit__(self, **kwargs):
+        def __exit__(self, type, value, traceback):
             return
-        def update(self, **kwargs):
+        def update(self, epoch=None, step=None, image_idx=None, image_size=None, args={}):
             return
         def flush(self):
             return
         def reset(self):
             return
-        def log_static(self, **kwargs):
-            return
+        def log_static(self, func):
+            return func
     class dftracer(object):
         def __init__(self,):
             self.type = None
-        def initialize_log(self, **kwargs):
+        def initialize_log(self, logfile=None, data_dir=None, process_id=-1):
             return
         def get_time(self):
             return
@@ -68,7 +68,7 @@ except:
             return
         def exit_event(self):
             return
-        def log_event(self,  **kwargs):
+        def log_event(self, name, cat, start_time, duration, string_args=None):
             return
         def finalize(self):
             return
@@ -78,6 +78,32 @@ except:
 
 LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
+OUTPUT_LEVEL = 35
+logging.addLevelName(OUTPUT_LEVEL, "OUTPUT")
+def output(self, message, *args, **kwargs):
+    if self.isEnabledFor(OUTPUT_LEVEL):
+        self._log(OUTPUT_LEVEL, message, args, **kwargs)
+logging.Logger.output = output
+
+class DLIOLogger:
+    __instance = None
+
+    def __init__(self):
+        console_handler = logging.StreamHandler()
+        self.logger = logging.getLogger("DLIO")
+        #self.logger.setLevel(logging.DEBUG)
+        if DLIOLogger.__instance is not None:
+            raise Exception(f"Class {self.classname()} is a singleton!")
+        else:
+            DLIOLogger.__instance = self
+    @staticmethod
+    def get_instance():
+        if DLIOLogger.__instance is None:
+            DLIOLogger()
+        return DLIOLogger.__instance.logger
+    @staticmethod
+    def reset():
+        DLIOLogger.__instance = None
 # MPI cannot be initialized automatically, or read_thread spawn/forkserver
 # child processes will abort trying to open a non-existant PMI_fd file.
 import mpi4py
@@ -231,7 +257,6 @@ def measure_performance(func):
         func(*args, **kwargs)
         current, peak = tracemalloc.get_traced_memory()
         finish_time = perf_counter()
-        logging.basicConfig(format='%(asctime)s %(message)s')
 
         if DLIOMPI.get_instance().rank() == 0:
             s = f'Resource usage information \n[PERFORMANCE] {"=" * 50}\n'
@@ -239,7 +264,7 @@ def measure_performance(func):
             s += f'[PERFORMANCE] Peak memory usage:\t {peak / 10 ** 6:.6f} MB \n'
             s += f'[PERFORMANCE] Time elapsed:\t\t {finish_time - start_time:.6f} s\n'
             s += f'[PERFORMANCE] {"=" * 50}\n'
-            logging.info(s)
+            DLIOLogger.get_instance().info(s)
         tracemalloc.stop()
 
     return wrapper
@@ -254,9 +279,9 @@ def progress(count, total, status=''):
     percents = round(100.0 * count / float(total), 1)
     bar = '=' * filled_len + ">" + '-' * (bar_len - filled_len)
     if DLIOMPI.get_instance().rank() == 0:
-        logging.info("\r[INFO] {} {}: [{}] {}% {} of {} ".format(utcnow(), status, bar, percents, count, total))
+        DLIOLogger.get_instance().info("\r[INFO] {} {}: [{}] {}% {} of {} ".format(utcnow(), status, bar, percents, count, total))
         if count == total:
-            logging.info("")
+            DLIOLogger.get_instance().info("")
         os.sys.stdout.flush()
 
 
@@ -309,7 +334,7 @@ def get_trace_name(output_folder, use_pid=False):
     if use_pid:
         val = f"-{os.getpid()}"
     return f"{output_folder}/trace-{DLIOMPI.get_instance().rank()}-of-{DLIOMPI.get_instance().size()}{val}.pfw"
-
+        
 def sleep(config):
     sleep_time = 0.0
     if isinstance(config, dict) and len(config) > 0:
@@ -336,4 +361,3 @@ def sleep(config):
     if sleep_time > 0.0:
         base_sleep(sleep_time)
     return sleep_time
-

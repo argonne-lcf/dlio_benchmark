@@ -27,7 +27,7 @@ from dlio_benchmark.common.enumerations import Shuffle, DataLoaderType, DatasetT
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.utils.utility import utcnow
-from dlio_benchmark.utils.utility import Profile
+from dlio_benchmark.utils.utility import Profile, DLIOLogger
 import os
 
 dlp = Profile(MODULE_DATA_LOADER)
@@ -58,7 +58,7 @@ class DaliIndexDataset(object):
             self.indices = list(range(start_sample, end_sample + 1))
         self.samples_per_worker = len(self.indices)
     def __call__(self, sample_info):
-        logging.debug(
+        DLIOLogger.get_instance().debug(
             f"{utcnow()} Reading {sample_info.idx_in_epoch} out of {self.samples_per_worker} by worker {self.worker_index} with {self.indices} indices")
         step = sample_info.iteration       
         if step >= self.total_num_steps or sample_info.idx_in_epoch >= self.samples_per_worker:
@@ -130,12 +130,12 @@ class DaliDataLoader(BaseDataLoader):
             pipe.build()
         for pipe in self.pipelines:
             pipe.schedule_run()            
-        logging.debug(f"{utcnow()} Starting {num_threads} pipelines by {self._args.my_rank} rank ")
+        self.logger.debug(f"{utcnow()} Starting {num_threads} pipelines by {self._args.my_rank} rank ")
 
     @dlp.log
     def next(self):
         super().next()
-        logging.debug(f"{utcnow()} Iterating pipelines by {self._args.my_rank} rank ")
+        self.logger.debug(f"{utcnow()} Iterating pipelines by {self._args.my_rank} rank ")
         step = 0
         self.read(True)
         while step < self.num_samples // self.batch_size:
@@ -144,7 +144,7 @@ class DaliDataLoader(BaseDataLoader):
                     outputs = pipe.share_outputs()
                 except StopIteration:
                     return
-                logging.debug(f"{utcnow()} Output batch {step} {len(outputs)}")
+                self.logger.debug(f"{utcnow()} Output batch {step} {len(outputs)}")
                 yield outputs
                 step += 1
                 dlp.update(step = step)

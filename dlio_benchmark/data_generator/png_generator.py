@@ -46,12 +46,12 @@ class PNGGenerator(DataGenerator):
             dim1 = dim[2*i]
             dim2 = dim[2*i+1]
             if self.my_rank==0:
-                logging.debug(f"{utcnow()} Dimension of images: {dim1} x {dim2}")
+                self.logger.debug(f"{utcnow()} Dimension of images: {dim1} x {dim2}")
             out_path_spec = self.storage.get_uri(self._file_list[i])
             records = np.random.randint(255, size=(dim1, dim2), dtype=np.uint8)
             img = im.fromarray(records)
             if self.my_rank == 0 and i % 100 == 0:
-                logging.info(f"Generated file {i}/{self.total_files_to_generate}")
+                self.logger.info(f"Generated file {i}/{self.total_files_to_generate}")
             progress(i+1, self.total_files_to_generate, "Generating PNG Data")
             prev_out_spec = out_path_spec
             img.save(out_path_spec, format='PNG', bits=8)

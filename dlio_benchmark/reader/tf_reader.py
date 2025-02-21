@@ -81,12 +81,12 @@ class TFReader(FormatReader):
 
     @dlp.log
     def next(self):
-        logging.debug(f"{utcnow()} Reading {len(self._file_list)} files thread {self.thread_index} rank {self._args.my_rank}")
+        self.logger.debug(f"{utcnow()} Reading {len(self._file_list)} files thread {self.thread_index} rank {self._args.my_rank}")
         filenames = tf.data.Dataset.list_files(self._file_list, shuffle=False)
         # sharding in the file list if we have enought files. 
         if (len(self._file_list) >= self._args.comm_size):
             filenames = filenames.shard(num_shards=self._args.comm_size, index=self._args.my_rank)
-            logging.debug(f"{utcnow()} shard {filenames} files index {self._args.my_rank} number {self._args.comm_size}")
+            self.logger.debug(f"{utcnow()} shard {filenames} files index {self._args.my_rank} number {self._args.comm_size}")
         
         self._dataset = tf.data.TFRecordDataset(filenames=filenames, buffer_size=self._args.transfer_size,
                                                 num_parallel_reads=self._args.read_threads)

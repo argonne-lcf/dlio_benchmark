@@ -31,7 +31,7 @@ class CheckpointingFactory(object):
         _args = ConfigArguments.get_instance()
         if _args.checkpoint_mechanism_class is not None:
             if DLIOMPI.get_instance().rank() == 0:
-                logging.info(f"{utcnow()} Running DLIO with custom checkpointing mechanism "
+                _args.logger.info(f"{utcnow()} Running DLIO with custom checkpointing mechanism "
                              f"class {_args.checkpoint_mechanism_class.__name__}")
             return _args.checkpoint_mechanism_class.get_instance()
         elif checkpoint_mechanism_type == CheckpointMechanismType.TF_SAVE:

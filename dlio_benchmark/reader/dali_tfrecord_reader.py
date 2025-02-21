@@ -58,7 +58,7 @@ class DaliTFRecordReader(FormatReader):
         for file in self._file_list:
             filename = os.path.basename(file)
             index_files.append(f"{index_folder}/{filename}.idx")
-        logging.info(
+        self.logger.info(
             f"{utcnow()} Reading {len(self._file_list)} files rank {self._args.my_rank}")
         random_shuffle = False
         seed = -1

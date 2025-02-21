@@ -45,7 +45,7 @@ class SyntheticGenerator(DataGenerator):
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
             out_path_spec = self.storage.get_uri(self._file_list[i])
             if self.my_rank == 0 and i % 100 == 0:
-                logging.info(f"Generated file {i}/{self.total_files_to_generate}")
+                self.logger.info(f"Generated file {i}/{self.total_files_to_generate}")
             progress(i+1, self.total_files_to_generate, "Generating Synethic Data (Empty)")
             prev_out_spec = out_path_spec
             with open(out_path_spec, 'w') as f:

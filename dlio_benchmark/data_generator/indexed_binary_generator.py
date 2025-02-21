@@ -54,7 +54,7 @@ class IndexedBinaryGenerator(DataGenerator):
         samples_processed = 0
         total_samples = self.total_files_to_generate * self.num_samples
         dim = self.get_dimension(self.total_files_to_generate)
-        # logging.info(dim)
+        # self.logger.info(dim)
         if self.total_files_to_generate <= self.comm_size:
             # Use collective I/O
             # we need even number os samples for collective I/O
@@ -70,7 +70,7 @@ class IndexedBinaryGenerator(DataGenerator):
                 out_path_spec_sz_idx = self.index_file_path_size(out_path_spec)
                 
                 if self.my_rank == 0:
-                    logging.info(f"{utcnow()} Starting metadata generation. ")
+                    self.logger.info(f"{utcnow()} Starting metadata generation. ")
                 fh_off = MPI.File.Open(comm, out_path_spec_off_idx, amode)
                 fh_sz = MPI.File.Open(comm, out_path_spec_sz_idx, amode)
                 off_type = np.uint64
@@ -90,13 +90,13 @@ class IndexedBinaryGenerator(DataGenerator):
                 fh_off.Close()
                 fh_sz.Close()
                 if self.my_rank == 0:
-                    logging.info(f"{utcnow()} Starting Sample generation. ")
+                    self.logger.info(f"{utcnow()} Starting Sample generation. ")
                 
                 fh = MPI.File.Open(comm, out_path_spec, amode)
                 samples_per_loop = int(MB * 16 / sample_size)
 
                 for sample_index in range(self.my_rank*samples_per_rank, samples_per_rank*(self.my_rank+1), samples_per_loop):
-                    #logging.info(f"{utcnow()} rank {self.my_rank} writing {sample_index} * {samples_per_loop} for {samples_per_rank} samples")
+                    #self.logger.info(f"{utcnow()} rank {self.my_rank} writing {sample_index} * {samples_per_loop} for {samples_per_rank} samples")
                     records = records = np.random.randint(255, size=sample_size*samples_per_loop, dtype=np.uint8)
                     offset = sample_index * sample_size
                     fh.Write_at_all(offset, records)

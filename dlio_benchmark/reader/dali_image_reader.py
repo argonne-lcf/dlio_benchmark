@@ -56,7 +56,7 @@ class DaliImageReader(FormatReader):
 
     @dlp.log
     def pipeline(self):
-        logging.debug(
+        self.logger.debug(
             f"{utcnow()} Reading {len(self._file_list)} files rank {self._args.my_rank}")
         random_shuffle = False
         seed = -1
