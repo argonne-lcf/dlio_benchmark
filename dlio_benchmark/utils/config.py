@@ -26,10 +26,10 @@ from typing import Any, Dict, List, ClassVar
 
 from dlio_benchmark.common.constants import MODULE_CONFIG
 from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
-    FrameworkType, LogLevel, \
+    FrameworkType, \
     DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointLocationType, CheckpointMechanismType
 from dlio_benchmark.utils.utility import DLIOMPI, get_trace_name, utcnow
-from dlio_benchmark.utils.utility import Profile, PerfTrace, DFTRACER_ENABLE, DLIOLogger
+from dlio_benchmark.utils.utility import Profile, PerfTrace, DFTRACER_ENABLE, DLIOLogger, OUTPUT_LEVEL
 from dataclasses import dataclass
 from omegaconf import OmegaConf, DictConfig
 import math
@@ -66,7 +66,7 @@ class ConfigArguments:
     seed_change_epoch: bool = True
     generate_data: bool = False
     generate_only: bool = False
-    log_level: int = logging.WARNING
+    log_level: int = OUTPUT_LEVEL
     data_folder: str = "./data/"
     output_folder: str = None
     checkpoint_folder: str = "./checkpoints/"
