@@ -1,4 +1,5 @@
-model: dlrm
+model: 
+  name: dlrm
 
 framework: pytorch
 
@@ -13,7 +14,7 @@ dataset:
   num_files_train: 1
   num_files_eval: 1
   num_samples_per_file: 4195198976
-  record_length: 327680
+  record_length_bytes: 327680
   keep_files: True
   eval_num_samples_per_file: 91681240
 

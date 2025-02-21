@@ -23,6 +23,24 @@ from dlio_benchmark.utils.utility import Profile
 from dlio_benchmark.common.constants import MODULE_CHECKPOINT
 from dlio_benchmark.common.enumerations import CheckpointLocationType
 from dlio_benchmark.utils.utility import DLIOMPI
+import logging
+
+def get_torch_datatype(datatype):
+    if datatype == "fp32":
+        return torch.float32
+    elif datatype == "fp16":
+        return torch.float16
+    elif datatype == "fp64":
+        return torch.float64
+    elif datatype == "int8":
+        return torch.int8
+    elif datatype == "uint8":
+        return torch.uint8
+    elif datatype == "bf16": # bfloat16
+        return torch.bfloat16
+    else:
+        raise Exception(f"Invalid datatype {datatype}")
+    
 
 dlp = Profile(MODULE_CHECKPOINT)
 
@@ -42,18 +60,32 @@ class PyTorchCheckpointing(BaseCheckpointing):
         super().__init__("pt")
 
     @dlp.log
-    def get_tensor(self, size):
-        return torch.randint(high=1, size=(size,), dtype=torch.int8)
+    def get_tensor(self, length, datatype="int8"):
+        return torch.ones(length, dtype=get_torch_datatype(datatype))
 
     @dlp.log
-    def save_state(self, suffix, state):
+    def save_state(self, suffix, state, fsync = False):
         name = self.get_name(suffix)
         with open(name, "wb") as f:
             torch.save(state, f)
+            if fsync: 
+                os.fsync(f.fileno())
 
     @dlp.log
-    def checkpoint(self, epoch, step_number):
-        super().checkpoint(epoch, step_number)
+    def load_state(self, suffix, state):
+        name = self.get_name(suffix)
+        state = dict() # clear up
+        state = torch.load(name)
+        logging.debug(f"checkpoint state loaded: {state}")
+        assert(len(state.keys())>0)
+
+    @dlp.log
+    def save_checkpoint(self, epoch, step_number):
+        super().save_checkpoint(epoch, step_number)
+
+    @dlp.log
+    def load_checkpoint(self, epoch, step_number):
+        super().load_checkpoint(epoch, step_number)
 
     @dlp.log
     def finalize(self):

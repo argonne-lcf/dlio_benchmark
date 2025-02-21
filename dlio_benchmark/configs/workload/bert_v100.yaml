@@ -1,4 +1,6 @@
-model: bert
+model: 
+  name: bert
+  model_size_bytes: 4034713312
 
 framework: tensorflow
 
@@ -13,7 +15,7 @@ dataset:
   format: tfrecord
   num_files_train: 500
   num_samples_per_file: 313532
-  record_length: 2500
+  record_length_bytes: 2500
   file_prefix: part
 
 train:
@@ -33,4 +35,3 @@ reader:
 checkpoint:
   checkpoint_folder: checkpoints/bert
   steps_between_checkpoints: 250
-  model_size: 4034713312

@@ -24,6 +24,22 @@ from dlio_benchmark.common.constants import MODULE_CHECKPOINT
 from dlio_benchmark.common.enumerations import CheckpointLocationType
 from dlio_benchmark.utils.utility import DLIOMPI
 
+def get_tf_datatype(datatype):
+    if datatype == "fp32":
+        return tf.float32
+    elif datatype == "fp16":
+        return tf.float16
+    elif datatype == "fp64":
+        return tf.float64
+    elif datatype == "bf16": # bfloat16
+        return tf.bfloat16
+    elif datatype == "int8":
+        return tf.int8
+    elif datatype == "uint8":
+        return tf.uint8
+    else:
+        raise Exception(f"Invalid datatype {datatype}")
+
 dlp = Profile(MODULE_CHECKPOINT)
 
 
@@ -42,19 +58,31 @@ class TFCheckpointing(BaseCheckpointing):
         super().__init__("pb")
 
     @dlp.log
-    def get_tensor(self, size):
-        return tf.random.uniform((int(size / 4),), maxval=100, dtype=tf.dtypes.int32)
+    def get_tensor(self, length, datatype="int8"):
+        return tf.ones((length), dtype=get_tf_datatype(datatype))
 
     @dlp.log
-    def save_state(self, suffix, state):
+    def save_state(self, suffix, state, fsync = False):
         name = self.get_name(suffix)
         checkpoint = tf.train.Checkpoint()
         checkpoint.mapped = state
         checkpoint.save(name)
 
     @dlp.log
-    def checkpoint(self, epoch, step_number):
-        super().checkpoint(epoch, step_number)
+    def load_state(self, suffix, state):
+        name = self.get_name(suffix)
+        state = dict() # clear up
+        state = tf.train.load_checkpoint(name)
+        logging.debug(f"checkpoint state loaded: {state}")
+        assert(len(state.keys)!=0)
+        
+    @dlp.log
+    def save_checkpoint(self, epoch, step_number):
+        super().save_checkpoint(epoch, step_number)
+
+    @dlp.log
+    def load_checkpoint(self, epoch, step_number):
+        super().load_checkpoint(epoch, step_number)
 
     @dlp.log
     def finalize(self):
