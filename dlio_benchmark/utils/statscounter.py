@@ -421,10 +421,10 @@ class StatsCounter(object):
     def save_data(self):
         # Dump statistic counters to files for postprocessing
         # Overall stats
+        with open(os.path.join(self.output_folder, f'{self.my_rank}_per_epoch_stats.json'), 'w') as outfile:
+            json.dump(self.per_epoch_stats, outfile, indent=4)
+            outfile.flush()
         if self.my_rank == 0:
-            with open(os.path.join(self.output_folder, 'per_epoch_stats.json'), 'w') as outfile:
-                json.dump(self.per_epoch_stats, outfile, indent=4)
-                outfile.flush()
             with open(os.path.join(self.output_folder, 'summary.json'), 'w') as outfile:
                 json.dump(self.summary, outfile, indent=4)
         self.output['hostname'] = socket.gethostname()

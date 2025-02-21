@@ -23,6 +23,7 @@ from dlio_benchmark.utils.utility import Profile
 from dlio_benchmark.common.constants import MODULE_CHECKPOINT
 from dlio_benchmark.common.enumerations import CheckpointLocationType
 from dlio_benchmark.utils.utility import DLIOMPI
+import logging
 
 def get_torch_datatype(datatype):
     if datatype == "fp32":
