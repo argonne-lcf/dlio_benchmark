@@ -10,9 +10,12 @@ model:
     pipeline: 64
     zero_stage: 1
   transformer: 
-    vocab_size: 128000
+    vocab_size: 128256
     hidden_size: 25872
     ffn_hidden_size: 98304
+    num_attention_heads: 32
+    num_kv_heads: 32
+
 
 framework: pytorch
 
@@ -37,7 +40,7 @@ reader:
 
 train:
   epochs: 3
-  computation_time: 5 # 2.44 sec per step
+  computation_time: 5 # This is not actual measurement. Just set an interval so that checkpoint every 5 seconds
   total_training_steps: 5
 
 

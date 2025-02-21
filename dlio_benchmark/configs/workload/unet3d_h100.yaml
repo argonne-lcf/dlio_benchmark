@@ -1,5 +1,7 @@
 model: 
   name: unet3d
+  type: cnn
+  model_size: 499153191
 
 framework: pytorch
 
@@ -32,7 +34,6 @@ checkpoint:
   checkpoint_folder: checkpoints/unet3d
   checkpoint_after_epoch: 5
   epochs_between_checkpoints: 2
-  model_size: 499153191
 
 metric:
   au: 0.90
