@@ -89,14 +89,13 @@ class DLIOLogger:
     __instance = None
 
     def __init__(self):
-        self.logger = None
+        console_handler = logging.StreamHandler()
+        self.logger = logging.getLogger("DLIO")
+        #self.logger.setLevel(logging.DEBUG)
         if DLIOLogger.__instance is not None:
             raise Exception(f"Class {self.classname()} is a singleton!")
         else:
             DLIOLogger.__instance = self
-        console_handler = logging.StreamHandler()
-        self.logger = logging.getLogger("DLIO")
-        self.logger.setLevel(logging.WARNING)
     @staticmethod
     def get_instance():
         if DLIOLogger.__instance is None:

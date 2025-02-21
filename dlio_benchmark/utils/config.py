@@ -66,6 +66,7 @@ class ConfigArguments:
     seed_change_epoch: bool = True
     generate_data: bool = False
     generate_only: bool = False
+    log_level: int = logging.WARNING
     data_folder: str = "./data/"
     output_folder: str = None
     checkpoint_folder: str = "./checkpoints/"
@@ -90,7 +91,6 @@ class ConfigArguments:
     chunk_size: int = 0
     compression: Compression = Compression.NONE
     compression_level: int = 4
-    log_level: LogLevel = LogLevel.WARNING
     total_training_steps: int = -1
     do_eval: bool = False
     batch_size_eval: int = 1
@@ -173,22 +173,23 @@ class ConfigArguments:
         # Configure the logging library
         log_format_verbose = '[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'
         log_format_simple = '[%(levelname)s] %(message)s'
-        log_format_output = '[OUTPUT] %(message)s'
         # Set logging format to be simple only when debug_level <= INFO
         log_format = log_format_simple
         if 'DLIO_LOG_LEVEL' in os.environ:
-            self.log_level = LogLevel(os.environ["DLIO_LOG_LEVEL"])
-        if self.log_level == LogLevel.DEBUG:
-            log_level = logging.DEBUG
-            log_format = log_format_verbose 
-        elif self.log_level == LogLevel.WARNING:
-            log_level = logging.WARNING
-        elif self.log_level == LogLevel.ERROR:
-            log_level = logging.ERROR
-        elif self.log_level == LogLevel.INFO:
-            log_level = logging.INFO
+            log_level_str = os.environ["DLIO_LOG_LEVEL"]
         else:
+            log_level_str = "warning"
+        if log_level_str in ["info", "INFO"]:
+            log_level = logging.INFO
+        elif log_level_str in ["warning", "warn", "WARNING", "WARN"]:
             log_level = logging.WARNING
+        elif log_level_str in ["error", "ERROR"]:
+            log_level = logging.ERROR
+        elif log_level_str in ["critical", "CRITICAL"]:
+            log_level = logging.CRITICAL
+        elif log_level_str in ["DEBUG", "debug"]:
+            log_format = log_format_verbose
+            log_level = logging.DEBUG
         logging.basicConfig(
             force = True,
             level=log_level,
@@ -392,7 +393,7 @@ class ConfigArguments:
             end_sample = (self.my_rank + 1) * samples_per_proc - 1
             if end_sample > total_samples - 1:
                 end_sample = total_samples - 1
-            self.logger.debug(f"{self.my_rank} {start_sample} {end_sample}")
+            self.logger.debug(f"my_rank: {self.my_rank}, start_sample: {start_sample}, end_sample: {end_sample}")
             sample_list = np.arange(start_sample, end_sample + 1)
             if self.sample_shuffle is not Shuffle.OFF:
                 if self.seed_change_epoch:
