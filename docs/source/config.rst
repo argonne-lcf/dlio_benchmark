@@ -413,10 +413,11 @@ checkpoint
 
 .. note::
    
-   By default, if checkpoint is enabled, it will perform checkpointing from every epoch.
+   By default, if checkpoint is enabled, it will perform checkpointing from every epoch. One can perform multiple checkpoints within a single epoch, 
+   by setting ``steps_between_checkpoints``. If ``steps_between_checkpoints`` is set to be a positive number, ``epochs_between_checkpoints`` will be ignored.
 
-   One can perform multiple checkpoints within a single epoch, by setting ``steps_between_checkpoints``. If ``steps_between_checkpoints`` is set to be a positive number, ``epochs_between_checkpoints`` will be ignored.
-   
+   One can also perform checkpoint only benchmark, and do not do training, i.e., do no load dataset. To do this, one can set ``workflow.train = False``, and then set ``num_checkpoints``, ``time_between_checkpoints``, ``recovery_after_steps``, and ``recovery_rank_shift``. These four
+   is effective only in checkpoint only mode. 
 
 output
 ------------------
