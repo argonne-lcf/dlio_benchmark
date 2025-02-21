@@ -14,15 +14,17 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-import os
+import logging
 import math
+import os
+import time
 from abc import ABC, abstractmethod
 
 from dlio_benchmark.common.enumerations import CheckpointLocationType
 from dlio_benchmark.storage.storage_factory import StorageFactory
 from dlio_benchmark.utils.config import ConfigArguments
 from dlio_benchmark.utils.utility import DLIOMPI, utcnow
-import logging
+
 
 def get_datatype_size(datatype):
     if datatype == "int8" or datatype == "uint8":
@@ -137,9 +139,9 @@ class BaseCheckpointing(ABC):
             model_checkpoint_size /= self.data_parallelism
         self.checkpoint_size = model_checkpoint_size + optimizer_checkpoint_size
         if self.args.my_rank == 0:
-            logging.info(f"{utcnow()} Model size: {model_checkpoint_size} GB")
-            logging.info(f"{utcnow()} Optimizer state size: {optimizer_checkpoint_size} GB")
-            logging.info(f"{utcnow()} Total checkpoint size: {self.checkpoint_size} GB")
+            logging.info(f"{utcnow()} Model size: {model_checkpoint_size:.4f} GB")
+            logging.info(f"{utcnow()} Optimizer state size: {optimizer_checkpoint_size:.4f} GB")
+            logging.info(f"{utcnow()} Total checkpoint size: {self.checkpoint_size:.4f} GB")
 
     @abstractmethod
     def get_tensor(self, length, datatype="int8"):
@@ -262,10 +264,8 @@ class BaseCheckpointing(ABC):
             if self.model_state:
                 self.save_state(suffix=f"{checkpoint_id}/model_states-{my_rank}", state=self.model_state, fsync = self.args.checkpoint_fsync)
 
-            if self.optimization_state:
-                self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states", state=self.optimization_state, fsync = self.args.checkpoint_fsync)                
-            
             if self.layer_state:
+                start_time = time.time()
                 if self.args.zero_stage < 3 and self.args.zero_stage > 0:
                     # if pp is turned on, we assume that the model is sharded across the pipeline stages
                     if self.data_parallelism_rank == 0 and self.args.num_layers > 0:
@@ -279,6 +279,16 @@ class BaseCheckpointing(ABC):
                     # in this case, model is sharded across the data parallel ranks
                     assert(self.args.pipeline_parallelism == 1)
                     self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_model_states", state=self.layer_state, fsync = self.args.checkpoint_fsync)
+                save_model_time = time.time() - start_time
+                if my_rank == 0:
+                    logging.info(f"{utcnow()} Saved model checkpoint in {save_model_time:.4f} seconds")
+                
+            if self.optimization_state:
+                start_time = time.time()
+                self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states", state=self.optimization_state, fsync = self.args.checkpoint_fsync)
+                save_optimizer_time = time.time() - start_time
+                if my_rank == 0:
+                    logging.info(f"{utcnow()} Saved optimizer checkpoint in {save_optimizer_time:.4f} seconds")
 
     @abstractmethod
     def load_checkpoint(self, epoch, step_number):
@@ -288,13 +298,12 @@ class BaseCheckpointing(ABC):
         checkpoint_id = f"global_epoch{epoch}_step{step_number}"
         self.checkpoint_storage.create_node(checkpoint_id, exist_ok=True)
         if self.rank_to_checkpoint == my_rank:
+            
             if self.model_state:
                 self.load_state(suffix=f"{checkpoint_id}/model_states-{my_rank}", state=self.model_state, fsync = self.args.checkpoint_fsync)
-
-            if self.optimization_state:
-                self.load_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states", state=self.optimization_state)                
             
             if self.layer_state:
+                start_time = time.time()
                 if self.args.zero_stage < 3 and self.args.zero_stage > 0:
                     # if pp is turned on, we assume that the model is sharded across the pipeline stages
                     if self.data_parallelism_rank == 0 and self.args.num_layers > 0:
@@ -308,6 +317,16 @@ class BaseCheckpointing(ABC):
                     # in this case, model is sharded across the data parallel ranks
                     assert(self.args.pipeline_parallelism == 1)
                     self.load_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_model_states", state=self.layer_state)
+                load_model_time = time.time() - start_time
+                if my_rank == 0:
+                    logging.info(f"{utcnow()} Loaded model checkpoint in {load_model_time:.4f} seconds")
+                
+            if self.optimization_state:
+                start_time = time.time()
+                self.load_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states", state=self.optimization_state)   
+                load_optimizer_time = time.time() - start_time
+                if my_rank == 0:
+                    logging.info(f"{utcnow()} Loaded optimizer checkpoint in {load_optimizer_time:.4f} seconds")
 
     @abstractmethod
     def finalize(self):
