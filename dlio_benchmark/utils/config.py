@@ -29,7 +29,7 @@ from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle,
     FrameworkType, LogLevel, \
     DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointLocationType, CheckpointMechanismType
 from dlio_benchmark.utils.utility import DLIOMPI, get_trace_name, utcnow
-from dlio_benchmark.utils.utility import Profile, PerfTrace, DFTRACER_ENABLE
+from dlio_benchmark.utils.utility import Profile, PerfTrace, DFTRACER_ENABLE, DLIOLogger
 from dataclasses import dataclass
 from omegaconf import OmegaConf, DictConfig
 import math
@@ -148,10 +148,12 @@ class ConfigArguments:
         else:
             self.comm_size = DLIOMPI.get_instance().size()
             self.my_rank = DLIOMPI.get_instance().rank()
+            self.logger = DLIOLogger.get_instance()
             ConfigArguments.__instance = self
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+        DLIOLogger.reset()
         DLIOMPI.reset()  # in 'fork' case, clear parent's DLIOMPI
         DLIOMPI.get_instance().set_parent_values(self.my_rank, self.comm_size)
         ConfigArguments.__instance = self
@@ -164,12 +166,14 @@ class ConfigArguments:
         return ConfigArguments.__instance
 
     def configure_dlio_logging(self, is_child=False):
+        global DLIOLogger
         # with "multiprocessing_context=fork" the log file remains open in the child process
         if is_child and self.multiprocessing_context == "fork":
             return
         # Configure the logging library
         log_format_verbose = '[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'
         log_format_simple = '[%(levelname)s] %(message)s'
+        log_format_output = '[OUTPUT] %(message)s'
         # Set logging format to be simple only when debug_level <= INFO
         log_format = log_format_simple
         if 'DLIO_LOG_LEVEL' in os.environ:
@@ -185,10 +189,9 @@ class ConfigArguments:
             log_level = logging.INFO
         else:
             log_level = logging.WARNING
-
         logging.basicConfig(
+            force = True,
             level=log_level,
-            force=True,
             handlers=[
                 logging.FileHandler(self.logfile_path, mode="a", encoding='utf-8'),
                 logging.StreamHandler()
@@ -196,6 +199,7 @@ class ConfigArguments:
             format = log_format
             # logging's max timestamp resolution is msecs, we will pass in usecs in the message
         )
+
     def configure_dftracer(self, is_child=False, use_pid=False):
         # with "multiprocessing_context=fork" the profiler file remains open in the child process
         if is_child and self.multiprocessing_context == "fork":
@@ -204,7 +208,7 @@ class ConfigArguments:
         if DFTRACER_ENABLE:
             dlp_trace = get_trace_name(self.output_folder, use_pid)
             if DLIOMPI.get_instance().rank() == 0:
-                logging.info(f"{utcnow()} Profiling DLIO {dlp_trace}")
+                self.logger.info(f"{utcnow()} Profiling DLIO {dlp_trace}")
             return PerfTrace.initialize_log(logfile=dlp_trace,
                                                    data_dir=f"{os.path.abspath(self.data_folder)}:"
                                                             f"{self.data_folder}:./{self.data_folder}:"
@@ -242,7 +246,7 @@ class ConfigArguments:
             p = psutil.Process()
             cores_available = len(p.cpu_affinity())
             if cores_available < self.read_threads:
-                logging.warning(
+                self.logger.debug(
                     f"Running DLIO with {self.read_threads} threads for I/O but core available {cores_available} "
                     f"are insufficient and can lead to lower performance.")
         if self.num_layers % self.pipeline_parallelism != 0:
@@ -297,7 +301,7 @@ class ConfigArguments:
             for class_name, obj in inspect.getmembers(module):
                 if class_name == classname and issubclass(obj, BaseDataLoader):
                     if DLIOMPI.get_instance().rank() == 0:
-                        logging.info(f"Discovered custom data loader {class_name}")
+                        self.logger.info(f"Discovered custom data loader {class_name}")
                     self.data_loader_class = obj
                     break
         if self.checkpoint_mechanism_classname is not None:
@@ -307,7 +311,7 @@ class ConfigArguments:
             for class_name, obj in inspect.getmembers(module):
                 if class_name == classname and issubclass(obj, BaseCheckpointing):
                     if DLIOMPI.get_instance().rank() == 0:
-                        logging.info(f"Discovered custom checkpointing mechanism {class_name}")
+                        self.logger.info(f"Discovered custom checkpointing mechanism {class_name}")
                     self.checkpoint_mechanism_class = obj
                     break
         if self.reader_classname is not None:
@@ -317,7 +321,7 @@ class ConfigArguments:
             for class_name, obj in inspect.getmembers(module):
                 if class_name == classname and issubclass(obj, FormatReader):
                     if DLIOMPI.get_instance().rank() == 0:
-                        logging.info(f"Discovered custom data reader {class_name}")
+                        self.logger.info(f"Discovered custom data reader {class_name}")
                     self.reader_class = obj
                     break
         self.train_file_map = {self.my_rank : {}}
@@ -334,7 +338,7 @@ class ConfigArguments:
 
     @dlp.log
     def build_sample_map_iter(self, file_list, total_samples, epoch_number):
-        logging.debug(f"ranks {self.comm_size} threads {self.read_threads} tensors")
+        self.logger.debug(f"ranks {self.comm_size} threads {self.read_threads} tensors")
         
         num_files = len(file_list)
         samples_sum = 0
@@ -350,7 +354,7 @@ class ConfigArguments:
             if end_sample_index > total_samples - 1:
                 end_sample_index = total_samples - 1
             sample_list = np.arange(start_sample_index, end_sample_index + 1)
-            logging.debug(f"{self.my_rank} {start_sample_index} {end_sample_index}")
+            self.logger.debug(f"{self.my_rank} {start_sample_index} {end_sample_index}")
             if self.sample_shuffle is not Shuffle.OFF:
                 if self.seed_change_epoch:
                     np.random.seed(self.seed + epoch_number)
@@ -388,7 +392,7 @@ class ConfigArguments:
             end_sample = (self.my_rank + 1) * samples_per_proc - 1
             if end_sample > total_samples - 1:
                 end_sample = total_samples - 1
-            logging.debug(f"{self.my_rank} {start_sample} {end_sample}")
+            self.logger.debug(f"{self.my_rank} {start_sample} {end_sample}")
             sample_list = np.arange(start_sample, end_sample + 1)
             if self.sample_shuffle is not Shuffle.OFF:
                 if self.seed_change_epoch:
@@ -427,7 +431,7 @@ class ConfigArguments:
         global_train_sample_sum = DLIOMPI.get_instance().reduce(local_train_sample_sum)
         global_eval_sample_sum = DLIOMPI.get_instance().reduce(local_eval_sample_sum)        
         if self.my_rank == 0:
-            logging.info(f"total sample: train {global_train_sample_sum} eval {global_eval_sample_sum}")
+            self.logger.info(f"total sample: train {global_train_sample_sum} eval {global_eval_sample_sum}")
             if self.train_sample_index_sum != global_train_sample_sum:
                 raise Exception(f"Sharding of train samples are missing samples got {global_train_sample_sum} but expected {self.train_sample_index_sum}")
             

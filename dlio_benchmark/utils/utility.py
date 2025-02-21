@@ -78,6 +78,33 @@ except:
 
 LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
+OUTPUT_LEVEL = 35
+logging.addLevelName(OUTPUT_LEVEL, "OUTPUT")
+def output(self, message, *args, **kwargs):
+    if self.isEnabledFor(OUTPUT_LEVEL):
+        self._log(OUTPUT_LEVEL, message, args, **kwargs)
+logging.Logger.output = output
+
+class DLIOLogger:
+    __instance = None
+
+    def __init__(self):
+        self.logger = None
+        if DLIOLogger.__instance is not None:
+            raise Exception(f"Class {self.classname()} is a singleton!")
+        else:
+            DLIOLogger.__instance = self
+        console_handler = logging.StreamHandler()
+        self.logger = logging.getLogger("DLIO")
+        self.logger.setLevel(logging.WARNING)
+    @staticmethod
+    def get_instance():
+        if DLIOLogger.__instance is None:
+            DLIOLogger()
+        return DLIOLogger.__instance.logger
+    @staticmethod
+    def reset():
+        DLIOLogger.__instance = None
 # MPI cannot be initialized automatically, or read_thread spawn/forkserver
 # child processes will abort trying to open a non-existant PMI_fd file.
 import mpi4py
@@ -231,7 +258,6 @@ def measure_performance(func):
         func(*args, **kwargs)
         current, peak = tracemalloc.get_traced_memory()
         finish_time = perf_counter()
-        logging.basicConfig(format='%(asctime)s %(message)s')
 
         if DLIOMPI.get_instance().rank() == 0:
             s = f'Resource usage information \n[PERFORMANCE] {"=" * 50}\n'
@@ -239,7 +265,7 @@ def measure_performance(func):
             s += f'[PERFORMANCE] Peak memory usage:\t {peak / 10 ** 6:.6f} MB \n'
             s += f'[PERFORMANCE] Time elapsed:\t\t {finish_time - start_time:.6f} s\n'
             s += f'[PERFORMANCE] {"=" * 50}\n'
-            logging.info(s)
+            DLIOLogger.get_instance().info(s)
         tracemalloc.stop()
 
     return wrapper
@@ -254,9 +280,9 @@ def progress(count, total, status=''):
     percents = round(100.0 * count / float(total), 1)
     bar = '=' * filled_len + ">" + '-' * (bar_len - filled_len)
     if DLIOMPI.get_instance().rank() == 0:
-        logging.info("\r[INFO] {} {}: [{}] {}% {} of {} ".format(utcnow(), status, bar, percents, count, total))
+        DLIOLogger.get_instance().info("\r[INFO] {} {}: [{}] {}% {} of {} ".format(utcnow(), status, bar, percents, count, total))
         if count == total:
-            logging.info("")
+            DLIOLogger.get_instance().info("")
         os.sys.stdout.flush()
 
 
@@ -309,38 +335,6 @@ def get_trace_name(output_folder, use_pid=False):
     if use_pid:
         val = f"-{os.getpid()}"
     return f"{output_folder}/trace-{DLIOMPI.get_instance().rank()}-of-{DLIOMPI.get_instance().size()}{val}.pfw"
-
-
-class DLIOOutput:
-    __instance = None
-
-    def __init__(self):
-        self.fout = None
-        if DLIOOutput.__instance is not None:
-            raise Exception(f"Class {self.classname()} is a singleton!")
-        else:
-            DLIOOutput.__instance = self
-
-    @staticmethod
-    def get_instance():
-        if DLIOOutput.__instance is None:
-            DLIOOutput()
-        return DLIOOutput.__instance
-
-    @staticmethod
-    def reset():
-        DLIOOutput.__instance = None
-
-    @classmethod
-    def classname(cls):
-        return cls.__qualname__
-    def initialize(self, filename):
-        self.fout = open(filename, "w+")
-    def finalize(self):
-        self.fout.close()
-    def print(msg, flush=True):
-        print(msg, flush=flush)
-        DLIOOutput.__instance.fout.write(f"{msg}\n")
         
 def sleep(config):
     sleep_time = 0.0

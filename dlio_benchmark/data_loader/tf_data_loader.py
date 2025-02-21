@@ -25,7 +25,7 @@ from dlio_benchmark.common.enumerations import DataLoaderType, Shuffle, FormatTy
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.utils.utility import utcnow
-from dlio_benchmark.utils.utility import Profile
+from dlio_benchmark.utils.utility import Profile, DLIOLogger
 
 import numpy as np
 
@@ -38,7 +38,7 @@ class TensorflowDataset(tf.data.Dataset):
     def _generator(format_type, dataset_type, epoch_number, thread_index):
         format_type = format_type.decode('ascii')
         dataset_type = dataset_type.decode('ascii')
-        logging.debug(f"{utcnow()} format_type {format_type} dataset_type {dataset_type} tensors")
+        DLIOLogger.get_instance().debug(f"{utcnow()} format_type {format_type} dataset_type {dataset_type} tensors")
         reader = ReaderFactory.get_reader(type=FormatType.get_enum(format_type),
                                           dataset_type=DatasetType.get_enum(dataset_type),
                                           thread_index=thread_index,
@@ -69,7 +69,7 @@ class TFDataLoader(BaseDataLoader):
         read_threads = self._args.read_threads
         if read_threads == 0:
             if self._args.my_rank == 0:
-                logging.warning(
+                self.logger.warning(
                     f"{utcnow()} `read_threads` is set to be 0 for tf.data loader. We change it to 1")
             read_threads = 1
 

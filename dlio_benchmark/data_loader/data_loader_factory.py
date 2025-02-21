@@ -35,7 +35,7 @@ class DataLoaderFactory(object):
         _args = ConfigArguments.get_instance()
         if _args.data_loader_class is not None:
             if DLIOMPI.get_instance().rank() == 0:
-                logging.info(f"{utcnow()} Running DLIO with custom data loader class {_args.data_loader_class.__name__}")
+                _args.logger.info(f"{utcnow()} Running DLIO with custom data loader class {_args.data_loader_class.__name__}")
             return _args.data_loader_class(format_type, dataset_type, epoch)
         elif type == DataLoaderType.PYTORCH:
             from dlio_benchmark.data_loader.torch_data_loader import TorchDataLoader
