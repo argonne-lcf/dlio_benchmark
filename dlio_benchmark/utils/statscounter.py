@@ -16,7 +16,7 @@
 """
 from numpy import append
 from dlio_benchmark.utils.config import ConfigArguments
-from dlio_benchmark.utils.utility import utcnow, DLIOMPI
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI, DLIOLogger
 
 import os
 import json
@@ -46,6 +46,7 @@ class StatsCounter(object):
 
     def __init__(self):
         self.MPI = DLIOMPI.get_instance()
+        self.logger = DLIOLogger.get_instance()
         self.comm = self.MPI.comm()
         self.args = ConfigArguments.get_instance()
         self.my_rank = self.args.my_rank
@@ -75,7 +76,7 @@ class StatsCounter(object):
 
         if self.args.total_training_steps > 0:
             if self.args.total_training_steps > max_steps:
-                logging.error(f"Only have enough data for {max_steps} steps but {self.args.total_training_steps} wanted")
+                self.logger.error(f"Only have enough data for {max_steps} steps but {self.args.total_training_steps} wanted")
                 exit(-1)
             self.steps_override = True
             self.steps = self.args.total_training_steps
@@ -125,11 +126,11 @@ class StatsCounter(object):
         data_per_node = self.MPI.npernode()*self.args.num_samples_per_file * self.args.num_files_train//self.MPI.size()*self.args.record_length
         self.summary['data_size_per_host_GB'] = data_per_node/1024./1024./1024.
         if self.MPI.rank() == 0:
-            logging.info(f"Total amount of data each host will consume is {data_per_node/1024./1024./1024} GB; each host has {self.summary['host_memory_GB']} GB memory") 
+            self.logger.info(f"Total amount of data each host will consume is {data_per_node/1024./1024./1024} GB; each host has {self.summary['host_memory_GB'][0]} GB memory") 
         if self.summary['data_size_per_host_GB'] <= self.output['host_memory_GB']:
             self.output['potential_caching'] = 1
             if self.MPI.rank() == 0: 
-                logging.warning("The amount of dataset is smaller than the host memory; data might be cached after the first epoch. Increase the size of dataset to eliminate the caching effect!!!")
+                self.logger.warning(f"The amount of dataset ({self.summary['data_size_per_host_GB']:.4f} GB) is smaller than the host memory ({self.summary['host_memory_GB'][0]} GB); data might be cached after the first epoch. Increase the size of dataset to eliminate the caching effect!!!")
         potential_caching = []
         for i in range(self.MPI.size()//self.MPI.npernode()):
             if self.summary['host_memory_GB'][i]  <= self.summary['data_size_per_host_GB']:
@@ -175,7 +176,7 @@ class StatsCounter(object):
                 self.summary['metric']['eval_io_mean_MB_per_second'] = np.mean(eval_throughput)*self.record_size/1024./1024.
                 self.summary['metric']['eval_io_stdev_MB_per_second'] = np.std(eval_throughput)*self.record_size/1024./1024.
             if self.my_rank==0:
-                logging.info(f"{utcnow()} Saved outputs in {self.output_folder}")   
+                self.logger.output(f"{utcnow()} Saved outputs in {self.output_folder}")   
                 metric="Averaged metric over all epochs\n[METRIC] ==========================================================\n"
                 metric = metric + f"[METRIC] Number of Simulated Accelerators: {self.comm_size} \n"
                 metric = metric + f"[METRIC] Training Accelerator Utilization [AU] (%): {np.mean(train_au):.4f} ({np.std(train_au):.4f})\n"
@@ -187,14 +188,14 @@ class StatsCounter(object):
                     metric = metric + f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput):.6f} ({np.std(eval_throughput):.6f})\n"
                     metric = metric + f"[METRIC] Eval Throughput (MB/second): {np.mean(eval_throughput)*self.record_size/1024/1024:.6f} ({np.std(eval_throughput)*self.record_size/1024/1024:.6f})\n"
                 metric+="[METRIC] ==========================================================\n"
-                logging.info(metric)   
+                self.logger.output(metric)   
     def start_train(self, epoch):   
         if self.my_rank == 0:
             ts = utcnow()
             if self.steps_override:
-                logging.info(f"{ts} Starting epoch {epoch}: Overriding number of steps to {self.steps}.")
+                self.logger.output(f"{ts} Starting epoch {epoch}: Overriding number of steps to {self.steps}.")
             else:
-                logging.info(f"{ts} Starting epoch {epoch}: {self.steps} steps expected")
+                self.logger.output(f"{ts} Starting epoch {epoch}: {self.steps} steps expected")
             self.per_epoch_stats[epoch] = {
                 'start': ts,
             }
@@ -227,13 +228,13 @@ class StatsCounter(object):
             duration = '{:.2f}'.format(duration.total_seconds())
             self.per_epoch_stats[epoch]['end'] = ts
             self.per_epoch_stats[epoch]['duration'] = duration
-            logging.info(f"{ts} Ending epoch {epoch} - {np.sum(steps)} steps completed in {duration} s")
+            self.logger.output(f"{ts} Ending epoch {epoch} - {np.sum(steps)} steps completed in {duration} s")
 
     def start_eval(self, epoch):
         self.start_timestamp = time()
         if self.my_rank == 0:
             ts = utcnow()
-            logging.info(f"{ts} Starting eval - {self.steps_eval} steps expected")
+            self.logger.output(f"{ts} Starting eval - {self.steps_eval} steps expected")
             self.per_epoch_stats[epoch]['eval'] = {
                 'start': ts
             }
@@ -251,11 +252,11 @@ class StatsCounter(object):
             ts = utcnow()
             duration = pd.to_datetime(ts)- pd.to_datetime(self.per_epoch_stats[epoch]['eval']['start'])
             duration = '{:.2f}'.format(duration.total_seconds())
-            logging.info(f"{ts} Ending eval - {self.steps_eval} steps completed in {duration} s")
+            self.logger.output(f"{ts} Ending eval - {self.steps_eval} steps completed in {duration} s")
             self.per_epoch_stats[epoch]['eval']['end'] = ts
             self.per_epoch_stats[epoch]['eval']['duration'] = duration        
-            logging.info(f"{utcnow()} Epoch {epoch} [Eval] Accelerator Utilization [AU] (%): {self.output[epoch]['au']['eval']:.4f}")
-            logging.info(f"{utcnow()} Epoch {epoch} [Eval] Throughput (samples/second): {self.output[epoch]['throughput']['eval']*self.comm_size:.4f}")
+            self.logger.output(f"{utcnow()} Epoch {epoch} [Eval] Accelerator Utilization [AU] (%): {self.output[epoch]['au']['eval']:.4f}")
+            self.logger.output(f"{utcnow()} Epoch {epoch} [Eval] Throughput (samples/second): {self.output[epoch]['throughput']['eval']*self.comm_size:.4f}")
 
     def start_block(self, epoch, block):
         self.start_timestamp = time()
@@ -266,7 +267,7 @@ class StatsCounter(object):
         self.output[epoch]['compute'][f'block{block}'] = []
         if self.my_rank == 0:
             ts = utcnow()
-            logging.info(f"{ts} Starting block {block}")
+            self.logger.output(f"{ts} Starting block {block}")
             self.per_epoch_stats[epoch][f'block{block}'] = {
                 'start': ts
             }
@@ -284,17 +285,17 @@ class StatsCounter(object):
             ts = utcnow()
             duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch][f'block{block}']['start'])
             duration = '{:.2f}'.format(duration.total_seconds())
-            logging.info(f"{ts} Ending block {block} - {steps_taken} steps completed in {duration} s")
+            self.logger.output(f"{ts} Ending block {block} - {steps_taken} steps completed in {duration} s")
             self.per_epoch_stats[epoch][f'block{block}']['end'] = ts
             self.per_epoch_stats[epoch][f'block{block}']['duration'] = duration
-            logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Accelerator Utilization [AU] (%): {self.output[epoch]['au'][f'block{block}']:.4f}")
-            logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Throughput (samples/second): {self.output[epoch]['throughput'][f'block{block}']*self.comm_size:.4f}")
-            logging.info(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Computation time per step (second): {np.mean(self.output[epoch]['compute'][f'block{block}'][self.metric_start_step:self.metric_end_step+1]):.4f}+/-{np.std(self.output[epoch]['compute'][f'block{block}'][self.metric_start_step:self.metric_end_step+1]):.4f} (set value: {self.args.computation_time})")
+            self.logger.output(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Accelerator Utilization [AU] (%): {self.output[epoch]['au'][f'block{block}']:.4f}")
+            self.logger.output(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Throughput (samples/second): {self.output[epoch]['throughput'][f'block{block}']*self.comm_size:.4f}")
+            self.logger.output(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Computation time per step (second): {np.mean(self.output[epoch]['compute'][f'block{block}'][self.metric_start_step:self.metric_end_step+1]):.4f}+/-{np.std(self.output[epoch]['compute'][f'block{block}'][self.metric_start_step:self.metric_end_step+1]):.4f} (set value: {self.args.computation_time})")
 
     def start_ckpt(self, epoch, block, steps_taken):
         if self.my_rank == 0:
             ts = utcnow()
-            logging.info(f"{ts} Starting checkpoint {block} after total step {steps_taken} for epoch {epoch}")
+            self.logger.output(f"{ts} Starting checkpoint {block} after total step {steps_taken} for epoch {epoch}")
             self.per_epoch_stats[epoch][f'ckpt{block}'] = {
                 'start': ts
             }
@@ -304,7 +305,7 @@ class StatsCounter(object):
             ts = utcnow()
             duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch][f'ckpt{block}']['start'])
             duration = '{:.2f}'.format(duration.total_seconds())
-            logging.info(f"{ts} Ending checkpoint {block} for epoch {epoch}")
+            self.logger.output(f"{ts} Ending checkpoint {block} for epoch {epoch}")
 
             self.per_epoch_stats[epoch][f'ckpt{block}']['end'] = ts
             self.per_epoch_stats[epoch][f'ckpt{block}']['duration'] = duration
@@ -320,7 +321,7 @@ class StatsCounter(object):
             self.output[epoch]['load'][key].append(duration)
         else:
             self.output[epoch]['load'][key] = [duration]
-        logging.debug(f"{utcnow()} Rank {self.my_rank} step {step}: loaded {self.batch_size} samples in {duration:.4f} s")
+        self.logger.info(f"{utcnow()} Rank {self.my_rank} step {step}: loaded {self.batch_size} samples in {duration:.4f} s")
 
     def batch_processed(self, epoch, step, block):
         current_time = time()
@@ -333,7 +334,7 @@ class StatsCounter(object):
         else:
             self.output[epoch]['proc'] = [duration]
             self.output[epoch]['compute']=[self.computation_time]
-        logging.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size} samples in {duration:.4f}s)")
+        self.logger.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size} samples in {duration:.4f}s)")
 
     def compute_metrics_train(self, epoch, block):
         key = f"block{block}"
@@ -362,7 +363,7 @@ class StatsCounter(object):
     def eval_batch_loaded(self, epoch, step):
         duration = time() - self.start_time_loading
         self.output[epoch]['load']['eval'].append(duration)
-        logging.debug(f"{utcnow()} Rank {self.my_rank} step {step} loaded {self.batch_size_eval} samples in {duration:.4f} s")
+        self.logger.info(f"{utcnow()} Rank {self.my_rank} step {step} loaded {self.batch_size_eval} samples in {duration:.4f} s")
 
     def eval_batch_processed(self, epoch, step):
         current_time = time()
@@ -370,7 +371,7 @@ class StatsCounter(object):
         computation_time = current_time - self.start_time_compute
         self.output[epoch]['proc']['eval'].append(duration)
         self.output[epoch]['compute']['eval'].append(computation_time)
-        logging.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size_eval} samples in {duration:.4f} s")
+        self.logger.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size_eval} samples in {duration:.4f} s")
     def finalize(self):
         self.summary['end'] = utcnow()
     def save_data(self):
@@ -387,6 +388,6 @@ class StatsCounter(object):
             json.dump(self.output, outfile, indent=4)
             outfile.flush()
         if self.my_rank == 0:
-            logging.info(f"{utcnow()} outputs saved in RANKID_output.json")
+            self.logger.output(f"{utcnow()} outputs saved in RANKID_output.json")
 
 

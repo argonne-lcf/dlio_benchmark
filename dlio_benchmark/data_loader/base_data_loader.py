@@ -35,6 +35,7 @@ class BaseDataLoader(ABC):
         self.data_loader_type = data_loader_type
         self.num_samples = self._args.total_samples_train if self.dataset_type is DatasetType.TRAIN else self._args.total_samples_eval
         self.batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
+        self.logger = self._args.logger
 
     @abstractmethod
     def read(self):

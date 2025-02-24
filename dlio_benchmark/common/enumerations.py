@@ -107,7 +107,6 @@ class ComputationType(Enum):
     SYNC = 'sync'
     ASYNC = 'async'
 
-
 class FormatType(Enum):
     """
     Format Type supported by the benchmark.
