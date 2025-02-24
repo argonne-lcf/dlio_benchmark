@@ -26,7 +26,6 @@ The output is
     do_eval: False
     batch_size_eval: 1
     do_checkpoint: True
-    debug: False
     name: unet3d
     2023-06-27 21:38:00 Generating Report
     2023-06-27 21:38:00 Calculating Loading and Processing Times

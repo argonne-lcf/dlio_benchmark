@@ -219,7 +219,6 @@ BERT: Natural Language Processing Model
     workflow:
         generate_data: False
         train: True
-        debug: False
         checkpoint: True
     
     dataset: 
