@@ -162,20 +162,25 @@ class BaseCheckpointing(ABC):
         if self.args.hidden_size <= 0:
             return 0
         head_size = self.args.hidden_size//self.args.num_attention_heads
+        # column dimension of K & V matrix
         dim_kv = head_size * self.args.num_kv_heads        
         embedding = self.args.vocab_size*self.args.hidden_size
         input_norm = self.args.hidden_size
+        # number of elements in Q, K, V attention matrices
         qkv = self.args.hidden_size * (self.args.hidden_size + 2*dim_kv)
         dense = self.args.hidden_size*self.args.hidden_size
         layer_norm = self.args.hidden_size
+        # number of parameters from the two MLP layers: h_to_4h and 4h_to_h
         mlp_h_to_4h = self.args.ffn_hidden_size*2*self.args.hidden_size # the factor of 2 is because of gated linear unit                                                                           
         mlp_4h_to_h = self.args.ffn_hidden_size*self.args.hidden_size
         weight = self.args.hidden_size
+        # number of parameters from the lm_head layer
         lm_head = embedding
         return embedding  + (input_norm + qkv + dense + layer_norm + mlp_h_to_4h + mlp_4h_to_h)*self.args.num_layers + weight + lm_head
 
     def get_layer_parameters(self, layer_index):
         head_size = self.args.hidden_size//self.args.num_attention_heads
+        # column dimension of K and V matrix
         dim_kv = head_size * self.args.num_kv_heads
         if len(self.args.layer_parameters) > 0:
             self.layer_parameters_predefined = True
