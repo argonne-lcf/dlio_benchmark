@@ -93,8 +93,8 @@ class TorchFramework(Framework):
         return DummyTraceObject(string, step, r)
 
     @dlp.log
-    def compute(self, x, epoch_number, step, computation_time):
-        return self.model(x, computation_time)
+    def compute(self, batch, epoch_number, step, computation_time):
+        return self.model(batch, computation_time)
 
     @dlp.log
     def get_loader(self, dataset_type=DatasetType.TRAIN):

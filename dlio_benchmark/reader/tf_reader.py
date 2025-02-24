@@ -67,7 +67,7 @@ class TFReader(FormatReader):
                 'image': tf.io.FixedLenFeature([], tf.string),
                 'size': tf.io.FixedLenFeature([], tf.int64)
             }
-        #parsed_example = tf.io.parse_example(serialized=serialized, features=features)
+        parsed_example = tf.io.parse_example(serialized=serialized, features=features)
         # Get the image as raw bytes.
         #image_raw = parsed_example['image']
         #dimension = tf.cast(parsed_example['size'], tf.int32).numpy()
