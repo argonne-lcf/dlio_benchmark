@@ -36,7 +36,7 @@ class ReaderFactory(object):
         _args = ConfigArguments.get_instance()
         if _args.reader_class is not None:
             if DLIOMPI.get_instance().rank() == 0:
-                logging.info(f"{utcnow()} Running DLIO with custom data loader class {_args.reader_class.__name__}")
+                self.logger.info(f"{utcnow()} Running DLIO with custom data loader class {_args.reader_class.__name__}")
             return _args.reader_class(dataset_type, thread_index, epoch_number)
         elif type == FormatType.HDF5:
             from dlio_benchmark.reader.hdf5_reader import HDF5Reader
