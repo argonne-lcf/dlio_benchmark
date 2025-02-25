@@ -38,7 +38,7 @@ jobs:
           make html
           cp -r _build/html ../_site/
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v1
 
   # Deployment job
   deploy:

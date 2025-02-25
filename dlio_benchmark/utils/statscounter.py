@@ -55,6 +55,7 @@ class StatsCounter(object):
         self.record_size = self.args.record_length
         self.batch_size = self.args.batch_size
         self.batch_size_eval = self.args.batch_size_eval
+        self.checkpoint_size = 0.0
         self.summary = {}
         self.summary['start'] = utcnow()
         self.summary['num_accelerators'] = self.comm_size
@@ -89,12 +90,11 @@ class StatsCounter(object):
         if self.comm.rank == 0:
             logging.info(f"{utcnow()} Metric calculation will exclude the beginning {self.args.metric_exclude_start_steps} and end {self.args.metric_exclude_end_steps} steps, only includes {self.metric_steps} steps.")
         self.steps_eval = math.floor(self.args.num_samples_per_file * self.args.num_files_eval / self.args.batch_size_eval / self.args.comm_size)
+        self.per_epoch_stats = {}
         self.metric_steps_eval = self.steps_eval - (self.args.metric_exclude_end_steps + self.args.metric_exclude_start_steps)
         self.metric_start_step_eval = self.args.metric_exclude_start_steps
         self.metric_end_step_eval = self.steps_eval - 1 - self.args.metric_exclude_end_steps 
         # Only the root process keeps track of overall stats
-        if self.my_rank == 0:
-            self.per_epoch_stats = {}
         # Each process keeps track of its loading and processing times independently
         self.output = {}
         self.output['host_memory_GB'] = psutil.virtual_memory().total/1024./1024./1024
@@ -125,12 +125,12 @@ class StatsCounter(object):
         self.eval_throughput = []
         data_per_node = self.MPI.npernode()*self.args.num_samples_per_file * self.args.num_files_train//self.MPI.size()*self.args.record_length
         self.summary['data_size_per_host_GB'] = data_per_node/1024./1024./1024.
-        if self.MPI.rank() == 0:
-            self.logger.info(f"Total amount of data each host will consume is {data_per_node/1024./1024./1024} GB; each host has {self.summary['host_memory_GB'][0]} GB memory") 
+        if self.MPI.rank() == 0 and self.args.do_train:
+            self.logger.info(f"Total amount of data each host will consume is {data_per_node/1024./1024./1024} GB; each host has {self.summary['host_memory_GB']} GB memory") 
         if self.summary['data_size_per_host_GB'] <= self.output['host_memory_GB']:
             self.output['potential_caching'] = 1
-            if self.MPI.rank() == 0: 
-                self.logger.warning(f"The amount of dataset ({self.summary['data_size_per_host_GB']:.4f} GB) is smaller than the host memory ({self.summary['host_memory_GB'][0]} GB); data might be cached after the first epoch. Increase the size of dataset to eliminate the caching effect!!!")
+            if self.MPI.rank() == 0 and self.args.do_train: 
+                self.logger.warning("The amount of dataset is smaller than the host memory; data might be cached after the first epoch. Increase the size of dataset to eliminate the caching effect!!!")
         potential_caching = []
         for i in range(self.MPI.size()//self.MPI.npernode()):
             if self.summary['host_memory_GB'][i]  <= self.summary['data_size_per_host_GB']:
@@ -143,23 +143,48 @@ class StatsCounter(object):
         self.start_run_timestamp = time()
     def end_run(self):
         self.end_run_timestamp = time()
+        if self.args.do_checkpoint and self.my_rank == 0:
+            duration_save = []
+            io_save = []
+            duration_load = []
+            io_load = []
+            for e in self.per_epoch_stats:
+                for t in self.per_epoch_stats[e]:
+                    if t.find("save_ckpt")!=-1:
+                        duration_save.append(float(self.per_epoch_stats[e][t]['duration']))
+                        io_save.append(self.per_epoch_stats[e][t]['throughput'])
+                    elif t.find("load_ckpt")!=-1:
+                        duration_load.append(float(self.per_epoch_stats[e][t]['duration']))
+                        io_load.append(self.per_epoch_stats[e][t]['throughput'])
+            self.summary['metric']['save_checkpoint_io_mean_GB_per_second'] = np.mean(io_save)
+            self.summary['metric']['save_checkpoint_io_stdev_GB_per_second'] = np.std(io_save)
+            self.summary['metric']['save_checkpoint_duration_mean_seconds'] = np.mean(duration_save)
+            self.summary['metric']['save_checkpoint_duration_stdev_seconds'] = np.std(duration_save)
+            if len(io_load) > 0:
+                self.summary['metric']['load_checkpoint_io_mean_GB_per_second'] = np.mean(io_load)
+                self.summary['metric']['load_checkpoint_io_stdev_GB_per_second'] = np.std(io_load)
+                self.summary['metric']['load_checkpoint_duration_mean_seconds'] = np.mean(duration_load)
+                self.summary['metric']['load_checkpoint_duration_stdev_seconds'] = np.std(duration_load)
+            self.summary['metric']['checkpoint_size_GB'] = self.checkpoint_size
         if not self.args.generate_only:
             total_elapsed_time = self.end_run_timestamp - self.start_run_timestamp
             train_au = np.array(self.comm.allreduce(np.array(self.train_au)))/self.comm.size
             train_throughput = self.comm.allreduce(np.array(self.train_throughput))
             self.summary['epochs'] = len(train_au)
-            self.summary['metric']['train_au_percentage'] = list(train_au)
-            self.summary['metric']['train_au_mean_percentage'] = np.mean(train_au)
-            if self.summary['metric']['train_au_mean_percentage'] >=self.args.au*100:
-                self.summary['metric']['train_au_meet_expectation'] = 'success'
-            else:
-                self.summary['metric']['train_au_meet_expectation'] = 'fail'
-            self.summary['metric']['train_au_stdev_percentage'] = np.std(train_au)
-            self.summary['metric']['train_throughput_samples_per_second'] = list(train_throughput)
-            self.summary['metric']['train_throughput_mean_samples_per_second'] = np.mean(train_throughput)
-            self.summary['metric']['train_throughput_stdev_samples_per_second'] = np.std(train_throughput)
-            self.summary['metric']['train_io_mean_MB_per_second'] = np.mean(train_throughput)*self.record_size/1024./1024.
-            self.summary['metric']['train_io_stdev_MB_per_second'] = np.std(train_throughput)*self.record_size/1024./1024.
+            if self.args.do_train:
+                self.summary['metric']['train_au_percentage'] = list(train_au)
+                self.summary['metric']['train_au_mean_percentage'] = np.mean(train_au)
+                if self.summary['metric']['train_au_mean_percentage'] >=self.args.au*100:
+                    self.summary['metric']['train_au_meet_expectation'] = 'success'
+                else:
+                    self.summary['metric']['train_au_meet_expectation'] = 'fail'
+                self.summary['metric']['train_au_stdev_percentage'] = np.std(train_au)
+                self.summary['metric']['train_throughput_samples_per_second'] = list(train_throughput)
+                self.summary['metric']['train_throughput_mean_samples_per_second'] = np.mean(train_throughput)
+                self.summary['metric']['train_throughput_stdev_samples_per_second'] = np.std(train_throughput)
+                self.summary['metric']['train_io_mean_MB_per_second'] = np.mean(train_throughput)*self.record_size/1024./1024.
+                self.summary['metric']['train_io_stdev_MB_per_second'] = np.std(train_throughput)*self.record_size/1024./1024.
+            
             if self.args.do_eval:
                 eval_au = np.array(self.comm.allreduce(self.eval_au))/self.comm.size
                 eval_throughput = self.comm.allreduce(self.eval_throughput)
@@ -177,12 +202,20 @@ class StatsCounter(object):
                 self.summary['metric']['eval_io_stdev_MB_per_second'] = np.std(eval_throughput)*self.record_size/1024./1024.
             if self.my_rank==0:
                 self.logger.output(f"{utcnow()} Saved outputs in {self.output_folder}")   
-                metric="Averaged metric over all epochs\n[METRIC] ==========================================================\n"
+                metric="Averaged metric over all steps/epochs\n[METRIC] ==========================================================\n"
                 metric = metric + f"[METRIC] Number of Simulated Accelerators: {self.comm_size} \n"
-                metric = metric + f"[METRIC] Training Accelerator Utilization [AU] (%): {np.mean(train_au):.4f} ({np.std(train_au):.4f})\n"
-                metric = metric + f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput):.4f} ({np.std(train_throughput):.4f})\n"
-                metric = metric + f"[METRIC] Training I/O Throughput (MB/second): {np.mean(train_throughput)*self.record_size/1024/1024:.4f} ({np.std(train_throughput)*self.record_size/1024/1024:.4f})\n"
-                metric = metric + f"[METRIC] train_au_meet_expectation: {self.summary['metric']['train_au_meet_expectation']}\n"
+                if self.args.do_train:
+                    metric = metric + f"[METRIC] Training Accelerator Utilization [AU] (%): {np.mean(train_au):.4f} ({np.std(train_au):.4f})\n"
+                    metric = metric + f"[METRIC] Training Throughput (samples/second): {np.mean(train_throughput):.4f} ({np.std(train_throughput):.4f})\n"
+                    metric = metric + f"[METRIC] Training I/O Throughput (MB/second): {np.mean(train_throughput)*self.record_size/1024/1024:.4f} ({np.std(train_throughput)*self.record_size/1024/1024:.4f})\n"
+                    metric = metric + f"[METRIC] train_au_meet_expectation: {self.summary['metric']['train_au_meet_expectation']}\n"
+                if self.args.do_checkpoint: 
+                    metric = metric + f"[METRIC] Checkpoint save duration (seconds): {self.summary['metric']['save_checkpoint_duration_mean_seconds']:.4f} ({self.summary['metric']['save_checkpoint_duration_stdev_seconds']:.4f})\n"
+                    metric = metric + f"[METRIC] Checkpoint save I/O Throughput (GB/second): {self.summary['metric']['save_checkpoint_io_mean_GB_per_second']:.4f} ({self.summary['metric']['save_checkpoint_io_stdev_GB_per_second']:.4f})\n"
+                    if 'load_checkpoint_io_mean_GB_per_second' in self.summary['metric']:
+                        metric = metric + f"[METRIC] Checkpoint load duration (seconds): {self.summary['metric']['load_checkpoint_duration_mean_seconds']:.4f} ({self.summary['metric']['load_checkpoint_duration_stdev_seconds']:.4f})\n"
+                        metric = metric + f"[METRIC] Checkpoint load I/O Throughput (GB/second): {self.summary['metric']['load_checkpoint_io_mean_GB_per_second']:.4f} ({self.summary['metric']['load_checkpoint_io_stdev_GB_per_second']:.4f})\n"
+
                 if self.args.do_eval:
                     metric = metric + f"[METRIC] Eval Accelerator Utilization [AU] (%): {np.mean(eval_au):.4f} ({np.std(eval_au):.4f})\n"
                     metric = metric + f"[METRIC] Eval Throughput (samples/second): {np.mean(eval_throughput):.6f} ({np.std(eval_throughput):.6f})\n"
@@ -191,15 +224,15 @@ class StatsCounter(object):
                 metric+="[METRIC] ==========================================================\n"
                 self.logger.output(metric)   
     def start_train(self, epoch):   
+        ts = utcnow()
+        self.per_epoch_stats[epoch] = {
+            'start': ts,
+        }
         if self.my_rank == 0:
-            ts = utcnow()
             if self.steps_override:
                 self.logger.output(f"{ts} Starting epoch {epoch}: Overriding number of steps to {self.steps}.")
             else:
                 self.logger.output(f"{ts} Starting epoch {epoch}: {self.steps} steps expected")
-            self.per_epoch_stats[epoch] = {
-                'start': ts,
-            }
         # Initialize dicts for the current epoch
         self.output[epoch] = {}
         self.output[epoch]['load'] = {}
@@ -223,22 +256,22 @@ class StatsCounter(object):
         self.train_au.append(au)
         self.train_throughput.append(throughput)
 
+        ts = utcnow()
+        duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch]['start'])
+        duration = '{:.2f}'.format(duration.total_seconds())
+        self.per_epoch_stats[epoch]['end'] = ts
+        self.per_epoch_stats[epoch]['duration'] = duration
         if self.my_rank == 0:
-            ts = utcnow()
-            duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch]['start'])
-            duration = '{:.2f}'.format(duration.total_seconds())
-            self.per_epoch_stats[epoch]['end'] = ts
-            self.per_epoch_stats[epoch]['duration'] = duration
             self.logger.output(f"{ts} Ending epoch {epoch} - {np.sum(steps)} steps completed in {duration} s")
 
     def start_eval(self, epoch):
         self.start_timestamp = time()
+        ts = utcnow()
+        self.per_epoch_stats[epoch]['eval'] = {
+            'start': ts
+        }
         if self.my_rank == 0:
-            ts = utcnow()
             self.logger.output(f"{ts} Starting eval - {self.steps_eval} steps expected")
-            self.per_epoch_stats[epoch]['eval'] = {
-                'start': ts
-            }
         self.output[epoch]['load']['eval'] = []
         self.output[epoch]['proc']['eval'] = []
         self.output[epoch]['compute']['eval'] = []
@@ -249,67 +282,91 @@ class StatsCounter(object):
         self.compute_metrics_eval(epoch)
         self.eval_au.append(self.output[epoch]['au']['eval'])
         self.eval_throughput.append(self.output[epoch]['throughput']['eval'] )
+        ts = utcnow()
+        duration = pd.to_datetime(ts)- pd.to_datetime(self.per_epoch_stats[epoch]['eval']['start'])
+        duration = '{:.2f}'.format(duration.total_seconds())
+        self.per_epoch_stats[epoch]['eval']['end'] = ts
+        self.per_epoch_stats[epoch]['eval']['duration'] = duration  
         if self.my_rank == 0:
-            ts = utcnow()
-            duration = pd.to_datetime(ts)- pd.to_datetime(self.per_epoch_stats[epoch]['eval']['start'])
-            duration = '{:.2f}'.format(duration.total_seconds())
             self.logger.output(f"{ts} Ending eval - {self.steps_eval} steps completed in {duration} s")
-            self.per_epoch_stats[epoch]['eval']['end'] = ts
-            self.per_epoch_stats[epoch]['eval']['duration'] = duration        
             self.logger.output(f"{utcnow()} Epoch {epoch} [Eval] Accelerator Utilization [AU] (%): {self.output[epoch]['au']['eval']:.4f}")
             self.logger.output(f"{utcnow()} Epoch {epoch} [Eval] Throughput (samples/second): {self.output[epoch]['throughput']['eval']*self.comm_size:.4f}")
 
     def start_block(self, epoch, block):
+        if not(epoch in self.output):
+            self.output[epoch] = {}
+            self.output[epoch]['load'] = {}
+            self.output[epoch]['proc'] = {}
+            self.output[epoch]['throughput'] = {}
+            self.output[epoch]['au'] = {}
+            self.output[epoch]['compute'] = {}
+        if not(epoch in self.per_epoch_stats):
+            self.per_epoch_stats[epoch] = {}
+
         self.start_timestamp = time()
         self.output[epoch]['load'][f'block{block}'] = []
         self.output[epoch]['proc'][f'block{block}'] = []
         self.output[epoch]['throughput'][f'block{block}'] = []
         self.output[epoch]['au'][f'block{block}'] = []
         self.output[epoch]['compute'][f'block{block}'] = []
+        ts = utcnow()
+        self.per_epoch_stats[epoch][f'block{block}'] = {
+            'start': ts
+        }
         if self.my_rank == 0:
-            ts = utcnow()
             self.logger.output(f"{ts} Starting block {block}")
-            self.per_epoch_stats[epoch][f'block{block}'] = {
-                'start': ts
-            }
 
     def end_block(self, epoch, block, steps_taken):
         self.end_timestamp = time()
         self.compute_metrics_train(epoch, block)
-        
+        if 'end' in self.per_epoch_stats[epoch][f'block{block}']:
+            return
+        ts = utcnow()
+        duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch][f'block{block}']['start'])
+        duration = '{:.2f}'.format(duration.total_seconds())
+        self.per_epoch_stats[epoch][f'block{block}']['end'] = ts
+        self.per_epoch_stats[epoch][f'block{block}']['duration'] = duration
+
         if self.my_rank == 0:
-            # Block was possibly already ended. Need this to end blocks
-            # still ongoing when data loader runs out of batches and
-            # does not take one of the expected exits from the batch reading loop
-            if 'end' in self.per_epoch_stats[epoch][f'block{block}']:
-                return
-            ts = utcnow()
-            duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch][f'block{block}']['start'])
-            duration = '{:.2f}'.format(duration.total_seconds())
             self.logger.output(f"{ts} Ending block {block} - {steps_taken} steps completed in {duration} s")
-            self.per_epoch_stats[epoch][f'block{block}']['end'] = ts
-            self.per_epoch_stats[epoch][f'block{block}']['duration'] = duration
-            self.logger.output(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Accelerator Utilization [AU] (%): {self.output[epoch]['au'][f'block{block}']:.4f}")
-            self.logger.output(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Throughput (samples/second): {self.output[epoch]['throughput'][f'block{block}']*self.comm_size:.4f}")
-            self.logger.output(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Computation time per step (second): {np.mean(self.output[epoch]['compute'][f'block{block}'][self.metric_start_step:self.metric_end_step+1]):.4f}+/-{np.std(self.output[epoch]['compute'][f'block{block}'][self.metric_start_step:self.metric_end_step+1]):.4f} (set value: {self.args.computation_time})")
+            if self.args.do_train:
+                self.logger.output(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Accelerator Utilization [AU] (%): {self.output[epoch]['au'][f'block{block}']:.4f}")
+                self.logger.output(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Throughput (samples/second): {self.output[epoch]['throughput'][f'block{block}']*self.comm_size:.4f}")
+                self.logger.output(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Computation time per step (second): {np.mean(self.output[epoch]['compute'][f'block{block}'][self.metric_start_step:self.metric_end_step+1]):.4f}+/-{np.std(self.output[epoch]['compute'][f'block{block}'][self.metric_start_step:self.metric_end_step+1]):.4f} (set value: {self.args.computation_time})")
 
-    def start_ckpt(self, epoch, block, steps_taken):
+    def start_save_ckpt(self, epoch, block, steps_taken):
+        ts = utcnow()
         if self.my_rank == 0:
-            ts = utcnow()
-            self.logger.output(f"{ts} Starting checkpoint {block} after total step {steps_taken} for epoch {epoch}")
-            self.per_epoch_stats[epoch][f'ckpt{block}'] = {
+            self.logger.output(f"{ts} Starting saving checkpoint {block} after total step {steps_taken} for epoch {epoch}")
+        self.per_epoch_stats[epoch][f'save_ckpt{block}'] = {
                 'start': ts
-            }
+        }
 
-    def end_ckpt(self, epoch, block):
+    def end_save_ckpt(self, epoch, block):
+        ts = utcnow()
+        duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch][f'save_ckpt{block}']['start'])
+        self.per_epoch_stats[epoch][f'save_ckpt{block}']['end'] = ts
+        self.per_epoch_stats[epoch][f'save_ckpt{block}']['duration'] = float(duration.total_seconds())
+        self.per_epoch_stats[epoch][f'save_ckpt{block}']['throughput'] = self.checkpoint_size / float(duration.total_seconds())
         if self.my_rank == 0:
-            ts = utcnow()
-            duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch][f'ckpt{block}']['start'])
-            duration = '{:.2f}'.format(duration.total_seconds())
-            self.logger.output(f"{ts} Ending checkpoint {block} for epoch {epoch}")
+            logging.info(f"{ts} Finished saving checkpoint {block} for epoch {epoch} in {duration.total_seconds():.4f} s; Throughput: {self.per_epoch_stats[epoch][f'save_ckpt{block}']['throughput']:.4f} GB/s")
 
-            self.per_epoch_stats[epoch][f'ckpt{block}']['end'] = ts
-            self.per_epoch_stats[epoch][f'ckpt{block}']['duration'] = duration
+    def start_load_ckpt(self, epoch, block, steps_taken):
+        ts = utcnow()
+        if self.my_rank == 0:
+             self.logger.output(f"{ts} Starting loading checkpoint {block} after total step {steps_taken} for epoch {epoch}")
+        self.per_epoch_stats[epoch][f'load_ckpt{block}'] = {
+                'start': ts
+        }
+      
+    def end_load_ckpt(self, epoch, block):
+        ts = utcnow()
+        duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch][f'save_ckpt{block}']['start'])
+        self.per_epoch_stats[epoch][f'load_ckpt{block}']['end'] = ts
+        self.per_epoch_stats[epoch][f'load_ckpt{block}']['duration'] = float(duration.total_seconds())
+        self.per_epoch_stats[epoch][f'load_ckpt{block}']['throughput'] = self.checkpoint_size / float(duration.total_seconds())
+        if self.my_rank == 0:
+            self.logger.output(f"{ts} Finished loading checkpoint {block} for epoch {epoch} in {duration.total_seconds():.4f} s; Throughput: {self.per_epoch_stats[epoch][f'load_ckpt{block}']['throughput']:.4f} GB/s")
 
     def start_loading(self):
         self.start_time_loading = time()
@@ -378,10 +435,10 @@ class StatsCounter(object):
     def save_data(self):
         # Dump statistic counters to files for postprocessing
         # Overall stats
+        with open(os.path.join(self.output_folder, f'{self.my_rank}_per_epoch_stats.json'), 'w') as outfile:
+            json.dump(self.per_epoch_stats, outfile, indent=4)
+            outfile.flush()
         if self.my_rank == 0:
-            with open(os.path.join(self.output_folder, 'per_epoch_stats.json'), 'w') as outfile:
-                json.dump(self.per_epoch_stats, outfile, indent=4)
-                outfile.flush()
             with open(os.path.join(self.output_folder, 'summary.json'), 'w') as outfile:
                 json.dump(self.summary, outfile, indent=4)
         self.output['hostname'] = socket.gethostname()
@@ -390,5 +447,3 @@ class StatsCounter(object):
             outfile.flush()
         if self.my_rank == 0:
             self.logger.output(f"{utcnow()} outputs saved in RANKID_output.json")
-
-

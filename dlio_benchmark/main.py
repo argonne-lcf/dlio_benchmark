@@ -101,14 +101,22 @@ class DLIOBenchmark(object):
         if dftracer_initialize:
             dftracer = self.args.configure_dftracer(is_child=False, use_pid=False)
         with Profile(name=f"{self.__init__.__qualname__}", cat=MODULE_DLIO_BENCHMARK):
+            mode = []
+            if self.args.generate_data:
+                mode += ["Generating data"]
+            if self.args.do_train:
+                mode += ["Training"]
+            if self.args.do_eval:
+                mode += ["Evaluation"]
+            if self.args.do_checkpoint:
+                mode += ["Checkpointing"]
             if self.args.my_rank == 0:
-                self.logger.output(f"{utcnow()} Running DLIO with {self.args.comm_size} process(es)")
+                self.logger.output(f"{utcnow()} Running DLIO [{' & '.join(mode)}] with {self.args.comm_size} process(es)")
                 try:
                     self.logger.output(
                         f"{utcnow()} Reading workload YAML config file '{hydra_cfg.runtime.config_sources[1]['path']}/workload/{hydra_cfg.runtime.choices.workload}.yaml'")
                 except:
                     pass
-
             self.generate_only = self.args.generate_only
             self.do_profiling = self.args.do_profiling
 
@@ -118,7 +126,7 @@ class DLIOBenchmark(object):
             self.num_subfolders_eval = self.args.num_subfolders_eval
             self.num_samples = self.args.num_samples_per_file
             self.total_training_steps = self.args.total_training_steps
-
+            
             self.epochs = self.args.epochs
             self.batch_size = self.args.batch_size
             self.computation_time = self.args.computation_time
@@ -172,51 +180,53 @@ class DLIOBenchmark(object):
         file_list_train = []
         file_list_eval = []
         num_subfolders = 0
-        for dataset_type in [DatasetType.TRAIN, DatasetType.VALID]:
-            if dataset_type == DatasetType.TRAIN:
-                num_subfolders = self.num_subfolders_train
-            else:
-                num_subfolders = self.num_subfolders_eval
-            filenames = self.storage.walk_node(os.path.join(self.args.data_folder, f"{dataset_type}"))
-            if (len(filenames) == 0):
-                continue
-            if self.storage.get_node(
-                    os.path.join(self.args.data_folder, f"{dataset_type}",
-                                 filenames[0])) == MetadataType.DIRECTORY:
-                assert (num_subfolders == len(filenames))
-                fullpaths = self.storage.walk_node(
-                    os.path.join(self.args.data_folder, f"{dataset_type}/*/*.{self.args.format}"),
-                    use_pattern=True)
-                files = [self.storage.get_basename(f) for f in fullpaths]
-                idx = np.argsort(files)
-                fullpaths = [fullpaths[i] for i in idx]
-            else:
-                assert (num_subfolders == 0)
-                fullpaths = [self.storage.get_uri(os.path.join(self.args.data_folder, f"{dataset_type}", entry))
-                             for entry in filenames if entry.endswith(f'{self.args.format}')]
-                fullpaths = sorted(fullpaths)
-            self.logger.debug(f"subfolder {num_subfolders} fullpaths {fullpaths}")
-            if dataset_type is DatasetType.TRAIN:
-                file_list_train = fullpaths
-            elif dataset_type is DatasetType.VALID:
-                file_list_eval = fullpaths
-        if not self.generate_only and self.num_files_train > len(file_list_train):
-            raise Exception(
-                "Not enough training dataset is found; Please run the code with ++workload.workflow.generate_data=True")
-        if self.do_eval and self.num_files_eval > len(file_list_eval):
-            raise Exception(
-                "Not enough evaluation dataset is found; Please run the code with ++workload.workflow.generate_data=True")
-        if (self.num_files_train < len(file_list_train)):
-            self.logger.warning(
-                f"Number of files for training in {os.path.join(self.args.data_folder, f'{DatasetType.TRAIN}')} ({len(file_list_train)}) is more than requested ({self.num_files_train}). A subset of files will be used ")
-            file_list_train = file_list_train[:self.num_files_train]
-        if (self.num_files_eval < len(file_list_eval)):
-            self.logger.warning(
-                f"Number of files for evaluation in {os.path.join(self.args.data_folder, f'{DatasetType.VALID}')} ({len(file_list_eval)}) is more than requested ({self.num_files_eval}). A subset of files will be used ")
-            file_list_eval = file_list_eval[:self.num_files_eval]
+        if self.args.do_train:
+            for dataset_type in [DatasetType.TRAIN, DatasetType.VALID]:
+                if dataset_type == DatasetType.TRAIN:
+                    num_subfolders = self.num_subfolders_train
+                else:
+                    num_subfolders = self.num_subfolders_eval
+                filenames = self.storage.walk_node(os.path.join(self.args.data_folder, f"{dataset_type}"))
+                if (len(filenames) == 0):
+                    continue
+                if self.storage.get_node(
+                        os.path.join(self.args.data_folder, f"{dataset_type}",
+                                    filenames[0])) == MetadataType.DIRECTORY:
+                    assert (num_subfolders == len(filenames))
+                    fullpaths = self.storage.walk_node(
+                        os.path.join(self.args.data_folder, f"{dataset_type}/*/*.{self.args.format}"),
+                        use_pattern=True)
+                    files = [self.storage.get_basename(f) for f in fullpaths]
+                    idx = np.argsort(files)
+                    fullpaths = [fullpaths[i] for i in idx]
+                else:
+                    assert (num_subfolders == 0)
+                    fullpaths = [self.storage.get_uri(os.path.join(self.args.data_folder, f"{dataset_type}", entry))
+                                for entry in filenames if entry.endswith(f'{self.args.format}')]
+                    fullpaths = sorted(fullpaths)
+                self.logger.debug(f"subfolder {num_subfolders} fullpaths {fullpaths}")
+                if dataset_type is DatasetType.TRAIN:
+                    file_list_train = fullpaths
+                elif dataset_type is DatasetType.VALID:
+                    file_list_eval = fullpaths
+            if not self.generate_only and self.num_files_train > len(file_list_train):
+                raise Exception(
+                    "Not enough training dataset is found; Please run the code with ++workload.workflow.generate_data=True")
+            if self.do_eval and self.num_files_eval > len(file_list_eval):
+                raise Exception(
+                    "Not enough evaluation dataset is found; Please run the code with ++workload.workflow.generate_data=True")
+            if (self.num_files_train < len(file_list_train)):
+                self.logger.warning(
+                    f"Number of files for training in {os.path.join(self.args.data_folder, f'{DatasetType.TRAIN}')} ({len(file_list_train)}) is more than requested ({self.num_files_train}). A subset of files will be used ")
+                file_list_train = file_list_train[:self.num_files_train]
+            if (self.num_files_eval < len(file_list_eval)):
+                self.logger.warning(
+                    f"Number of files for evaluation in {os.path.join(self.args.data_folder, f'{DatasetType.VALID}')} ({len(file_list_eval)}) is more than requested ({self.num_files_eval}). A subset of files will be used ")
+                file_list_eval = file_list_eval[:self.num_files_eval]
         self.args.derive_configurations(file_list_train, file_list_eval)
-        self.checkpointing_mechanism = CheckpointingFactory().get_mechanism(self.args.checkpoint_mechanism)
         self.args.validate()
+        self.checkpointing_mechanism = CheckpointingFactory().get_mechanism(self.args.checkpoint_mechanism)
+        self.stats.checkpoint_size = self.checkpointing_mechanism.checkpoint_size    
         self.comm.barrier()
 
     @dlp.log
@@ -241,6 +251,26 @@ class DLIOBenchmark(object):
         return step - 1
 
     @dlp.log
+    def _checkpoint(self):
+        block = 1  # A continuous period of training steps, ended by checkpointing
+        block_step = overall_step = 1  # Steps are taken within blocks
+        epoch = 1
+        for i in range(self.args.num_checkpoints):
+            self.stats.start_block(epoch, block)
+            # We still make sure that the checkpoint is done after allreduce; therefore, allreduce here is required. 
+            self.framework.compute(None, epoch, block_step, self.args.time_between_checkpoints)
+            self.comm.barrier()
+            self.stats.start_save_ckpt(epoch, block, overall_step)
+            self.checkpointing_mechanism.save_checkpoint(epoch, overall_step)
+            self.stats.end_save_ckpt(epoch, block)
+            if self.args.checkpoint_recovery_after_steps > 0 and (i + 1) % self.args.checkpoint_recovery_after_steps==0:
+                self.comm.barrier()
+                self.stats.start_load_ckpt(epoch, block, overall_step)
+                self.checkpointing_mechanism.load_checkpoint(epoch, overall_step)
+                self.stats.end_load_ckpt(epoch, block)
+            block = block+1
+            overall_step = overall_step + 1
+    @dlp.log
     def _train(self, epoch):
         """
         Training loop for reading the dataset and performing training computations.
@@ -257,20 +287,20 @@ class DLIOBenchmark(object):
         self.stats.start_loading()
         for batch in loader.next():
             self.stats.batch_loaded(epoch, overall_step, block)
-
             computation_time = self.args.computation_time
             if (isinstance(computation_time, dict) and len(computation_time) > 0) or (isinstance(computation_time, float) and  computation_time > 0):
                 self.framework.trace_object("Train", overall_step, 1)
             self.stats.start_compute()
             self.framework.compute(batch, epoch, block_step, self.computation_time)
             self.stats.batch_processed(epoch, overall_step, block)
+            # This is the barrier to simulate allreduce. It is required to simulate the actual workloads.
             self.comm.barrier()
             if self.do_checkpoint and (
                     self.steps_between_checkpoints >= 0) and overall_step == self.next_checkpoint_step:
                 self.stats.end_block(epoch, block, block_step)
-                self.stats.start_ckpt(epoch, block, overall_step)
-                self.checkpointing_mechanism.checkpoint(epoch, overall_step)
-                self.stats.end_ckpt(epoch, block)
+                self.stats.start_save_ckpt(epoch, block, overall_step)
+                self.checkpointing_mechanism.save_checkpoint(epoch, overall_step)
+                self.stats.end_save_ckpt(epoch, block)
                 block += 1
                 # Reset the number of steps after every checkpoint to mark the start of a new block
                 block_step = 1
@@ -292,11 +322,10 @@ class DLIOBenchmark(object):
         self.comm.barrier()
         if self.do_checkpoint and (self.steps_between_checkpoints < 0) and (epoch == self.next_checkpoint_epoch):
             self.stats.end_block(epoch, block, block_step-1)
-            self.stats.start_ckpt(epoch, block, overall_step-1)
-            self.checkpointing_mechanism.checkpoint(epoch, overall_step)
-            self.stats.end_ckpt(epoch, block)
+            self.stats.start_save_ckpt(epoch, block, overall_step-1)
+            self.checkpointing_mechanism.save_checkpoint(epoch, overall_step)
+            self.stats.end_save_ckpt(epoch, block)
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
-        self.comm.barrier()
         return overall_step
 
     @dlp.log
@@ -307,13 +336,16 @@ class DLIOBenchmark(object):
         If evaluation is enabled, it reads the eval dataset, performs evaluation and finalizes.
         """
         self.stats.start_run()
-        if not self.generate_only:
+        if (not self.generate_only) and (not self.args.checkpoint_only):
             # Print out the expected number of steps for each epoch and evaluation
             if self.my_rank == 0:
                 total = math.floor(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
                 self.logger.output(
                     f"{utcnow()} Max steps per epoch: {total} = {self.num_samples} * {self.num_files_train} / {self.batch_size} / {self.comm_size} (samples per file * num files / batch size / comm size)")
-
+                if self.total_training_steps > 0:
+                    self.logger.output(
+                        f"{utcnow()} Total training steps is set to be {self.total_training_steps}. Will only run up to {min(total*self.args.epochs, self.total_training_steps)}"
+                    )
                 if self.do_eval:
                     total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
                     self.logger.output(
@@ -344,7 +376,9 @@ class DLIOBenchmark(object):
                     self.stats.end_eval(epoch)
                     self.framework.get_loader(DatasetType.VALID).finalize()
                 self.args.reconfigure(epoch + 1) # reconfigure once per epoch
-                    
+
+        if (self.args.checkpoint_only):
+            self._checkpoint()            
         self.stats.end_run()
 
     @dlp.log

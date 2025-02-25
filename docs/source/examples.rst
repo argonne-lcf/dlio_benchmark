@@ -309,3 +309,68 @@ ResNet50: 3D Image classification
         data_loader: tensorflow
         read_threads: 8
         computation_threads: 8
+
+LLM (Large Language Model) checkpointing
+-----------------------------------------
+* Reference Implementation: git@github.com:argonne-lcf/Megatron-DeepSpeed.git
+* Framework: PyTorch + DeepSpeed
+* Dataset: Binary Index files
+
+In this example, one can specify the model size, number of layers, parallelism (tensor, pipepline and zero_stage), and other parameters. 
+The checkpoint data contains three different kinds of files: model, optimizer and training state. One can specify 
+different ZeRO stages for the model and optimizer.
+* For Stage 3, both the model and optimizer are sharded across all the data parallel instances. 
+* For Stage 1 and 2 the optimizer is sharded across all the data parallel instances, but the model is sharded only across the first data parallel instance. 
+* Pipeline parallelism and ZeRO 3 are not compatiable to each other. 
+  
+One can also specify the datatype for the model and optimizer to be saved. By default, the model is saved in fp16 and the optimizer in fp32.
+
+The output log will contain the checkpoint duration and throughput. In the final summary.json, `checkpoint_duration` and `checkpoint_io` will be reported.
+
+.. code-block:: yaml
+    
+    model: 
+        name: llama_70b
+        type: transformer
+        model_size: 30102
+        num_layers: 80
+        parallelism: 
+            tensor: 8
+            pipeline: 4
+            zero_stage: 1
+        transformer: 
+            vocab_size: 128000
+            hidden_size: 8192
+            ffn_hidden_size: 28672
+
+    framework: pytorch
+
+    workflow:
+        generate_data: True
+        train: True
+        checkpoint: True
+
+    dataset: 
+        data_folder: data/llama_70b/
+        format: mmap_indexed_binary
+        num_files_train: 1
+        num_samples_per_file: 1048576
+        record_length: 2048
+        
+    reader: 
+        data_loader: pytorch
+        batch_size: 16
+        read_threads: 1
+        file_shuffle: seed
+        sample_shuffle: seed
+
+    train:
+        epochs: 1
+        computation_time: 5 # 2.44 sec per step
+        total_training_steps: 5
+
+    checkpoint:
+        checkpoint_folder: checkpoints/llama_70b
+        steps_between_checkpoints: 1
+        model_datatype: fp16
+        optimizer_datatype: fp32

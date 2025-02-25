@@ -7,6 +7,8 @@ The characteristics of a workload is specified through a YAML file. This file wi
 .. code-block:: yaml
   
   model: unet3d
+    model_size_bytes: 99153191
+
 
   framework: pytorch
 
@@ -20,9 +22,9 @@ The characteristics of a workload is specified through a YAML file. This file wi
     format: npz
     num_files_train: 168
     num_samples_per_file: 1
-    record_length: 146600628
-    record_length_stdev: 68341808
-    record_length_resize: 2097152
+    record_length_bytes: 146600628
+    record_length_bytes_stdev: 68341808
+    record_length_bytes_resize: 2097152
     
   reader: 
     data_loader: pytorch
@@ -39,9 +41,10 @@ The characteristics of a workload is specified through a YAML file. This file wi
     checkpoint_folder: checkpoints/unet3d
     checkpoint_after_epoch: 5
     epochs_between_checkpoints: 2
-    model_size: 499153191
+
 
 A `DLIO` YAML configuration file contains following sections: 
+
 * **model** - specifying the name of the model. This is simply an indentifyer of the configuration file. It does not have impact on the actual simulation. 
 * **framework** - specifying the framework to use for the benchmark, available options: tensorflow, pytorch
 * **workflow** - specifying what workflow operations to execute in the pipeline. Workflow operations include: dataset generation (``generate_data``), training (``train``), evaluation (``evaluation``), checkpointing (``checkpoint``), debugging (``debug``), etc. 
@@ -56,14 +59,87 @@ More built-in examples can be found in the `workload`_ folder. One can also crea
 
 model
 ------------------
-One can specify the name of the model as 
+.. list-table:: 
+   :widths: 15 10 30
+   :header-rows: 1
 
-.. code-block:: yaml
+   * - Parameter
+     - Default
+     - Description
+   * - name 
+     - default
+     - The name of the model
+   * - type
+     - default
+     - A string that specifies the type of the model, such as transformer, CNN, etc.
+   * - model_size_bytes
+     - 10240
+     - The size of the model parameters per GPU in bytes
+   * - model_datatype
+     - fp16
+     - the datatype of the model parameters. Available options are fp16, fp32, int8, uint8, bf16. 
+   * - optimizer_datatype
+     - fp32
+     - the datatype of the optimizer parameters. Available options are fp16, fp32, int8, uint8, bf16. 
+   * - optimization_groups
+     - []
+     - List of optimization group tensors. Use Array notation for yaml.
+   * - num_layers
+     - -1
+     - Number of layers to checkpoint. Each layer would be checkpointed separately.
+   * - layer_parameters
+     - []
+     - List of parameters per layer. This is used to perform I/O per layer. 
+   * - parallelism
+     - {tensor: 1, pipeline: 1, zero_stage: 0}
+     - Parallelism configuration for the model. 
+   * - transformer
+     - {hidden_size: 2048, ffn_hidden_size: 8196, vocab_size: 32000, num_attention_heads: 32, num_kv_heads: 8}
+     - Transformer layer configuration for the model.
 
-  model: unet3d
+The model information is used to determine the checkpoint files. 
+The user can specify the model architecture using either optimizaton_groups & layer_parameters, or by specifying the transformer configuration. 
 
-No other parameters under this section. 
+The ``optimization_groups`` is a list of tensors that are grouped together for optimization. Suppose optimization_groups is specified as [1024, 528], 
+each rank will write the following tensors to the checkpoint file: {"0": {"a": array of 1024, "b": array of 1024}, "1": {"a": array of 528, "b": array of 528}}. The total size of the tensor will be 1024*2 + 528*2. The ``layer_parameters`` is a list of parameters per layer. The ``num_layers`` is used to specify the number of layers to checkpoint. Each layer would be checkpointed separately. 
+Suppose layer_parameters is [1024, 2048], each rank in the tensor parallelism group will write the following tensors to the checkpoint file: 
+{'0': array of 1024/TP, "1": array of (2048/TP)}. Please notice the difference in how the optimization groups and layer parameters are treated internally.
 
+We do not suggest the users to specify the model architeure in this way. Instead, we suggest the users to specify the transformer configuration directly which is more intuitive. 
+The ``transformer`` configuration is used to specify the hidden size, FFN hidden size, vocab size, number of attention heads and number of kv heads for the transformer layer, which together determined the 
+optimization_groups and layer_parameters. 
+
+.. attention::
+
+  Please note that if optimization_groups and layer_parameters are specified, the transformer configuration will be ignored. But we 
+  always suggest to specify the transformer configuration for better readability.
+
+  Please also note that ZeRO stage 3 is not compatiable with ``parallelism.pipeline > 1``.  
+
+.. list-table:: 
+   :widths: 15 10 30
+   :header-rows: 1
+
+   * - Parameter
+     - Default
+     - Description
+   * - hidden_size
+     - 2048
+     - Hidden dimension of the transformer layer.
+   * - ffn_hidden_size
+     - 8196
+     - FFN hidden dimension 
+   * - vocab_size
+     - 32000
+     - vocab size for the embedding layer
+   * - num_attention_heads:
+     - 32
+     - number of attention heads
+   * - num_kv_heads
+     - 8 
+     - Number of key-value heads 
+  
+In future, we would support more non-transformer type of layers. 
 
 framework
 -------------------
@@ -319,34 +395,29 @@ checkpoint
    * - steps_between_checkpoints
      - -1
      - performing one checkpointing per certain number of steps specified
-   * - model_size
-     - 10240
-     - the size of the model parameters per GPU in bytes
-   * - optimization_groups
-     - []
-     - List of optimization group tensors. Use Array notation for yaml.
-   * - num_layers
-     - 1
-     - Number of layers to checkpoint. Each layer would be checkpointed separately.
-   * - layer_parameters
-     - []
-     - List of parameters per layer. This is used to perform I/O per layer.
-   * - type
-     - rank_zero
-     - Which rank performs this checkpoint. All ranks (all_ranks) or Rank 0 (rank_zero).
-   * - tensor_parallelism
-     - 1
-     - Tensor parallelism for model. Used to determine the number of layer model files.
-   * - pipeline_parallelism
-     - 1
-     - Pipeline parallelism for model.
+   * - fsync
+     - False
+     - whether to perform fsync after writing the checkpoint
+   * - time_between_checkpoints
+     - -1
+     - performing one checkpointing per {time_between_checkpoint} seconds; this parameter is used only when workflow.train=False
+   * - num_checkpoints
+     - -1
+     - How many checkpoints to write; this parameter is used only when workflow.train=False
+   * - recovery_after_steps:
+     - -1
+     - How many checkpoints to write before doing read for recovery. -1 means never doing recovery. 
+   * - recovery_rank_shift:
+*    - 0
+*    - Shift the rank ID by recovery_rank_shift to avoid caching effort. The default value is 0. The suggested value would be ppn (number of processes per node). 
 
 .. note::
    
-   By default, if checkpoint is enabled, it will perform checkpointing from every epoch.
+   By default, if checkpoint is enabled, it will perform checkpointing from every epoch. One can perform multiple checkpoints within a single epoch, 
+   by setting ``steps_between_checkpoints``. If ``steps_between_checkpoints`` is set to be a positive number, ``epochs_between_checkpoints`` will be ignored.
 
-   One can perform multiple checkpoints within a single epoch, by setting ``steps_between_checkpoints``. If ``steps_between_checkpoints`` is set to be a positive number, ``epochs_between_checkpoints`` will be ignored.
-   
+   One can also perform checkpoint only benchmark, and do not do training, i.e., do no load dataset. To do this, one can set ``workflow.train = False``, and then set ``num_checkpoints``, ``time_between_checkpoints``, ``recovery_after_steps``, and ``recovery_rank_shift``. These four
+   is effective only in checkpoint only mode. 
 
 output
 ------------------

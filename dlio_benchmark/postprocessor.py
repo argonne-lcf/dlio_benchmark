@@ -611,7 +611,7 @@ def main():
         hydra_config  = yaml.load(f, Loader=SafeLoader)
     LoadConfig(args, hydra_config['workload'])
     if 'model' in hydra_config['workload']:
-        args.name = hydra_config['workload']['model']
+        args.name = hydra_config['workload']['model']['name']
     else:
         args.name="default"
     args.record_size = hydra_config['workload']['dataset']['record_length']

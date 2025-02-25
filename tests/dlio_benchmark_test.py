@@ -226,13 +226,13 @@ def test_iostat_profiling() -> None:
     finalize()
 
 @pytest.mark.timeout(60, method="thread")
-@pytest.mark.parametrize("framework, model_size, optimizers, num_layers, layer_params, type", [("tensorflow", 1024, [1024, 128], 2, [16], "all_ranks"),
-                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], "all_ranks"),
-                                                                                         ("tensorflow", 1024, [1024, 128], 2, [16], "rank_zero"),
-                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], "rank_zero"),
-                                                                                         ("tensorflow", 1024, [128], 1, [16], "all_ranks"),
-                                                                                         ("pytorch", 1024, [128], 1, [16], "all_ranks")])
-def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_params, type) -> None:
+@pytest.mark.parametrize("framework, model_size, optimizers, num_layers, layer_params, zero_stage", [("tensorflow", 1024, [1024, 128], 2, [16], 0),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 0),
+                                                                                         ("tensorflow", 1024, [1024, 128], 2, [16], 3),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 3),
+                                                                                         ("tensorflow", 1024, [128], 1, [16], 0),
+                                                                                         ("pytorch", 1024, [128], 1, [16], 0)])
+def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_params, zero_stage) -> None:
     init()
     clean()
     if comm.rank == 0:
@@ -252,11 +252,12 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
                                  '++workload.evaluation.eval_time=0.005',
                                  f'++workload.train.epochs={epochs}', '++workload.workflow.checkpoint=True',
                                  f'++workload.checkpoint.epochs_between_checkpoints={epoch_per_ckp}',
-                                 f'++workload.checkpoint.type={type}',
-                                 f'++workload.checkpoint.model_size={model_size}',
-                                 f'++workload.checkpoint.optimization_groups={optimizers}',
-                                 f'++workload.checkpoint.num_layers={num_layers}',
-                                 f'++workload.checkpoint.layer_parameters={layer_params}'])
+                                 f'++workload.model.model_size={model_size}',
+                                 f'++workload.model.optimization_groups={optimizers}',
+                                 f'++workload.model.num_layers={num_layers}',
+                                 f'++workload.model.parallelism.zero_stage={zero_stage}',
+                                 f'++workload.model.layer_parameters={layer_params}', 
+                                 f'++workload.model.parallelism.tensor={comm.size}'])
         comm.Barrier()
         if comm.rank == 0:
             shutil.rmtree("./checkpoints", ignore_errors=True)
@@ -264,20 +265,19 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
         comm.Barrier()
         benchmark = run_benchmark(cfg)
         output = pathlib.Path("./checkpoints")
-        load_bin = list(output.glob("*"))
+        load_bin = list(output.glob(f"*/*"))
         n = 0
         if len(layer_params) > 0:
             n = num_layers
-        nranks = 1
-        if type == "all_ranks":
-            nranks = comm.size
+        nranks = comm.size
         num_model_files = 1
         num_optimizer_files = 1
-        num_layer_files = num_layers
+        # We are setting num_layer_files to be one because pipeline parallelism is not used. 
+        num_layer_files = 1
         files_per_checkpoint = (num_model_files + num_optimizer_files + num_layer_files) * nranks
         if framework == "tensorflow":
             file_per_ckp = 2
-            num_check_files = epochs / epoch_per_ckp * files_per_checkpoint * file_per_ckp + 1
+            num_check_files = epochs / epoch_per_ckp * (files_per_checkpoint * file_per_ckp + 1)
             assert (len(load_bin) == num_check_files), f"files produced are {len(load_bin)} {num_check_files} {load_bin} "
         if framework == "pytorch":
             num_check_files = epochs / epoch_per_ckp * files_per_checkpoint
@@ -313,11 +313,10 @@ def test_checkpoint_step() -> None:
         comm.Barrier()
         benchmark = run_benchmark(cfg)
         dataset = cfg['workload']['dataset']
-        nstep = dataset.num_files_train * dataset.num_samples_per_file // cfg['workload'][
-            'reader'].batch_size // benchmark.comm_size
-        ncheckpoints = nstep // 2 * 8 * 2
+        nstep = dataset.num_files_train * dataset.num_samples_per_file // cfg['workload']['reader'].batch_size // benchmark.comm_size
+        ncheckpoints = nstep // 2 * 8
         output = pathlib.Path("./checkpoints")
-        load_bin = list(output.glob("*"))
+        load_bin = list(output.glob(f"*/*"))
         assert (len(load_bin) == ncheckpoints)
         clean()
     finalize()
