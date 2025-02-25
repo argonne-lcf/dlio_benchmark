@@ -69,6 +69,8 @@ class ConfigArguments:
     log_level: int = OUTPUT_LEVEL
     data_folder: str = "./data/"
     output_folder: str = None
+    metric_exclude_start_steps: int = 1
+    metric_exclude_end_steps: int = 0
     checkpoint_folder: str = "./checkpoints/"
     log_file: str = "dlio.log"
     file_prefix: str = "img"
@@ -681,6 +683,12 @@ def LoadConfig(args, config):
             args.output_folder = config['output']['folder']
         if 'log_file' in config['output']:
             args.log_file = config['output']['log_file']
+        if 'metric' in config['output']:
+            if 'exclude_start_steps' in config['output']['metric']:
+                args.metric_exclude_start_steps = int(config['output']['metric']['exclude_start_steps'])
+            if 'exclude_end_steps' in config['output']['metric']:
+                args.metric_exclude_end_steps = int(config['output']['metric']['exclude_end_steps'])
+
     if args.output_folder is None:
         try:
             hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
