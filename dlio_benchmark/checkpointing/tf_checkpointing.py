@@ -22,7 +22,7 @@ import tensorflow as tf
 
 from dlio_benchmark.common.constants import MODULE_CHECKPOINT
 from dlio_benchmark.common.enumerations import CheckpointLocationType
-from dlio_benchmark.utils.utility import DLIOMPI
+from dlio_benchmark.utils.utility import DLIOMPI, utcnow
 
 def get_tf_datatype(datatype):
     if datatype == "fp32":
@@ -73,7 +73,7 @@ class TFCheckpointing(BaseCheckpointing):
         name = self.get_name(suffix)
         state = dict() # clear up
         state = tf.train.load_checkpoint(name)
-        logging.debug(f"checkpoint state loaded: {state}")
+        self.logger.debug(f"{utcnow()} Checkpoint state loaded: {state}")
         assert(len(state.keys)!=0)
         
     @dlp.log
