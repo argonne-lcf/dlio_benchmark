@@ -47,7 +47,7 @@ class SyntheticDataLoader(BaseDataLoader):
     @dlp.log
     def next(self):
         super().next()
-        logging.debug(f"{utcnow()} Iterating pipelines by {self._args.my_rank} rank ")
+        self.logger.debug(f"{utcnow()} Iterating pipelines by {self._args.my_rank} rank ")
         step = 0
         self.read(True)
         while step < self.num_samples // self.batch_size:

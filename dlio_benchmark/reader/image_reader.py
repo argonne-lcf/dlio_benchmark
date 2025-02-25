@@ -46,7 +46,7 @@ class ImageReader(FormatReader):
 
     @dlp.log
     def get_sample(self, filename, sample_index):
-        logging.debug(f"{utcnow()} sample_index {sample_index}, {self.image_idx}")
+        self.logger.debug(f"{utcnow()} sample_index {sample_index}, {self.image_idx}")
         super().get_sample(filename, sample_index)
         image = self.open_file_map[filename]
         dlp.update(image_size=image.nbytes)

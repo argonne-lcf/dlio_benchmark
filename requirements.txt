@@ -10,7 +10,7 @@ nvidia-dali-cuda110>=1.34.0
 omegaconf~=2.2.0
 pandas~=1.5.1
 psutil~=5.9.8
-pydftracer==1.0.2
+pydftracer==1.0.8
 pytest
 tensorflow>=2.11.0
 torch>=2.2.0
