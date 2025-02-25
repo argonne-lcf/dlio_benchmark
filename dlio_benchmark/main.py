@@ -45,7 +45,7 @@ from dlio_benchmark.profiler.profiler_factory import ProfilerFactory
 from dlio_benchmark.framework.framework_factory import FrameworkFactory
 from dlio_benchmark.data_generator.generator_factory import GeneratorFactory
 from dlio_benchmark.storage.storage_factory import StorageFactory
-from dlio_benchmark.utils.utility import Profile, PerfTrace
+from dlio_benchmark.utils.utility import Profile, PerfTrace, DLIOLogger
 
 dlp = Profile(MODULE_DLIO_BENCHMARK)
 # To make sure the output folder is the same in all the nodes. We have to do this.
@@ -97,6 +97,7 @@ class DLIOBenchmark(object):
         self.comm.barrier()
         # Configure the logging library
         self.args.configure_dlio_logging(is_child=False)
+        self.logger = DLIOLogger.get_instance()
         if dftracer_initialize:
             dftracer = self.args.configure_dftracer(is_child=False, use_pid=False)
         with Profile(name=f"{self.__init__.__qualname__}", cat=MODULE_DLIO_BENCHMARK):
@@ -110,9 +111,9 @@ class DLIOBenchmark(object):
             if self.args.do_checkpoint:
                 mode += ["Checkpointing"]
             if self.args.my_rank == 0:
-                logging.info(f"{utcnow()} Running DLIO [{' & '.join(mode)}] with {self.args.comm_size} process(es)")
+                self.logger.output(f"{utcnow()} Running DLIO [{' & '.join(mode)}] with {self.args.comm_size} process(es)")
                 try:
-                    logging.info(
+                    self.logger.output(
                         f"{utcnow()} Reading workload YAML config file '{hydra_cfg.runtime.config_sources[1]['path']}/workload/{hydra_cfg.runtime.choices.workload}.yaml'")
                 except:
                     pass
@@ -161,21 +162,22 @@ class DLIOBenchmark(object):
         - Start profiling session for Darshan and Tensorboard.
         """
         self.comm.barrier()
+
         if self.args.generate_data:
             if self.args.my_rank == 0:
-                logging.info(f"{utcnow()} Starting data generation")
+                self.logger.output(f"{utcnow()} Starting data generation")
             self.data_generator.generate()
             # important to have this barrier to ensure that the data generation is done for all the ranks
             self.comm.barrier()
             if self.args.my_rank == 0:
-                logging.info(f"{utcnow()} Generation done")
+                self.logger.output(f"{utcnow()} Generation done")
 
         if not self.generate_only and self.do_profiling:
             self.profiler.start()
             self.framework.start_framework_profiler()
             self.comm.barrier()
             if self.args.my_rank == 0:
-                logging.info(f"{utcnow()} Profiling Started with {self.args.profiler}")
+                self.logger.info(f"{utcnow()} Profiling Started with {self.args.profiler}")
         self.comm.barrier()
         file_list_train = []
         file_list_eval = []
@@ -204,7 +206,7 @@ class DLIOBenchmark(object):
                     fullpaths = [self.storage.get_uri(os.path.join(self.args.data_folder, f"{dataset_type}", entry))
                                 for entry in filenames if entry.endswith(f'{self.args.format}')]
                     fullpaths = sorted(fullpaths)
-                logging.debug(f"subfolder {num_subfolders} fullpaths {fullpaths}")
+                self.logger.debug(f"subfolder {num_subfolders} fullpaths {fullpaths}")
                 if dataset_type is DatasetType.TRAIN:
                     file_list_train = fullpaths
                 elif dataset_type is DatasetType.VALID:
@@ -216,11 +218,11 @@ class DLIOBenchmark(object):
                 raise Exception(
                     "Not enough evaluation dataset is found; Please run the code with ++workload.workflow.generate_data=True")
             if (self.num_files_train < len(file_list_train)):
-                logging.warning(
+                self.logger.warning(
                     f"Number of files for training in {os.path.join(self.args.data_folder, f'{DatasetType.TRAIN}')} ({len(file_list_train)}) is more than requested ({self.num_files_train}). A subset of files will be used ")
                 file_list_train = file_list_train[:self.num_files_train]
             if (self.num_files_eval < len(file_list_eval)):
-                logging.warning(
+                self.logger.warning(
                     f"Number of files for evaluation in {os.path.join(self.args.data_folder, f'{DatasetType.VALID}')} ({len(file_list_eval)}) is more than requested ({self.num_files_eval}). A subset of files will be used ")
                 file_list_eval = file_list_eval[:self.num_files_eval]
         self.args.derive_configurations(file_list_train, file_list_eval)
@@ -288,7 +290,7 @@ class DLIOBenchmark(object):
         for batch in loader.next():
             if overall_step > max_steps or ((self.total_training_steps > 0) and (self.overall_step_total >= self.total_training_steps)):
                 if self.args.my_rank == 0:
-                    logging.info(f"{utcnow()} Maximum number of steps reached")
+                    self.logger.info(f"{utcnow()} Maximum number of steps reached")
                 if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
                     self.stats.end_block(epoch, block, block_step - 1)
                 break
@@ -338,15 +340,15 @@ class DLIOBenchmark(object):
             # Print out the expected number of steps for each epoch and evaluation
             if self.my_rank == 0:
                 total = math.floor(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
-                logging.info(
+                self.logger.output(
                     f"{utcnow()} Max steps per epoch: {total} = {self.num_samples} * {self.num_files_train} / {self.batch_size} / {self.comm_size} (samples per file * num files / batch size / comm size)")
                 if self.total_training_steps > 0:
-                    logging.info(
+                    self.logger.output(
                         f"{utcnow()} Total training steps is set to be {self.total_training_steps}. Will only run up to {min(total*self.args.epochs, self.total_training_steps)}"
                     )
                 if self.do_eval:
                     total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
-                    logging.info(
+                    self.logger.output(
                         f"{utcnow()} Steps per eval: {total} = {self.num_samples} * {self.num_files_eval} / {self.batch_size_eval} / {self.comm_size} (samples per file * num files / batch size eval / comm size)")
 
             # Keep track of the next epoch at which we will evaluate
@@ -364,7 +366,7 @@ class DLIOBenchmark(object):
                 self.stats.start_train(epoch)
                 steps = self._train(epoch)
                 self.stats.end_train(epoch, steps)
-                logging.debug(f"{utcnow()} Rank {self.my_rank} returned after {steps} steps.")
+                self.logger.debug(f"{utcnow()} Rank {self.my_rank} returned after {steps} steps.")
                 self.framework.get_loader(DatasetType.TRAIN).finalize()
                 # Perform evaluation if enabled
                 if self.do_eval and epoch >= next_eval_epoch:
@@ -395,14 +397,14 @@ class DLIOBenchmark(object):
                 self.framework.stop_framework_profiler()
                 self.comm.barrier()
                 if self.my_rank == 0:
-                    logging.info(f"{utcnow()} Profiling stopped")
+                    self.logger.info(f"{utcnow()} Profiling stopped")
             if not self.args.keep_files:
-                logging.info(f"{utcnow()} Keep files set to False. Deleting dataset")
+                self.logger.info(f"{utcnow()} Keep files set to False. Deleting dataset")
                 self.comm.barrier()
                 if self.my_rank == 0:
                     if self.storage.get_node(self.args.data_folder):
                         self.storage.delete_node(self.args.data_folder)
-                        logging.info(f"{utcnow()} Deleted data files")
+                        self.logger.info(f"{utcnow()} Deleted data files")
 
             # Save collected stats to disk
             self.stats.finalize()
@@ -410,6 +412,7 @@ class DLIOBenchmark(object):
         self.comm.barrier()
         if dftracer_finalize and dftracer:
             self.args.finalize_dftracer(dftracer)
+
 
 @hydra.main(version_base=None, config_path="configs", config_name="config")
 def run_benchmark(cfg: DictConfig):    
@@ -434,6 +437,7 @@ def main() -> None:
     DLIOMPI.get_instance().initialize()
     run_benchmark()
     DLIOMPI.get_instance().finalize()
+
 
 if __name__ == '__main__':
     main()

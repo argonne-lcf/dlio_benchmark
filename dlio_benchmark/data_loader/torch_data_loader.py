@@ -51,6 +51,7 @@ class TorchDataset(Dataset):
         self.batch_size = batch_size
         args = ConfigArguments.get_instance()
         self.serial_args = pickle.dumps(args)
+        self.logger = args.logger
         self.dlp_logger = None
         if num_workers == 0:
             self.worker_init(-1)
@@ -61,7 +62,7 @@ class TorchDataset(Dataset):
         _args = ConfigArguments.get_instance()
         _args.configure_dlio_logging(is_child=True)
         self.dlp_logger = _args.configure_dftracer(is_child=True, use_pid=True)
-        logging.debug(f"{utcnow()} worker initialized {worker_id} with format {self.format_type}")
+        self.logger.debug(f"{utcnow()} worker initialized {worker_id} with format {self.format_type}")
         self.reader = ReaderFactory.get_reader(type=self.format_type,
                                                dataset_type=self.dataset_type,
                                                thread_index=worker_id,
@@ -79,7 +80,7 @@ class TorchDataset(Dataset):
     def __getitem__(self, image_idx):
         self.num_images_read += 1
         step = int(math.ceil(self.num_images_read / self.batch_size))
-        logging.debug(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample")
+        self.logger.debug(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample")
         dlp.update(step = step)
         return self.reader.read_index(image_idx, step)
 
@@ -121,14 +122,14 @@ class TorchDataLoader(BaseDataLoader):
             prefetch_factor = self._args.prefetch_size
         if prefetch_factor > 0:
             if self._args.my_rank == 0:
-                logging.debug(
+                self.logger.debug(
                     f"{utcnow()} Prefetch size is {self._args.prefetch_size}; prefetch factor of {prefetch_factor} will be set to Torch DataLoader.")
         else:
             prefetch_factor = 2
             if self._args.my_rank == 0:
-                logging.debug(
+                self.logger.debug(
                     f"{utcnow()} Prefetch size is 0; a default prefetch factor of 2 will be set to Torch DataLoader.")
-        logging.debug(f"{utcnow()} Setup dataloader with {self._args.read_threads} workers {torch.__version__}")
+        self.logger.debug(f"{utcnow()} Setup dataloader with {self._args.read_threads} workers {torch.__version__}")
         if self._args.read_threads==0:
             kwargs={}
         else:
@@ -156,7 +157,7 @@ class TorchDataLoader(BaseDataLoader):
                                        drop_last=True,
                                        worker_init_fn=dataset.worker_init,
                                        **kwargs)  # 2 is the default value
-        logging.debug(f"{utcnow()} Rank {self._args.my_rank} will read {len(self._dataset) * self.batch_size} files")
+        self.logger.debug(f"{utcnow()} Rank {self._args.my_rank} will read {len(self._dataset) * self.batch_size} files")
 
         # self._dataset.sampler.set_epoch(epoch_number)
 
@@ -164,7 +165,7 @@ class TorchDataLoader(BaseDataLoader):
     def next(self):
         super().next()
         total = self._args.training_steps if self.dataset_type is DatasetType.TRAIN else self._args.eval_steps
-        logging.debug(f"{utcnow()} Rank {self._args.my_rank} should read {total} batches")
+        self.logger.debug(f"{utcnow()} Rank {self._args.my_rank} should read {total} batches")
         step = 1
         # TODO: @hariharan-devarajan: change below line when we bump the dftracer version to 
         #       `dlp.iter(self._dataset, name=self.next.__qualname__)`

@@ -63,7 +63,7 @@ class NativeDaliDataLoader(BaseDataLoader):
                 # TODO: @hariharan-devarajan: change below line when we bump the dftracer version to 
                 #       `dlp.iter(self._dataset, name=self.next.__qualname__)`
                 for batch in dlp.iter(self._dataset):
-                    logging.debug(f"{utcnow()} Creating {len(batch)} batches by {self._args.my_rank} rank ")
+                    self.logger.debug(f"{utcnow()} Creating {len(batch)} batches by {self._args.my_rank} rank ")
                     yield batch
             except StopIteration:
                 return
