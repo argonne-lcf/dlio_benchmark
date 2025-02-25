@@ -17,8 +17,7 @@
 
 import os
 import logging
-from time import time
-
+from time import time, sleep
 from dlio_benchmark.common.constants import MODULE_AI_FRAMEWORK
 from dlio_benchmark.data_loader.data_loader_factory import DataLoaderFactory
 from dlio_benchmark.utils.utility import utcnow, DLIOMPI
@@ -86,8 +85,8 @@ class TFFramework(Framework):
         pass  # tf.profiler.experimental.Trace(string, step_num=step, _r=r)
 
     @dlp.log
-    def compute(self, x, epoch_number, step, computation_time):
-        return sleep(computation_time)
+    def compute(self, batch, epoch_number, step, computation_time):
+        return self.model(batch, computation_time)
         # tf.function(self.model)(epoch_number, step, computation_time)
 
     @dlp.log

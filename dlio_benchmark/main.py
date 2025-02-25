@@ -227,17 +227,17 @@ class DLIOBenchmark(object):
         step = 1
         total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         loader = self.framework.get_loader(DatasetType.VALID)
-        t0 = time()
-        for batch in loader.next():
-            self.stats.eval_batch_loaded(epoch, step, t0)
+        self.stats.start_loading()
+        for batch in dlp.iter(loader.next()):
+            self.stats.eval_batch_loaded(epoch, step)
             eval_time = self.eval_time
-            eval_time = self.framework.compute(batch, epoch, step, eval_time)
-            self.stats.eval_batch_processed(epoch, step, t0, eval_time)
-
+            self.stats.start_compute()
+            self.framework.compute(batch, epoch, step, eval_time)
+            self.stats.eval_batch_processed(epoch, step)
             step += 1
             if step > total:
                 break
-            t0 = time()
+            self.stats.start_loading()
         return step - 1
 
     @dlp.log
@@ -254,23 +254,16 @@ class DLIOBenchmark(object):
         self.stats.start_block(epoch, block)
 
         loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
-        t0 = time()
+        self.stats.start_loading()
         for batch in loader.next():
-            if overall_step > max_steps or ((self.total_training_steps > 0) and (overall_step > self.total_training_steps)):
-                if self.args.my_rank == 0:
-                    self.logger.info(f"{utcnow()} Maximum number of steps reached")
-                if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
-                    self.stats.end_block(epoch, block, block_step - 1)
-                break
-            self.stats.batch_loaded(epoch, overall_step, block, t0)
-            # Log a new block, unless it's the first one which we've already logged before the loop
-            if block_step == 1 and block != 1:
-                self.stats.start_block(epoch, block)
-            computation_time = self.computation_time
+            self.stats.batch_loaded(epoch, overall_step, block)
+
+            computation_time = self.args.computation_time
             if (isinstance(computation_time, dict) and len(computation_time) > 0) or (isinstance(computation_time, float) and  computation_time > 0):
                 self.framework.trace_object("Train", overall_step, 1)
-            computation_time = self.framework.compute(batch, epoch, block_step, computation_time)
-            self.stats.batch_processed(epoch, overall_step, block, t0, computation_time)
+            self.stats.start_compute()
+            self.framework.compute(batch, epoch, block_step, self.computation_time)
+            self.stats.batch_processed(epoch, overall_step, block)
             self.comm.barrier()
             if self.do_checkpoint and (
                     self.steps_between_checkpoints >= 0) and overall_step == self.next_checkpoint_step:
@@ -285,11 +278,21 @@ class DLIOBenchmark(object):
             else:
                 block_step += 1
             overall_step += 1
-            t0 = time()
+            if overall_step > max_steps or ((self.total_training_steps > 0) and (overall_step > self.total_training_steps)):
+                if self.args.my_rank == 0:
+                    logging.info(f"{utcnow()} Maximum number of steps reached")
+                if (not self.do_checkpoint):
+                    self.stats.end_block(epoch, block, block_step - 1)
+                break
+            # start a new block here
+            if block_step == 1 and block != 1:
+                self.stats.start_block(epoch, block)
+            self.stats.start_loading()
+
         self.comm.barrier()
         if self.do_checkpoint and (self.steps_between_checkpoints < 0) and (epoch == self.next_checkpoint_epoch):
-            self.stats.end_block(epoch, block, block_step)
-            self.stats.start_ckpt(epoch, block, overall_step)
+            self.stats.end_block(epoch, block, block_step-1)
+            self.stats.start_ckpt(epoch, block, overall_step-1)
             self.checkpointing_mechanism.checkpoint(epoch, overall_step)
             self.stats.end_ckpt(epoch, block)
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
