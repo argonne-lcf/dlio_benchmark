@@ -37,6 +37,7 @@ jobs:
           cd ./docs
           cp ./source/index.rst ./source/contents.rst
           make html
+          mkdir -p ../_site/
           mv _build/html ../_site/  # Move built files to _site/
       - name: Upload artifact
         uses: actions/upload-artifact@v4
