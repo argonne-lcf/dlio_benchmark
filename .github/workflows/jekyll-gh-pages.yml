@@ -29,16 +29,18 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v2
-      - name: Build with Jekyll
+      - name: Install Dependencies
         run: |
           sudo apt-get install python3-sphinx
           pip install sphinx_rtd_theme
+      - name: Build with Sphinx
+        run: |
           cd ./docs
           cp ./source/index.rst ./source/contents.rst
           make html
-          cp -r _build/html ../_site/
+          mv _build/html ../_site/  # Move built files to _site/
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v2  # Updated to latest version
 
   # Deployment job
   deploy:
@@ -50,6 +52,6 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v2  # Updated to latest version
         with:
-          folder: _build/html/
+          folder: _site/  # Use _site/ instead of _build/html/
