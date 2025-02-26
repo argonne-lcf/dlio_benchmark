@@ -76,7 +76,7 @@ class PyTorchCheckpointing(BaseCheckpointing):
         name = self.get_name(suffix)
         state = dict() # clear up
         state = torch.load(name)
-        logging.debug(f"checkpoint state loaded: {state}")
+        self.logger.debug(f"checkpoint state loaded: {state}")
         assert(len(state.keys())>0)
 
     @dlp.log

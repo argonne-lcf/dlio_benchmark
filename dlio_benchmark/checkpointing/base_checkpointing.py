@@ -46,6 +46,7 @@ class BaseCheckpointing(ABC):
         self.args = ConfigArguments.get_instance()
         self.checkpoint_storage = StorageFactory().get_storage(self.args.storage_type, self.args.checkpoint_folder,
                                                           self.args.framework)
+        self.logger = self.args.logger
         self.MPI = DLIOMPI.get_instance()
         self.comm = self.MPI.comm()
         # define parallelism
@@ -64,7 +65,7 @@ class BaseCheckpointing(ABC):
         model_checkpoint_size = 0.0
         optimizer_checkpoint_size = 0.0
         if self.args.my_rank == 0:
-            logging.info(f"{utcnow()} Total number of parameters in the model: {self.num_parameters}")
+            self.logger.output(f"{utcnow()} Total number of parameters in the model: {self.num_parameters}")
         if self.args.zero_stage == 0:
             if self.args.my_rank < self.model_parallelism:
                 self.rank_to_checkpoint = self.args.my_rank
@@ -97,10 +98,9 @@ class BaseCheckpointing(ABC):
                 model_checkpoint_size = 0.0
                 for layer_index in range(start_layer, end_layer + 1):
                     self.layer_state[str(layer_index)], size = self.get_layer_state(layer_index)
-                    #logging.info(f"{utcnow()} {self.args.my_rank} [{start_layer}-{end_layer}]:::{layer_index}: {size/1024./1024./1024:.4f} GB ")
                     model_checkpoint_size += size
                 if self.args.my_rank == 0:
-                    logging.debug(f"{utcnow()} Layer states defined! {model_checkpoint_size/1024./1024./1024} GB per rank")
+                    self.logger.info(f"{utcnow()} Layer states defined! {model_checkpoint_size/1024./1024./1024} GB per rank")
 
             # optimization state
             self.optimization_state = None
@@ -119,11 +119,10 @@ class BaseCheckpointing(ABC):
                 else:
                     for index, state in enumerate(optimization_groups):
                         if state > 0:
-                            #logging.info(f"{state/1024./1024./1024. } GB")
                             optimizer_checkpoint_size += state * get_datatype_size(self.args.optimizer_datatype)
                             self.optimization_state[str(index)] = self.get_tensor(state, self.args.optimizer_datatype)
             if self.args.my_rank == 0:
-                logging.debug(f"{utcnow()} Optimizer state defined: {optimizer_checkpoint_size / 1024./1024./1024} GB per rank")
+                self.logger.info(f"{utcnow()} Optimizer state defined: {optimizer_checkpoint_size / 1024./1024./1024} GB per rank")
             # layer state
 
             
@@ -131,7 +130,7 @@ class BaseCheckpointing(ABC):
             if self.args.model_size > 0 and self.args.model_type != "transformer":
                 self.model_state = {"a": self.get_tensor(self.args.model_size)}
                 if self.args.my_rank == 0:
-                    logging.info(f"{utcnow()} Model state defined")
+                    self.logger.info(f"{utcnow()} Model state defined")
 
         model_checkpoint_size = self.comm.allreduce(model_checkpoint_size)/1024./1024./1024.
         optimizer_checkpoint_size = self.comm.allreduce(optimizer_checkpoint_size)/1024./1024./1024.
@@ -139,9 +138,9 @@ class BaseCheckpointing(ABC):
             model_checkpoint_size /= self.data_parallelism
         self.checkpoint_size = model_checkpoint_size + optimizer_checkpoint_size
         if self.args.my_rank == 0:
-            logging.info(f"{utcnow()} Model size: {model_checkpoint_size:.4f} GB")
-            logging.info(f"{utcnow()} Optimizer state size: {optimizer_checkpoint_size:.4f} GB")
-            logging.info(f"{utcnow()} Total checkpoint size: {self.checkpoint_size:.4f} GB")
+            self.logger.output(f"{utcnow()} Model size: {model_checkpoint_size:.4f} GB")
+            self.logger.output(f"{utcnow()} Optimizer state size: {optimizer_checkpoint_size:.4f} GB")
+            self.logger.output(f"{utcnow()} Total checkpoint size: {self.checkpoint_size:.4f} GB")
 
     @abstractmethod
     def get_tensor(self, length, datatype="int8"):
@@ -286,14 +285,14 @@ class BaseCheckpointing(ABC):
                     self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_model_states", state=self.layer_state, fsync = self.args.checkpoint_fsync)
                 save_model_time = time.time() - start_time
                 if my_rank == 0:
-                    logging.info(f"{utcnow()} Saved model checkpoint in {save_model_time:.4f} seconds")
+                    self.logger.output(f"{utcnow()} Saved model checkpoint in {save_model_time:.4f} seconds")
                 
             if self.optimization_state:
                 start_time = time.time()
                 self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states", state=self.optimization_state, fsync = self.args.checkpoint_fsync)
                 save_optimizer_time = time.time() - start_time
                 if my_rank == 0:
-                    logging.info(f"{utcnow()} Saved optimizer checkpoint in {save_optimizer_time:.4f} seconds")
+                    self.logger.output(f"{utcnow()} Saved optimizer checkpoint in {save_optimizer_time:.4f} seconds")
 
     @abstractmethod
     def load_checkpoint(self, epoch, step_number):
@@ -324,14 +323,14 @@ class BaseCheckpointing(ABC):
                     self.load_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_model_states", state=self.layer_state)
                 load_model_time = time.time() - start_time
                 if my_rank == 0:
-                    logging.info(f"{utcnow()} Loaded model checkpoint in {load_model_time:.4f} seconds")
+                    self.logger.output(f"{utcnow()} Loaded model checkpoint in {load_model_time:.4f} seconds")
                 
             if self.optimization_state:
                 start_time = time.time()
                 self.load_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states", state=self.optimization_state)   
                 load_optimizer_time = time.time() - start_time
                 if my_rank == 0:
-                    logging.info(f"{utcnow()} Loaded optimizer checkpoint in {load_optimizer_time:.4f} seconds")
+                    self.logger.output(f"{utcnow()} Loaded optimizer checkpoint in {load_optimizer_time:.4f} seconds")
 
     @abstractmethod
     def finalize(self):

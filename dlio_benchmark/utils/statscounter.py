@@ -88,7 +88,7 @@ class StatsCounter(object):
         self.metric_start_step = self.args.metric_exclude_start_steps
         self.metric_end_step = self.steps - 1 - self.args.metric_exclude_end_steps 
         if self.comm.rank == 0:
-            logging.info(f"{utcnow()} Metric calculation will exclude the beginning {self.args.metric_exclude_start_steps} and end {self.args.metric_exclude_end_steps} steps, only includes {self.metric_steps} steps.")
+            self.logger.info(f"{utcnow()} Metric calculation will exclude the beginning {self.args.metric_exclude_start_steps} and end {self.args.metric_exclude_end_steps} steps, only includes {self.metric_steps} steps.")
         self.steps_eval = math.floor(self.args.num_samples_per_file * self.args.num_files_eval / self.args.batch_size_eval / self.args.comm_size)
         self.per_epoch_stats = {}
         self.metric_steps_eval = self.steps_eval - (self.args.metric_exclude_end_steps + self.args.metric_exclude_start_steps)
@@ -349,7 +349,7 @@ class StatsCounter(object):
         self.per_epoch_stats[epoch][f'save_ckpt{block}']['duration'] = float(duration.total_seconds())
         self.per_epoch_stats[epoch][f'save_ckpt{block}']['throughput'] = self.checkpoint_size / float(duration.total_seconds())
         if self.my_rank == 0:
-            logging.info(f"{ts} Finished saving checkpoint {block} for epoch {epoch} in {duration.total_seconds():.4f} s; Throughput: {self.per_epoch_stats[epoch][f'save_ckpt{block}']['throughput']:.4f} GB/s")
+            self.logger.output(f"{ts} Finished saving checkpoint {block} for epoch {epoch} in {duration.total_seconds():.4f} s; Throughput: {self.per_epoch_stats[epoch][f'save_ckpt{block}']['throughput']:.4f} GB/s")
 
     def start_load_ckpt(self, epoch, block, steps_taken):
         ts = utcnow()
