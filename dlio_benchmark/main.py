@@ -417,7 +417,6 @@ class DLIOBenchmark(object):
 @hydra.main(version_base=None, config_path="configs", config_name="config")
 def run_benchmark(cfg: DictConfig):    
     benchmark = DLIOBenchmark(cfg['workload'])
-    os.environ["DARSHAN_DISABLE"] = "1"
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()
