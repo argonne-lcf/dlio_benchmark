@@ -46,6 +46,7 @@ class BaseCheckpointing(ABC):
         self.args = ConfigArguments.get_instance()
         self.checkpoint_storage = StorageFactory().get_storage(self.args.storage_type, self.args.checkpoint_folder,
                                                           self.args.framework)
+        self.logger = self.args.logger
         self.MPI = DLIOMPI.get_instance()
         self.comm = self.MPI.comm()
         # define parallelism
