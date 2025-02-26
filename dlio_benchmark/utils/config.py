@@ -702,10 +702,6 @@ def LoadConfig(args, config):
             args.do_train = config['workflow']['train']
         if 'generate_data' in config['workflow']:
             args.generate_data = config['workflow']['generate_data']
-        if not (('train' in config['workflow']) and config['workflow']['train']):
-            args.generate_only = True
-        else:
-            args.generate_only = False
         if 'evaluation' in config['workflow']:
             args.do_eval = config['workflow']['evaluation']
         if 'checkpoint' in config['workflow']:
@@ -714,7 +710,7 @@ def LoadConfig(args, config):
             args.do_profiling = config['workflow']['profiling']
     
     if not args.do_train:
-        if args.generate_data:
+        if args.generate_data and (not args.do_checkpoint):
             args.generate_only = True
         if args.do_checkpoint:
             args.checkpoint_only = True
