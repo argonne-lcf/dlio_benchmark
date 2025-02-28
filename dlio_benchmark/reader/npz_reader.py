@@ -16,9 +16,11 @@
 """
 import numpy as np
 
+import io
 from dlio_benchmark.common.constants import MODULE_DATA_READER
 from dlio_benchmark.reader.reader_handler import FormatReader
 from dlio_benchmark.utils.utility import Profile
+from dlio_benchmark.storage.s3_storage import S3PytorchStorage
 
 dlp = Profile(MODULE_DATA_READER)
 
@@ -34,6 +36,12 @@ class NPZReader(FormatReader):
 
     @dlp.log
     def open(self, filename):
+        if isinstance(self.storage, S3PytorchStorage):
+            print(filename)
+            data = self.storage.get_data(filename)
+            image = io.BytesIO(data)
+            return np.load(image, allow_pickle=True)["x"]
+
         super().open(filename)
         return np.load(filename, allow_pickle=True)['x']
 

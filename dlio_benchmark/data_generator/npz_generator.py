@@ -20,11 +20,13 @@ from dlio_benchmark.data_generator.data_generator import DataGenerator
 
 import logging
 import numpy as np
+import io
 
 from dlio_benchmark.utils.utility import progress, utcnow
 from dlio_benchmark.utils.utility import Profile
 from shutil import copyfile
 from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
+from dlio_benchmark.common.enumerations import StorageType
 
 dlp = Profile(MODULE_DATA_GENERATOR)
 
@@ -51,8 +53,19 @@ class NPZGenerator(DataGenerator):
             out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating NPZ Data")
             prev_out_spec = out_path_spec
-            if self.compression != Compression.ZIP:
-                np.savez(out_path_spec, x=records, y=record_labels)
+
+            if self._args.storage_type == StorageType.S3:
+                buffer =  io.BytesIO()
+                if self.compression != Compression.ZIP:
+                    np.savez(buffer, x=records, y=record_labels)
+                else:
+                    np.savez_compressed(buffer, x=records, y=record_labels)
+                self.storage.put_data(out_path_spec, buffer)
+
+
             else:
-                np.savez_compressed(out_path_spec, x=records, y=record_labels)
+                if self.compression != Compression.ZIP:
+                    np.savez(out_path_spec, x=records, y=record_labels)
+                else:
+                    np.savez_compressed(out_path_spec, x=records, y=record_labels)
         np.random.seed()
