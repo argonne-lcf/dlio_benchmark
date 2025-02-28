@@ -10,9 +10,5 @@ RUN apt-get update && \
 RUN python3 -m pip install --upgrade pip
 RUN python3 -m venv /workspace/venv
 ENV PATH="/workspace/venv/bin:$PATH"
-RUN python3 -m pip install pybind11 
-RUN python setup.py build
-RUN python setup.py install
-
-
-
+RUN pip install pybind11 
+RUN pip install .
