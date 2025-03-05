@@ -103,7 +103,9 @@ Workload characteristics are specified by a YAML configuration file. Below is an
 
 ```
 # contents of unet3d.yaml
-model: unet3d
+model: 
+  name: unet3d
+  model_size: 499153191
 
 framework: pytorch
 
@@ -117,9 +119,9 @@ dataset:
   format: npz
   num_files_train: 168
   num_samples_per_file: 1
-  record_length: 146600628
-  record_length_stdev: 68341808
-  record_length_resize: 2097152
+  record_length_bytes: 146600628
+  record_length_bytes_stdev: 68341808
+  record_length_bytes_resize: 2097152
   
 reader: 
   data_loader: pytorch
@@ -136,7 +138,6 @@ checkpoint:
   checkpoint_folder: checkpoints/unet3d
   checkpoint_after_epoch: 5
   epochs_between_checkpoints: 2
-  model_size: 499153191
 ```
 
 The full list of configurations can be found in: https://argonne-lcf.github.io/dlio_benchmark/config.html
@@ -183,8 +184,6 @@ The original CCGrid'21 paper describes the design and implementation of DLIO cod
 }
 ```
 
-
-
 We also encourage people to take a look at a relevant work from MLPerf Storage working group. 
 ```
 @article{balmau2022mlperfstorage,
@@ -207,7 +206,7 @@ This work used resources of the Argonne Leadership Computing Facility, which is 
 Apache 2.0 [LICENSE](./LICENSE)
 
 ---------------------------------------
-Copyright (c) 2022, UChicago Argonne, LLC
+Copyright (c) 2025, UChicago Argonne, LLC
 All Rights Reserved
 
 If you have questions about your rights to use or distribute this software, please contact Argonne Intellectual Property Office at partners@anl.gov
