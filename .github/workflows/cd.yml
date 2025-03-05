@@ -8,6 +8,9 @@ permissions:
   contents: read
 
 jobs:
+  release-docker:
+    uses: ./.github/workflows/docker.yml
+    secrets: inherit
   release-build:
     runs-on: ubuntu-22.04
     steps:
