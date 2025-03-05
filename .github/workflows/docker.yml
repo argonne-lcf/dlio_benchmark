@@ -42,7 +42,7 @@ jobs:
         uses: docker/metadata-action@v5.5.0
         with:
           images: |
-            ${{ github.repository }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/dlio:latest
             ghcr.io/${{ github.repository }}
       - name: Build and push Docker image
         id: build-and-push
