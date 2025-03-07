@@ -20,22 +20,26 @@ import io
 from dlio_benchmark.common.constants import MODULE_DATA_READER
 from dlio_benchmark.reader.reader_handler import FormatReader
 from dlio_benchmark.utils.utility import Profile
+from dlio_benchmark.storage.storage_factory import StorageFactory
 
 dlp = Profile(MODULE_DATA_READER)
 
-class NPZReader(FormatReader):
+
+class NPZS3Reader(FormatReader):
     """
-    Reader for NPZ files
+    Reader for NPZ files using S3 protocol
     """
 
     @dlp.log_init
     def __init__(self, dataset_type, thread_index, epoch):
         super().__init__(dataset_type, thread_index)
+        self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root, self._args.framework)
 
     @dlp.log
     def open(self, filename):
-        super().open(filename)
-        return np.load(filename, allow_pickle=True)['x']
+        data = self.storage.get_data(filename)
+        image = io.BytesIO(data)
+        return np.load(image, allow_pickle=True)["x"]
 
     @dlp.log
     def close(self, filename):

@@ -1,5 +1,4 @@
 """
-   Copyright (c) 2025 Dell Inc, or its subsidiaries.
    Copyright (c) 2024, UChicago Argonne, LLC
    All Rights Reserved
 
@@ -45,8 +44,6 @@ class FormatReader(ABC):
             f"Loading {self.__class__.__qualname__} reader on thread {self.thread_index} from rank {self._args.my_rank}")
         self.dataset_type = dataset_type
         self.open_file_map = {}
-        self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root,
-                                                    self._args.framework)
         if FormatReader.read_images is None:
             FormatReader.read_images = 0
         self.step = 1
