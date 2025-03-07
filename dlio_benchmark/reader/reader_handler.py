@@ -44,7 +44,6 @@ class FormatReader(ABC):
             f"Loading {self.__class__.__qualname__} reader on thread {self.thread_index} from rank {self._args.my_rank}")
         self.dataset_type = dataset_type
         self.open_file_map = {}
-
         if FormatReader.read_images is None:
             FormatReader.read_images = 0
         self.step = 1

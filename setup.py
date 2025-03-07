@@ -18,6 +18,7 @@ core_deps = [
     "pandas>=1.5.1",
     "psutil>=5.9.8",
     "pydftracer==1.0.8",
+    "boto3",
 ]
 x86_deps = [
     f"hydra-core>={HYDRA_VERSION}",
