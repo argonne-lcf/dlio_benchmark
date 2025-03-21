@@ -635,8 +635,8 @@ def LoadConfig(args, config):
             args.time_between_checkpoints = config['checkpoint']['time_between_checkpoints']
         if 'num_checkpoints' in config['checkpoint']:
             args.num_checkpoints = config['checkpoint']['num_checkpoints']
-        if 'load_rank_shift' in config['checkpoint']:
-            args.checkpoint_load_rank_shift = config['checkpoint']['load_rank_shift']
+        if 'recovery_rank_shift' in config['checkpoint']:
+            args.checkpoint_load_rank_shift = config['checkpoint']['recovery_rank_shift']
         if 'recovery_after_steps' in config['checkpoint']:
             args.checkpoint_recovery_after_steps = config['checkpoint']['recovery_after_steps']
 
