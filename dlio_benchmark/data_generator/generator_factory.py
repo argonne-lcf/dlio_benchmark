@@ -17,7 +17,7 @@
 
 from dlio_benchmark.common.enumerations import FormatType
 from dlio_benchmark.common.error_code import ErrorCodes
-
+from dlio_benchmark.common.enumerations import StorageType
 
 
 class GeneratorFactory(object):
@@ -25,7 +25,7 @@ class GeneratorFactory(object):
         pass
 
     @staticmethod
-    def get_generator(type):
+    def get_generator(type, storage_type):
         if type == FormatType.TFRECORD:
             from dlio_benchmark.data_generator.tf_generator import TFRecordGenerator
             return TFRecordGenerator()
@@ -36,8 +36,12 @@ class GeneratorFactory(object):
             from dlio_benchmark.data_generator.csv_generator import CSVGenerator
             return CSVGenerator()
         elif type == FormatType.NPZ:
-            from dlio_benchmark.data_generator.npz_generator import NPZGenerator
-            return NPZGenerator()
+            if storage_type == StorageType.S3:
+                from dlio_benchmark.data_generator.npz_s3_generator import NPZS3Generator
+                return NPZS3Generator()
+            else:
+                from dlio_benchmark.data_generator.npz_generator import NPZGenerator
+                return NPZGenerator()
         elif type == FormatType.NPY:
             from dlio_benchmark.data_generator.npy_generator import NPYGenerator
             return NPYGenerator()            

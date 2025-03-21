@@ -21,7 +21,7 @@ from dlio_benchmark.utils.config import ConfigArguments
 
 from dlio_benchmark.common.enumerations import FormatType, DataLoaderType
 from dlio_benchmark.common.error_code import ErrorCodes
-
+from dlio_benchmark.common.enumerations import StorageType
 
 class ReaderFactory(object):
     def __init__(self):
@@ -61,6 +61,9 @@ class ReaderFactory(object):
         elif type == FormatType.NPZ:
             if _args.data_loader == DataLoaderType.NATIVE_DALI:
                 raise Exception("Loading data of %s format is not supported without framework data loader; please use npy format instead." %type)
+            elif _args.storage_type == StorageType.S3:
+                from dlio_benchmark.reader.npz_s3_reader import NPZS3Reader
+                return NPZS3Reader(dataset_type, thread_index, epoch_number)
             else:
                 from dlio_benchmark.reader.npz_reader import NPZReader
                 return NPZReader(dataset_type, thread_index, epoch_number)
