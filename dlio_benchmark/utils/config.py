@@ -108,9 +108,10 @@ class ConfigArguments:
     optimizer_datatype: str = "fp32"
     checkpoint_fsync: bool = False
     checkpoint_only: bool = False
-    checkpoint_load_rank_shift: int = 0
+    checkpoint_recovery_rank_shift: int = 0
     checkpoint_recovery_after_steps: int = -1
     time_between_checkpoints: float = -1
+    checkpoint_rank_sync: bool = False
     num_checkpoints: int = -1
     model_size: int = 10240
     model_type: str = None
@@ -636,9 +637,11 @@ def LoadConfig(args, config):
         if 'num_checkpoints' in config['checkpoint']:
             args.num_checkpoints = config['checkpoint']['num_checkpoints']
         if 'recovery_rank_shift' in config['checkpoint']:
-            args.checkpoint_load_rank_shift = config['checkpoint']['recovery_rank_shift']
+            args.checkpoint_recover_rank_shift = config['checkpoint']['recovery_rank_shift']
         if 'recovery_after_steps' in config['checkpoint']:
             args.checkpoint_recovery_after_steps = config['checkpoint']['recovery_after_steps']
+        if 'rank_sync' in config['checkpoint']:
+            args.checkpoint_rank_sync = config['checkpoint']['rank_sync']
 
     if 'model' in config:
         if 'name' in config['model']:

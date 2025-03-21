@@ -410,7 +410,9 @@ checkpoint
    * - recovery_rank_shift:
 *    - 0
 *    - Shift the rank ID by recovery_rank_shift to avoid caching effort. The default value is 0. The suggested value would be ppn (number of processes per node). 
-
+   * - recovery_rank_shift:
+     - False
+     - Whether to synchronize all the ranks after checkpoint write / read or not. If this is True, the synchronization time will be included in the overall checkpoint write / read time. 
 .. note::
    
    By default, if checkpoint is enabled, it will perform checkpointing from every epoch. One can perform multiple checkpoints within a single epoch, 
