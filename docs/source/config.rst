@@ -408,7 +408,7 @@ checkpoint
      - -1
      - How many checkpoints to write before doing read for recovery. -1 means never doing recovery. 
    * - recovery_rank_shift:
-*    - 0
+*    - True
 *    - Shift the rank ID by recovery_rank_shift to avoid caching effort. The default value is 0. The suggested value would be ppn (number of processes per node). 
    * - recovery_rank_shift:
      - False

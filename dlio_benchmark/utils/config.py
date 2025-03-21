@@ -108,7 +108,7 @@ class ConfigArguments:
     optimizer_datatype: str = "fp32"
     checkpoint_fsync: bool = False
     checkpoint_only: bool = False
-    checkpoint_recovery_rank_shift: int = 0
+    checkpoint_recovery_rank_shift: bool = True
     checkpoint_recovery_after_steps: int = -1
     time_between_checkpoints: float = -1
     checkpoint_rank_sync: bool = False

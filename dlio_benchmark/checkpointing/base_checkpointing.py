@@ -296,7 +296,8 @@ class BaseCheckpointing(ABC):
 
     @abstractmethod
     def load_checkpoint(self, epoch, step_number):
-        my_rank = (DLIOMPI.get_instance().rank() + self.args.checkpoint_recovery_rank_shift) % DLIOMPI.get_instance().size()
+        if self.args.checkpoint_recovery_rank_shift:
+            my_rank = (DLIOMPI.get_instance().rank() + DLIOMPI.get_instance().npernode()) % DLIOMPI.get_instance().size()
         start_layer, end_layer = self.get_layer_index()
         # create a specifc folder for each step
         checkpoint_id = f"global_epoch{epoch}_step{step_number}"
