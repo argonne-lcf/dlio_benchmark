@@ -39,7 +39,7 @@ from dlio_benchmark.utils.utility import utcnow, measure_performance, get_trace_
 from omegaconf import DictConfig, OmegaConf
 from dlio_benchmark.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
-from dlio_benchmark.utils.config import LoadConfig, ConfigArguments
+from dlio_benchmark.utils.config import LoadConfig, ConfigArguments, GetConfig
 from dlio_benchmark.common.enumerations import Profiler, DatasetType, StorageType, MetadataType, FormatType
 from dlio_benchmark.profiler.profiler_factory import ProfilerFactory
 from dlio_benchmark.framework.framework_factory import FrameworkFactory
@@ -439,17 +439,17 @@ def main() -> None:
 
 @hydra.main(version_base=None, config_path="configs", config_name="config")
 def query_config(cfg: DictConfig):
+    DLIOMPI.get_instance().initialize()
     config = cfg['workload']
+    
     value = None
     if "query" in config["workflow"]:
         key = config["workflow"]["query"]
-        keys = key.split(".")
-        for k in keys:
-            if value:
-                value = value[k]
-            else:
-                value = config[k]
+        args = ConfigArguments.get_instance()
+        LoadConfig(args, config)
+        value = GetConfig(args, key)
     print(value) if value else print("None")
+    DLIOMPI.get_instance().finalize()
     
 if __name__ == '__main__':
     main()

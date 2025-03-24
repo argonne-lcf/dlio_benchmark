@@ -459,6 +459,223 @@ class ConfigArguments:
             if self.eval_sample_index_sum != global_eval_sample_sum:
                 raise Exception(f"Sharding of eval samples are missing samples got {global_eval_sample_sum} but expected {self.eval_sample_index_sum}")
 
+def GetConfig(args, key):
+    keys = key.split(".")
+    value = None
+    if len(keys) > 0 and keys[0] == "framework":
+        value = args.framework
+    
+    if len(keys) > 1 and keys[0] == "storage":
+        if keys[1] == "storage_type":
+            value = args.storage_type
+        elif keys[1] == "storage_root":
+            value = args.storage_root
+    
+    if len(keys) > 1 and keys[0] == "dataset":
+        if keys[1] == "record_length_bytes":
+            value = args.record_length
+        elif keys[1] == "record_length_byte_stdev":
+            value = args.record_length_stdev
+        elif keys[1] == "record_length_bytes_resize":
+            value = args.record_length_resize
+        elif keys[1] == "num_files_train":
+            value = args.num_files_train
+        elif keys[1] == "num_files_eval":
+            value = args.num_files_eval
+        elif keys[1] == "generation_buffer_size":
+            value = args.generation_buffer_size
+        elif keys[1] == "num_samples_per_file":
+            value = args.num_samples_per_file
+        elif keys[1] == "data_folder":
+            value = args.data_folder
+        elif keys[1] == "num_subfolders_train":
+            value = args.num_subfolders_train
+        elif keys[1] == "num_subfolders_eval":
+            value = args.num_subfolders_eval
+        elif keys[1] == "enable_chunking":
+            value = args.enable_chunking
+        elif keys[1] == "chunk_size":
+            value = args.chunk_size
+        elif keys[1] == "compression":
+            value = args.compression
+        elif keys[1] == "compression_level":
+            value = args.compression_level
+        elif keys[1] == "file_prefix":
+            value = args.file_prefix
+        elif keys[1] == "format":
+            value = args.format
+        elif keys[1] == "keep_files":
+            value = args.keep_files
+
+    # data reader
+    reader = None
+    if len(keys) > 0 and keys[0] == "data_reader":
+        reader = config['data_reader']
+    elif len(keys) > 0 and keys[0] == "reader":
+        reader = config['reader']
+    if reader is not None:
+        if len(keys) > 1 and keys[1] == "dont_use_mmap":
+            value = args.dont_use_mmap
+        elif len(keys) > 1 and keys[1] == "reader_classname":
+            value = args.reader_classname
+        elif len(keys) > 1 and keys[1] == "multiprocessing_context":
+            value = args.multiprocessing_context
+        elif len(keys) > 1 and keys[1] == "data_loader":
+            value = args.data_loader
+        elif len(keys) > 1 and keys[1] == "data_loader_classname":
+            value = args.data_loader_classname
+        elif len(keys) > 1 and keys[1] == "data_loader_sampler":
+            value = args.data_loader_sampler
+        elif len(keys) > 1 and keys[1] == "read_threads":
+            value = args.read_threads
+        elif len(keys) > 1 and keys[1] == "computation_threads":
+            value = args.computation_threads
+        elif len(keys) > 1 and keys[1] == "batch_size":
+            value = args.batch_size
+        elif len(keys) > 1 and keys[1] == "batch_size_eval":
+            value = args.batch_size_eval
+        elif len(keys) > 1 and keys[1] == "prefetch_size":
+            value = args.prefetch_size
+        elif len(keys) > 1 and keys[1] == "file_shuffle":
+            value = args.file_shuffle
+        elif len(keys) > 1 and keys[1] == "file_access":
+            value = args.file_access
+        elif len(keys) > 1 and keys[1] == "shuffle_size":
+            value = args.shuffle_size
+        elif len(keys) > 1 and keys[1] == "sample_shuffle":
+            value = args.sample_shuffle
+        elif len(keys) > 1 and keys[1] == "read_type":
+            value = args.read_type
+        elif len(keys) > 1 and keys[1] == "transfer_size":
+            value = args.transfer_size
+        elif len(keys) > 1 and keys[1] == "preprocess_time":
+            value = args.preprocess_time
+        elif len(keys) > 1 and keys[1] == "preprocess_time_stdev":
+            value = args.preprocess_time.get("stdev", None)
+        elif len(keys) > 1 and keys[1] == "pin_memory":
+            value = args.pin_memory
+
+    # training relevant setting
+    if len(keys) > 1 and keys[0] == "train":
+        if keys[1] == "epochs":
+            value = args.epochs
+        elif keys[1] == "total_training_steps":
+            value = args.total_training_steps
+        elif keys[1] == "seed_change_epoch":
+            value = args.seed_change_epoch
+        elif keys[1] == "computation_time":
+            value = args.computation_time
+        elif keys[1] == "computation_time_stdev":
+            value = args.computation_time.get("stdev", None)
+        elif keys[1] == "seed":
+            value = args.seed
+
+    if len(keys) > 1 and keys[0] == "evaluation":
+        if keys[1] == "eval_time":
+            value = args.eval_time
+        elif keys[1] == "eval_time_stdev":
+            value = args.eval_time.get("stdev", None)
+        elif keys[1] == "eval_after_epoch":
+            value = args.eval_after_epoch
+        elif keys[1] == "epochs_between_evals":
+            value = args.epochs_between_evals
+
+    if len(keys) > 1 and keys[0] == "checkpoint":
+        if keys[1] == "checkpoint_folder":
+            value = args.checkpoint_folder
+        elif keys[1] == "checkpoint_after_epoch":
+            value = args.checkpoint_after_epoch
+        elif keys[1] == "epochs_between_checkpoints":
+            value = args.epochs_between_checkpoints
+        elif keys[1] == "steps_between_checkpoints":
+            value = args.steps_between_checkpoints
+        elif keys[1] == "type":
+            value = args.checkpoint_type
+        elif keys[1] == "checkpoint_mechanism_classname":
+            value = args.checkpoint_mechanism_classname
+        elif keys[1] == "fsync":
+            value = args.checkpoint_fsync
+        elif keys[1] == "time_between_checkpoints":
+            value = args.time_between_checkpoints
+        elif keys[1] == "num_checkpoints":
+            value = args.num_checkpoints
+        elif keys[1] == "load_rank_shift":
+            value = args.checkpoint_load_rank_shift
+        elif keys[1] == "recovery_after_steps":
+            value = args.checkpoint_recovery_after_steps
+
+    if len(keys) > 1 and keys[0] == "model":
+        if keys[1] == "name":
+            value = args.model
+        elif keys[1] == "type":
+            value = args.model_type
+        elif keys[1] == "model_size_bytes":
+            value = args.model_size
+        elif keys[1] == "optimization_groups":
+            value = args.optimization_groups
+        elif keys[1] == "num_layers":
+            value = args.num_layers
+        elif keys[1] == "layer_parameters":
+            value = args.layer_parameters
+        elif keys[1] == "model_datatype":
+            value = args.model_datatype
+        elif keys[1] == "optimizer_datatype":
+            value = args.optimizer_datatype
+
+        if len(keys) > 2 and keys[1] == "parallelism":
+            if keys[2] == "tensor":
+                value = args.tensor_parallelism
+            elif keys[2] == "pipeline":
+                value = args.pipeline_parallelism
+            elif keys[2] == "zero_stage":
+                value = args.zero_stage
+
+        if len(keys) > 2 and keys[1] == "transformer":
+            if keys[2] == "vocab_size":
+                value = args.vocab_size
+            elif keys[2] == "hidden_size":
+                value = args.hidden_size
+            elif keys[2] == "ffn_hidden_size":
+                value = args.ffn_hidden_size
+            elif keys[2] == "num_attention_heads":
+                value = args.num_attention_heads
+            elif keys[2] == "num_kv_heads":
+                value = args.num_kv_heads
+            
+    if len(keys) > 1 and keys[0] == "output":
+        if keys[1] == "folder":
+            value = args.output_folder
+        elif keys[1] == "log_file":
+            value = args.log_file
+        elif keys[1] == "metric":
+            if len(keys) > 2 and keys[2] == "exclude_start_steps":
+                value = args.metric_exclude_start_steps
+            elif len(keys) > 2 and keys[2] == "exclude_end_steps":
+                value = args.metric_exclude_end_steps
+
+    if len(keys) > 1 and keys[0] == "workflow":
+        if keys[1] == "train":
+            value = args.do_train
+        elif keys[1] == "generate_data":
+            value = args.generate_data
+        elif keys[1] == "evaluation":
+            value = args.do_eval
+        elif keys[1] == "checkpoint":
+            value = args.do_checkpoint
+        elif keys[1] == "profiling":
+            value = args.do_profiling
+
+    if len(keys) > 0 and keys[0] == "profiling":
+        if len(keys) > 1 and keys[1] == "profiler":
+            value = args.profiler
+        elif len(keys) > 1 and keys[1] == "iostat_devices":
+            value = args.iostat_devices
+
+    if len(keys) > 0 and keys[0] == "metric":
+        if len(keys) > 1 and keys[1] == "au":
+            value = args.au
+    return str(value) if value else None
+
 def LoadConfig(args, config):
     '''
     Override the args by a system config (typically loaded from a YAML file)
