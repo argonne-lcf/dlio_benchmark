@@ -1,5 +1,6 @@
 # 8 node run with 4 GPUs per node and TPSIZE=4 and PPSIZE=8
-model: 
+model:
+  name: megatron_deepspeed
   type: megatron_deepspeed
   optimization_groups: [1009254400, 865075200, 793600]
   model_size: 30102
