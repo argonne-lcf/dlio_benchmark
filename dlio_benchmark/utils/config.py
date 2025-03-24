@@ -227,7 +227,7 @@ class ConfigArguments:
         if DFTRACER_ENABLE:
             dlp_trace = get_trace_name(self.output_folder, use_pid)
             if DLIOMPI.get_instance().rank() == 0:
-                self.logger.info(f"{utcnow()} Profiling DLIO {dlp_trace}")
+                self.logger.output(f"{utcnow()} Profiling DLIO {dlp_trace}")
             return PerfTrace.initialize_log(logfile=dlp_trace,
                                                    data_dir=f"{os.path.abspath(self.data_folder)}:"
                                                             f"{self.data_folder}:./{self.data_folder}:"
