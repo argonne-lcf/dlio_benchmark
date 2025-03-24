@@ -35,6 +35,7 @@ reader:
 train:
   epochs: 3
   computation_time: 2.44 # 2.44 sec per step
+  total_training_steps: 5000
 
 checkpoint:
   checkpoint_folder: checkpoints/megatron-deepspeed
