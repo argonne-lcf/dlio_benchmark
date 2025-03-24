@@ -104,6 +104,7 @@ setup(
     entry_points={
         "console_scripts": [
             "dlio_benchmark = dlio_benchmark.main:main",
+            "dlio_benchmark_query = dlio_benchmark.main:query_config",
             "dlio_postprocessor = dlio_benchmark.postprocessor:main",
         ]
     },

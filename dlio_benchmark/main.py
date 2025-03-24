@@ -437,7 +437,20 @@ def main() -> None:
     run_benchmark()
     DLIOMPI.get_instance().finalize()
 
-
+@hydra.main(version_base=None, config_path="configs", config_name="config")
+def query_config(cfg: DictConfig):
+    config = cfg['workload']
+    value = None
+    if "query" in config["workflow"]:
+        key = config["workflow"]["query"]
+        keys = key.split(".")
+        for k in keys:
+            if value:
+                value = value[k]
+            else:
+                value = config[k]
+    print(value) if value else print("None")
+    
 if __name__ == '__main__':
     main()
     exit(0)
