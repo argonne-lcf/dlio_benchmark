@@ -509,50 +509,46 @@ def GetConfig(args, key):
 
     # data reader
     reader = None
-    if len(keys) > 0 and keys[0] == "data_reader":
-        reader = config['data_reader']
-    elif len(keys) > 0 and keys[0] == "reader":
-        reader = config['reader']
-    if reader is not None:
-        if len(keys) > 1 and keys[1] == "dont_use_mmap":
+    if len(keys) > 1 and keys[0] == "data_reader" and keys[0] == "reader":
+        if keys[1] == "dont_use_mmap":
             value = args.dont_use_mmap
-        elif len(keys) > 1 and keys[1] == "reader_classname":
+        elif keys[1] == "reader_classname":
             value = args.reader_classname
-        elif len(keys) > 1 and keys[1] == "multiprocessing_context":
+        elif keys[1] == "multiprocessing_context":
             value = args.multiprocessing_context
-        elif len(keys) > 1 and keys[1] == "data_loader":
+        elif keys[1] == "data_loader":
             value = args.data_loader
-        elif len(keys) > 1 and keys[1] == "data_loader_classname":
+        elif keys[1] == "data_loader_classname":
             value = args.data_loader_classname
-        elif len(keys) > 1 and keys[1] == "data_loader_sampler":
+        elif keys[1] == "data_loader_sampler":
             value = args.data_loader_sampler
-        elif len(keys) > 1 and keys[1] == "read_threads":
+        elif keys[1] == "read_threads":
             value = args.read_threads
-        elif len(keys) > 1 and keys[1] == "computation_threads":
+        elif keys[1] == "computation_threads":
             value = args.computation_threads
-        elif len(keys) > 1 and keys[1] == "batch_size":
+        elif keys[1] == "batch_size":
             value = args.batch_size
-        elif len(keys) > 1 and keys[1] == "batch_size_eval":
+        elif keys[1] == "batch_size_eval":
             value = args.batch_size_eval
-        elif len(keys) > 1 and keys[1] == "prefetch_size":
+        elif keys[1] == "prefetch_size":
             value = args.prefetch_size
-        elif len(keys) > 1 and keys[1] == "file_shuffle":
+        elif keys[1] == "file_shuffle":
             value = args.file_shuffle
-        elif len(keys) > 1 and keys[1] == "file_access":
+        elif keys[1] == "file_access":
             value = args.file_access
-        elif len(keys) > 1 and keys[1] == "shuffle_size":
+        elif keys[1] == "shuffle_size":
             value = args.shuffle_size
-        elif len(keys) > 1 and keys[1] == "sample_shuffle":
+        elif keys[1] == "sample_shuffle":
             value = args.sample_shuffle
-        elif len(keys) > 1 and keys[1] == "read_type":
+        elif keys[1] == "read_type":
             value = args.read_type
-        elif len(keys) > 1 and keys[1] == "transfer_size":
+        elif keys[1] == "transfer_size":
             value = args.transfer_size
-        elif len(keys) > 1 and keys[1] == "preprocess_time":
+        elif keys[1] == "preprocess_time":
             value = args.preprocess_time
-        elif len(keys) > 1 and keys[1] == "preprocess_time_stdev":
+        elif keys[1] == "preprocess_time_stdev":
             value = args.preprocess_time.get("stdev", None)
-        elif len(keys) > 1 and keys[1] == "pin_memory":
+        elif keys[1] == "pin_memory":
             value = args.pin_memory
 
     # training relevant setting
