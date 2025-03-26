@@ -509,7 +509,7 @@ def GetConfig(args, key):
 
     # data reader
     reader = None
-    if len(keys) > 1 and keys[0] == "data_reader" and keys[0] == "reader":
+    if len(keys) > 1 and (keys[0] == "data_reader" or keys[0] == "reader"):
         if keys[1] == "dont_use_mmap":
             value = args.dont_use_mmap
         elif keys[1] == "reader_classname":
