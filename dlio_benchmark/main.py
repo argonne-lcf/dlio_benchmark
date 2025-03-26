@@ -393,7 +393,8 @@ class DLIOBenchmark(object):
         global dftracer, dftracer_initialize, dftracer_finalize
 
         self.comm.barrier()
-        self.checkpointing_mechanism.finalize()
+        if self.checkpointing_mechanism:
+            self.checkpointing_mechanism.finalize()
         if not self.generate_only:
             if self.do_profiling:
                 self.profiler.stop()
