@@ -6,7 +6,6 @@ framework: pytorch
 workflow:
   generate_data: False
   train: True
-  do_eval: False
 
 dataset:
   data_folder: data/dlrm
@@ -14,14 +13,13 @@ dataset:
   num_files_train: 1
   num_files_eval: 1
   num_samples_per_file: 4195198976
-  record_length_bytes: 327680
+  record_length_bytes: 671088640
   keep_files: True
   eval_num_samples_per_file: 91681240
 
 reader:
   data_loader: pytorch
-  batch_size: 2048
-  batch_size_eval: 16384
+  batch_size: 1
   sample_shuffle: random
 
 train:
