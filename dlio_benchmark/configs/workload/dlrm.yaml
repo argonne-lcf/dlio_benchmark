@@ -12,10 +12,8 @@ dataset:
   format: indexed_binary
   num_files_train: 1
   num_files_eval: 1
-  num_samples_per_file: 4195198976
+  num_samples_per_file: 2048437
   record_length_bytes: 671088640
-  keep_files: True
-  eval_num_samples_per_file: 91681240
 
 reader:
   data_loader: pytorch
