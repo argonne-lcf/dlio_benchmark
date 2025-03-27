@@ -8,7 +8,7 @@ model:
   parallelism: 
     pipeline: 8
     tensor: 4
-    zero_stage: 0
+    zero_stage: 1
   layer_parameters: [52583936, 209715200]
 
 framework: pytorch
