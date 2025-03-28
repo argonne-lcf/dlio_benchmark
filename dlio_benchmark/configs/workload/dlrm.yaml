@@ -12,7 +12,7 @@ dataset:
   format: indexed_binary
   num_files_train: 1
   num_files_eval: 1
-  num_samples_per_file: 2048437
+  num_samples_per_file: 1024
   record_length_bytes: 671088640
 
 reader:

@@ -545,7 +545,7 @@ def GetConfig(args, key):
         elif keys[1] == "transfer_size":
             value = args.transfer_size
         elif keys[1] == "preprocess_time":
-            value = args.preprocess_time
+            value = args.preprocess_time.get("mean", 0)
         elif keys[1] == "preprocess_time_stdev":
             value = args.preprocess_time.get("stdev", None)
         elif keys[1] == "pin_memory":
@@ -560,7 +560,7 @@ def GetConfig(args, key):
         elif keys[1] == "seed_change_epoch":
             value = args.seed_change_epoch
         elif keys[1] == "computation_time":
-            value = args.computation_time
+            value = args.computation_time.get("mean", 0)
         elif keys[1] == "computation_time_stdev":
             value = args.computation_time.get("stdev", None)
         elif keys[1] == "seed":
@@ -568,7 +568,7 @@ def GetConfig(args, key):
 
     if len(keys) > 1 and keys[0] == "evaluation":
         if keys[1] == "eval_time":
-            value = args.eval_time
+            value = args.eval_time.get("mean", 0)
         elif keys[1] == "eval_time_stdev":
             value = args.eval_time.get("stdev", None)
         elif keys[1] == "eval_after_epoch":
