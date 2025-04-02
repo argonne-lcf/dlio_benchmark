@@ -91,7 +91,7 @@ model
      - []
      - List of parameters per layer. This is used to perform I/O per layer. 
    * - parallelism
-     - {tensor: 1, pipeline: 1, zero_stage: 0}
+     - {tensor: 1, pipeline: 1, data: -1, zero_stage: 0}
      - Parallelism configuration for the model. 
    * - transformer
      - {hidden_size: 2048, ffn_hidden_size: 8196, vocab_size: 32000, num_attention_heads: 32, num_kv_heads: 8}
@@ -108,6 +108,18 @@ Suppose layer_parameters is [1024, 2048], each rank in the tensor parallelism gr
 We do not suggest the users to specify the model architeure in this way. Instead, we suggest the users to specify the transformer configuration directly which is more intuitive. 
 The ``transformer`` configuration is used to specify the hidden size, FFN hidden size, vocab size, number of attention heads and number of kv heads for the transformer layer, which together determined the 
 optimization_groups and layer_parameters. 
+
+.. note::
+
+  By default, if ``parallelism.data`` is not set explicitly, it would be -1. The actual data parallelism size will 
+  be determined internally: 
+
+  ```math
+  data\_parallelism = \frac{world\_size}{pipeline\_parallelism*tensor\_parallelism}
+  ```
+  If ``parallelism.data`` is set explicitly, the value provided by the user will be used. In this case, if ``world_size`` < ``data_parallelism``*``pipeline_parallelism``*``tensor_parallelism``, only 
+  part of the data will be written ``world_size`` of ``data_parallelism*pipeline_parallelism*tensor_parallelism``. This is useful if one would like to do testing for node local storage in the 
+  context of large scale training. 
 
 .. attention::
 

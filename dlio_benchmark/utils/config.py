@@ -126,6 +126,7 @@ class ConfigArguments:
     layer_parameters: ClassVar[List[int]] = []
     tensor_parallelism: int = 1
     pipeline_parallelism: int = 1
+    data_parallelism: int = -1
     data_loader: DataLoaderType = DataLoaderType.TENSORFLOW.value
     num_subfolders_train: int = 0
     num_subfolders_eval: int = 0
@@ -277,7 +278,7 @@ class ConfigArguments:
                 f"model.parallelism.pipeline {self.pipeline_parallelism}.")
         if self.pipeline_parallelism > 1 and self.zero_stage == 3:
             raise Exception(f"ZeRO stage {self.zero_stage} is not compatible with pipeline parallelism.")
-        if self.comm_size % (self.pipeline_parallelism * self.tensor_parallelism) != 0:
+        if self.data_parallelism < 0 and self.comm_size % (self.pipeline_parallelism * self.tensor_parallelism) != 0:
             raise Exception(f"Number of processes {self.comm_size} is not a multiple of model parallelism size: {self.pipeline_parallelism * self.tensor_parallelism}")
 
     @staticmethod
@@ -666,6 +667,8 @@ def LoadConfig(args, config):
                 args.tensor_parallelism = config['model']['parallelism']['tensor']
             if 'pipeline' in config['model']['parallelism']:
                 args.pipeline_parallelism = config['model']['parallelism']['pipeline']
+            if 'data' in config['model']['parallelism']:
+                args.data_parallelism = config['model']['parallelism']['data']
             if 'zero_stage' in config['model']['parallelism']:
                 args.zero_stage = config['model']['parallelism']['zero_stage']
 

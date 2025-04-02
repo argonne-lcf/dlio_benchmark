@@ -16,7 +16,6 @@ model:
     num_attention_heads: 32
     num_kv_heads: 32
 
-
 framework: pytorch
 
 workflow:
