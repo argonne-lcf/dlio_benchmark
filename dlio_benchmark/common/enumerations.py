@@ -40,6 +40,16 @@ class CheckpointLocationType(Enum):
     def __str__(self):
         return self.value
 
+class CheckpointModeType(Enum):
+    """
+    Different types of Checkpointing Modes
+    """
+    SUBSET = 'subset'
+    DEFAULT = 'default'
+
+    def __str__(self):
+        return self.value
+
 class StorageType(Enum):
     """
     Different types of underlying storage

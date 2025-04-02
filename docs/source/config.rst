@@ -118,8 +118,9 @@ optimization_groups and layer_parameters.
   data\_parallelism = \frac{world\_size}{pipeline\_parallelism*tensor\_parallelism}
   ```
   If ``parallelism.data`` is set explicitly, the value provided by the user will be used. In this case, if ``world_size`` < ``data_parallelism``*``pipeline_parallelism``*``tensor_parallelism``, only 
-  part of the data will be written ``world_size`` of ``data_parallelism*pipeline_parallelism*tensor_parallelism``. This is useful if one would like to do testing for node local storage in the 
-  context of large scale training. 
+  part of the data will be written (``world_size`` of ``data_parallelism*pipeline_parallelism*tensor_parallelism``). 
+  This is useful if one would like to do testing at smaller scale as a subset of a larger scale simulation. In this case, one has to set
+  ``checkpoint.mode`` to be ``subset``.
 
 .. attention::
 
@@ -425,13 +426,20 @@ checkpoint
    * - recovery_rank_shift:
      - False
      - Whether to synchronize all the ranks after checkpoint write / read or not. If this is True, the synchronization time will be included in the overall checkpoint write / read time. 
+   * - mode:
+     - default
+     - The mode of the checkpointing. Available options are: default, subset.
+
 .. note::
    
    By default, if checkpoint is enabled, it will perform checkpointing from every epoch. One can perform multiple checkpoints within a single epoch, 
    by setting ``steps_between_checkpoints``. If ``steps_between_checkpoints`` is set to be a positive number, ``epochs_between_checkpoints`` will be ignored.
 
-   One can also perform checkpoint only benchmark, and do not do training, i.e., do no load dataset. To do this, one can set ``workflow.train = False``, and then set ``num_checkpoints``, ``time_between_checkpoints``, ``recovery_after_steps``, and ``recovery_rank_shift``. These four
+   One can also perform checkpoint only benchmark, without doing training, i.e., without loading dataset. To do this, one can set ``workflow.train = False``, and then set ``num_checkpoints``, ``time_between_checkpoints``, ``recovery_after_steps``, and ``recovery_rank_shift``. These four
    is effective only in checkpoint only mode. 
+
+   One can set ``checkpoint.mode`` to be ``subset`` to simulate checkpointing a set of GPUs which are a subset of a targed larger scale run. This is particularly useful 
+   if one would like to test the performance of a single NVMe drive, in the context of a larger scale run. In this case, only a subset of the entire checkpoint will be written. 
 
 output
 ------------------

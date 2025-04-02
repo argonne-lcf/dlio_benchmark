@@ -27,7 +27,7 @@ from typing import Any, Dict, List, ClassVar
 from dlio_benchmark.common.constants import MODULE_CONFIG
 from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
     FrameworkType, \
-    DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointLocationType, CheckpointMechanismType
+    DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointLocationType, CheckpointMechanismType, CheckpointModeType
 from dlio_benchmark.utils.utility import DLIOMPI, get_trace_name, utcnow
 from dlio_benchmark.utils.utility import Profile, PerfTrace, DFTRACER_ENABLE, DLIOLogger, OUTPUT_LEVEL
 from dataclasses import dataclass
@@ -104,6 +104,7 @@ class ConfigArguments:
     epochs_between_evals: int = 1
     checkpoint_type: CheckpointLocationType = CheckpointLocationType.RANK_ZERO
     checkpoint_mechanism: CheckpointMechanismType = CheckpointMechanismType.NONE
+    checkpoint_mode: CheckpointModeType = CheckpointModeType.DEFAULT
     model_datatype: str = "fp16"
     optimizer_datatype: str = "fp32"
     checkpoint_fsync: bool = False
@@ -278,8 +279,16 @@ class ConfigArguments:
                 f"model.parallelism.pipeline {self.pipeline_parallelism}.")
         if self.pipeline_parallelism > 1 and self.zero_stage == 3:
             raise Exception(f"ZeRO stage {self.zero_stage} is not compatible with pipeline parallelism.")
-        if self.data_parallelism < 0 and self.comm_size % (self.pipeline_parallelism * self.tensor_parallelism) != 0:
-            raise Exception(f"Number of processes {self.comm_size} is not a multiple of model parallelism size: {self.pipeline_parallelism * self.tensor_parallelism}")
+        if self.data_parallelism > 0 and self.checkpoint_mode == CheckpointModeType.DEFAULT:
+            raise Exception(f"workload.parallelism.data should not be set in {self.checkpoint_mode} Checkpoint Mode; it will be determined internally.")
+        if self.checkpoint_mode == CheckpointModeType.SUBSET:
+            if self.data_parallelism <= 0:
+                raise Exception("To perform subset Checkpointing, please set a target data parallelism: workload.parallelism.data.")
+            elif self.data_parallelism * self.tensor_parallelism * self.pipeline_parallelism < self.comm_size:
+                raise Exception(f"Comm size: {self.comm_size} is larger than 3D parallelism size: {self.data_parallelism * self.tensor_parallelism * self.pipeline_parallelism}")
+        if self.checkpoint_mode == CheckpointModeType.DEFAULT:
+            if self.comm_size % (self.pipeline_parallelism * self.tensor_parallelism) != 0:
+                raise Exception(f"Number of processes {self.comm_size} is not a multiple of model parallelism size: {self.pipeline_parallelism * self.tensor_parallelism}")
 
     @staticmethod
     def reset():
@@ -643,6 +652,8 @@ def LoadConfig(args, config):
             args.checkpoint_recovery_after_steps = config['checkpoint']['recovery_after_steps']
         if 'rank_sync' in config['checkpoint']:
             args.checkpoint_rank_sync = config['checkpoint']['rank_sync']
+        if 'mode' in config['checkpoint']:
+            args.checkpoint_mode = CheckpointModeType(config['checkpoint']['mode'])
 
     if 'model' in config:
         if 'name' in config['model']:

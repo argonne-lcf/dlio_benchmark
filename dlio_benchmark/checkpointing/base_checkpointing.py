@@ -20,7 +20,7 @@ import os
 import time
 from abc import ABC, abstractmethod
 
-from dlio_benchmark.common.enumerations import CheckpointLocationType
+from dlio_benchmark.common.enumerations import CheckpointLocationType, CheckpointModeType
 from dlio_benchmark.storage.storage_factory import StorageFactory
 from dlio_benchmark.utils.config import ConfigArguments
 from dlio_benchmark.utils.utility import DLIOMPI, utcnow
@@ -55,7 +55,7 @@ class BaseCheckpointing(ABC):
             self.data_parallelism = self.args.comm_size//self.model_parallelism
         else:
             if self.comm.rank == 0:
-                self.logger.output(f"{utcnow()} Performing partial checkpointing to node local storage: {self.comm.size} of {self.args.data_parallelism*self.args.tensor_parallelism*self.args.pipeline_parallelism}")
+                self.logger.output(f"{utcnow()} Performing subset checkpointing: {self.comm.size} of {self.args.data_parallelism*self.args.tensor_parallelism*self.args.pipeline_parallelism}")
             self.data_parallelism = self.args.data_parallelism
         self.pipeline_parallism_rank = (self.args.my_rank // self.args.tensor_parallelism) % self.args.pipeline_parallelism
         self.tensor_parallism_rank = self.args.my_rank % self.args.tensor_parallelism
@@ -142,8 +142,8 @@ class BaseCheckpointing(ABC):
         if self.args.zero_stage < 3:
             model_checkpoint_size /= self.data_parallelism
         self.checkpoint_size = model_checkpoint_size + optimizer_checkpoint_size
-        if self.comm.size < self.model_parallelism * self.data_parallelism:
-            warning_message = f" (Partial: {self.comm.size}/{self.model_parallelism * self.data_parallelism})"
+        if self.args.checkpoint_mode == CheckpointModeType.SUBSET:
+            warning_message = f" (subset: {self.comm.size}/{self.model_parallelism * self.data_parallelism})"
         else:
             warning_message = ""
         if self.args.my_rank == 0:
