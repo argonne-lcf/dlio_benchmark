@@ -1,5 +1,6 @@
 # 8 node run with 4 GPUs per node and TPSIZE=4 and PPSIZE=8
-model: 
+model:
+  name: megatron_deepspeed
   type: megatron_deepspeed
   optimization_groups: [1009254400, 865075200, 793600]
   model_size: 30102
@@ -7,7 +8,7 @@ model:
   parallelism: 
     pipeline: 8
     tensor: 4
-    zero_stage: 0
+    zero_stage: 1
   layer_parameters: [52583936, 209715200]
 
 framework: pytorch
@@ -34,6 +35,7 @@ reader:
 train:
   epochs: 3
   computation_time: 2.44 # 2.44 sec per step
+  total_training_steps: 1000
 
 checkpoint:
   checkpoint_folder: checkpoints/megatron-deepspeed

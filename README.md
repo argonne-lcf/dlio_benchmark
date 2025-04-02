@@ -35,15 +35,15 @@ docker run -t dlio dlio_benchmark ++workload.workflow.generate_data=True
 
 You can also pull rebuilt container from docker hub (might not reflect the most recent change of the code): 
 ```bash
-docker docker.io/zhenghh04/dlio:latest
-docker run -t docker.io/zhenghh04/dlio:latest python ./dlio_benchmark/main.py ++workload.workflow.generate_data=True
+docker pull docker.io/zhenghh04/dlio:latest
+docker run -t docker.io/zhenghh04/dlio:latest dlio_benchmark ++workload.workflow.generate_data=True
 ```
 If your running on a different architecture, refer to the Dockerfile to build the dlio_benchmark container from scratch.
 
 One can also run interactively inside the container
 ```bash
 docker run -t docker.io/zhenghh04/dlio:latest /bin/bash
-root@30358dd47935:/workspace/dlio$ python ./dlio_benchmark/main.py ++workload.workflow.generate_data=True
+root@30358dd47935:/workspace/dlio$ dlio_benchmark ++workload.workflow.generate_data=True
 ```
 
 ## PowerPC
