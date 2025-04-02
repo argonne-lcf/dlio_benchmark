@@ -227,7 +227,7 @@ class DLIOBenchmark(object):
         self.args.validate()
         self.checkpointing_mechanism = None
         self.stats.checkpoint_size = 0
-        if (not self.generate_only) and (not self.args.checkpoint_only):
+        if (not self.generate_only) and (self.do_checkpoint):
             self.checkpointing_mechanism = CheckpointingFactory().get_mechanism(self.args.checkpoint_mechanism)
             self.stats.checkpoint_size = self.checkpointing_mechanism.checkpoint_size    
         self.comm.barrier()
