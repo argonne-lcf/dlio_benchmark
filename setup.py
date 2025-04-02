@@ -17,7 +17,6 @@ core_deps = [
     "omegaconf>=2.2.0",
     "pandas>=1.5.1",
     "psutil>=5.9.8",
-    "pydftracer==1.0.8",
 ]
 x86_deps = [
     f"hydra-core>={HYDRA_VERSION}",
@@ -40,6 +39,9 @@ else:
 
 extras = {
     "test": test_deps,
+    "dftracer": [
+        "pydftracer==1.0.8",
+    ],
 }
 
 here = pathlib.Path(__file__).parent.resolve()
@@ -102,6 +104,7 @@ setup(
     entry_points={
         "console_scripts": [
             "dlio_benchmark = dlio_benchmark.main:main",
+            "dlio_benchmark_query = dlio_benchmark.main:query_config",
             "dlio_postprocessor = dlio_benchmark.postprocessor:main",
         ]
     },

@@ -39,7 +39,7 @@ from dlio_benchmark.utils.utility import utcnow, measure_performance, get_trace_
 from omegaconf import DictConfig, OmegaConf
 from dlio_benchmark.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
-from dlio_benchmark.utils.config import LoadConfig, ConfigArguments
+from dlio_benchmark.utils.config import LoadConfig, ConfigArguments, GetConfig
 from dlio_benchmark.common.enumerations import Profiler, DatasetType, StorageType, MetadataType, FormatType
 from dlio_benchmark.profiler.profiler_factory import ProfilerFactory
 from dlio_benchmark.framework.framework_factory import FrameworkFactory
@@ -225,8 +225,11 @@ class DLIOBenchmark(object):
                 file_list_eval = file_list_eval[:self.num_files_eval]
         self.args.derive_configurations(file_list_train, file_list_eval)
         self.args.validate()
-        self.checkpointing_mechanism = CheckpointingFactory().get_mechanism(self.args.checkpoint_mechanism)
-        self.stats.checkpoint_size = self.checkpointing_mechanism.checkpoint_size    
+        self.checkpointing_mechanism = None
+        self.stats.checkpoint_size = 0
+        if (not self.generate_only) and (not self.args.checkpoint_only):
+            self.checkpointing_mechanism = CheckpointingFactory().get_mechanism(self.args.checkpoint_mechanism)
+            self.stats.checkpoint_size = self.checkpointing_mechanism.checkpoint_size    
         self.comm.barrier()
 
     @dlp.log
@@ -390,7 +393,8 @@ class DLIOBenchmark(object):
         global dftracer, dftracer_initialize, dftracer_finalize
 
         self.comm.barrier()
-        self.checkpointing_mechanism.finalize()
+        if self.checkpointing_mechanism:
+            self.checkpointing_mechanism.finalize()
         if not self.generate_only:
             if self.do_profiling:
                 self.profiler.stop()
@@ -437,7 +441,20 @@ def main() -> None:
     run_benchmark()
     DLIOMPI.get_instance().finalize()
 
-
+@hydra.main(version_base=None, config_path="configs", config_name="config")
+def query_config(cfg: DictConfig):
+    DLIOMPI.get_instance().initialize()
+    config = cfg['workload']
+    
+    value = None
+    if "query" in config["workflow"]:
+        key = config["workflow"]["query"]
+        args = ConfigArguments.get_instance()
+        LoadConfig(args, config)
+        value = GetConfig(args, key)
+    print(value) if value else print("None")
+    DLIOMPI.get_instance().finalize()
+    
 if __name__ == '__main__':
     main()
     exit(0)

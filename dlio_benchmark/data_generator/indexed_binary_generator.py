@@ -50,7 +50,7 @@ class IndexedBinaryGenerator(DataGenerator):
         """
         super().generate()
         np.random.seed(10)
-        MB=1048576
+        GB=1024*1024*1024
         samples_processed = 0
         total_samples = self.total_files_to_generate * self.num_samples
         dim = self.get_dimension(self.total_files_to_generate)
@@ -74,7 +74,7 @@ class IndexedBinaryGenerator(DataGenerator):
                 fh_off = MPI.File.Open(comm, out_path_spec_off_idx, amode)
                 fh_sz = MPI.File.Open(comm, out_path_spec_sz_idx, amode)
                 off_type = np.uint64
-                elements_per_loop = min(int(MB / np.dtype(off_type).itemsize), samples_per_rank)
+                elements_per_loop = min(int(GB / np.dtype(off_type).itemsize), samples_per_rank)
                 offsets_processed=0
                 for element_index in range(self.my_rank*samples_per_rank, samples_per_rank*(self.my_rank+1), elements_per_loop):
                     offsets = np.array(range(self.my_rank * elements_per_loop * sample_size, 
@@ -93,11 +93,12 @@ class IndexedBinaryGenerator(DataGenerator):
                     self.logger.info(f"{utcnow()} Starting Sample generation. ")
                 
                 fh = MPI.File.Open(comm, out_path_spec, amode)
-                samples_per_loop = int(MB * 16 / sample_size)
+                samples_per_loop = int(GB / sample_size)
+                
+                records = np.random.randint(255, size=sample_size*samples_per_loop, dtype=np.uint8)
 
                 for sample_index in range(self.my_rank*samples_per_rank, samples_per_rank*(self.my_rank+1), samples_per_loop):
                     #self.logger.info(f"{utcnow()} rank {self.my_rank} writing {sample_index} * {samples_per_loop} for {samples_per_rank} samples")
-                    records = records = np.random.randint(255, size=sample_size*samples_per_loop, dtype=np.uint8)
                     offset = sample_index * sample_size
                     fh.Write_at_all(offset, records)
                     samples_processed += samples_per_loop
