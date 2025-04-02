@@ -361,7 +361,7 @@ class StatsCounter(object):
       
     def end_load_ckpt(self, epoch, block):
         ts = utcnow()
-        duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch][f'save_ckpt{block}']['start'])
+        duration = pd.to_datetime(ts) - pd.to_datetime(self.per_epoch_stats[epoch][f'load_ckpt{block}']['start'])
         self.per_epoch_stats[epoch][f'load_ckpt{block}']['end'] = ts
         self.per_epoch_stats[epoch][f'load_ckpt{block}']['duration'] = float(duration.total_seconds())
         self.per_epoch_stats[epoch][f'load_ckpt{block}']['throughput'] = self.checkpoint_size / float(duration.total_seconds())
