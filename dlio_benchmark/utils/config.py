@@ -598,6 +598,8 @@ def GetConfig(args, key):
             value = args.steps_between_checkpoints
         elif keys[1] == "type":
             value = args.checkpoint_type
+        elif keys[1] == 'mode':
+            value = args.checkpoint_mode
         elif keys[1] == "checkpoint_mechanism_classname":
             value = args.checkpoint_mechanism_classname
         elif keys[1] == "fsync":
@@ -634,6 +636,8 @@ def GetConfig(args, key):
                 value = args.tensor_parallelism
             elif keys[2] == "pipeline":
                 value = args.pipeline_parallelism
+            elif keys[2] == "data":
+                value = args.data_parallelism
             elif keys[2] == "zero_stage":
                 value = args.zero_stage
 
