@@ -40,7 +40,7 @@ else:
 extras = {
     "test": test_deps,
     "dftracer": [
-        "pydftracer==1.0.8",
+        "pydftracer==1.0.11",
     ],
 }
 
