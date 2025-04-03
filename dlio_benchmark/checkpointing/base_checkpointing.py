@@ -20,7 +20,7 @@ import os
 import time
 from abc import ABC, abstractmethod
 
-from dlio_benchmark.common.enumerations import CheckpointLocationType
+from dlio_benchmark.common.enumerations import CheckpointLocationType, CheckpointModeType
 from dlio_benchmark.storage.storage_factory import StorageFactory
 from dlio_benchmark.utils.config import ConfigArguments
 from dlio_benchmark.utils.utility import DLIOMPI, utcnow
@@ -51,10 +51,15 @@ class BaseCheckpointing(ABC):
         self.comm = self.MPI.comm()
         # define parallelism
         self.model_parallelism = self.args.pipeline_parallelism*self.args.tensor_parallelism
-        self.data_parallelism = self.args.comm_size//self.model_parallelism
+        if self.args.data_parallelism < 0:
+            self.data_parallelism = self.args.comm_size//self.model_parallelism
+        else:
+            if self.comm.rank == 0:
+                self.logger.output(f"{utcnow()} Performing subset checkpointing: {self.comm.size} of {self.args.data_parallelism*self.args.tensor_parallelism*self.args.pipeline_parallelism}")
+            self.data_parallelism = self.args.data_parallelism
         self.pipeline_parallism_rank = (self.args.my_rank // self.args.tensor_parallelism) % self.args.pipeline_parallelism
         self.tensor_parallism_rank = self.args.my_rank % self.args.tensor_parallelism
-        self.data_parallelism_rank = self.args.my_rank // (self.args.pipeline_parallelism*self.args.tensor_parallelism)
+        self.data_parallelism_rank = self.args.my_rank // self.model_parallelism
         self.model_parallelism_rank = self.args.my_rank%self.model_parallelism
         self.optimization_groups_predefined = False
         self.layer_parameters_predefined = False
@@ -64,7 +69,7 @@ class BaseCheckpointing(ABC):
         self.checkpoint_size = 0.0
         model_checkpoint_size = 0.0
         optimizer_checkpoint_size = 0.0
-        if self.args.my_rank == 0:
+        if self.args.my_rank == 0 and self.args.num_layers > 0:
             self.logger.output(f"{utcnow()} Total number of parameters in the model: {self.num_parameters}")
         if self.args.zero_stage == 0:
             if self.args.my_rank < self.model_parallelism:
@@ -124,8 +129,6 @@ class BaseCheckpointing(ABC):
             if self.args.my_rank == 0:
                 self.logger.info(f"{utcnow()} Optimizer state defined: {optimizer_checkpoint_size / 1024./1024./1024} GB per rank")
             # layer state
-
-            
             self.model_state = None
             if self.args.model_size > 0 and self.args.model_type != "transformer":
                 self.model_state = {"a": self.get_tensor(self.args.model_size)}
@@ -135,12 +138,27 @@ class BaseCheckpointing(ABC):
         model_checkpoint_size = self.comm.allreduce(model_checkpoint_size)/1024./1024./1024.
         optimizer_checkpoint_size = self.comm.allreduce(optimizer_checkpoint_size)/1024./1024./1024.
         if self.args.zero_stage < 3:
-            model_checkpoint_size /= self.data_parallelism
+            num_data_parallel_instances = self.comm.size//self.model_parallelism
+            if num_data_parallel_instances > 0:
+                model_checkpoint_size /= num_data_parallel_instances
+        if self.args.model_type != "transformer" and self.args.model_size > 0:
+            model_checkpoint_size = self.args.model_size/1024./1024./1024.
+        
         self.checkpoint_size = model_checkpoint_size + optimizer_checkpoint_size
+        if self.args.checkpoint_mode == CheckpointModeType.SUBSET:
+            warning_message = f" (subset)"
+        else:
+            warning_message = ""
         if self.args.my_rank == 0:
-            self.logger.output(f"{utcnow()} Model size: {model_checkpoint_size:.4f} GB")
-            self.logger.output(f"{utcnow()} Optimizer state size: {optimizer_checkpoint_size:.4f} GB")
-            self.logger.output(f"{utcnow()} Total checkpoint size: {self.checkpoint_size:.4f} GB")
+            report_total_checkpoint_size = False
+            if self.model_state is not None or self.layer_state is not None:
+                self.logger.output(f"{utcnow()} Model size: {model_checkpoint_size:.6f} GB {warning_message}")
+                report_total_checkpoint_size = True
+            if self.optimization_state is not None:
+                self.logger.output(f"{utcnow()} Optimizer state size: {optimizer_checkpoint_size:.6f} GB {warning_message}")
+                report_total_checkpoint_size = True
+            if report_total_checkpoint_size:
+                self.logger.output(f"{utcnow()} Total checkpoint size: {self.checkpoint_size:.6f} GB {warning_message}")
 
     @abstractmethod
     def get_tensor(self, length, datatype="int8"):
@@ -158,7 +176,7 @@ class BaseCheckpointing(ABC):
         return os.path.join(self.args.checkpoint_folder, f"{suffix}.{self.ext}")
 
     def get_num_parameters(self):
-        if self.args.hidden_size <= 0:
+        if self.args.num_layers <= 0:
             return 0
         head_size = self.args.hidden_size//self.args.num_attention_heads
         # column dimension of K & V matrix
@@ -222,7 +240,7 @@ class BaseCheckpointing(ABC):
                 return []
             if self.args.zero_stage > 0:
                 # zero stage 1, 2, 3
-                num_parameters = self.get_num_parameters() // self.args.comm_size
+                num_parameters = self.get_num_parameters() // (self.data_parallelism * self.model_parallelism)
             else:
                 # if zero is not used. Only the first data parallel instance will save the optimizer states
                 num_parameters= self.get_num_parameters() // self.model_parallelism
@@ -281,7 +299,6 @@ class BaseCheckpointing(ABC):
                             self.save_state(suffix=f"{checkpoint_id}/model_{self.model_parallelism_rank}_model_states", state=self.layer_state, fsync = self.args.checkpoint_fsync)
                 else:
                     # in this case, model is sharded across the data parallel ranks
-                    assert(self.args.pipeline_parallelism == 1)
                     self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_model_states", state=self.layer_state, fsync = self.args.checkpoint_fsync)
                 save_model_time = time.time() - start_time
                 if my_rank == 0:
@@ -296,7 +313,11 @@ class BaseCheckpointing(ABC):
 
     @abstractmethod
     def load_checkpoint(self, epoch, step_number):
-        my_rank = (DLIOMPI.get_instance().rank() + self.args.checkpoint_load_rank_shift) % DLIOMPI.get_instance().size()
+        if self.args.checkpoint_recovery_rank_shift:
+            my_rank = (DLIOMPI.get_instance().rank() + DLIOMPI.get_instance().npernode()) % DLIOMPI.get_instance().size()
+            if DLIOMPI.get_instance().size() // DLIOMPI.get_instance().npernode() < 2:
+                if self.comm.rank == 0:
+                    self.logger.warning(f"This run is on single client; checkpoint_recovery_rank_shift does not apply; loading checkpoint will have caching effect")
         start_layer, end_layer = self.get_layer_index()
         # create a specifc folder for each step
         checkpoint_id = f"global_epoch{epoch}_step{step_number}"

@@ -27,7 +27,7 @@ from typing import Any, Dict, List, ClassVar
 from dlio_benchmark.common.constants import MODULE_CONFIG
 from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
     FrameworkType, \
-    DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointLocationType, CheckpointMechanismType
+    DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointLocationType, CheckpointMechanismType, CheckpointModeType
 from dlio_benchmark.utils.utility import DLIOMPI, get_trace_name, utcnow
 from dlio_benchmark.utils.utility import Profile, PerfTrace, DFTRACER_ENABLE, DLIOLogger, OUTPUT_LEVEL
 from dataclasses import dataclass
@@ -104,13 +104,15 @@ class ConfigArguments:
     epochs_between_evals: int = 1
     checkpoint_type: CheckpointLocationType = CheckpointLocationType.RANK_ZERO
     checkpoint_mechanism: CheckpointMechanismType = CheckpointMechanismType.NONE
+    checkpoint_mode: CheckpointModeType = CheckpointModeType.DEFAULT
     model_datatype: str = "fp16"
     optimizer_datatype: str = "fp32"
     checkpoint_fsync: bool = False
     checkpoint_only: bool = False
-    checkpoint_load_rank_shift: int = 0
+    checkpoint_recovery_rank_shift: bool = True
     checkpoint_recovery_after_steps: int = -1
     time_between_checkpoints: float = -1
+    checkpoint_rank_sync: bool = False
     num_checkpoints: int = -1
     model_size: int = 10240
     model_type: str = None
@@ -125,6 +127,7 @@ class ConfigArguments:
     layer_parameters: ClassVar[List[int]] = []
     tensor_parallelism: int = 1
     pipeline_parallelism: int = 1
+    data_parallelism: int = -1
     data_loader: DataLoaderType = DataLoaderType.TENSORFLOW.value
     num_subfolders_train: int = 0
     num_subfolders_eval: int = 0
@@ -276,8 +279,16 @@ class ConfigArguments:
                 f"model.parallelism.pipeline {self.pipeline_parallelism}.")
         if self.pipeline_parallelism > 1 and self.zero_stage == 3:
             raise Exception(f"ZeRO stage {self.zero_stage} is not compatible with pipeline parallelism.")
-        if self.comm_size % (self.pipeline_parallelism * self.tensor_parallelism) != 0:
-            raise Exception(f"Number of processes {self.comm_size} is not a multiple of model parallelism size: {self.pipeline_parallelism * self.tensor_parallelism}")
+        if self.data_parallelism > 0 and self.checkpoint_mode == CheckpointModeType.DEFAULT:
+            raise Exception(f"workload.parallelism.data should not be set in {self.checkpoint_mode} Checkpoint Mode; it will be determined internally.")
+        if self.checkpoint_mode == CheckpointModeType.SUBSET:
+            if self.data_parallelism <= 0:
+                raise Exception("To perform subset Checkpointing, please set a target data parallelism: workload.parallelism.data.")
+            elif self.data_parallelism * self.tensor_parallelism * self.pipeline_parallelism < self.comm_size:
+                raise Exception(f"Comm size: {self.comm_size} is larger than 3D parallelism size: {self.data_parallelism * self.tensor_parallelism * self.pipeline_parallelism}")
+        if self.checkpoint_mode == CheckpointModeType.DEFAULT:
+            if self.comm_size % (self.pipeline_parallelism * self.tensor_parallelism) != 0:
+                raise Exception(f"Number of processes {self.comm_size} is not a multiple of model parallelism size: {self.pipeline_parallelism * self.tensor_parallelism}")
 
     @staticmethod
     def reset():
@@ -587,6 +598,8 @@ def GetConfig(args, key):
             value = args.steps_between_checkpoints
         elif keys[1] == "type":
             value = args.checkpoint_type
+        elif keys[1] == 'mode':
+            value = args.checkpoint_mode
         elif keys[1] == "checkpoint_mechanism_classname":
             value = args.checkpoint_mechanism_classname
         elif keys[1] == "fsync":
@@ -623,6 +636,8 @@ def GetConfig(args, key):
                 value = args.tensor_parallelism
             elif keys[2] == "pipeline":
                 value = args.pipeline_parallelism
+            elif keys[2] == "data":
+                value = args.data_parallelism
             elif keys[2] == "zero_stage":
                 value = args.zero_stage
 
@@ -848,10 +863,14 @@ def LoadConfig(args, config):
             args.time_between_checkpoints = config['checkpoint']['time_between_checkpoints']
         if 'num_checkpoints' in config['checkpoint']:
             args.num_checkpoints = config['checkpoint']['num_checkpoints']
-        if 'load_rank_shift' in config['checkpoint']:
-            args.checkpoint_load_rank_shift = config['checkpoint']['load_rank_shift']
+        if 'recovery_rank_shift' in config['checkpoint']:
+            args.checkpoint_recover_rank_shift = config['checkpoint']['recovery_rank_shift']
         if 'recovery_after_steps' in config['checkpoint']:
             args.checkpoint_recovery_after_steps = config['checkpoint']['recovery_after_steps']
+        if 'rank_sync' in config['checkpoint']:
+            args.checkpoint_rank_sync = config['checkpoint']['rank_sync']
+        if 'mode' in config['checkpoint']:
+            args.checkpoint_mode = CheckpointModeType(config['checkpoint']['mode'])
 
     if 'model' in config:
         if 'name' in config['model']:
@@ -876,6 +895,8 @@ def LoadConfig(args, config):
                 args.tensor_parallelism = config['model']['parallelism']['tensor']
             if 'pipeline' in config['model']['parallelism']:
                 args.pipeline_parallelism = config['model']['parallelism']['pipeline']
+            if 'data' in config['model']['parallelism']:
+                args.data_parallelism = config['model']['parallelism']['data']
             if 'zero_stage' in config['model']['parallelism']:
                 args.zero_stage = config['model']['parallelism']['zero_stage']
 

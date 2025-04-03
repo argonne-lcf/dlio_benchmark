@@ -91,7 +91,7 @@ model
      - []
      - List of parameters per layer. This is used to perform I/O per layer. 
    * - parallelism
-     - {tensor: 1, pipeline: 1, zero_stage: 0}
+     - {tensor: 1, pipeline: 1, data: -1, zero_stage: 0}
      - Parallelism configuration for the model. 
    * - transformer
      - {hidden_size: 2048, ffn_hidden_size: 8196, vocab_size: 32000, num_attention_heads: 32, num_kv_heads: 8}
@@ -108,6 +108,19 @@ Suppose layer_parameters is [1024, 2048], each rank in the tensor parallelism gr
 We do not suggest the users to specify the model architeure in this way. Instead, we suggest the users to specify the transformer configuration directly which is more intuitive. 
 The ``transformer`` configuration is used to specify the hidden size, FFN hidden size, vocab size, number of attention heads and number of kv heads for the transformer layer, which together determined the 
 optimization_groups and layer_parameters. 
+
+.. note::
+
+  By default, if ``parallelism.data`` is not set explicitly, it would be -1. The actual data parallelism size will 
+  be determined internally: 
+
+  ```math
+  data\_parallelism = \frac{world\_size}{pipeline\_parallelism*tensor\_parallelism}
+  ```
+  If ``parallelism.data`` is set explicitly, the value provided by the user will be used. In this case, if ``world_size`` < ``data_parallelism``*``pipeline_parallelism``*``tensor_parallelism``, only 
+  part of the data will be written (``world_size`` of ``data_parallelism*pipeline_parallelism*tensor_parallelism``). 
+  This is useful if one would like to do testing at smaller scale as a subset of a larger scale simulation. In this case, one has to set
+  ``checkpoint.mode`` to be ``subset``.
 
 .. attention::
 
@@ -408,16 +421,25 @@ checkpoint
      - -1
      - How many checkpoints to write before doing read for recovery. -1 means never doing recovery. 
    * - recovery_rank_shift:
-*    - 0
+*    - True
 *    - Shift the rank ID by recovery_rank_shift to avoid caching effort. The default value is 0. The suggested value would be ppn (number of processes per node). 
+   * - recovery_rank_shift:
+     - False
+     - Whether to synchronize all the ranks after checkpoint write / read or not. If this is True, the synchronization time will be included in the overall checkpoint write / read time. 
+   * - mode:
+     - default
+     - The mode of the checkpointing. Available options are: default, subset.
 
 .. note::
    
    By default, if checkpoint is enabled, it will perform checkpointing from every epoch. One can perform multiple checkpoints within a single epoch, 
    by setting ``steps_between_checkpoints``. If ``steps_between_checkpoints`` is set to be a positive number, ``epochs_between_checkpoints`` will be ignored.
 
-   One can also perform checkpoint only benchmark, and do not do training, i.e., do no load dataset. To do this, one can set ``workflow.train = False``, and then set ``num_checkpoints``, ``time_between_checkpoints``, ``recovery_after_steps``, and ``recovery_rank_shift``. These four
+   One can also perform checkpoint only benchmark, without doing training, i.e., without loading dataset. To do this, one can set ``workflow.train = False``, and then set ``num_checkpoints``, ``time_between_checkpoints``, ``recovery_after_steps``, and ``recovery_rank_shift``. These four
    is effective only in checkpoint only mode. 
+
+   One can set ``checkpoint.mode`` to be ``subset`` to simulate checkpointing a set of GPUs which are a subset of a targed larger scale run. This is particularly useful 
+   if one would like to test the performance of a single NVMe drive, in the context of a larger scale run. In this case, only a subset of the entire checkpoint will be written. 
 
 output
 ------------------
