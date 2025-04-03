@@ -313,7 +313,11 @@ class BaseCheckpointing(ABC):
 
     @abstractmethod
     def load_checkpoint(self, epoch, step_number):
-        my_rank = DLIOMPI.get_instance().rank()
+        if self.args.checkpoint_recovery_rank_shift:
+            my_rank = (DLIOMPI.get_instance().rank() + DLIOMPI.get_instance().npernode()) % DLIOMPI.get_instance().size()
+            if DLIOMPI.get_instance().size() // DLIOMPI.get_instance().npernode() < 2:
+                if self.comm.rank == 0:
+                    self.logger.warning(f"This run is on single client; checkpoint_recovery_rank_shift does not apply.")
         start_layer, end_layer = self.get_layer_index()
         # create a specifc folder for each step
         checkpoint_id = f"global_epoch{epoch}_step{step_number}"

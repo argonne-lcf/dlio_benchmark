@@ -27,4 +27,4 @@ checkpoint:
   time_between_checkpoints: 5
   num_checkpoints_write: 10
   num_checkpoints_read: 10
-
+  fsync: True

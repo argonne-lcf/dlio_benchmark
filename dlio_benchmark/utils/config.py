@@ -109,6 +109,7 @@ class ConfigArguments:
     optimizer_datatype: str = "fp32"
     checkpoint_fsync: bool = False
     checkpoint_only: bool = False
+    checkpoint_recovery_rank_shift: bool = False
     time_between_checkpoints: float = -1
     checkpoint_rank_sync: bool = False
     num_checkpoints_write: int = -1
@@ -614,8 +615,8 @@ def GetConfig(args, key):
             value = args.num_checkpoints_read
         elif keys[1] == "checkpoint_rank_sync":
             value = args.checkpoint_rank_sync
-        elif keys[1] == "load_rank_shift":  
-            value = args.checkpoint_load_rank_shift
+        elif keys[1] == "recovery_rank_shift":  
+            value = args.checkpoint_recovery_rank_shift
 
     if len(keys) > 1 and keys[0] == "model":
         if keys[1] == "name":
@@ -869,6 +870,8 @@ def LoadConfig(args, config):
             args.num_checkpoints_write = config['checkpoint']['num_checkpoints_write']
         if 'num_checkpoints_read' in config['checkpoint']:
             args.num_checkpoints_read = config['checkpoint']['num_checkpoints_read']
+        if 'recovery_rank_shift' in config['checkpoint']:
+            args.checkpoint_recover_rank_shift = config['checkpoint']['recovery_rank_shift']
         if 'rank_sync' in config['checkpoint']:
             args.checkpoint_rank_sync = config['checkpoint']['rank_sync']
         if 'mode' in config['checkpoint']:
