@@ -275,3 +275,23 @@ jobs:
           rm -rf output data checkpoints
           mpirun -np 2 pytest -k test_computation_time_distribution -v
           rm -rf data
+      - name: test_llama_8b
+        run: |
+          source ${VENV_PATH}/bin/activate
+          rm -rf output data checkpoints
+          mpirun -np 2 ${DLIO_EXEC} workload=llama_8b_zero3 ++workload.model.parallelism.data=32 ++workload.checkpoint.mode=subset
+      - name: test_llama_70b_zero3
+        run: |
+          source ${VENV_PATH}/bin/activate
+          rm -rf output data checkpoints
+          mpirun -np 2 ${DLIO_EXEC} workload=llama_70b_zero3 ++workload.model.parallelism.data=128 ++workload.checkpoint.mode=subset
+      - name: test_llama_405b
+        run: |
+          source ${VENV_PATH}/bin/activate
+          rm -rf output data checkpoints
+          mpirun -np 2 ${DLIO_EXEC} workload=llama_405b ++workload.model.parallelism.data=128 ++workload.checkpoint.mode=subset
+      - name: test_llama_1t
+        run: |
+          source ${VENV_PATH}/bin/activate
+          rm -rf output data checkpoints
+          mpirun -np 2 ${DLIO_EXEC} workload=llama_1t ++workload.model.parallelism.data=256 ++workload.checkpoint.mode=subset
