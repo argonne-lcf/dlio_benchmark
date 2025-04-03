@@ -255,11 +255,28 @@ class DLIOBenchmark(object):
 
     @dlp.log
     def _checkpoint(self):
+        """
+        Checkpointing loop will save the checkpoint after a certain number of steps.
+        """
+        self.stats.start_epoch()
+        if self.args.num_checkpoints_write > 0:
+            self._checkpoint_write()
+        num_checkpoints_exists = len(self.storage.walk_node(self.args.checkpoint_folder))
+        if num_checkpoints_exists < self.args.num_checkpoints_read:
+            raise Exception("Number of checkpoints to be read: {self.args.num_checkpoints_read} is more than the number of checkpoints available: {num_checkpoints_exists}")
+        if self.args.num_checkpoints_read > 0:
+            self._checkpoint_read()
+        self.stats.end_epoch()
+
+    @dlp.log
+    def _checkpoint_write(self):
+        if self.comm.rank == 0:
+            self.logger.output(f"{utcnow()} Checkpointing write started")
         block = 1  # A continuous period of training steps, ended by checkpointing
         block_step = overall_step = 1  # Steps are taken within blocks
         epoch = 1
-        for i in range(self.args.num_checkpoints):
-            self.stats.start_block(epoch, block)
+        for i in range(self.args.num_checkpoints_write):
+            #self.stats.start_block(epoch, block)
             # We still make sure that the checkpoint is done after allreduce; therefore, allreduce here is required. 
             self.framework.compute(None, epoch, block_step, self.args.time_between_checkpoints)
             self.comm.barrier()
@@ -268,15 +285,29 @@ class DLIOBenchmark(object):
             if self.args.checkpoint_rank_sync: 
                 self.comm.barrier()
             self.stats.end_save_ckpt(epoch, block)
-            if self.args.checkpoint_recovery_after_steps > 0 and (i + 1) % self.args.checkpoint_recovery_after_steps==0:
-                self.comm.barrier()
-                self.stats.start_load_ckpt(epoch, block, overall_step)
-                self.checkpointing_mechanism.load_checkpoint(epoch, overall_step)
-                if self.args.checkpoint_rank_sync: 
-                    self.comm.barrier()
-                self.stats.end_load_ckpt(epoch, block)
             block = block+1
             overall_step = overall_step + 1
+        if self.comm.rank == 0:
+            self.logger.output(f"{utcnow()} Checkpointing write finished")
+    @dlp.log
+    def _checkpoint_read(self):
+        if self.comm.rank == 0:
+            self.logger.output(f"{utcnow()} Checkpointing read started")
+        block = 1  # A continuous period of training steps, ended by checkpointing
+        block_step = overall_step = 1  # Steps are taken within blocks
+        epoch = 1
+        for i in range(self.args.num_checkpoints_read):
+            self.framework.compute(None, epoch, block_step, self.args.time_between_checkpoints)
+            self.comm.barrier()
+            self.stats.start_load_ckpt(epoch, block, overall_step)
+            self.checkpointing_mechanism.load_checkpoint(epoch, overall_step)
+            if self.args.checkpoint_rank_sync: 
+                self.comm.barrier()
+            self.stats.end_load_ckpt(epoch, block)
+            block = block+1
+            overall_step = overall_step + 1
+        if self.comm.rank == 0:
+            self.logger.output(f"{utcnow()} Checkpointing write started")
     @dlp.log
     def _train(self, epoch):
         """
@@ -289,7 +320,6 @@ class DLIOBenchmark(object):
         self.steps_per_epoch = max_steps
         # Start the very first block
         self.stats.start_block(epoch, block)
-
         loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
         self.stats.start_loading()
         for batch in loader.next():
@@ -369,6 +399,7 @@ class DLIOBenchmark(object):
             if self.do_eval:
                 self.framework.get_loader(dataset_type=DatasetType.VALID).read()
             for epoch in range(1, self.epochs + 1):
+                self.stats.start_epoch(epoch)
                 self.next_checkpoint_step = self.steps_between_checkpoints
                 self.stats.start_train(epoch)
                 steps = self._train(epoch)
@@ -383,6 +414,7 @@ class DLIOBenchmark(object):
                     self.stats.end_eval(epoch)
                     self.framework.get_loader(DatasetType.VALID).finalize()
                 self.args.reconfigure(epoch + 1) # reconfigure once per epoch
+                self.stats.end_epoch(epoch)
 
         if (self.args.checkpoint_only):
             self._checkpoint()            

@@ -109,11 +109,10 @@ class ConfigArguments:
     optimizer_datatype: str = "fp32"
     checkpoint_fsync: bool = False
     checkpoint_only: bool = False
-    checkpoint_recovery_rank_shift: bool = True
-    checkpoint_recovery_after_steps: int = -1
     time_between_checkpoints: float = -1
     checkpoint_rank_sync: bool = False
-    num_checkpoints: int = -1
+    num_checkpoints_write: int = -1
+    num_checkpoints_read: int = -1
     model_size: int = 10240
     model_type: str = None
     vocab_size: int = 32000
@@ -289,7 +288,10 @@ class ConfigArguments:
         if self.checkpoint_mode == CheckpointModeType.DEFAULT:
             if self.comm_size % (self.pipeline_parallelism * self.tensor_parallelism) != 0:
                 raise Exception(f"Number of processes {self.comm_size} is not a multiple of model parallelism size: {self.pipeline_parallelism * self.tensor_parallelism}")
-
+        if self.num_checkpoints_write > 0:
+            if self.num_checkpoints_read > self.num_checkpoints_write:
+                raise Exception(f"Number of checkpoints to read {self.num_checkpoints_read} cannot be larger than number of checkpoints to write {self.num_checkpoints_write}")
+            
     @staticmethod
     def reset():
         ConfigArguments.__instance = None
@@ -606,12 +608,14 @@ def GetConfig(args, key):
             value = args.checkpoint_fsync
         elif keys[1] == "time_between_checkpoints":
             value = args.time_between_checkpoints
-        elif keys[1] == "num_checkpoints":
-            value = args.num_checkpoints
-        elif keys[1] == "load_rank_shift":
+        elif keys[1] == "num_checkpoints_write":
+            value = args.num_checkpoints_write
+        elif keys[1] == "num_checkpoints_read":
+            value = args.num_checkpoints_read
+        elif keys[1] == "checkpoint_rank_sync":
+            value = args.checkpoint_rank_sync
+        elif keys[1] == "load_rank_shift":  
             value = args.checkpoint_load_rank_shift
-        elif keys[1] == "recovery_after_steps":
-            value = args.checkpoint_recovery_after_steps
 
     if len(keys) > 1 and keys[0] == "model":
         if keys[1] == "name":
@@ -861,12 +865,10 @@ def LoadConfig(args, config):
             args.checkpoint_sync = config['checkpoint']['fsync']
         if 'time_between_checkpoints' in config['checkpoint']:
             args.time_between_checkpoints = config['checkpoint']['time_between_checkpoints']
-        if 'num_checkpoints' in config['checkpoint']:
-            args.num_checkpoints = config['checkpoint']['num_checkpoints']
-        if 'recovery_rank_shift' in config['checkpoint']:
-            args.checkpoint_recover_rank_shift = config['checkpoint']['recovery_rank_shift']
-        if 'recovery_after_steps' in config['checkpoint']:
-            args.checkpoint_recovery_after_steps = config['checkpoint']['recovery_after_steps']
+        if 'num_checkpoints_write' in config['checkpoint']:
+            args.num_checkpoints_write = config['checkpoint']['num_checkpoints_write']
+        if 'num_checkpoints_read' in config['checkpoint']:
+            args.num_checkpoints_read = config['checkpoint']['num_checkpoints_read']
         if 'rank_sync' in config['checkpoint']:
             args.checkpoint_rank_sync = config['checkpoint']['rank_sync']
         if 'mode' in config['checkpoint']:
