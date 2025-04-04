@@ -13,7 +13,7 @@ model:
     vocab_size: 128256
     hidden_size: 25872
     ffn_hidden_size: 98304
-    num_attention_heads: 32
+    num_attention_heads: 192
     num_kv_heads: 32
 
 framework: pytorch
