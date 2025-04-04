@@ -210,9 +210,10 @@ class StatsCounter(object):
                     metric = metric + f"[METRIC] Training I/O Throughput (MB/second): {np.mean(train_throughput)*self.record_size/1024/1024:.4f} ({np.std(train_throughput)*self.record_size/1024/1024:.4f})\n"
                     metric = metric + f"[METRIC] train_au_meet_expectation: {self.summary['metric']['train_au_meet_expectation']}\n"
                 if self.args.do_checkpoint: 
-                    metric = metric + f"[METRIC] Checkpoint save duration (seconds): {self.summary['metric']['save_checkpoint_duration_mean_seconds']:.4f} ({self.summary['metric']['save_checkpoint_duration_stdev_seconds']:.4f})\n"
-                    metric = metric + f"[METRIC] Checkpoint save I/O Throughput (GB/second): {self.summary['metric']['save_checkpoint_io_mean_GB_per_second']:.4f} ({self.summary['metric']['save_checkpoint_io_stdev_GB_per_second']:.4f})\n"
-                    if 'load_checkpoint_io_mean_GB_per_second' in self.summary['metric']:
+                    if self.args.num_checkpoints_write > 0:
+                        metric = metric + f"[METRIC] Checkpoint save duration (seconds): {self.summary['metric']['save_checkpoint_duration_mean_seconds']:.4f} ({self.summary['metric']['save_checkpoint_duration_stdev_seconds']:.4f})\n"
+                        metric = metric + f"[METRIC] Checkpoint save I/O Throughput (GB/second): {self.summary['metric']['save_checkpoint_io_mean_GB_per_second']:.4f} ({self.summary['metric']['save_checkpoint_io_stdev_GB_per_second']:.4f})\n"
+                    if self.args.num_checkpoints_read > 0:
                         metric = metric + f"[METRIC] Checkpoint load duration (seconds): {self.summary['metric']['load_checkpoint_duration_mean_seconds']:.4f} ({self.summary['metric']['load_checkpoint_duration_stdev_seconds']:.4f})\n"
                         metric = metric + f"[METRIC] Checkpoint load I/O Throughput (GB/second): {self.summary['metric']['load_checkpoint_io_mean_GB_per_second']:.4f} ({self.summary['metric']['load_checkpoint_io_stdev_GB_per_second']:.4f})\n"
 
@@ -292,17 +293,23 @@ class StatsCounter(object):
             self.logger.output(f"{utcnow()} Epoch {epoch} [Eval] Accelerator Utilization [AU] (%): {self.output[epoch]['au']['eval']:.4f}")
             self.logger.output(f"{utcnow()} Epoch {epoch} [Eval] Throughput (samples/second): {self.output[epoch]['throughput']['eval']*self.comm_size:.4f}")
 
-    def start_block(self, epoch, block):
+    def start_epoch(self, epoch=1):
+        ts = utcnow()
         if not(epoch in self.output):
-            self.output[epoch] = {}
+            self.output[epoch] = {'start': ts}
             self.output[epoch]['load'] = {}
             self.output[epoch]['proc'] = {}
             self.output[epoch]['throughput'] = {}
             self.output[epoch]['au'] = {}
             self.output[epoch]['compute'] = {}
         if not(epoch in self.per_epoch_stats):
-            self.per_epoch_stats[epoch] = {}
+            self.per_epoch_stats[epoch] = {'start': ts}
+    def end_epoch(self, epoch=1):
+        ts = utcnow()
+        self.output[epoch]['end'] = ts
+        self.per_epoch_stats[epoch]['end']=ts
 
+    def start_block(self, epoch, block):
         self.start_timestamp = time()
         self.output[epoch]['load'][f'block{block}'] = []
         self.output[epoch]['proc'][f'block{block}'] = []

@@ -414,16 +414,16 @@ checkpoint
    * - time_between_checkpoints
      - -1
      - performing one checkpointing per {time_between_checkpoint} seconds; this parameter is used only when workflow.train=False
-   * - num_checkpoints
+   * - num_checkpoints_write
      - -1
      - How many checkpoints to write; this parameter is used only when workflow.train=False
-   * - recovery_after_steps:
+   * - num_checkpoints_read
      - -1
-     - How many checkpoints to write before doing read for recovery. -1 means never doing recovery. 
+     - How many checkpoints to read; this parameter is used only when workflow.train=False
    * - recovery_rank_shift:
-*    - True
-*    - Shift the rank ID by recovery_rank_shift to avoid caching effort. The default value is 0. The suggested value would be ppn (number of processes per node). 
-   * - recovery_rank_shift:
+*    - False
+*    - Shift the rank ID by ppn (number of processes per node); this can be used to avoid potential caching effect for checkpoint recovery. 
+   * - rank_sync:
      - False
      - Whether to synchronize all the ranks after checkpoint write / read or not. If this is True, the synchronization time will be included in the overall checkpoint write / read time. 
    * - mode:
@@ -435,8 +435,8 @@ checkpoint
    By default, if checkpoint is enabled, it will perform checkpointing from every epoch. One can perform multiple checkpoints within a single epoch, 
    by setting ``steps_between_checkpoints``. If ``steps_between_checkpoints`` is set to be a positive number, ``epochs_between_checkpoints`` will be ignored.
 
-   One can also perform checkpoint only benchmark, without doing training, i.e., without loading dataset. To do this, one can set ``workflow.train = False``, and then set ``num_checkpoints``, ``time_between_checkpoints``, ``recovery_after_steps``, and ``recovery_rank_shift``. These four
-   is effective only in checkpoint only mode. 
+   One can also perform checkpoint only benchmark, without doing training, i.e., without loading dataset. To do this, one can set ``workflow.train = False``, and then set ``num_checkpoints``, ``time_between_checkpoints``, and ``recovery_rank_shift``. These
+   are effective only in checkpoint only mode. 
 
    One can set ``checkpoint.mode`` to be ``subset`` to simulate checkpointing a set of GPUs which are a subset of a targed larger scale run. This is particularly useful 
    if one would like to test the performance of a single NVMe drive, in the context of a larger scale run. In this case, only a subset of the entire checkpoint will be written. 
