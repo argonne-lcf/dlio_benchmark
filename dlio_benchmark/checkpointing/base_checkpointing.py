@@ -313,6 +313,7 @@ class BaseCheckpointing(ABC):
 
     @abstractmethod
     def load_checkpoint(self, epoch, step_number):
+        my_rank = DLIOMPI.get_instance().rank()
         if self.args.checkpoint_recovery_rank_shift:
             my_rank = (DLIOMPI.get_instance().rank() + DLIOMPI.get_instance().npernode()) % DLIOMPI.get_instance().size()
             if DLIOMPI.get_instance().size() // DLIOMPI.get_instance().npernode() < 2:
