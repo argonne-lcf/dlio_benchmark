@@ -117,13 +117,20 @@ class BaseCheckpointing(ABC):
                 for layer_index in range(start_layer, end_layer + 1):
                     self.layer_state[str(layer_index)] = layer_state  
             elif self.args.num_layers > 0:
-                self.layer_state = dict()
-                model_checkpoint_size = 0.0
-                for layer_index in range(start_layer, end_layer + 1):
-                    self.layer_state[str(layer_index)], size = self.get_layer_state(layer_index)
-                    model_checkpoint_size += size
-                if self.args.my_rank == 0:
-                    self.logger.info(f"{utcnow()} Layer states defined! {model_checkpoint_size/1024./1024./1024} GB per rank")
+                should_allocate_model_params = True
+
+                # Conditional check specifically for ZeRO Stage 1, non-DP-rank-0
+                if self.args.zero_stage == 1 and self.data_parallelism_rank != 0:
+                    should_allocate_model_params = False # Don't allocate if not DP rank 0 for ZeRO=1
+
+                if should_allocate_model_params:
+                    self.layer_state = dict()
+                    model_checkpoint_size = 0.0
+                    for layer_index in range(start_layer, end_layer + 1):
+                        self.layer_state[str(layer_index)], size = self.get_layer_state(layer_index)
+                        model_checkpoint_size += size
+                    if self.args.my_rank == 0:
+                        self.logger.info(f"{utcnow()} Layer states defined! {model_checkpoint_size/1024./1024./1024} GB per rank")
 
             # optimization state
             self.optimization_state = None
@@ -155,13 +162,10 @@ class BaseCheckpointing(ABC):
 
         model_checkpoint_size = self.comm.allreduce(model_checkpoint_size)/1024./1024./1024.
         optimizer_checkpoint_size = self.comm.allreduce(optimizer_checkpoint_size)/1024./1024./1024.
-        if self.args.zero_stage < 3:
-            num_data_parallel_instances = self.comm.size//self.model_parallelism
-            if num_data_parallel_instances > 0:
-                model_checkpoint_size /= num_data_parallel_instances
+
         if self.args.model_type != "transformer" and self.args.model_size > 0:
             model_checkpoint_size = self.args.model_size/1024./1024./1024.
-        
+
         self.checkpoint_size = model_checkpoint_size + optimizer_checkpoint_size
         if self.args.checkpoint_mode == CheckpointModeType.SUBSET:
             warning_message = f" (subset)"
