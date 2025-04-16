@@ -18,6 +18,7 @@ import logging
 import math
 import os
 import time
+from collections import Counter
 from abc import ABC, abstractmethod
 
 from dlio_benchmark.common.enumerations import CheckpointLocationType, CheckpointModeType
@@ -49,6 +50,12 @@ class BaseCheckpointing(ABC):
         self.logger = self.args.logger
         self.MPI = DLIOMPI.get_instance()
         self.comm = self.MPI.comm()
+
+        # enable/disable hash_consing
+        # (optim to reduce RAM usage)
+        self.hash_consing = self.args.hash_consing
+        self.hash_consing_chunk_size = self.args.hash_consing_chunk_size
+
         # define parallelism
         self.model_parallelism = self.args.pipeline_parallelism*self.args.tensor_parallelism
         if self.args.data_parallelism < 0:
@@ -86,6 +93,9 @@ class BaseCheckpointing(ABC):
             else:
                 self.layer_parameters_predefined = False
 
+            if self.hash_consing:
+                self.tensor_lut_firstlevel = {}
+                self.tensor_lut_secondlevel = {}
 
             self.layer_state = None
             start_layer, end_layer = self.get_layer_index()
@@ -160,12 +170,31 @@ class BaseCheckpointing(ABC):
             if report_total_checkpoint_size:
                 self.logger.output(f"{utcnow()} Total checkpoint size: {self.checkpoint_size:.6f} GB {warning_message}")
 
-    @abstractmethod
     def get_tensor(self, length, datatype="int8"):
+        if self.hash_consing:
+            return self.get_tensor_lut_firstlevel(length, datatype)
+        return self.get_tensor_core(length, datatype)
+
+    def get_tensor_lut_firstlevel(self, length, datatype="int8"):
+        """Gets a tensor from cache or creates/adds it."""
+        cache_key = (length, datatype)
+        if cache_key not in self.tensor_lut_firstlevel:
+            # Call the actual allocation method
+            self.tensor_lut_firstlevel[cache_key] = self.get_tensor_core(length, datatype)
+        return self.tensor_lut_firstlevel[cache_key]
+
+    @abstractmethod
+    def get_tensor_length(self, tensor): pass
+
+    @abstractmethod
+    def get_tensor_dtype_str(self, tensor): pass
+
+    @abstractmethod
+    def get_tensor_core(self, length, datatype="int8"):
         return []
 
     @abstractmethod
-    def save_state(self, suffix, state, fsync=False):
+    def save_state_core(self, suffix, state, fsync=False):
         pass
 
     @abstractmethod
@@ -274,6 +303,133 @@ class BaseCheckpointing(ABC):
             if pipeline_rank == 0:
                 start_layer = 0
         return start_layer, end_layer
+
+    def save_state(self, suffix, state, fsync=False):
+        '''Saves the provided state.
+
+        if self.hash_consing is False: pass the arguments to save_state_core
+        else: handle hash_consing logic then pass the arguments to save_state_core
+
+        Hash Consing:
+
+        If self.hash_consing is True, it means the input to this function (state)
+        is actually a pointer, or a list of pointers, to a set of objects that are
+        in self.tensor_lut_firstlevel.
+
+        For example, if state is [A,B,C,D], it might be that A and B are pointers
+        to the same value in self.tensor_lut_firstlevel.
+
+        If there are 1000 entries, but they all revolve around 10 equal vectors,
+        then we allocate 10 objects in LUT firstlevel, and have 1000 pointers
+        to them. This means there is nearly zero RAM utilization so far.
+        This first level LUT allocation happens *before* save_state.
+
+        However, there is an issue explaining the need for a second LUT:
+        - If there are multiple pointers to the same value, the underlying library
+          might coalesce them and write the data only once (e.g., pickle).
+        We would have written 10 entries on disk instead of 1000.
+
+        To avoid this, a second LUT (self.tensor_lut_secondlevel) is used.
+        If there are 1000 pointers to the same object, save_state detects they all
+        belong to the same object and therefore allocate/reuse entries in the
+        second-level LUT.
+
+        This means RAM utilization is equivalent to not using hash_consing.
+        1000 objects are in RAM.
+
+        But, calling save_state in chunks allows RAM improvements:
+        - Example: The user needs to write [A,B,C,D,E,F,G,H], where
+          A == B == E == F, and C == D == G == H and A != C
+
+        First call: save_state(A,B,C,D)
+        - A & C come from the first-level LUT.
+        - B and D (pointing to A/C) use the second-level.
+        - Allocates 4 objects (one per pointer).
+
+        Second call: save_state(E,F,G,H)
+        - E & G come from the first-level LUT.
+        - F/H reuse existing second-level entries (from B/D).
+        - Allocates 0 new objects.
+
+        Continuing with I,J,K,L (same equalities):
+        - A == E == I => same first-level object (+1).
+        - B == F == J => same second-level object (+1).
+        - C == G == K => same first-level object (+1).
+        - D == H == L => same second-level object (+1).
+
+        Repeating this, only the left side grows (e.g., A's chain),
+        while always revolving around 4 core objects.
+        A == E == I == M == Q == U (...) => same objet in LUT first level (+1)
+
+        The total RAM usage is 4 instead of # tensors.
+        '''
+
+        if state is None:
+            self.logger.warning(f"Save wrapper: None state for {suffix}. Skipping.")
+            return
+
+        state_to_write = state
+
+        # Hash consing
+        # Do second level LUT only if there is more than just one tensor
+        # If there is just one, then the firstlevel LUT is enough and is already done
+        if self.hash_consing and isinstance(state, dict):
+            # This is the new dict that will
+            # contain pointers to different objects
+            # to avoid the underlying lib writting just the pointers
+            state_to_write = {}
+
+            # Tracks each unique tensor usage.
+            per_call_next_tensor_idx = Counter()
+
+            for key, original_tensor in state.items():
+                length = self.get_tensor_length(original_tensor)
+                dtype_str = self.get_tensor_dtype_str(original_tensor)
+                secondlut_key = (length, dtype_str)
+
+                # Determine which tensor instance this is for the current call
+                # There is one per *actual* tensor
+                instance_index_in_call = per_call_next_tensor_idx[secondlut_key]
+
+                if instance_index_in_call == 0:
+                    # First occurrence in this call: USE THE ORIGINAL TENSOR
+                    # This is important because we would double the memory usage
+                    # if we were not to use the already allocated objects from
+                    # the first LUT.
+                    real_tensor_to_use = original_tensor
+                else:
+                    # Subsequent occurrence: need a distinct *real tensor* from the second LUT
+                    # The second LUT  has one pool per first LUT tensor
+                    # e.g: first LUT has A & B (real tensor)
+                    # second LUT will have 2 pools of real tensors:
+                    # A: [clone1,clone2, ...]
+                    # B: [clone1,clone2, ...]
+                    # 1st clone is at pool[0], 2nd at pool[1], etc.
+                    pool_idx_needed = instance_index_in_call - 1
+
+                    # If the pool doesn't exist, ensure it's an empty list
+                    self.tensor_lut_secondlevel.setdefault(secondlut_key, [])
+                    # Get the pool
+                    pool_list = self.tensor_lut_secondlevel[secondlut_key]
+
+                    # Check if the idx we need from this pool already exist
+                    if len(pool_list) > pool_idx_needed:
+                        # Reuse existing clone from the pool
+                        # 0 new allocation
+                        real_tensor_to_use = pool_list[pool_idx_needed]
+                    else:
+                        # Need to allocate a new clone and add to pool
+                        # Clone the original tensor to get the new instance
+                        real_tensor_to_use = self.get_tensor_core(length, dtype_str)
+                        pool_list.append(real_tensor_to_use) # Append the new clone
+
+                # Assign the chosen object (original or clone)
+                state_to_write[key] = real_tensor_to_use
+                # Increment usage index for this secondlut_key *for this call*
+                per_call_next_tensor_idx[secondlut_key] += 1
+
+        # Call the framework specific write method
+        self.save_state_core(suffix, state_to_write, fsync)
     
     @abstractmethod
     def save_checkpoint(self, epoch, step_number):
@@ -306,7 +462,21 @@ class BaseCheckpointing(ABC):
                 
             if self.optimization_state:
                 start_time = time.time()
-                self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states", state=self.optimization_state, fsync = self.args.checkpoint_fsync)
+
+                if self.hash_consing:
+                    # hash_consing only deliver RAM usage reduction
+                    # if we don't pass the full array at once
+                    items = list(self.optimization_state.items())
+                    num_chunks = (len(items) + self.hash_consing_chunk_size - 1) // self.hash_consing_chunk_size if items else 0 # Calculate number of chunks
+                    for i in range(num_chunks): # Loop through each chunk index
+                        chunk_dict = dict(items[i * self.hash_consing_chunk_size : min((i + 1) * self.hash_consing_chunk_size, len(items))]) # Create dict chunk
+                        self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states_chunk_{i}", state=chunk_dict, fsync=self.args.checkpoint_fsync) # Save the dict chunk
+                    # --- End of New Chunking Logic ---
+                    # for index, piece in enumerate(self.optimization_state.values()):
+                    #     self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states_index_{index}", state=piece, fsync=self.args.checkpoint_fsync)
+                else:
+                    self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states", state=self.optimization_state, fsync = self.args.checkpoint_fsync)
+
                 save_optimizer_time = time.time() - start_time
                 if my_rank == 0:
                     self.logger.output(f"{utcnow()} Saved optimizer checkpoint in {save_optimizer_time:.4f} seconds")
@@ -348,7 +518,16 @@ class BaseCheckpointing(ABC):
                 
             if self.optimization_state:
                 start_time = time.time()
-                self.load_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states", state=self.optimization_state)   
+
+
+                if self.hash_consing:
+                    items_count=len(self.optimization_state);
+                    num_chunks = (items_count + self.hash_consing_chunk_size - 1) // self.hash_consing_chunk_size if items_count else 0
+                    for i in range(num_chunks):
+                        loaded_chunk = {}
+                        self.load_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states_chunk_{i}", state=loaded_chunk)
+                else:
+                    self.load_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states", state=self.optimization_state)
                 load_optimizer_time = time.time() - start_time
                 if my_rank == 0:
                     self.logger.output(f"{utcnow()} Loaded optimizer checkpoint in {load_optimizer_time:.4f} seconds")

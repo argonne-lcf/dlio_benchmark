@@ -134,6 +134,8 @@ class ConfigArguments:
     iostat_devices: ClassVar[List[str]] = []
     data_loader_classname = None
     checkpoint_mechanism_classname = None
+    hash_consing: bool = False
+    hash_consing_chunk_size: int = 1
     data_loader_sampler: DataLoaderSampler = None
     reader_classname: str = None
     multiprocessing_context: str = "fork"
@@ -617,6 +619,10 @@ def GetConfig(args, key):
             value = args.checkpoint_rank_sync
         elif keys[1] == "recovery_rank_shift":  
             value = args.checkpoint_recovery_rank_shift
+        elif keys[1] == "hash_consing":
+            value = args.hash_consing
+        elif keys[1] == "hash_consing_chunk_size":
+            value = args.hash_consing_chunk_size
 
     if len(keys) > 1 and keys[0] == "model":
         if keys[1] == "name":
@@ -876,6 +882,10 @@ def LoadConfig(args, config):
             args.checkpoint_rank_sync = config['checkpoint']['rank_sync']
         if 'mode' in config['checkpoint']:
             args.checkpoint_mode = CheckpointModeType(config['checkpoint']['mode'])
+        if 'hash_consing' in config['checkpoint']:
+            args.hash_consing = config['checkpoint']['hash_consing']
+        if 'hash_consing_chunk_size' in config['checkpoint']:
+            args.hash_consing_chunk_size = config['checkpoint']['hash_consing_chunk_size']
 
     if 'model' in config:
         if 'name' in config['model']:

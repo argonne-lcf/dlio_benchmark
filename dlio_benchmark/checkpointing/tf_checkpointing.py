@@ -58,11 +58,33 @@ class TFCheckpointing(BaseCheckpointing):
         super().__init__("pb")
 
     @dlp.log
-    def get_tensor(self, length, datatype="int8"):
+    def get_tensor_length(self, tensor):
+        # Returns the total number of elements as a Python integer
+        return tf.size(tensor).numpy()
+
+    @dlp.log
+    def get_tensor_dtype_str(self, tensor):
+        # Returns a string representation like "fp32"
+        return self._map_dtype_to_str_tf(tensor.dtype)
+
+    @dlp.log
+    def _map_dtype_to_str_tf(self, dtype):
+        # Maps TensorFlow dtype objects to specific strings
+        if dtype == tf.float32: return "fp32"
+        if dtype == tf.float16: return "fp16"
+        if dtype == tf.bfloat16: return "bf16"
+        if dtype == tf.int8: return "int8"
+        if dtype == tf.uint8: return "uint8"
+        if dtype == tf.float64: return "fp64"
+        # Minimal fallback using TensorFlow's built-in dtype name
+        return dtype.name
+
+    @dlp.log
+    def get_tensor_core(self, length, datatype="int8"):
         return tf.ones((length), dtype=get_tf_datatype(datatype))
 
     @dlp.log
-    def save_state(self, suffix, state, fsync = False):
+    def save_state_core(self, suffix, state, fsync = False):
         name = self.get_name(suffix)
         checkpoint = tf.train.Checkpoint()
         checkpoint.mapped = state

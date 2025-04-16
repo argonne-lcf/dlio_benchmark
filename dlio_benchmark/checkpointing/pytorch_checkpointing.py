@@ -60,11 +60,32 @@ class PyTorchCheckpointing(BaseCheckpointing):
         super().__init__("pt")
 
     @dlp.log
-    def get_tensor(self, length, datatype="int8"):
+    def get_tensor_length(self, tensor):
+        return tensor.numel()
+
+    @dlp.log
+    def get_tensor_dtype_str(self, tensor):
+        return self._map_dtype_to_str(tensor.dtype)
+
+    @dlp.log
+    def _map_dtype_to_str(self, dtype):
+        # Reverse mapping needed for pool key consistency
+        if dtype == torch.float32: return "fp32"
+        if dtype == torch.float16: return "fp16"
+        if dtype == torch.bfloat16: return "bf16"
+        if dtype == torch.int8: return "int8"
+        if dtype == torch.uint8: return "uint8"
+        if dtype == torch.float64: return "fp64"
+        # Add others as needed
+        self.logger.warning(f"Unmapped torch dtype: {dtype}")
+        return str(dtype) # Fallback
+
+    @dlp.log
+    def get_tensor_core(self, length, datatype="int8"):
         return torch.ones(length, dtype=get_torch_datatype(datatype))
 
     @dlp.log
-    def save_state(self, suffix, state, fsync = False):
+    def save_state_core(self, suffix, state, fsync = False):
         name = self.get_name(suffix)
         with open(name, "wb") as f:
             torch.save(state, f)
