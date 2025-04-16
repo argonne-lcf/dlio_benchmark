@@ -467,13 +467,10 @@ class BaseCheckpointing(ABC):
                     # hash_consing only deliver RAM usage reduction
                     # if we don't pass the full array at once
                     items = list(self.optimization_state.items())
-                    num_chunks = (len(items) + self.hash_consing_chunk_size - 1) // self.hash_consing_chunk_size if items else 0 # Calculate number of chunks
-                    for i in range(num_chunks): # Loop through each chunk index
-                        chunk_dict = dict(items[i * self.hash_consing_chunk_size : min((i + 1) * self.hash_consing_chunk_size, len(items))]) # Create dict chunk
-                        self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states_chunk_{i}", state=chunk_dict, fsync=self.args.checkpoint_fsync) # Save the dict chunk
-                    # --- End of New Chunking Logic ---
-                    # for index, piece in enumerate(self.optimization_state.values()):
-                    #     self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states_index_{index}", state=piece, fsync=self.args.checkpoint_fsync)
+                    num_chunks = (len(items) + self.hash_consing_chunk_size - 1) // self.hash_consing_chunk_size if items else 0
+                    for i in range(num_chunks):
+                        chunk_dict = dict(items[i * self.hash_consing_chunk_size : min((i + 1) * self.hash_consing_chunk_size, len(items))]) 
+                        self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states_chunk_{i}", state=chunk_dict, fsync=self.args.checkpoint_fsync) 
                 else:
                     self.save_state(suffix=f"{checkpoint_id}/zero_pp_rank_{self.data_parallelism_rank}_mp_rank_{self.model_parallelism_rank}_optim_states", state=self.optimization_state, fsync = self.args.checkpoint_fsync)
 
