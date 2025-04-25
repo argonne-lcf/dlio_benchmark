@@ -6,7 +6,7 @@ model:
   optimizer_datatype: fp32
   parallelism: 
     tensor: 8
-    pipeline: 16
+    pipeline: 32
     zero_stage: 1
   transformer: 
     vocab_size: 128256
