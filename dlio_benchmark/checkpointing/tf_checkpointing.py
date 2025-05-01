@@ -58,8 +58,12 @@ class TFCheckpointing(BaseCheckpointing):
         super().__init__("pb")
 
     @dlp.log
-    def get_tensor(self, length, datatype="int8"):
+    def get_tensor_core(self, length, datatype="int8"):
         return tf.ones((length), dtype=get_tf_datatype(datatype))
+
+    @dlp.log
+    def set_madvise_mergeable(self, tensor):
+        return False
 
     @dlp.log
     def save_state(self, suffix, state, fsync = False):

@@ -114,6 +114,11 @@ class ConfigArguments:
     checkpoint_rank_sync: bool = False
     num_checkpoints_write: int = -1
     num_checkpoints_read: int = -1
+    ksm_init: bool = False
+    ksm_madv_mergeable_id: int = 12
+    ksm_high_ram_trigger: float = 30.0
+    ksm_low_ram_exit: float = 15
+    ksm_await_time: int = 200
     model_size: int = 10240
     model_type: str = None
     vocab_size: int = 32000
@@ -876,6 +881,16 @@ def LoadConfig(args, config):
             args.checkpoint_rank_sync = config['checkpoint']['rank_sync']
         if 'mode' in config['checkpoint']:
             args.checkpoint_mode = CheckpointModeType(config['checkpoint']['mode'])
+        if 'ksm_init' in config['checkpoint']:
+            args.ksm_init = config['checkpoint']['ksm_init']
+        if 'ksm_madv_mergeable_id' in config['checkpoint']:
+            args.ksm_madv_mergeable_id = config['checkpoint']['ksm_madv_mergeable_id']
+        if 'ksm_high_ram_trigger' in config['checkpoint']:
+            args.ksm_high_ram_trigger = config['checkpoint']['ksm_high_ram_trigger']
+        if 'ksm_low_ram_exit' in config['checkpoint']:
+            args.ksm_low_ram_exit = config['checkpoint']['ksm_low_ram_exit']
+        if 'ksm_await_time' in config['checkpoint']:
+            args.ksm_await_time = config['checkpoint']['ksm_await_time']
 
     if 'model' in config:
         if 'name' in config['model']:
