@@ -332,11 +332,11 @@ reader
 
 .. note:: 
 
-  We also supoprt custom data reader and data loader. The detailed instruction on how to create custom data loader and data reader are provided here: :ref:`custom_data_loader` and :ref:`custom_data_reader`. 
+  We also support custom data reader and data loader. The detailed instruction on how to create custom data loader and data reader are provided here: :ref:`custom_data_loader` and :ref:`custom_data_reader`. 
 
 .. note:: 
 
-  For odirect, it is  only available for npy and npz formats.  Not yet implimented for all other formats so an error will be rasied.
+  For odirect, it is only available for npy and npz formats.  Not yet implimented for all other formats so an error will be raised.
 
 train
 ------------------
