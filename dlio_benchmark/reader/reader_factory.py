@@ -39,13 +39,21 @@ class ReaderFactory(object):
                 self.logger.info(f"{utcnow()} Running DLIO with custom data loader class {_args.reader_class.__name__}")
             return _args.reader_class(dataset_type, thread_index, epoch_number)
         elif type == FormatType.HDF5:
-            from dlio_benchmark.reader.hdf5_reader import HDF5Reader
-            return HDF5Reader(dataset_type, thread_index, epoch_number)
+            if _args.odirect == True:
+                raise Exception("Odirect for %s format is not yet supported." %type)
+            else:
+                from dlio_benchmark.reader.hdf5_reader import HDF5Reader
+                return HDF5Reader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.CSV:
-            from dlio_benchmark.reader.csv_reader import CSVReader
+            if _args.odirect == True:
+                raise Exception("Odirect for %s format is not yet supported." %type)
+            else:
+                from dlio_benchmark.reader.csv_reader import CSVReader
             return CSVReader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.JPEG or type == FormatType.PNG:
-            if _args.data_loader == DataLoaderType.NATIVE_DALI:
+            if _args.odirect == True:
+                raise Exception("Odirect for %s format is not yet supported." %type)
+            elif _args.data_loader == DataLoaderType.NATIVE_DALI:
                 from dlio_benchmark.reader.dali_image_reader import DaliImageReader
                 return DaliImageReader(dataset_type, thread_index, epoch_number)
             else:
@@ -56,30 +64,51 @@ class ReaderFactory(object):
                 from dlio_benchmark.reader.dali_npy_reader import DaliNPYReader
                 return DaliNPYReader(dataset_type, thread_index, epoch_number)
             else:
-                from dlio_benchmark.reader.npy_reader import NPYReader
-                return NPYReader(dataset_type, thread_index, epoch_number)                         
+                if _args.odirect == True:
+                    from dlio_benchmark.reader.npy_reader_odirect import NPYReaderODirect, parse_npy
+                    return NPYReaderODirect(dataset_type, thread_index, epoch_number, parse_npy)
+                else:
+                    from dlio_benchmark.reader.npy_reader import NPYReader
+                    return NPYReader(dataset_type, thread_index, epoch_number)                               
         elif type == FormatType.NPZ:
             if _args.data_loader == DataLoaderType.NATIVE_DALI:
                 raise Exception("Loading data of %s format is not supported without framework data loader; please use npy format instead." %type)
             else:
-                from dlio_benchmark.reader.npz_reader import NPZReader
-                return NPZReader(dataset_type, thread_index, epoch_number)
+                if _args.odirect == True:
+                    from dlio_benchmark.reader.npz_reader_odirect import NPZReaderODIRECT, parse_npz
+                    def parse_npz_x(mem_view):
+                        return parse_npz(mem_view)["x"]
+                    return NPZReaderODIRECT(dataset_type, thread_index, epoch_number, parse_npz_x)                    
+                else:
+                    from dlio_benchmark.reader.npz_reader import NPZReader
+                    return NPZReader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.TFRECORD:
-            if _args.data_loader == DataLoaderType.NATIVE_DALI: 
+            if _args.odirect == True:
+                raise Exception("O_DIRECT for %s format is not yet supported." %type)
+            elif _args.data_loader == DataLoaderType.NATIVE_DALI: 
                 from dlio_benchmark.reader.dali_tfrecord_reader import DaliTFRecordReader
                 return DaliTFRecordReader(dataset_type, thread_index, epoch_number)
             else:
                 from dlio_benchmark.reader.tf_reader import TFReader
                 return TFReader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.INDEXED_BINARY:
-            from dlio_benchmark.reader.indexed_binary_reader import IndexedBinaryReader
-            return IndexedBinaryReader(dataset_type, thread_index, epoch_number)
+            if _args.odirect == True:
+                raise Exception("O_DIRECT for %s format is not yet supported." %type)
+            else:
+                from dlio_benchmark.reader.indexed_binary_reader import IndexedBinaryReader
+                return IndexedBinaryReader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.MMAP_INDEXED_BINARY:
-            from dlio_benchmark.reader.indexed_binary_mmap_reader import IndexedBinaryMMapReader
-            return IndexedBinaryMMapReader(dataset_type, thread_index, epoch_number)
+            if _args.odirect == True:
+                raise Exception("O_DIRECT for %s format is not yet supported." %type)
+            else:
+                from dlio_benchmark.reader.indexed_binary_mmap_reader import IndexedBinaryMMapReader
+                return IndexedBinaryMMapReader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.SYNTHETIC:
-            from dlio_benchmark.reader.synthetic_reader import SyntheticReader
-            return SyntheticReader(dataset_type, thread_index, epoch_number)
+            if _args.odirect == True:
+                raise Exception("O_DIRECT for %s format is not yet supported." %type)
+            else:
+                from dlio_benchmark.reader.synthetic_reader import SyntheticReader
+                return SyntheticReader(dataset_type, thread_index, epoch_number)
 
         else:
             raise Exception("Loading data of %s format is not supported without framework data loader" %type)

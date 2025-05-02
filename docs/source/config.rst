@@ -314,7 +314,10 @@ reader
        | Can be specified as a distribution, see :ref:`Time Configuration` for more details.
    * - preprocess_time_stdev
      - 0.0
-     - The standard deviation of the amount of emulated preprocess time (sleep) in second. 
+     - The standard deviation of the amount of emulated preprocess time (sleep) in second.
+   * - odirect
+     - False
+     - enable O_DIRECT for the npy and npz formats only to bypass OS cache. 
 .. note:: 
 
   TensorFlow and PyTorch behave differently for some parameters. For ``read_threads``, tensorflow does 
@@ -330,6 +333,10 @@ reader
 .. note:: 
 
   We also supoprt custom data reader and data loader. The detailed instruction on how to create custom data loader and data reader are provided here: :ref:`custom_data_loader` and :ref:`custom_data_reader`. 
+
+.. note:: 
+
+  For odirect, it is  only available for npy and npz formats.  Not yet implimented for all other formats so an error will be rasied.
 
 train
 ------------------
