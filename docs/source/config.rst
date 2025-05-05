@@ -386,10 +386,9 @@ evaluation
    * - epochs_between_evals
      - 1
      - evaluate after x number of epochs
-
 checkpoint
 ------------------
-.. list-table:: 
+.. list-table::
    :widths: 15 10 30
    :header-rows: 1
 
@@ -399,9 +398,9 @@ checkpoint
    * - checkpoint_folder
      - ./checkpoints/
      - the folder to save the checkpoints
-   * - checkpoing_after_epoch
+   * - checkpoint_after_epoch
      - 1
-     - start checkpointing after certain number of epochs specified 
+     - start checkpointing after certain number of epochs specified
    * - epochs_between_checkpoints
      - 1
      - performing one checkpointing per certain number of epochs specified
@@ -413,33 +412,111 @@ checkpoint
      - whether to perform fsync after writing the checkpoint
    * - time_between_checkpoints
      - -1
-     - performing one checkpointing per {time_between_checkpoint} seconds; this parameter is used only when workflow.train=False
+     - | performing one checkpointing per {time_between_checkpoint} seconds;
+       | this parameter is used only when workflow.train=False
    * - num_checkpoints_write
      - -1
-     - How many checkpoints to write; this parameter is used only when workflow.train=False
+     - | How many checkpoints to write;
+       | this parameter is used only when workflow.train=False
    * - num_checkpoints_read
      - -1
-     - How many checkpoints to read; this parameter is used only when workflow.train=False
-   * - recovery_rank_shift:
-*    - False
-*    - Shift the rank ID by ppn (number of processes per node); this can be used to avoid potential caching effect for checkpoint recovery. 
-   * - rank_sync:
+     - | How many checkpoints to read;
+       | this parameter is used only when workflow.train=False
+   * - recovery_rank_shift
      - False
-     - Whether to synchronize all the ranks after checkpoint write / read or not. If this is True, the synchronization time will be included in the overall checkpoint write / read time. 
-   * - mode:
+     - | Shift the rank ID by ppn (number of processes per node);
+       | this can be used to avoid potential caching effect for checkpoint recovery.
+   * - rank_sync
+     - False
+     - | Whether to synchronize all the ranks after checkpoint write / read or not.
+       | If this is True, the synchronization time will be included in the overall checkpoint write / read time.
+   * - mode
      - default
-     - The mode of the checkpointing. Available options are: default, subset.
+     - | The mode of the checkpointing.
+       | Available options are: default, subset.
+   * - ksm
+     - (omitted)
+     - | Optional subsection to configure and enable Kernel Samepage Merging (KSM) optimization.
+       | **Simply adding this ``ksm:`` section (even if empty, e.g., ``ksm: {}``) enables KSM features.**
+       | See the KSM Configuration table below for optional nested keys to fine-tune KSM behavior.
+
+**KSM Configuration (Optional keys under `checkpoint.ksm`)**
+
+.. list-table::
+   :widths: 15 10 30
+   :header-rows: 1
+
+   * - Parameter (within `ksm`)
+     - Default
+     - Description
+   * - madv_mergeable_id
+     - 12
+     - ID for the madvise MADV_MERGEABLE system call.
+   * - high_ram_trigger
+     - 30.0
+     - RAM usage percentage (%) threshold to start the KSM await logic (waiting for potential page merging).
+   * - low_ram_exit
+     - 15.0
+     - RAM usage percentage (%) threshold to exit the KSM await logic early if memory usage drops below this level.
+   * - await_time
+     - 200
+     - Maximum seconds to wait for KSM to potentially merge pages after marking them mergeable.
+
+**Example YAML for KSM**
+
+.. code-block:: yaml
+
+   # Example 1: Enable KSM with default settings
+   checkpoint:
+     checkpoint_folder: checkpoints/my_model
+     # ... other checkpoint settings ...
+     ksm: {} # Presence enables KSM
+
+   # Example 2: Enable KSM with custom settings
+   checkpoint:
+     checkpoint_folder: checkpoints/another_model
+     # ... other checkpoint settings ...
+     ksm:
+       high_ram_trigger: 25.0
+       await_time: 150
+       # Other KSM parameters will use defaults
+
+**Example KSM System Configuration (Linux)**
+
+The following bash script provides an example of configuring the Linux Kernel Samepage Merging (KSM) feature for potentially faster background merging (e.g., aiming for ~4GB/s). These settings adjust the KSM advisor and scanning parameters. Note that optimal settings can vary significantly depending on the system, workload, and kernel version. Use with caution and test thoroughly. Requires root privileges.
+
+.. code-block:: bash
+
+   #!/bin/bash
+   # Example KSM configuration for potentially faster merging
+   # Adjust values based on system testing and requirements
+   echo 1 > /sys/kernel/mm/ksm/run
+   echo scan-time > /sys/kernel/mm/ksm/advisor_mode
+   echo 1 > /sys/kernel/mm/ksm/advisor_target_scan_time
+   echo 900 > /sys/kernel/mm/ksm/advisor_max_cpu
+   echo 9999999 > /sys/kernel/mm/ksm/advisor_min_pages_to_scan
+   echo 99999999999999 > /sys/kernel/mm/ksm/advisor_max_pages_to_scan
+   echo 999999999 > /sys/kernel/mm/ksm/max_page_sharing
+   echo 2 > /sys/kernel/mm/ksm/run # Stop KSM temporarily
+   sleep 1
+   echo 1 > /sys/kernel/mm/ksm/run # Restart KSM with new settings
+   echo 1 > /sys/kernel/mm/ksm/merge_across_nodes
+   echo 1 > /sys/kernel/mm/ksm/run
+   echo 1 > /sys/kernel/mm/ksm/use_zero_pages
+   echo 1 > /sys/kernel/mm/ksm/smart_scan
+   echo 1 > /sys/kernel/mm/ksm/sleep_millisecs # Example: 1 millisecond sleep
+
 
 .. note::
-   
-   By default, if checkpoint is enabled, it will perform checkpointing from every epoch. One can perform multiple checkpoints within a single epoch, 
+
+   By default, if checkpoint is enabled, it will perform checkpointing from every epoch. One can perform multiple checkpoints within a single epoch,
    by setting ``steps_between_checkpoints``. If ``steps_between_checkpoints`` is set to be a positive number, ``epochs_between_checkpoints`` will be ignored.
 
    One can also perform checkpoint only benchmark, without doing training, i.e., without loading dataset. To do this, one can set ``workflow.train = False``, and then set ``num_checkpoints``, ``time_between_checkpoints``, and ``recovery_rank_shift``. These
-   are effective only in checkpoint only mode. 
+   are effective only in checkpoint only mode.
 
-   One can set ``checkpoint.mode`` to be ``subset`` to simulate checkpointing a set of GPUs which are a subset of a targed larger scale run. This is particularly useful 
-   if one would like to test the performance of a single NVMe drive, in the context of a larger scale run. In this case, only a subset of the entire checkpoint will be written. 
+   One can set ``checkpoint.mode`` to be ``subset`` to simulate checkpointing a set of GPUs which are a subset of a targed larger scale run. This is particularly useful
+   if one would like to test the performance of a single NVMe drive, in the context of a larger scale run. In this case, only a subset of the entire checkpoint will be written.
 
 output
 ------------------
