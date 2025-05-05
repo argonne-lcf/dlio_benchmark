@@ -114,11 +114,11 @@ class ConfigArguments:
     checkpoint_rank_sync: bool = False
     num_checkpoints_write: int = -1
     num_checkpoints_read: int = -1
-    ksm_init: bool = False
     ksm_madv_mergeable_id: int = 12
     ksm_high_ram_trigger: float = 30.0
     ksm_low_ram_exit: float = 15
     ksm_await_time: int = 200
+    ksm_present: bool = False
     model_size: int = 10240
     model_type: str = None
     vocab_size: int = 32000
@@ -163,6 +163,7 @@ class ConfigArguments:
     data_loader_class = None
     reader_class = None
     checkpoint_mechanism_class = None
+    ksm_init = False
     native_data_loader = False
     train_sample_index_sum = 1
     eval_sample_index_sum = 1
@@ -369,6 +370,7 @@ class ConfigArguments:
         self.train_global_index_map = {}
         self.val_global_index_map = {}
         self.native_data_loader = False
+        self.ksm_init = self.ksm_present
         if self.data_loader == DataLoaderType.TENSORFLOW:
             if self.format == FormatType.TFRECORD:
                 self.native_data_loader = True
@@ -881,16 +883,17 @@ def LoadConfig(args, config):
             args.checkpoint_rank_sync = config['checkpoint']['rank_sync']
         if 'mode' in config['checkpoint']:
             args.checkpoint_mode = CheckpointModeType(config['checkpoint']['mode'])
-        if 'ksm_init' in config['checkpoint']:
-            args.ksm_init = config['checkpoint']['ksm_init']
-        if 'ksm_madv_mergeable_id' in config['checkpoint']:
-            args.ksm_madv_mergeable_id = config['checkpoint']['ksm_madv_mergeable_id']
-        if 'ksm_high_ram_trigger' in config['checkpoint']:
-            args.ksm_high_ram_trigger = config['checkpoint']['ksm_high_ram_trigger']
-        if 'ksm_low_ram_exit' in config['checkpoint']:
-            args.ksm_low_ram_exit = config['checkpoint']['ksm_low_ram_exit']
-        if 'ksm_await_time' in config['checkpoint']:
-            args.ksm_await_time = config['checkpoint']['ksm_await_time']
+
+        if 'ksm' in config['checkpoint']:
+            args.ksm_present = True
+            if 'ksm_madv_mergeable_id' in config['checkpoint']['ksm']:
+                args.ksm_madv_mergeable_id = config['checkpoint']['ksm']['ksm_madv_mergeable_id']
+            if 'ksm_high_ram_trigger' in config['checkpoint']['ksm']:
+                args.ksm_high_ram_trigger = config['checkpoint']['ksm']['ksm_high_ram_trigger']
+            if 'ksm_low_ram_exit' in config['checkpoint']['ksm']:
+                args.ksm_low_ram_exit = config['checkpoint']['ksm']['ksm_low_ram_exit']
+            if 'ksm_await_time' in config['checkpoint']['ksm']:
+                args.ksm_await_time = config['checkpoint']['ksm']['ksm_await_time']
 
     if 'model' in config:
         if 'name' in config['model']:
