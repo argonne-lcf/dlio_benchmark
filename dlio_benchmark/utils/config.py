@@ -488,7 +488,7 @@ def GetConfig(args, key):
     if len(keys) > 1 and keys[0] == "dataset":
         if keys[1] == "record_length_bytes":
             value = args.record_length
-        elif keys[1] == "record_length_byte_stdev":
+        elif keys[1] == "record_length_bytes_stdev":
             value = args.record_length_stdev
         elif keys[1] == "record_length_bytes_resize":
             value = args.record_length_resize
@@ -709,7 +709,7 @@ def LoadConfig(args, config):
     if 'dataset' in config:
         if 'record_length_bytes' in config['dataset']:
             args.record_length = config['dataset']['record_length_bytes']
-        if 'record_length_byte_stdev' in config['dataset']:
+        if 'record_length_bytes_stdev' in config['dataset']:
             args.record_length_stdev = config['dataset']['record_length_bytes_stdev']
         if 'record_length_bytes_resize' in config['dataset']:
             args.record_length_resize = config['dataset']['record_length_bytes_resize']
