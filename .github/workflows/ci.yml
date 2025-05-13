@@ -88,6 +88,11 @@ jobs:
           mpirun -np 2 pytest -k test_checkpoint_epoch[tensorflow-1024-optimizers4-1-layer_params4-0] -v
           mpirun -np 2 pytest -k test_checkpoint_epoch[pytorch-1024-optimizers5-1-layer_params5-0] -v
           rm -rf data
+      - name: test_checkpoint_ksm_config
+        run: |
+          source ${VENV_PATH}/bin/activate
+          mpirun -np 2 pytest -k test_checkpoint_ksm_config -v
+          rm -rf data
       - name: test_checkpoint_step
         run: |
           source ${VENV_PATH}/bin/activate
