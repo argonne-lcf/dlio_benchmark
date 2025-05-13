@@ -138,6 +138,7 @@ class ConfigArguments:
     reader_classname: str = None
     multiprocessing_context: str = "fork"
     pin_memory: bool = True
+    odirect: bool = False
 
     # derived fields
     required_samples: int = 1
@@ -784,7 +785,9 @@ def LoadConfig(args, config):
             args.read_type = reader['read_type']
         if 'transfer_size' in reader:
             args.transfer_size = reader['transfer_size']
-        
+        if 'odirect' in reader:
+            args.odirect = reader['odirect']
+
         args.preprocess_time = {}
         if 'preprocess_time' in reader:
             preprocess_time = {}
