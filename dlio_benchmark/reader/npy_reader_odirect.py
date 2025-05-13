@@ -35,17 +35,15 @@ class NPYReaderODirect(FormatReader):
     """
 
     @dlp.log_init
-    def __init__(self, dataset_type, thread_index, epoch, parser=None, alignment=4096):
+    def __init__(self, dataset_type, thread_index, epoch, alignment=4096):
         super().__init__(dataset_type, thread_index)
-        self.parser = parser
         self.alignment = alignment
 
     @dlp.log
     def open(self, filename):
         super().open(filename)
         data = self.odirect_read(filename)
-        if self.parser:
-            data = self.parser(data)
+        data = self.parse_npy(data)
         return data
 
     def odirect_read(self, filepath):
@@ -111,70 +109,37 @@ class NPYReaderODirect(FormatReader):
     def is_iterator_based(self):
         return True
     
-# optimized to use in-ram buffer with 0 copy
-def parse_npy(mem_view):
-    # Verify the magic string
-    if mem_view[:6].tobytes() != b'\x93NUMPY':
-        raise ValueError("This is not a valid .npy file.")
+    # optimized to use in-ram buffer with 0 copy
+    def parse_npy(self, mem_view):
+        # Verify the magic string
+        if mem_view[:6].tobytes() != b'\x93NUMPY':
+            raise ValueError("This is not a valid .npy file.")
 
-    # Read version information
-    major, minor = struct.unpack('<BB', mem_view[6:8].tobytes())
-    if major == 1:
-        header_len = struct.unpack('<H', mem_view[8:10].tobytes())[0]
-        header = mem_view[10:10 + header_len].tobytes()
-    elif major == 2:
-        header_len = struct.unpack('<I', mem_view[8:12].tobytes())[0]
-        header = mem_view[12:12 + header_len].tobytes()
-    else:
-        raise ValueError(f"Unsupported .npy file version: {major}.{minor}")
-
-    # Parse the header
-    header_dict = eval(header.decode('latin1'))
-    dtype = np.dtype(header_dict['descr'])
-    shape = header_dict['shape']
-    fortran_order = header_dict['fortran_order']
-
-    # Calculate the data offset
-    data_offset = (10 + header_len) if major == 1 else (12 + header_len)
-    data_size = np.prod(shape) * dtype.itemsize
-
-    # Load the array data
-    data = np.ndarray(shape, dtype=dtype, buffer=mem_view[data_offset:data_offset + data_size])
-
-    # If the array is in Fortran order, convert it
-    if fortran_order:
-        data = np.asfortranarray(data)
-    return data
-
-def parse_npz(mem_view):
-    files = {}
-    pos = 0
-
-    while pos < len(mem_view):
-        # Verify magic
-        local_header_signature = mem_view[pos:pos+4].tobytes()
-        if local_header_signature != b'\x50\x4b\x03\x04':
-            break
-
-        compressed_size = struct.unpack('<I', mem_view[pos+18:pos+22].tobytes())[0]
-        uncompressed_size = struct.unpack('<I', mem_view[pos+22:pos+26].tobytes())[0]
-        filename_len = struct.unpack('<H', mem_view[pos+26:pos+28].tobytes())[0]            
-        extra_len = struct.unpack('<H', mem_view[pos+28:pos+30].tobytes())[0]
-        filename = mem_view[pos+30:pos+30+filename_len].tobytes().decode('utf-8') 
-
-        # skip to data offset
-        pos += 30 + filename_len + extra_len
-        if not filename.endswith('.npy'):
-            raise ValueError(f"Unexpected file in npz: {filename}")
-        filename = filename[:-4]  
-                    
-        compressed_data = mem_view[pos:pos+compressed_size]
-        pos += compressed_size
-        
-        if compressed_size == uncompressed_size:
-            uncompressed_data = compressed_data
+        # Read version information
+        major, minor = struct.unpack('<BB', mem_view[6:8].tobytes())
+        if major == 1:
+            header_len = struct.unpack('<H', mem_view[8:10].tobytes())[0]
+            header = mem_view[10:10 + header_len].tobytes()
+        elif major == 2:
+            header_len = struct.unpack('<I', mem_view[8:12].tobytes())[0]
+            header = mem_view[12:12 + header_len].tobytes()
         else:
-            uncompressed_data = zlib.decompress(compressed_data)
+            raise ValueError(f"Unsupported .npy file version: {major}.{minor}")
 
-        files[filename] = parse_npy(uncompressed_data)
-    return files
+        # Parse the header
+        header_dict = eval(header.decode('latin1'))
+        dtype = np.dtype(header_dict['descr'])
+        shape = header_dict['shape']
+        fortran_order = header_dict['fortran_order']
+
+        # Calculate the data offset
+        data_offset = (10 + header_len) if major == 1 else (12 + header_len)
+        data_size = np.prod(shape) * dtype.itemsize
+
+        # Load the array data
+        data = np.ndarray(shape, dtype=dtype, buffer=mem_view[data_offset:data_offset + data_size])
+
+        # If the array is in Fortran order, convert it
+        if fortran_order:
+            data = np.asfortranarray(data)
+        return data

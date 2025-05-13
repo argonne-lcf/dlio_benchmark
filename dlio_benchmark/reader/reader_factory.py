@@ -65,20 +65,18 @@ class ReaderFactory(object):
                 return DaliNPYReader(dataset_type, thread_index, epoch_number)
             else:
                 if _args.odirect == True:
-                    from dlio_benchmark.reader.npy_reader_odirect import NPYReaderODirect, parse_npy
-                    return NPYReaderODirect(dataset_type, thread_index, epoch_number, parse_npy)
+                    from dlio_benchmark.reader.npy_reader_odirect import NPYReaderODirect
+                    return NPYReaderODirect(dataset_type, thread_index, epoch_number)
                 else:
                     from dlio_benchmark.reader.npy_reader import NPYReader
-                    return NPYReader(dataset_type, thread_index, epoch_number)                               
+                    return NPYReader(dataset_type, thread_index, epoch_number)                           
         elif type == FormatType.NPZ:
             if _args.data_loader == DataLoaderType.NATIVE_DALI:
                 raise Exception("Loading data of %s format is not supported without framework data loader; please use npy format instead." %type)
             else:
                 if _args.odirect == True:
-                    from dlio_benchmark.reader.npz_reader_odirect import NPZReaderODIRECT, parse_npz
-                    def parse_npz_x(mem_view):
-                        return parse_npz(mem_view)["x"]
-                    return NPZReaderODIRECT(dataset_type, thread_index, epoch_number, parse_npz_x)                    
+                    from dlio_benchmark.reader.npz_reader_odirect import NPZReaderODIRECT
+                    return NPZReaderODIRECT(dataset_type, thread_index, epoch_number)         
                 else:
                     from dlio_benchmark.reader.npz_reader import NPZReader
                     return NPZReader(dataset_type, thread_index, epoch_number)
