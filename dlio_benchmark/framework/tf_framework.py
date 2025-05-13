@@ -31,7 +31,9 @@ from dlio_benchmark.common.enumerations import FrameworkType, Profiler, FormatTy
     DataLoaderType
 
 import tensorflow as tf
+import tensorflow_io as tfio
 from tensorflow.python.framework import errors
+import boto3
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
@@ -52,6 +54,9 @@ class TFFramework(Framework):
             else:
                 self.tensorboard = ProfilerFactory.get_profiler(Profiler.TENSORBOARD)
         self.reader_handler = None
+        self.s3 = boto3.client("s3", \
+                               endpoint_url=os.getenv('S3_ENDPOINT'), \
+                               region_name=os.getenv('AWS_REGION'))
 
     @dlp.log
     def init_loader(self, format_type, epoch=0, data_loader=None):
@@ -102,7 +107,7 @@ class TFFramework(Framework):
 
     @dlp.log
     def create_node(self, id, exist_ok=False):
-        tf.io.gfile.mkdir(id)
+        tf.io.gfile.makedirs(id)
         return True
 
     @dlp.log
@@ -119,7 +124,24 @@ class TFFramework(Framework):
     def walk_node(self, id, use_pattern=False):
         try:
             if not use_pattern:
-                return tf.io.gfile.listdir(id)
+                # parse id to get bucket name and prefix
+                scheme_end = id.find('://') + 2
+                bucket_end = id.find('/', scheme_end + 1)
+                bucket = id[scheme_end + 1 : bucket_end]
+                prefix = id[bucket_end + 1 :]
+                if not prefix.endswith('/'):
+                    prefix = prefix + '/'
+
+                resp = []
+                paginator = self.s3.get_paginator('list_objects_v2')
+                pages = paginator.paginate(Bucket=bucket, Prefix=prefix, Delimiter='/')
+                for page in pages:
+                    if page['KeyCount'] == 0:
+                        continue
+                    for obj in page['Contents']:
+                        filename = obj['Key'].split('/')[-1]
+                        resp.append(filename)
+                return resp
             else:
                 return tf.io.gfile.glob(id)
         except errors.NotFoundError:
@@ -140,3 +162,7 @@ class TFFramework(Framework):
         with tf.io.gfile.GFile(id, "r") as fd:
             data = fd.read()
         return data
+
+    @dlp.log
+    def isfile(self, id):
+        return tf.io.gfile.exists(id) and not tf.io.gfile.isdir(id)

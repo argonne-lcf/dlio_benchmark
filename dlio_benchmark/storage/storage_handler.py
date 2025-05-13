@@ -123,3 +123,10 @@ class DataStorage(ABC):
             return self.framework.get_data(id, data, offset, length)
         return None
 
+    def isfile(self, id):
+        """
+            This method checks if the given path is a file
+        """
+        if self.is_framework_nativeio_available:
+            return self.framework.isfile(id)
+        return None

@@ -99,5 +99,9 @@ class FileStorage(DataStorage):
             data = fd.read()
         return data
     
+    @dlp.log
+    def isfile(self, id):
+        return os.path.isfile(id)
+
     def get_basename(self, id):
         return os.path.basename(id)
