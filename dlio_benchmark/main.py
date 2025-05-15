@@ -354,6 +354,12 @@ class DLIOBenchmark(object):
             else:
                 block_step += 1
             overall_step += 1
+            if overall_step > max_steps or ((self.total_training_steps > 0) and (overall_step > self.total_training_steps)):
+                if self.args.my_rank == 0:
+                    self.logger.info(f"{utcnow()} Maximum number of steps reached")
+                if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
+                    self.stats.end_block(epoch, block, block_step - 1)
+                break
             # start a new block here
             if block_step == 1 and block != 1:
                 self.stats.start_block(epoch, block)

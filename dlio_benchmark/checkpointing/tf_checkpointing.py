@@ -54,30 +54,14 @@ class TFCheckpointing(BaseCheckpointing):
         super().__init__("pb")
 
     @dlp.log
-    def get_tensor_core(self, length, datatype="int8", randomize=True):
-        tf_dtype = get_tf_datatype(datatype)
-        if randomize:
-            if tf_dtype in [tf.float16, tf.float32, tf.float64, tf.bfloat16]:
-                tensor = tf.random.uniform(shape=(length,), minval=0, maxval=1, dtype=tf_dtype)
-            elif tf_dtype == tf.int8:
-                random_tensor = tf.random.uniform(shape=(length,), minval=-128, maxval=128, dtype=tf.int32)
-                tensor = tf.cast(random_tensor, dtype=tf.int8)
-            elif tf_dtype == tf.uint8:
-                random_tensor = tf.random.uniform(shape=(length,), minval=0, maxval=256, dtype=tf.int32)
-                tensor = tf.cast(random_tensor, dtype=tf.uint8)
-            else:
-                raise Exception(f"Datatype {tf_dtype} cannot be randomized for random tensor generation.")
-        else:
-            tensor = tf.ones((length), dtype=tf_dtype)
-    
-        # Convert tensor to variable to make it trackable for checkpointing
-        return tf.Variable(tensor, trainable=False)
+    def get_tensor_core(self, length, datatype="int8"):
+        return tf.ones((length), dtype=get_tf_datatype(datatype))
 
     @dlp.log
     def set_madvise_mergeable(self, tensor):
         return False
 
-    @dft_ai.checkpoint.capture
+    @dlp.log
     def save_state(self, suffix, state, fsync = False):
         name = self.get_name(suffix)
         checkpoint = tf.train.Checkpoint(**state)

@@ -114,7 +114,6 @@ class ConfigArguments:
     checkpoint_rank_sync: bool = False
     num_checkpoints_write: int = -1
     num_checkpoints_read: int = -1
-    checkpoint_randomize_tensor: bool = True
     ksm_madv_mergeable_id: int = 12
     ksm_high_ram_trigger: float = 30.0
     ksm_low_ram_exit: float = 15
@@ -1092,6 +1091,17 @@ def LoadConfig(args, config):
             args.checkpoint_mode = CheckpointModeType(config['checkpoint']['mode'])
         if 'randomize_tensor' in config['checkpoint']:
             args.checkpoint_randomize_tensor = config['checkpoint']['randomize_tensor']
+        if 'ksm' in config['checkpoint']:
+            args.ksm_present = True
+            if 'madv_mergeable_id' in config['checkpoint']['ksm']:
+                args.ksm_madv_mergeable_id = config['checkpoint']['ksm']['madv_mergeable_id']
+            if 'high_ram_trigger' in config['checkpoint']['ksm']:
+                args.ksm_high_ram_trigger = config['checkpoint']['ksm']['high_ram_trigger']
+            if 'low_ram_exit' in config['checkpoint']['ksm']:
+                args.ksm_low_ram_exit = config['checkpoint']['ksm']['low_ram_exit']
+            if 'await_time' in config['checkpoint']['ksm']:
+                args.ksm_await_time = config['checkpoint']['ksm']['await_time']
+
         if 'ksm' in config['checkpoint']:
             args.ksm_present = True
             if 'madv_mergeable_id' in config['checkpoint']['ksm']:

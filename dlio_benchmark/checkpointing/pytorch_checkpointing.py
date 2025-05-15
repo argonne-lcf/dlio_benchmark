@@ -17,6 +17,7 @@
 import os
 import torch
 import ctypes
+import time
 from dlio_benchmark.checkpointing.base_checkpointing import BaseCheckpointing
 from dlio_benchmark.utils.utility import Profile, dft_ai
 
@@ -57,20 +58,10 @@ class PyTorchCheckpointing(BaseCheckpointing):
         super().__init__("pt")
 
     @dlp.log
-    def get_tensor_core(self, length, datatype="int8", randomize=True):
-        torch_dtype=get_torch_datatype(datatype)
-        if randomize:
-            if torch_dtype in [torch.float32, torch.float16, torch.float64, torch.bfloat16]:
-                return torch.rand(length, dtype=torch_dtype)
-            elif torch_dtype == torch.int8:
-                return torch.randint(low=-128,high=128, size=(length,), dtype=torch_dtype)
-            elif torch_dtype == torch.uint8:
-                return torch.randint(low=0, high=256, size=(length,), dtype=torch_dtype)
-            else:
-                raise Exception(f"Datatype {torch_dtype} cannot be randomized for random tensor generation.")
-        else:
-            return torch.ones(length, dtype=torch_dtype)
+    def get_tensor_core(self, length, datatype="int8"):
+        return torch.ones(length, dtype=get_torch_datatype(datatype))
 
+    @dlp.log
     def set_madvise_mergeable(self, tensor):
         """
         Apply MADV_MERGEABLE to a PyTorch tensor's memory region with alignment handling.
@@ -123,7 +114,7 @@ class PyTorchCheckpointing(BaseCheckpointing):
         except Exception:
             return False
 
-    @dft_ai.checkpoint.capture
+    @dlp.log
     def save_state(self, suffix, state, fsync = False):
         name = self.get_name(suffix)
         with open(name, "wb") as f:
