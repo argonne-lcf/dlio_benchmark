@@ -64,9 +64,11 @@ class TFCheckpointing(BaseCheckpointing):
             if tf_dtype in [tf.float16, tf.float32, tf.float64, tf.bfloat16]:
                 return tf.random.uniform(shape=(length,), minval=0, maxval=1, dtype=tf_dtype)
             elif tf_dtype == tf.int8:
-                return tf.random.uniform(shape=(length,), minval=-128, maxval=128, dtype=tf_dtype)
+                random_tensor = tf.random.uniform(shape=(length,), minval=-128, maxval=128, dtype=tf.int32)
+                return tf.cast(random_tensor, dtype=tf.int8)
             elif tf_dtype == tf.uint8:
-                return tf.random.uniform(shape=(length,), minval=0, maxval=256, dtype=tf_dtype)
+                random_tensor = tf.random.uniform(shape=(length,), minval=0, maxval=256, dtype=tf.int32)
+                return tf.cast(random_tensor, dtype=tf.uint8)
             else:
                  raise Exception(f"Datatype {tf_dtype} cannot be randomized for random tensor generation.")
         return tf.ones((length), dtype=tf_dtype)
