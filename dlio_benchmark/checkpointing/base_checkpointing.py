@@ -71,6 +71,7 @@ class BaseCheckpointing(ABC):
         self.rank_to_checkpoint = self.args.my_rank
         self.num_parameters = self.get_num_parameters()
         self.checkpoint_size = 0.0
+        self.randomize_tensor = self.args.checkpoint_randomize_tensor
 
         # KSM optim
         self.madvise_initialized = False
@@ -192,7 +193,7 @@ class BaseCheckpointing(ABC):
         return False # Default behavior if not overridden
 
     @abstractmethod
-    def get_tensor_core(self, length, datatype="int8"):
+    def get_tensor_core(self, length, datatype="int8", randomize=True):
         return []
 
     def init_madvise(self):
@@ -242,9 +243,11 @@ class BaseCheckpointing(ABC):
         2. If KSM and madvise are active:
            - Sets the mergeable attribute on virtual memory pages
            - Waits for RAM to reach a threshold to allow KSM to coalesce identical pages
+
+        The KSM option is useful *only* if self.randomize_tensor is false
         """
 
-        tensor = self.get_tensor_core(length, datatype)
+        tensor = self.get_tensor_core(length, datatype, self.randomize_tensor)
 
         # Set the mergeable attribute on all virtual pages and wait.
         # This allows time for KSM to coalesce the pages if KSM is running

@@ -441,6 +441,9 @@ checkpoint
      - default
      - | The mode of the checkpointing.
        | Available options are: default, subset.
+   * - randomize_tensor
+     - True
+     - | randomize the tensors data
    * - ksm
      - (omitted)
      - | Optional subsection to configure and enable Kernel Samepage Merging (KSM) optimization.

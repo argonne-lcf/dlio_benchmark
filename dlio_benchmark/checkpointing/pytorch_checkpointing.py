@@ -61,8 +61,19 @@ class PyTorchCheckpointing(BaseCheckpointing):
         super().__init__("pt")
 
     @dlp.log
-    def get_tensor_core(self, length, datatype="int8"):
-        return torch.ones(length, dtype=get_torch_datatype(datatype))
+    def get_tensor_core(self, length, datatype="int8", randomize=True):
+        torch_dtype=get_torch_datatype(datatype)
+        if randomize:
+            if torch_dtype in [torch.float32, torch.float16, torch.float64, torch.bfloat16]:
+                return torch.rand(length, dtype=torch_dtype)
+            elif torch_dtype == torch.int8:
+                return torch.randint(low=-128,high=128, size=(length,), dtype=torch_dtype)
+            elif torch_dtype == torch.uint8:
+                return torch.randint(low=0, high=256, size=(length,), dtype=torch_dtype)
+            else:
+                raise Exception(f"Datatype {torch_dtype} cannot be randomized for random tensor generation.")
+        else:
+            return torch.ones(length, dtype=torch_dtype)
 
     @dlp.log
     def set_madvise_mergeable(self, tensor):
