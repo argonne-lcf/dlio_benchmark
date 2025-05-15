@@ -226,12 +226,18 @@ def test_iostat_profiling() -> None:
     finalize()
 
 @pytest.mark.timeout(60, method="thread")
-@pytest.mark.parametrize("framework, model_size, optimizers, num_layers, layer_params, zero_stage", [("tensorflow", 1024, [1024, 128], 2, [16], 0),
-                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 0),
-                                                                                         ("tensorflow", 1024, [1024, 128], 2, [16], 3),
-                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 3),
-                                                                                         ("tensorflow", 1024, [128], 1, [16], 0),
-                                                                                         ("pytorch", 1024, [128], 1, [16], 0)])
+@pytest.mark.parametrize("framework, model_size, optimizers, num_layers, layer_params, zero_stage", [("tensorflow", 1024, [1024, 128], 2, [16], 0, True),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 0, True),
+                                                                                         ("tensorflow", 1024, [1024, 128], 2, [16], 3, True),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 3, True),
+                                                                                         ("tensorflow", 1024, [128], 1, [16], 0, True),
+                                                                                         ("pytorch", 1024, [128], 1, [16], 0, True),
+                                                                                         ("tensorflow", 1024, [1024, 128], 2, [16], 0, False),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 0, False),
+                                                                                         ("tensorflow", 1024, [1024, 128], 2, [16], 3, False),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 3, False),
+                                                                                         ("tensorflow", 1024, [128], 1, [16], 0, False),
+                                                                                         ("pytorch", 1024, [128], 1, [16], 0, False)])
 def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_params, zero_stage, randomize) -> None:
     init()
     clean()
