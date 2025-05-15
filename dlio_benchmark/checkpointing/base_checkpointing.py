@@ -17,7 +17,11 @@
 import logging
 import math
 import os
+import platform
 import time
+import ctypes
+import psutil
+import mmap
 from abc import ABC, abstractmethod
 
 from dlio_benchmark.common.enumerations import CheckpointLocationType, CheckpointModeType
@@ -67,6 +71,20 @@ class BaseCheckpointing(ABC):
         self.rank_to_checkpoint = self.args.my_rank
         self.num_parameters = self.get_num_parameters()
         self.checkpoint_size = 0.0
+
+        # KSM optim
+        self.madvise_initialized = False
+        self.madvise_ready = False
+        self.madvise_func = None
+        self.madvise_page_size = 0
+        self.madvise_mergeable = self.args.ksm_madv_mergeable_id
+        self.ksm_init = self.args.ksm_init
+        self.ksm_low_ram_exit = self.args.ksm_low_ram_exit
+        self.ksm_high_ram_trigger = self.args.ksm_high_ram_trigger
+        self.ksm_await_time = self.args.ksm_await_time
+        if self.ksm_init:
+            self.init_madvise()
+
         model_checkpoint_size = 0.0
         optimizer_checkpoint_size = 0.0
         if self.args.my_rank == 0 and self.args.num_layers > 0:
@@ -99,13 +117,20 @@ class BaseCheckpointing(ABC):
                 for layer_index in range(start_layer, end_layer + 1):
                     self.layer_state[str(layer_index)] = layer_state  
             elif self.args.num_layers > 0:
-                self.layer_state = dict()
-                model_checkpoint_size = 0.0
-                for layer_index in range(start_layer, end_layer + 1):
-                    self.layer_state[str(layer_index)], size = self.get_layer_state(layer_index)
-                    model_checkpoint_size += size
-                if self.args.my_rank == 0:
-                    self.logger.info(f"{utcnow()} Layer states defined! {model_checkpoint_size/1024./1024./1024} GB per rank")
+                should_allocate_model_params = True
+
+                # Conditional check specifically for ZeRO Stage 1, non-DP-rank-0
+                if self.args.zero_stage == 1 and self.data_parallelism_rank != 0:
+                    should_allocate_model_params = False # Don't allocate if not DP rank 0 for ZeRO=1
+
+                if should_allocate_model_params:
+                    self.layer_state = dict()
+                    model_checkpoint_size = 0.0
+                    for layer_index in range(start_layer, end_layer + 1):
+                        self.layer_state[str(layer_index)], size = self.get_layer_state(layer_index)
+                        model_checkpoint_size += size
+                    if self.args.my_rank == 0:
+                        self.logger.info(f"{utcnow()} Layer states defined! {model_checkpoint_size/1024./1024./1024} GB per rank")
 
             # optimization state
             self.optimization_state = None
@@ -137,13 +162,10 @@ class BaseCheckpointing(ABC):
 
         model_checkpoint_size = self.comm.allreduce(model_checkpoint_size)/1024./1024./1024.
         optimizer_checkpoint_size = self.comm.allreduce(optimizer_checkpoint_size)/1024./1024./1024.
-        if self.args.zero_stage < 3:
-            num_data_parallel_instances = self.comm.size//self.model_parallelism
-            if num_data_parallel_instances > 0:
-                model_checkpoint_size /= num_data_parallel_instances
+
         if self.args.model_type != "transformer" and self.args.model_size > 0:
             model_checkpoint_size = self.args.model_size/1024./1024./1024.
-        
+
         self.checkpoint_size = model_checkpoint_size + optimizer_checkpoint_size
         if self.args.checkpoint_mode == CheckpointModeType.SUBSET:
             warning_message = f" (subset)"
@@ -161,8 +183,89 @@ class BaseCheckpointing(ABC):
                 self.logger.output(f"{utcnow()} Total checkpoint size: {self.checkpoint_size:.6f} GB {warning_message}")
 
     @abstractmethod
-    def get_tensor(self, length, datatype="int8"):
+    def set_madvise_mergeable(self, tensor):
+        """
+        Placeholder for framework-specific madvise implementation.
+        Returns False by default, indicating madvise was not applied or failed.
+        Subclasses (like PyTorchCheckpointing) should override this.
+        """
+        return False # Default behavior if not overridden
+
+    @abstractmethod
+    def get_tensor_core(self, length, datatype="int8"):
         return []
+
+    def init_madvise(self):
+        """
+        Initialize madvise functionality for KSM memory optimization.
+
+        This function:
+        1. Verifies the operating system is Linux
+        2. Loads the libc library with madvise capabilities
+        3. Sets up function signatures for madvise system calls
+        4. Validates page size requirements
+        5. Marks madvise as ready if all initialization steps succeed
+        """
+        self.madvise_initialized = True
+        if platform.system() != "Linux":
+            self.madvise_ready = False
+            return False
+        try:
+            libc = ctypes.CDLL('libc.so.6', use_errno=True)
+        except OSError:
+            self.madvise_ready = False
+            return False
+
+        if not hasattr(libc, 'madvise'):
+            self.madvise_ready = False
+            return False
+
+        madvise_temp = libc.madvise
+        madvise_temp.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int]
+        madvise_temp.restype = ctypes.c_int
+        page_size_temp = mmap.PAGESIZE
+
+        if page_size_temp <= 0:
+             self.madvise_ready = False
+             return False
+
+        self.madvise_func = madvise_temp
+        self.madvise_page_size = page_size_temp
+        self.madvise_ready = True
+        return True
+
+    def get_tensor(self, length, datatype="int8"):
+        """
+        Create a tensor using the underlying framework and prepare for KSM page coalescing if enabled.
+
+        1. Creates a tensor of the specified length and data type using the framework's native method
+        2. If KSM and madvise are active:
+           - Sets the mergeable attribute on virtual memory pages
+           - Waits for RAM to reach a threshold to allow KSM to coalesce identical pages
+        """
+
+        tensor = self.get_tensor_core(length, datatype)
+
+        # Set the mergeable attribute on all virtual pages and wait.
+        # This allows time for KSM to coalesce the pages if KSM is running
+        if self.ksm_init:
+            if self.set_madvise_mergeable(tensor):
+                self.await_ram_threshold()
+
+        return tensor
+
+    def await_ram_threshold(self):
+        check_interval_seconds = 10
+        current_ram_usage = psutil.virtual_memory().percent
+        if current_ram_usage >= self.ksm_high_ram_trigger:
+            start_time = time.time()
+            while True:
+                if (time.time() - start_time) >= self.ksm_await_time:
+                    break
+                current_ram_usage = psutil.virtual_memory().percent
+                if current_ram_usage < self.ksm_low_ram_exit:
+                    break
+                time.sleep(check_interval_seconds)
 
     @abstractmethod
     def save_state(self, suffix, state, fsync=False):

@@ -322,6 +322,110 @@ def test_checkpoint_step() -> None:
     finalize()
 
 @pytest.mark.timeout(60, method="thread")
+def test_checkpoint_ksm_config() -> None:
+    """
+    Tests the loading and derivation of KSM configuration parameters
+    based on the presence and content of the checkpoint.ksm subsection.
+    """
+    init()
+    clean()
+    if comm.rank == 0:
+        logging.info("")
+        logging.info("=" * 80)
+        logging.info(f" DLIO test for KSM checkpoint configuration loading")
+        logging.info("=" * 80)
+
+    # --- Test Case 1: KSM enabled with defaults ---
+    # KSM is enabled just by adding the 'ksm: {}' section in overrides
+    logging.info("Testing KSM enabled with defaults...")
+    with initialize_config_dir(version_base=None, config_dir=config_dir):
+        cfg = compose(config_name='config',
+                      overrides=[
+                          '++workload.workflow.checkpoint=True',
+                          '++workload.checkpoint.ksm={}', 
+                          '++workload.workflow.generate_data=False',
+                          '++workload.workflow.train=False',
+                          '++workload.checkpoint.num_checkpoints_write=0',
+                          '++workload.checkpoint.num_checkpoints_read=0'
+                      ])
+        ConfigArguments.reset()
+        # Pass only the workload part of the config
+        benchmark = DLIOBenchmark(cfg['workload'])
+        # initialize() loads and derives the config
+        benchmark.initialize()
+
+        # Get the loaded arguments instance
+        args = ConfigArguments.get_instance()
+
+        # --- Assertions for Case 1 ---
+        # Check derived ksm_init flag
+        assert args.ksm_init is True, "[Test Case 1 Failed] ksm_init should be True when ksm section is present"
+        # Check default KSM parameter values loaded into flat args attributes
+        assert args.ksm_madv_mergeable_id == 12, f"[Test Case 1 Failed] Expected default madv_mergeable_id 12, got {args.ksm_madv_mergeable_id}"
+        assert args.ksm_high_ram_trigger == 30.0, f"[Test Case 1 Failed] Expected default high_ram_trigger 30.0, got {args.ksm_high_ram_trigger}"
+        assert args.ksm_low_ram_exit == 15.0, f"[Test Case 1 Failed] Expected default low_ram_exit 15.0, got {args.ksm_low_ram_exit}"
+        assert args.ksm_await_time == 200, f"[Test Case 1 Failed] Expected default await_time 200, got {args.ksm_await_time}"
+        logging.info("[Test Case 1 Passed]")
+
+    # --- Test Case 2: KSM enabled with overrides ---
+    logging.info("Testing KSM enabled with overrides...")
+    with initialize_config_dir(version_base=None, config_dir=config_dir):
+        cfg = compose(config_name='config',
+                      overrides=[
+                          '++workload.workflow.checkpoint=True',
+                          '++workload.checkpoint.ksm.high_ram_trigger=25.5',
+                          '++workload.checkpoint.ksm.await_time=100',
+                          '++workload.workflow.generate_data=False',
+                          '++workload.workflow.train=False',
+                          '++workload.checkpoint.num_checkpoints_write=0',
+                          '++workload.checkpoint.num_checkpoints_read=0'
+                      ])
+        ConfigArguments.reset()
+        benchmark = DLIOBenchmark(cfg['workload'])
+        benchmark.initialize()
+
+        args = ConfigArguments.get_instance()
+
+        # --- Assertions for Case 2 ---
+        # Check derived ksm_init flag
+        assert args.ksm_init is True, "[Test Case 2 Failed] ksm_init should be True"
+        # Check overridden values
+        assert args.ksm_high_ram_trigger == 25.5, f"[Test Case 2 Failed] Expected overridden high_ram_trigger 25.5, got {args.ksm_high_ram_trigger}"
+        assert args.ksm_await_time == 100, f"[Test Case 2 Failed] Expected overridden await_time 100, got {args.ksm_await_time}"
+        # Check defaults for non-overridden values
+        assert args.ksm_madv_mergeable_id == 12, f"[Test Case 2 Failed] Expected default madv_mergeable_id 12, got {args.ksm_madv_mergeable_id}"
+        assert args.ksm_low_ram_exit == 15.0, f"[Test Case 2 Failed] Expected default low_ram_exit 15.0, got {args.ksm_low_ram_exit}"
+        logging.info("[Test Case 2 Passed]")
+
+    # --- Test Case 3: KSM disabled (section omitted) ---
+    logging.info("Testing KSM disabled (section omitted)...")
+    with initialize_config_dir(version_base=None, config_dir=config_dir):
+         cfg = compose(config_name='config',
+                      overrides=[
+                          '++workload.workflow.checkpoint=True',
+                          '++workload.workflow.generate_data=False',
+                          '++workload.workflow.train=False',
+                          '++workload.checkpoint.num_checkpoints_write=0',
+                          '++workload.checkpoint.num_checkpoints_read=0'
+                      ])
+         ConfigArguments.reset()
+         benchmark = DLIOBenchmark(cfg['workload'])
+         benchmark.initialize()
+
+         args = ConfigArguments.get_instance()
+
+         # --- Assertions for Case 3 ---
+         assert args.ksm_init is False, "[Test Case 3 Failed] ksm_init should be False when ksm section is omitted"
+         assert args.ksm_madv_mergeable_id == 12, f"[Test Case 3 Failed] Expected default madv_mergeable_id 12, got {args.ksm_madv_mergeable_id}"
+         assert args.ksm_high_ram_trigger == 30.0, f"[Test Case 3 Failed] Expected default high_ram_trigger 30.0, got {args.ksm_high_ram_trigger}"
+         assert args.ksm_low_ram_exit == 15.0, f"[Test Case 3 Failed] Expected default low_ram_exit 15.0, got {args.ksm_low_ram_exit}"
+         assert args.ksm_await_time == 200, f"[Test Case 3 Failed] Expected default await_time 200, got {args.ksm_await_time}"
+         logging.info("[Test Case 3 Passed]")
+
+    clean()
+    finalize()
+    
+@pytest.mark.timeout(60, method="thread")
 def test_eval() -> None:
     init()
     clean()
