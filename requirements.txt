@@ -17,4 +17,3 @@ tensorflow_io>=0.33.0
 torch>=2.2.0
 torchaudio
 torchvision
-boto3
