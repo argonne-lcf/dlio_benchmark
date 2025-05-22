@@ -105,3 +105,6 @@ class Framework(ABC):
     def get_data(self, id, data, offset=None, length=None):
         return None
 
+    def isfile(self, id):
+        return False
+
