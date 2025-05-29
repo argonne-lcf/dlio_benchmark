@@ -99,11 +99,6 @@ jobs:
           source ${VENV_PATH}/bin/activate
           mpirun -np 2 pytest -k test_checkpoint_ksm_config -v
           rm -rf data
-      - name: test_checkpoint_ksm_config
-        run: |
-          source ${VENV_PATH}/bin/activate
-          mpirun -np 2 pytest -k test_checkpoint_ksm_config -v
-          rm -rf data
       - name: test_checkpoint_step
         run: |
           source ${VENV_PATH}/bin/activate
