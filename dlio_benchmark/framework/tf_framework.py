@@ -31,6 +31,7 @@ from dlio_benchmark.common.enumerations import FrameworkType, Profiler, FormatTy
     DataLoaderType
 
 import tensorflow as tf
+import tensorflow_io as tfio
 from tensorflow.python.framework import errors
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -102,7 +103,7 @@ class TFFramework(Framework):
 
     @dlp.log
     def create_node(self, id, exist_ok=False):
-        tf.io.gfile.mkdir(id)
+        tf.io.gfile.makedirs(id)
         return True
 
     @dlp.log
@@ -140,3 +141,7 @@ class TFFramework(Framework):
         with tf.io.gfile.GFile(id, "r") as fd:
             data = fd.read()
         return data
+
+    @dlp.log
+    def isfile(self, id):
+        return tf.io.gfile.exists(id) and not tf.io.gfile.isdir(id)
