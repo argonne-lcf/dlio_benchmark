@@ -300,7 +300,9 @@ class ConfigArguments:
         if self.num_checkpoints_write > 0:
             if self.num_checkpoints_read > self.num_checkpoints_write:
                 raise Exception(f"Number of checkpoints to read {self.num_checkpoints_read} cannot be larger than number of checkpoints to write {self.num_checkpoints_write}")
-            
+        if self.ksm_present and self.checkpoint_randomize_tensor:
+            raise Exception(f"checkpoint.ksm is {self.ksm_present} which requires checkpoint.randomize_tensor to be False")
+
     @staticmethod
     def reset():
         ConfigArguments.__instance = None

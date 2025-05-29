@@ -352,8 +352,9 @@ def test_checkpoint_ksm_config() -> None:
                           '++workload.checkpoint.ksm={}', 
                           '++workload.workflow.generate_data=False',
                           '++workload.workflow.train=False',
-                          '++workload.checkpoint.num_checkpoints_write=0',
-                          '++workload.checkpoint.num_checkpoints_read=0'
+                          '++workload.checkpoint.num_checkpoints_write=1',
+                          '++workload.checkpoint.num_checkpoints_read=1', 
+                          '++workload.checkpoint.randomize_tensor=False', 
                       ])
         ConfigArguments.reset()
         # Pass only the workload part of the config
@@ -384,8 +385,9 @@ def test_checkpoint_ksm_config() -> None:
                           '++workload.checkpoint.ksm.await_time=100',
                           '++workload.workflow.generate_data=False',
                           '++workload.workflow.train=False',
-                          '++workload.checkpoint.num_checkpoints_write=0',
-                          '++workload.checkpoint.num_checkpoints_read=0'
+                          '++workload.checkpoint.num_checkpoints_write=1',
+                          '++workload.checkpoint.num_checkpoints_read=1', 
+                           '++workload.checkpoint.randomize_tensor=False'
                       ])
         ConfigArguments.reset()
         benchmark = DLIOBenchmark(cfg['workload'])
@@ -412,8 +414,9 @@ def test_checkpoint_ksm_config() -> None:
                           '++workload.workflow.checkpoint=True',
                           '++workload.workflow.generate_data=False',
                           '++workload.workflow.train=False',
-                          '++workload.checkpoint.num_checkpoints_write=0',
-                          '++workload.checkpoint.num_checkpoints_read=0'
+                          '++workload.checkpoint.num_checkpoints_write=1',
+                          '++workload.checkpoint.num_checkpoints_read=1',
+                          '++workload.checkpoint.randomize_tensor=False'
                       ])
          ConfigArguments.reset()
          benchmark = DLIOBenchmark(cfg['workload'])
