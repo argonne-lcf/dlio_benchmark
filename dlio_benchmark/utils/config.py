@@ -114,6 +114,7 @@ class ConfigArguments:
     checkpoint_rank_sync: bool = False
     num_checkpoints_write: int = -1
     num_checkpoints_read: int = -1
+    checkpoint_randomize_tensor: bool = True
     ksm_madv_mergeable_id: int = 12
     ksm_high_ram_trigger: float = 30.0
     ksm_low_ram_exit: float = 15
@@ -299,7 +300,9 @@ class ConfigArguments:
         if self.num_checkpoints_write > 0:
             if self.num_checkpoints_read > self.num_checkpoints_write:
                 raise Exception(f"Number of checkpoints to read {self.num_checkpoints_read} cannot be larger than number of checkpoints to write {self.num_checkpoints_write}")
-            
+        if self.ksm_present and self.checkpoint_randomize_tensor:
+            raise Exception(f"checkpoint.ksm is {self.ksm_present} which requires checkpoint.randomize_tensor to be False")
+
     @staticmethod
     def reset():
         ConfigArguments.__instance = None
@@ -886,7 +889,8 @@ def LoadConfig(args, config):
             args.checkpoint_rank_sync = config['checkpoint']['rank_sync']
         if 'mode' in config['checkpoint']:
             args.checkpoint_mode = CheckpointModeType(config['checkpoint']['mode'])
-
+        if 'randomize_tensor' in config['checkpoint']:
+            args.checkpoint_randomize_tensor = config['checkpoint']['randomize_tensor']
         if 'ksm' in config['checkpoint']:
             args.ksm_present = True
             if 'madv_mergeable_id' in config['checkpoint']['ksm']:

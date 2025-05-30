@@ -77,6 +77,6 @@ class TFRecordGenerator(DataGenerator):
             filename = os.path.basename(out_path_spec)
             self.storage.create_node(index_folder, exist_ok=True)
             tfrecord_idx = f"{index_folder}/{filename}.idx"
-            if not os.path.isfile(tfrecord_idx):
-                call([tfrecord2idx_script, out_path_spec, tfrecord_idx])
+            if not self.storage.isfile(tfrecord_idx):
+                call([tfrecord2idx_script, out_path_spec, self.storage.get_uri(tfrecord_idx)])
         np.random.seed()

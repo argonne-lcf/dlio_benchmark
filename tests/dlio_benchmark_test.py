@@ -226,13 +226,19 @@ def test_iostat_profiling() -> None:
     finalize()
 
 @pytest.mark.timeout(60, method="thread")
-@pytest.mark.parametrize("framework, model_size, optimizers, num_layers, layer_params, zero_stage", [("tensorflow", 1024, [1024, 128], 2, [16], 0),
-                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 0),
-                                                                                         ("tensorflow", 1024, [1024, 128], 2, [16], 3),
-                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 3),
-                                                                                         ("tensorflow", 1024, [128], 1, [16], 0),
-                                                                                         ("pytorch", 1024, [128], 1, [16], 0)])
-def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_params, zero_stage) -> None:
+@pytest.mark.parametrize("framework, model_size, optimizers, num_layers, layer_params, zero_stage, randomize", [("tensorflow", 1024, [1024, 128], 2, [16], 0, True),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 0, True),
+                                                                                         ("tensorflow", 1024, [1024, 128], 2, [16], 3, True),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 3, True),
+                                                                                         ("tensorflow", 1024, [128], 1, [16], 0, True),
+                                                                                         ("pytorch", 1024, [128], 1, [16], 0, True),
+                                                                                         ("tensorflow", 1024, [1024, 128], 2, [16], 0, False),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 0, False),
+                                                                                         ("tensorflow", 1024, [1024, 128], 2, [16], 3, False),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 3, False),
+                                                                                         ("tensorflow", 1024, [128], 1, [16], 0, False),
+                                                                                         ("pytorch", 1024, [128], 1, [16], 0, False)])
+def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_params, zero_stage, randomize) -> None:
     init()
     clean()
     if comm.rank == 0:
@@ -248,6 +254,7 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
                                  f'++workload.reader.data_loader={framework}',
                                  '++workload.workflow.train=True',
                                  '++workload.workflow.generate_data=True',
+                                 f'++workload.checkpoint.randomize_tensor={randomize}',
                                  '++workload.train.computation_time=0.01',
                                  '++workload.evaluation.eval_time=0.005',
                                  f'++workload.train.epochs={epochs}', '++workload.workflow.checkpoint=True',
@@ -345,8 +352,9 @@ def test_checkpoint_ksm_config() -> None:
                           '++workload.checkpoint.ksm={}', 
                           '++workload.workflow.generate_data=False',
                           '++workload.workflow.train=False',
-                          '++workload.checkpoint.num_checkpoints_write=0',
-                          '++workload.checkpoint.num_checkpoints_read=0'
+                          '++workload.checkpoint.num_checkpoints_write=1',
+                          '++workload.checkpoint.num_checkpoints_read=1', 
+                          '++workload.checkpoint.randomize_tensor=False', 
                       ])
         ConfigArguments.reset()
         # Pass only the workload part of the config
@@ -377,8 +385,9 @@ def test_checkpoint_ksm_config() -> None:
                           '++workload.checkpoint.ksm.await_time=100',
                           '++workload.workflow.generate_data=False',
                           '++workload.workflow.train=False',
-                          '++workload.checkpoint.num_checkpoints_write=0',
-                          '++workload.checkpoint.num_checkpoints_read=0'
+                          '++workload.checkpoint.num_checkpoints_write=1',
+                          '++workload.checkpoint.num_checkpoints_read=1', 
+                           '++workload.checkpoint.randomize_tensor=False'
                       ])
         ConfigArguments.reset()
         benchmark = DLIOBenchmark(cfg['workload'])
@@ -405,8 +414,9 @@ def test_checkpoint_ksm_config() -> None:
                           '++workload.workflow.checkpoint=True',
                           '++workload.workflow.generate_data=False',
                           '++workload.workflow.train=False',
-                          '++workload.checkpoint.num_checkpoints_write=0',
-                          '++workload.checkpoint.num_checkpoints_read=0'
+                          '++workload.checkpoint.num_checkpoints_write=1',
+                          '++workload.checkpoint.num_checkpoints_read=1',
+                          '++workload.checkpoint.randomize_tensor=False'
                       ])
          ConfigArguments.reset()
          benchmark = DLIOBenchmark(cfg['workload'])
