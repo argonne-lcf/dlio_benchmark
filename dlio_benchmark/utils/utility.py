@@ -157,14 +157,34 @@ class DLIOMPI:
                 MPI.Init()
             
             self.mpi_state = MPIState.MPI_INITIALIZED
-            self.mpi_rank = MPI.COMM_WORLD.rank
-            self.mpi_size = MPI.COMM_WORLD.size
-            self.mpi_world = MPI.COMM_WORLD
             split_comm = MPI.COMM_WORLD.Split_type(MPI.COMM_TYPE_SHARED)
-            # Get the number of nodes
-            self.mpi_ppn = split_comm.size
+            # Number of processes on this node and local rank
+            local_ppn = split_comm.size
             self.mpi_local_rank = split_comm.rank
-            self.mpi_nodes = self.mpi_size//split_comm.size
+            # Create a communicator of one leader per node
+            if split_comm.rank == 0:
+                leader_comm = MPI.COMM_WORLD.Split(color=0, key=MPI.COMM_WORLD.rank)
+                # Gather each node's process count
+                ppn_list = leader_comm.allgather(local_ppn)
+            else:
+                # Non-leaders do not participate
+                MPI.COMM_WORLD.Split(color=MPI.UNDEFINED, key=MPI.COMM_WORLD.rank)
+                ppn_list = None
+            # Broadcast the per-node list to all processes
+            self.mpi_ppn_list = MPI.COMM_WORLD.bcast(ppn_list, root=0)
+            # Total number of nodes
+            self.mpi_nodes = len(self.mpi_ppn_list)
+            # Total world size and rank
+            self.mpi_size = MPI.COMM_WORLD.size
+            self.mpi_rank = MPI.COMM_WORLD.rank
+            self.mpi_world = MPI.COMM_WORLD
+            # Compute node index and per-node offset
+            offsets = [0] + list(np.cumsum(self.mpi_ppn_list)[:-1])
+            # Determine which node this rank belongs to
+            for idx, off in enumerate(offsets):
+                if self.mpi_rank >= off and self.mpi_rank < off + self.mpi_ppn_list[idx]:
+                    self.mpi_node = idx
+                    break
         elif self.mpi_state == MPIState.CHILD_INITIALIZED:
             raise Exception(f"method {self.classname()}.initialize() called in a child process")
         else:
@@ -213,12 +233,21 @@ class DLIOMPI:
         if self.mpi_state == MPIState.UNINITIALIZED:
             raise Exception(f"method {self.classname()}.size() called before initializing MPI")
         else:
-            return self.mpi_ppn
+            return self.mpi_ppn_list[self.mpi_node]
     def nnodes(self):
         if self.mpi_state == MPIState.UNINITIALIZED:
             raise Exception(f"method {self.classname()}.size() called before initializing MPI")
         else:
-            return self.mpi_size//self.mpi_ppn
+            return self.mpi_nodes
+    
+    def node(self):
+        """
+        Return the node index for this rank.
+        """
+        if self.mpi_state == MPIState.UNINITIALIZED:
+            raise Exception(f"method {self.classname()}.node() called before initializing MPI")
+        else:
+            return self.mpi_node
     
     def reduce(self, num):
         from mpi4py import MPI
