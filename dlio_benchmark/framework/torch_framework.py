@@ -94,7 +94,10 @@ class TorchFramework(Framework):
 
     @dlp.log
     def compute(self, batch, epoch_number, step, computation_time):
-        return self.model(batch, computation_time)
+        return self.model(epoch_number, batch, computation_time)
+
+    def model(self, epoch, batch, computation_time):
+        sleep(computation_time)
 
     @dlp.log
     def get_loader(self, dataset_type=DatasetType.TRAIN):

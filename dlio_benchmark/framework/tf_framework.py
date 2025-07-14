@@ -87,8 +87,12 @@ class TFFramework(Framework):
 
     @dlp.log
     def compute(self, batch, epoch_number, step, computation_time):
-        return self.model(batch, computation_time)
+        return self.model(epoch_number, batch, computation_time)
         # tf.function(self.model)(epoch_number, step, computation_time)
+
+    
+    def model(self, epoch, batch, computation_time):
+        pass
 
     @dlp.log
     def get_loader(self, dataset_type=DatasetType.TRAIN):
@@ -145,3 +149,4 @@ class TFFramework(Framework):
     @dlp.log
     def isfile(self, id):
         return tf.io.gfile.exists(id) and not tf.io.gfile.isdir(id)
+
