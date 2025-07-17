@@ -25,7 +25,7 @@ from time import time
 from typing import Any, Dict, List, ClassVar
 
 from dlio_benchmark.common.constants import MODULE_CONFIG
-from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
+from dlio_benchmark.common.enumerations import Model, StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
     FrameworkType, \
     DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointLocationType, CheckpointMechanismType, CheckpointModeType
 from dlio_benchmark.utils.utility import DLIOMPI, get_trace_name, utcnow
@@ -43,7 +43,7 @@ class ConfigArguments:
 
     # command line argument
     # Framework to use
-    model: str = "default"
+    model: Model = Model.DEFAULT
     framework: FrameworkType = FrameworkType.TENSORFLOW
     # Dataset format, such as PNG, JPEG
     format: FormatType = FormatType.TFRECORD
@@ -294,6 +294,10 @@ class ConfigArguments:
                 raise Exception("To perform subset Checkpointing, please set a target data parallelism: workload.parallelism.data.")
             elif self.data_parallelism * self.tensor_parallelism * self.pipeline_parallelism < self.comm_size:
                 raise Exception(f"Comm size: {self.comm_size} is larger than 3D parallelism size: {self.data_parallelism * self.tensor_parallelism * self.pipeline_parallelism}")
+            
+        if self.model == Model.DEFAULT and self.computation_time.get("mean", 0) <= 0:
+            raise Exception("workload.model.name is not set and workload.train.computation_time.mean is not set. Please set one of them.")
+
         if self.checkpoint_mode == CheckpointModeType.DEFAULT:
             if self.comm_size % (self.pipeline_parallelism * self.tensor_parallelism) != 0:
                 raise Exception(f"Number of processes {self.comm_size} is not a multiple of model parallelism size: {self.pipeline_parallelism * self.tensor_parallelism}")
@@ -904,7 +908,7 @@ def LoadConfig(args, config):
 
     if 'model' in config:
         if 'name' in config['model']:
-            args.model = config['model']['name']
+            args.model =  Model(config['model']['name'])
         if 'type' in config['model']:
             args.model_type = config['model']['type']
         if 'model_size_bytes' in config['model']:

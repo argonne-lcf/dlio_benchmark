@@ -1,11 +1,13 @@
  
 
 
-from dlio_benchmark.common.enumerations import FrameworkType
-from dlio_benchmark.model_factory.layer import LayerFactoryBase
-from dlio_benchmark.model_factory.model import UnifiedModel
+from functools import partial
+from dlio_benchmark.common.enumerations import FrameworkType, Loss
+from dlio_benchmark.model.layer import LayerFactoryBase
+from dlio_benchmark.model.model import UnifiedModel
 from typing import Any, Optional, Type, Union
 
+#TODO: Verify correctness of resnet50
 
 class ResNet50Block:
     """ResNet50 basic block"""
@@ -53,10 +55,21 @@ class ResNet50Block:
 class ResNet50(UnifiedModel):
     """ResNet50 implementation"""
 
-    def __init__(self, framework: FrameworkType, num_classes: int = 1000):
-        super().__init__(framework)
+    def __init__(self, framework: FrameworkType,num_classes: int = 1000):
+        super().__init__(framework, Loss.CE)
         self.num_classes = num_classes
         self.build_model()
+        # bound_forward = partial(self.forward, self)
+        self._model = self.layer_factory.get_model(self.forward)
+        if framework == FrameworkType.PYTORCH:
+            # TODO Make configurable
+            import torch
+            self.layer_factory.set_optimizer(torch.optim.SGD, 1,
+                                momentum=1,
+                                weight_decay=1)
+        else: 
+            import tensorflow as tf
+            self.layer_factory.set_optimizer(tf.optimizers.SGD, 0.1)
 
     def build_model(self):
         """Build ResNet50 architecture"""
@@ -120,3 +133,4 @@ class ResNet50(UnifiedModel):
         x = self.fc(x)
         
         return x
+    

@@ -1,22 +1,28 @@
 """
-   Copyright (c) 2025, UChicago Argonne, LLC
-   All Rights Reserved
-   
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+Copyright (c) 2025, UChicago Argonne, LLC
+All Rights Reserved
 
-       http://www.apache.org/licenses/LICENSE-2.0
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 """
 
 from dlio_benchmark.common.error_code import ErrorCodes
-from dlio_benchmark.common.enumerations import FormatType, FrameworkType, DatasetType, DataLoaderType
+from dlio_benchmark.common.enumerations import (
+    FormatType,
+    FrameworkType,
+    DatasetType,
+    DataLoaderType,
+    Model,
+)
 from dlio_benchmark.data_loader.data_loader_factory import DataLoaderFactory
 from dlio_benchmark.framework.framework import Framework, DummyTraceObject
 from dlio_benchmark.common.constants import MODULE_AI_FRAMEWORK
@@ -24,6 +30,7 @@ import os
 import torch
 import functools
 import logging
+from dlio_benchmark.model.model_factory import ModelFactory
 from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 from dlio_benchmark.utils.utility import Profile
 
@@ -58,10 +65,11 @@ class TorchFramework(Framework):
     __instance = None
 
     @dlp.log_init
-    def __init__(self, profiling):
+    def __init__(self, profiling, model: Model = Model.SLEEP):
         super().__init__()
         self.profiling = profiling
         self.reader_handler = None
+        self._model = ModelFactory.create_model(FrameworkType.TENSORFLOW, model)
 
     @dlp.log
     def init_loader(self, format_type, epoch=0, data_loader=None):
@@ -74,10 +82,10 @@ class TorchFramework(Framework):
         return FrameworkType.PYTORCH
 
     @staticmethod
-    def get_instance(profiling):
-        """ Static access method. """
+    def get_instance(profiling, model: Model = Model.SLEEP):
+        """Static access method."""
         if TorchFramework.__instance is None:
-            TorchFramework.__instance = TorchFramework(profiling)
+            TorchFramework.__instance = TorchFramework(profiling, model)
         return TorchFramework.__instance
 
     @dlp.log
@@ -97,7 +105,10 @@ class TorchFramework(Framework):
         return self.model(epoch_number, batch, computation_time)
 
     def model(self, epoch, batch, computation_time):
-        sleep(computation_time)
+        if self._model is None:
+            sleep(computation_time)
+        else:
+            self._model.compute(batch[0], batch[1])
 
     @dlp.log
     def get_loader(self, dataset_type=DatasetType.TRAIN):

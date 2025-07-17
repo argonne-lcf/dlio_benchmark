@@ -46,6 +46,7 @@ class BaseCheckpointing(ABC):
 
     def __init__(self, ext):
         #TODO(Huihuo): Add support for checkpointing rng states for transformer type of architecture
+        #TODO: Consider actual model instances - Model.SLEEP is default
         self.ext = ext
         self.args = ConfigArguments.get_instance()
         self.checkpoint_storage = StorageFactory().get_storage(self.args.storage_type, self.args.checkpoint_folder,

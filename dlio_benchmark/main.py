@@ -40,7 +40,7 @@ from omegaconf import DictConfig, OmegaConf
 from dlio_benchmark.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
 from dlio_benchmark.utils.config import LoadConfig, ConfigArguments, GetConfig
-from dlio_benchmark.common.enumerations import Profiler, DatasetType, StorageType, MetadataType, FormatType
+from dlio_benchmark.common.enumerations import Model, Profiler, DatasetType, StorageType, MetadataType, FormatType
 from dlio_benchmark.profiler.profiler_factory import ProfilerFactory
 from dlio_benchmark.framework.framework_factory import FrameworkFactory
 from dlio_benchmark.data_generator.generator_factory import GeneratorFactory
@@ -73,7 +73,7 @@ class DLIOBenchmark(object):
         global dftracer, dftracer_initialize, dftracer_finalize
 
         t0 = time()
-        self.args = ConfigArguments.get_instance()
+        self.args : ConfigArguments = ConfigArguments.get_instance() # type: ignore
         LoadConfig(self.args, cfg)
         self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root,
                                                     self.args.framework)
@@ -87,8 +87,10 @@ class DLIOBenchmark(object):
         self.storage_root = self.args.storage_root
         if self.args.storage_root:
             self.storage.create_namespace(exist_ok=True)
+
+        model_enum = Model(self.args.model)
         self.framework = FrameworkFactory().get_framework(self.args.framework,
-                                                          self.args.do_profiling)
+                                                          self.args.do_profiling, model_enum)
 
         # Delete previous logfile
         if self.my_rank == 0:
@@ -245,7 +247,9 @@ class DLIOBenchmark(object):
             self.stats.eval_batch_loaded(epoch, step)
             eval_time = self.eval_time
             self.stats.start_compute()
+            print("starting compute")
             self.framework.compute(batch, epoch, step, eval_time)
+            print("Computed done")
             self.stats.eval_batch_processed(epoch, step)
             step += 1
             if step > total:
