@@ -295,7 +295,7 @@ class ConfigArguments:
             elif self.data_parallelism * self.tensor_parallelism * self.pipeline_parallelism < self.comm_size:
                 raise Exception(f"Comm size: {self.comm_size} is larger than 3D parallelism size: {self.data_parallelism * self.tensor_parallelism * self.pipeline_parallelism}")
             
-        if self.model == Model.DEFAULT and self.computation_time.get("mean", 0) <= 0:
+        if self.model in (Model.DEFAULT, Model.SLEEP ) and self.computation_time.get("mean", 0) <= 0:
             raise Exception("workload.model.name is not set and workload.train.computation_time.mean is not set. Please set one of them.")
 
         if self.checkpoint_mode == CheckpointModeType.DEFAULT:
@@ -908,7 +908,12 @@ def LoadConfig(args, config):
 
     if 'model' in config:
         if 'name' in config['model']:
-            args.model =  Model(config['model']['name'])
+            try:
+                args.model =  Model(config['model']['name'])
+            except ValueError as e:
+                # This is to maintain compatibility with older configurations
+                #TODO: Do we need to set computation time here as well?
+                args.model = Model.SLEEP
         if 'type' in config['model']:
             args.model_type = config['model']['type']
         if 'model_size_bytes' in config['model']:
