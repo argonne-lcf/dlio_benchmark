@@ -681,6 +681,4 @@ def test_resnet_model_with_compute_enabled(framework) -> None:
 
 
 if __name__ == '__main__':
-    test_resnet_model_with_compute_enabled(FrameworkType.TENSORFLOW)
-    test_resnet_model_with_compute_enabled(FrameworkType.PYTORCH)
-    # unittest.main()
+    unittest.main()
