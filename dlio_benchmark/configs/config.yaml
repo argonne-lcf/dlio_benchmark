@@ -1,7 +1,7 @@
 # A set of configuration
 defaults:
  - _self_
- - workload: unet3d_a100
+ - workload: default
  - override hydra/help: dlio_benchmark_help.yaml
  - override hydra/job_logging: disabled
  - override hydra/hydra_logging: disabled
