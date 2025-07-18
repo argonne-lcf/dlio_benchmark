@@ -125,6 +125,12 @@ jobs:
           mpirun -np 2 pytest -k test_storage_root_gen_data[indexed_binary-tensorflow] -v
           mpirun -np 2 pytest -k test_storage_root_gen_data[mmap_indexed_binary-tensorflow] -v
           rm -rf data
+      - name: test_dataset_dimension_gen_data
+        run: |
+          source ${VENV_PATH}/bin/activate
+          mpirun -np 2 pytest -k test_dim_based_gen_data[float32] -v
+          mpirun -np 2 pytest -k test_dim_based_gen_data[int32] -v
+          rm -rf outputs
       - name: test_train
         run: |
           source ${VENV_PATH}/bin/activate
