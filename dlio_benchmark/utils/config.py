@@ -296,7 +296,7 @@ class ConfigArguments:
                 raise Exception(f"Comm size: {self.comm_size} is larger than 3D parallelism size: {self.data_parallelism * self.tensor_parallelism * self.pipeline_parallelism}")
             
         if self.model in (Model.DEFAULT, Model.SLEEP ) and self.computation_time.get("mean", 0) <= 0:
-            raise Exception("workload.model.name is not set and workload.train.computation_time.mean is not set. Please set one of them.")
+            raise Exception(f"workload.model.name is not set and workload.train.computation_time.mean is not set. Please set one of them.{self.computation_time}")
 
         if self.checkpoint_mode == CheckpointModeType.DEFAULT:
             if self.comm_size % (self.pipeline_parallelism * self.tensor_parallelism) != 0:
