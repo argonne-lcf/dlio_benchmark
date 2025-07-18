@@ -52,6 +52,20 @@ class DataGenerator(ABC):
         self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root,
                                                                         self._args.framework)
     def get_dimension(self, num_samples=1):
+        if isinstance(self._dimension, list):
+            if self._dimension_stdev > 0:
+                # Generated shape (2*num_samples, len(self._dimension))
+                random_values = np.random.normal(
+                    loc=self._dimension,
+                    scale=self._dimension_stdev,
+                    size=(2 * num_samples, len(self._dimension))
+                )
+                dim = np.maximum(random_values.astype(int), 1).tolist()
+            else:
+                dim = [self._dimension for _ in range(2 * num_samples)]
+
+            return dim
+
         if (self._dimension_stdev>0):
             dim = [max(int(d), 1) for d in np.random.normal(self._dimension, self._dimension_stdev, 2*num_samples)]
         else:

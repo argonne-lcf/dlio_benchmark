@@ -22,7 +22,7 @@ import logging
 from time import time
 
 
-from typing import Any, Dict, List, ClassVar
+from typing import Any, Dict, List, ClassVar, Union
 
 from dlio_benchmark.common.constants import MODULE_CONFIG
 from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
@@ -152,10 +152,10 @@ class ConfigArguments:
     total_samples_train: int = 1
     file_list_eval: ClassVar[List[str]] = []
     file_list_train: ClassVar[List[str]] = []
-    max_dimension: int = 1
+    max_dimension: Union[int, List[int]] = 1
     storage = None
     dimension_stdev: float = 0.0
-    dimension: int = 1
+    dimension: Union[int, List[int]] = 1
     training_steps: int = 0
     eval_steps: int = 0
     samples_per_thread: int = 1
@@ -169,6 +169,23 @@ class ConfigArguments:
     native_data_loader = False
     train_sample_index_sum = 1
     eval_sample_index_sum = 1
+
+    #################################################
+    # New API
+    #################################################
+    # dataset
+    record_dims: ClassVar[List[int]] = []
+    record_element_bytes: int = 4
+    record_element_type: str = ""
+    files_per_record: int = None
+
+    ## dataset: hdf5-only
+    num_dataset_per_record: int = 1
+    chunk_dims: ClassVar[List[int]] = []
+    max_shape: ClassVar[List[int]] = []
+
+    ## reader
+    transformed_sample: ClassVar[List[int]] = []
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -309,18 +326,25 @@ class ConfigArguments:
 
     @dlp.log
     def derive_configurations(self, file_list_train=None, file_list_eval=None):
-        self.dimension = int(math.sqrt(self.record_length))
-        self.dimension_stdev = self.record_length_stdev / 2.0 / math.sqrt(self.record_length)
-        self.max_dimension = self.dimension
-        if self.checkpoint_mechanism == CheckpointMechanismType.NONE:
-            if self.framework == FrameworkType.TENSORFLOW:
-                self.checkpoint_mechanism = CheckpointMechanismType.TF_SAVE
-            elif self.framework == FrameworkType.PYTORCH:
-                self.checkpoint_mechanism = CheckpointMechanismType.PT_SAVE
-        if (self.record_length_resize > 0):
+        record_dims_length = len(self.record_dims)
+        if record_dims_length > 0:
+            self.dimension = self.record_dims
+            self.dimension_stdev = self.record_length_stdev / 2.0 / self.record_length
+            self.max_dimension = int(math.sqrt(self.record_length))
+        else:
+            self.dimension = int(math.sqrt(self.record_length))
+            self.dimension_stdev = self.record_length_stdev / 2.0 / math.sqrt(self.record_length)
+            self.max_dimension = self.dimension
+
+        if self.record_length_resize > 0:
             self.max_dimension = int(math.sqrt(self.record_length_resize))
-        if (file_list_train != None and file_list_eval != None):
-            self.resized_image = np.random.randint(255, size=(self.max_dimension, self.max_dimension), dtype=np.uint8)
+
+        if (file_list_train is not None and file_list_eval is not None):
+            if self.transformed_sample is not None and len(self.transformed_sample) > 0:
+                self.logger.debug(f"Using transformed sample size {self.transformed_sample}")
+                self.resized_image = np.random.randint(255, size=self.transformed_sample, dtype=np.uint8)
+            else:
+                self.resized_image = np.random.randint(255, size=(self.max_dimension, self.max_dimension), dtype=np.uint8)
             self.file_list_train = file_list_train
             self.file_list_eval = file_list_eval
             self.num_files_eval = len(file_list_eval)
@@ -754,6 +778,36 @@ def LoadConfig(args, config):
         if 'keep_files' in config['dataset']:
             args.keep_files = config['dataset']['keep_files']
 
+        if 'record_element_bytes' in config['dataset']:
+            args.record_element_bytes = config['dataset']['record_element_bytes']
+        if 'record_element_type' in config['dataset']:
+            args.record_element_type = config['dataset']['record_element_type']
+            # recalculate record_element_bytes if record_element_type is provided
+            # to make them consistent
+            args.record_element_bytes = np.dtype(args.record_element_type).itemsize
+        if 'record_dims' in config['dataset']:
+            args.record_dims = list(config['dataset']['record_dims'])
+            # recalculate args.record_length
+            args.record_length = np.prod(args.record_dims) * args.record_element_bytes
+        if 'files_per_record' in config['dataset']:
+            args.files_per_record = config['dataset']['files_per_record']
+        if 'original_num_files_train' in config['dataset']:
+            args.original_num_files_train = config['dataset']['original_num_files_train']
+        if 'original_num_files_eval' in config['dataset']:
+            args.original_num_files_eval = config['dataset']['original_num_files_eval']
+
+        # hdf5 only config
+        if 'hdf5' in config['dataset']:
+            if 'chunk_dims' in config['dataset']['hdf5']:
+                args.chunk_dims = tuple(config['dataset']['hdf5']['chunk_dims'])
+            if 'num_dataset_per_record' in config['dataset']['hdf5']:
+                args.num_dataset_per_record = config['dataset']['hdf5']['num_dataset_per_record']
+            if len(args.record_dims) > 0:
+                if args.record_dims[0] % args.num_dataset_per_record != 0:
+                    raise ValueError("hdf5.num_dataset_per_record should be divisible by record_dims[0]")
+            if 'max_shape' in config['dataset']['hdf5']:
+                args.max_shape = list(config['dataset']['hdf5']['max_shape'])
+
     # data reader
     reader = None
     if 'data_reader' in config:
@@ -814,6 +868,8 @@ def LoadConfig(args, config):
             args.preprocess_time["stdev"] = reader['preprocess_time_stdev']
         if 'pin_memory' in reader:
             args.pin_memory = reader['pin_memory']
+        if 'transformed_sample' in reader:
+            args.transformed_sample = list(reader['transformed_sample'])
 
     # training relevant setting
     if 'train' in config:
