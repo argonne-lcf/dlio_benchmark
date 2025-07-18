@@ -294,9 +294,9 @@ class ConfigArguments:
                 raise Exception("To perform subset Checkpointing, please set a target data parallelism: workload.parallelism.data.")
             elif self.data_parallelism * self.tensor_parallelism * self.pipeline_parallelism < self.comm_size:
                 raise Exception(f"Comm size: {self.comm_size} is larger than 3D parallelism size: {self.data_parallelism * self.tensor_parallelism * self.pipeline_parallelism}")
-            
-        if self.model in (Model.DEFAULT, Model.SLEEP ) and not self.computation_time:
-            #TODO: Is this a good check?
+
+        if self.do_train and self.model in (Model.DEFAULT, Model.SLEEP) and not self.computation_time:
+            # TODO: Is this a good check?
             raise Exception(f"workload.model.name is not set and workload.train.computation_time is not set. Please set one of them.")
 
         if self.checkpoint_mode == CheckpointModeType.DEFAULT:
