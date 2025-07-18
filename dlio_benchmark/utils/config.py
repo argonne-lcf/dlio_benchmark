@@ -177,7 +177,6 @@ class ConfigArguments:
     record_dims: ClassVar[List[int]] = []
     record_element_bytes: int = 4
     record_element_type: str = ""
-    files_per_record: int = None
 
     ## dataset: hdf5-only
     num_dataset_per_record: int = 1
@@ -789,12 +788,6 @@ def LoadConfig(args, config):
             args.record_dims = list(config['dataset']['record_dims'])
             # recalculate args.record_length
             args.record_length = np.prod(args.record_dims) * args.record_element_bytes
-        if 'files_per_record' in config['dataset']:
-            args.files_per_record = config['dataset']['files_per_record']
-        if 'original_num_files_train' in config['dataset']:
-            args.original_num_files_train = config['dataset']['original_num_files_train']
-        if 'original_num_files_eval' in config['dataset']:
-            args.original_num_files_eval = config['dataset']['original_num_files_eval']
 
         # hdf5 only config
         if 'hdf5' in config['dataset']:

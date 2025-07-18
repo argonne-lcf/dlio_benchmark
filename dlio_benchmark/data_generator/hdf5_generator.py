@@ -97,13 +97,6 @@ class HDF5Generator(DataGenerator):
             progress(i+1, self.total_files_to_generate, "Generating HDF5 Data")
 
             out_path_spec = self.storage.get_uri(self._file_list[i])
-            if self._args.files_per_record is not None and self._args.files_per_record > 0:
-                self.storage.create_node(out_path_spec, exist_ok=True)
-                for j in range(self._args.files_per_record):
-                    name = f"{self._file_list[i]}/{j}.part"
-                    out_path_spec = self.storage.get_uri(name)
-                    self.create_file(name=out_path_spec, shape=shape, records=records, **kwargs)
-            else:
-                self.create_file(name=out_path_spec, shape=shape, records=records, **kwargs)
+            self.create_file(name=out_path_spec, shape=shape, records=records, **kwargs)
 
         np.random.seed()
