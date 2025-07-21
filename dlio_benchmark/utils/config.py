@@ -318,6 +318,11 @@ class ConfigArguments:
                 raise Exception(f"Number of checkpoints to read {self.num_checkpoints_read} cannot be larger than number of checkpoints to write {self.num_checkpoints_write}")
         if self.ksm_present and self.checkpoint_randomize_tensor:
             raise Exception(f"checkpoint.ksm is {self.ksm_present} which requires checkpoint.randomize_tensor to be False")
+        if self.format in [FormatType.JPEG, FormatType.PNG]:
+            if np.dtype(self.record_element_type) != np.uint8:
+                raise Exception(f"{self.format} format requires record_element_type to be np.uint8, this should be automatically set. Please contact developers if this message appears.")
+            if len(self.record_dims) > 2:
+                raise Exception(f"{self.format} format does not support more than 2 dimensions, but got {len(self.record_dims)} dimensions.")
 
     @staticmethod
     def reset():
@@ -781,9 +786,15 @@ def LoadConfig(args, config):
             args.record_element_bytes = config['dataset']['record_element_bytes']
         if 'record_element_type' in config['dataset']:
             args.record_element_type = config['dataset']['record_element_type']
+            if args.format in [FormatType.JPEG, FormatType.PNG]:
+                args.record_element_type = "uint8"
             # recalculate record_element_bytes if record_element_type is provided
             # to make them consistent
             args.record_element_bytes = np.dtype(args.record_element_type).itemsize
+        else:
+            if args.format in [FormatType.JPEG, FormatType.PNG]:
+                args.record_element_type = "uint8"
+                args.record_element_bytes = np.dtype(args.record_element_type).itemsize
         if 'record_dims' in config['dataset']:
             args.record_dims = list(config['dataset']['record_dims'])
             # recalculate args.record_length

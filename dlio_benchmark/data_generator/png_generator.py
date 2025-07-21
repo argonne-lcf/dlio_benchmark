@@ -15,24 +15,18 @@
    limitations under the License.
 """
 
-from dlio_benchmark.common.enumerations import Compression
 from dlio_benchmark.data_generator.data_generator import DataGenerator
 
-import logging
 import numpy as np
 
 from dlio_benchmark.utils.utility import progress, utcnow
 from dlio_benchmark.utils.utility import Profile
-from shutil import copyfile
 import PIL.Image as im
 from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
 
 dlp = Profile(MODULE_DATA_GENERATOR)
 
 class PNGGenerator(DataGenerator):
-    def __init__(self):
-        super().__init__()
-
     @dlp.log        
     def generate(self):
         """
@@ -40,19 +34,22 @@ class PNGGenerator(DataGenerator):
         """
         super().generate()
         np.random.seed(10)
-        record_labels = [0] 
         dim = self.get_dimension(self.total_files_to_generate)
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
-            dim1 = dim[2*i]
-            dim2 = dim[2*i+1]
+            dim_ = dim[2*i]
+            if isinstance(dim_, list):
+                dim1 = dim_[0]
+                dim2 = dim_[1]
+            else:
+                dim1 = dim_
+                dim2 = dim[2*i+1]
             if self.my_rank==0:
                 self.logger.debug(f"{utcnow()} Dimension of images: {dim1} x {dim2}")
-            out_path_spec = self.storage.get_uri(self._file_list[i])
             records = np.random.randint(255, size=(dim1, dim2), dtype=np.uint8)
             img = im.fromarray(records)
             if self.my_rank == 0 and i % 100 == 0:
                 self.logger.info(f"Generated file {i}/{self.total_files_to_generate}")
+            out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating PNG Data")
-            prev_out_spec = out_path_spec
             img.save(out_path_spec, format='PNG', bits=8)
         np.random.seed()

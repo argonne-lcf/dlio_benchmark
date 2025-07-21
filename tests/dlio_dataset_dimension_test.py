@@ -49,13 +49,6 @@ logging.basicConfig(
 )
 
 
-def init():
-    DLIOMPI.get_instance().initialize()
-
-
-def finalize():
-    DLIOMPI.get_instance().finalize()
-
 
 def run_benchmark(cfg, storage_root="./"):
     comm.Barrier()
@@ -69,7 +62,7 @@ def run_benchmark(cfg, storage_root="./"):
 
 @pytest.fixture
 def setup_test_env():
-    init()
+    DLIOMPI.get_instance().initialize()
     if comm.rank == 0:
         storage_root = os.path.join("outputs", str(uuid.uuid4()))
     else:
@@ -82,12 +75,12 @@ def setup_test_env():
         os.makedirs(storage_root, exist_ok=True)
 
     comm.Barrier()
-
     yield storage_root
+    comm.Barrier()
     if comm.rank == 0:
         shutil.rmtree(storage_root, ignore_errors=True)
     comm.Barrier()
-    finalize()
+    DLIOMPI.get_instance().finalize()
 
 
 def check_h5(path):
@@ -102,7 +95,7 @@ def check_h5(path):
 
 @pytest.mark.timeout(60, method="thread")
 @pytest.mark.parametrize("dtype", ["float32", "int32"])
-def test_dim_based_gen_data(setup_test_env, dtype) -> None:
+def test_dim_based_hdf5_gen_data(setup_test_env, dtype) -> None:
     fmt = "hdf5"
     framework = "pytorch"
     num_dataset_per_record = 3
@@ -146,3 +139,53 @@ def test_dim_based_gen_data(setup_test_env, dtype) -> None:
     assert shape_per_dataset == gen_shape
     assert dtype == gen_dtype
     assert num_dataset_per_record == gen_num_ds
+
+def check_image(path):
+    from PIL import Image
+
+    img = Image.open(path)
+    return img.size, img.format
+
+
+@pytest.mark.timeout(60, method="thread")
+@pytest.mark.parametrize("fmt", ["png", "jpeg"])
+def test_dim_based_image_gen_data(setup_test_env, fmt) -> None:
+    framework = "pytorch"
+    height = 64
+    width = 128
+    storage_root = setup_test_env
+    with initialize_config_dir(version_base=None, config_dir=config_dir):
+        cfg = compose(
+            config_name="config",
+            overrides=[
+                f"++workload.framework={framework}",
+                f"++workload.reader.data_loader={framework}",
+                "++workload.workflow.train=False",
+                "++workload.workflow.generate_data=True",
+                # f"++workload.storage.storage_root={storage_root}",
+                f"++workload.output.folder={storage_root}",
+                f"++workload.dataset.data_folder={storage_root}/data",
+                "++workload.dataset.num_files_train=16",
+                "++workload.dataset.num_files_val=0",
+                "++workload.dataset.num_subfolders_train=1",
+                f"++workload.dataset.format={fmt}",
+                f"++workload.dataset.record_dims={[height, width]}",
+            ],
+        )
+        print(cfg)
+        run_benchmark(cfg)
+
+    paths = glob.glob(os.path.join(storage_root, "data", "train", f"*.{fmt}"))
+    if len(paths) == 0:
+        pytest.fail(f"No {fmt} files found")
+
+    chosen_path = paths[0]
+    gen_shape, gen_format = check_image(chosen_path)
+
+    if comm.rank == 0:
+        logging.info("Generated width: %s", gen_shape[0])
+        logging.info("Generated height: %s", gen_shape[1])
+        logging.info("Generated format: %s", gen_format)
+
+    assert (width, height) == gen_shape
+    assert fmt == gen_format.lower()
