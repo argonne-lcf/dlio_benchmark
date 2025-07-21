@@ -128,8 +128,14 @@ jobs:
       - name: test_dataset_dimension_gen_data
         run: |
           source ${VENV_PATH}/bin/activate
-          mpirun -np 2 pytest -k test_dim_based_gen_data[float32] -v
-          mpirun -np 2 pytest -k test_dim_based_gen_data[int32] -v
+          mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[float32] -v
+          mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[int32] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[png] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[jpeg] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npz-int32] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npz-float32] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npy-int32] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npy-float32] -v
           rm -rf outputs
       - name: test_train
         run: |

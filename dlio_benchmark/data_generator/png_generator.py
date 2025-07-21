@@ -27,7 +27,7 @@ from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
 dlp = Profile(MODULE_DATA_GENERATOR)
 
 class PNGGenerator(DataGenerator):
-    @dlp.log        
+    @dlp.log
     def generate(self):
         """
         Generator for creating data in PNG format of 3d dataset.

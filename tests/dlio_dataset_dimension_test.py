@@ -110,7 +110,6 @@ def test_dim_based_hdf5_gen_data(setup_test_env, dtype) -> None:
                 f"++workload.reader.data_loader={framework}",
                 "++workload.workflow.train=False",
                 "++workload.workflow.generate_data=True",
-                # f"++workload.storage.storage_root={storage_root}",
                 f"++workload.output.folder={storage_root}",
                 f"++workload.dataset.data_folder={storage_root}/data",
                 "++workload.dataset.num_files_train=16",
@@ -162,7 +161,6 @@ def test_dim_based_image_gen_data(setup_test_env, fmt) -> None:
                 f"++workload.reader.data_loader={framework}",
                 "++workload.workflow.train=False",
                 "++workload.workflow.generate_data=True",
-                # f"++workload.storage.storage_root={storage_root}",
                 f"++workload.output.folder={storage_root}",
                 f"++workload.dataset.data_folder={storage_root}/data",
                 "++workload.dataset.num_files_train=16",
@@ -172,7 +170,6 @@ def test_dim_based_image_gen_data(setup_test_env, fmt) -> None:
                 f"++workload.dataset.record_dims={[height, width]}",
             ],
         )
-        print(cfg)
         run_benchmark(cfg)
 
     paths = glob.glob(os.path.join(storage_root, "data", "train", f"*.{fmt}"))
@@ -189,3 +186,61 @@ def test_dim_based_image_gen_data(setup_test_env, fmt) -> None:
 
     assert (width, height) == gen_shape
     assert fmt == gen_format.lower()
+
+def check_np(path, fmt):
+    import numpy as np
+
+    if fmt == "npy":
+        data = np.load(path)
+        return data.shape, data.dtype
+    elif fmt == "npz":
+        data = np.load(path)
+        return data["x"].shape, data["x"].dtype
+    else:
+        raise ValueError(f"Unsupported format: {fmt}")
+
+
+@pytest.mark.timeout(60, method="thread")
+@pytest.mark.parametrize("fmt, dtype", [("npz", "int32"), ("npz", "float32"), ("npy", "int32"), ("npy", "float32")])
+def test_dim_based_np_gen_data(setup_test_env, fmt, dtype) -> None:
+    framework = "pytorch"
+    num_samples_per_file = 1
+    shape = (64, 128)
+    final_shape = (*shape, num_samples_per_file)
+    storage_root = setup_test_env
+    with initialize_config_dir(version_base=None, config_dir=config_dir):
+        cfg = compose(
+            config_name="config",
+            overrides=[
+                f"++workload.framework={framework}",
+                f"++workload.reader.data_loader={framework}",
+                "++workload.workflow.train=False",
+                "++workload.workflow.generate_data=True",
+                f"++workload.output.folder={storage_root}",
+                f"++workload.dataset.data_folder={storage_root}/data",
+                "++workload.dataset.num_files_train=16",
+                "++workload.dataset.num_files_val=0",
+                "++workload.dataset.num_subfolders_train=1",
+                f"++workload.dataset.num_samples_per_file={num_samples_per_file}",
+                f"++workload.dataset.format={fmt}",
+                f"++workload.dataset.record_element_type={dtype}",
+                f"++workload.dataset.record_dims={list(shape)}",
+            ],
+        )
+        run_benchmark(cfg)
+
+    paths = glob.glob(os.path.join(storage_root, "data", "train", f"*.{fmt}"))
+    if len(paths) == 0:
+        pytest.fail(f"No {fmt} files found")
+
+    chosen_path = paths[0]
+    gen_shape, gen_format = check_np(chosen_path, fmt=fmt)
+
+    if comm.rank == 0:
+        logging.info(f"Generated shape: {gen_shape}")
+        logging.info(f"Generated format: {gen_format}")
+
+    import numpy as np
+
+    assert final_shape == gen_shape
+    assert np.dtype(dtype).itemsize == gen_format.itemsize
