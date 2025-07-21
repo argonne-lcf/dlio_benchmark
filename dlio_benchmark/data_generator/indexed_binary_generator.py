@@ -15,15 +15,11 @@
    limitations under the License.
 """
 
-from dlio_benchmark.common.enumerations import Compression
 from dlio_benchmark.data_generator.data_generator import DataGenerator
 
-import logging
 import numpy as np
 
-from dlio_benchmark.utils.utility import progress, utcnow, DLIOMPI
-from dlio_benchmark.utils.utility import Profile
-from shutil import copyfile
+from dlio_benchmark.utils.utility import Profile, progress, utcnow, DLIOMPI, bytes_to_np_dtype
 from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
 import struct
 from mpi4py import MPI
@@ -36,6 +32,7 @@ Generator for creating data in NPZ format.
 class IndexedBinaryGenerator(DataGenerator):
     def __init__(self):
         super().__init__()
+        self.record_element_dtype = bytes_to_np_dtype(self._args.record_element_bytes) if self._args.record_element_type == "" else np.dtype(self._args.record_element_type)
 
     def index_file_path_off(self, prefix_path):
         return prefix_path + '.off.idx'
@@ -62,8 +59,13 @@ class IndexedBinaryGenerator(DataGenerator):
             for file_index in dlp.iter(range(int(self.total_files_to_generate))):
                 amode = MPI.MODE_WRONLY | MPI.MODE_CREATE
                 comm = MPI.COMM_WORLD
-                dim1 = dim[2*file_index]
-                dim2 = dim[2*file_index + 1]
+                dim_ = dim[2*file_index]
+                if isinstance(dim_, list):
+                    dim1 = dim_[0]
+                    dim2 = dim_[1]
+                else:
+                    dim1 = dim_
+                    dim2 = dim[2*file_index+1]
                 sample_size = dim1 * dim2
                 out_path_spec = self.storage.get_uri(self._file_list[file_index])
                 out_path_spec_off_idx = self.index_file_path_off(out_path_spec)
@@ -94,8 +96,8 @@ class IndexedBinaryGenerator(DataGenerator):
                 
                 fh = MPI.File.Open(comm, out_path_spec, amode)
                 samples_per_loop = int(GB / sample_size)
-                
-                records = np.random.randint(255, size=sample_size*samples_per_loop, dtype=np.uint8)
+
+                records = np.random.randint(255, size=sample_size*samples_per_loop, dtype=self.record_element_dtype)
 
                 for sample_index in range(self.my_rank*samples_per_rank, samples_per_rank*(self.my_rank+1), samples_per_loop):
                     #self.logger.info(f"{utcnow()} rank {self.my_rank} writing {sample_index} * {samples_per_loop} for {samples_per_rank} samples")
@@ -106,8 +108,13 @@ class IndexedBinaryGenerator(DataGenerator):
                 fh.Close()
         else:
             for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
-                dim1 = dim[2*i]
-                dim2 = dim[2*i + 1]
+                dim_ = dim[2*i]
+                if isinstance(dim_, list):
+                    dim1 = dim_[0]
+                    dim2 = dim_[1]
+                else:
+                    dim1 = dim_
+                    dim2 = dim[2*i+1]
                 sample_size = dim1 * dim2
                 total_size = sample_size * self.num_samples
                 write_size = total_size
@@ -117,13 +124,12 @@ class IndexedBinaryGenerator(DataGenerator):
                 out_path_spec = self.storage.get_uri(self._file_list[i])
                 out_path_spec_off_idx = self.index_file_path_off(out_path_spec)
                 out_path_spec_sz_idx = self.index_file_path_size(out_path_spec)
-                progress(i + 1, self.total_files_to_generate, "Generating Indexed Binary Data")
-                prev_out_spec = out_path_spec
+                progress(i + 1, self.total_files_to_generate, "Generating Indexed Binary Data")                
                 written_bytes = 0
                 data_file = open(out_path_spec, "wb")
                 off_file = open(out_path_spec_off_idx, "wb")
                 sz_file = open(out_path_spec_sz_idx, "wb")
-                records = np.random.randint(255, size=write_size, dtype=np.uint8)
+                records = np.random.randint(255, size=write_size, dtype=self.record_element_dtype)
                 while written_bytes < total_size:
                     data_to_write = write_size if written_bytes + write_size <= total_size else total_size - written_bytes
                     samples_to_write = data_to_write // sample_size

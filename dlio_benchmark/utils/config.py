@@ -787,14 +787,15 @@ def LoadConfig(args, config):
         if 'record_element_type' in config['dataset']:
             args.record_element_type = config['dataset']['record_element_type']
             if args.format in [FormatType.JPEG, FormatType.PNG]:
+                # force uint8 on image dataset
                 args.record_element_type = "uint8"
             # recalculate record_element_bytes if record_element_type is provided
             # to make them consistent
             args.record_element_bytes = np.dtype(args.record_element_type).itemsize
         else:
-            if args.format in [FormatType.JPEG, FormatType.PNG]:
-                args.record_element_type = "uint8"
-                args.record_element_bytes = np.dtype(args.record_element_type).itemsize
+            # if args.format in [FormatType.JPEG, FormatType.PNG]:
+            args.record_element_type = "uint8"
+            args.record_element_bytes = np.dtype(args.record_element_type).itemsize
         if 'record_dims' in config['dataset']:
             args.record_dims = list(config['dataset']['record_dims'])
             # recalculate args.record_length
