@@ -1,19 +1,27 @@
-from time import time
-import logging
-import math
-import numpy as np
+"""
+   Copyright (c) 2025, UChicago Argonne, LLC
+   All Rights Reserved
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+"""
 from nvidia.dali.pipeline import Pipeline
-import nvidia.dali.fn as fn
-import nvidia.dali.types as types
-import nvidia.dali as dali
 from nvidia.dali.plugin.pytorch import DALIGenericIterator
 
 from dlio_benchmark.common.constants import MODULE_DATA_LOADER
-from dlio_benchmark.common.enumerations import Shuffle, DataLoaderType, DatasetType
+from dlio_benchmark.common.enumerations import DataLoaderType, DatasetType
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
-from dlio_benchmark.utils.utility import utcnow
-from dlio_benchmark.utils.utility import PerfTrace, Profile
+from dlio_benchmark.utils.utility import utcnow, Profile, ai
 
 dlp = Profile(MODULE_DATA_LOADER)
 
@@ -55,20 +63,21 @@ class NativeDaliDataLoader(BaseDataLoader):
         self.read(True)
         num_samples = self._args.total_samples_train if self.dataset_type is DatasetType.TRAIN else self._args.total_samples_eval
         batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
-        step = 0
         for pipeline in self.pipelines:
             pipeline.reset()
         for step in range(num_samples // batch_size):
+            dlp.update(step=step)
+            ai.update(step=step)
             try:
-                # TODO: @hariharan-devarajan: change below line when we bump the dftracer version to 
-                #       `dlp.iter(self._dataset, name=self.next.__qualname__)`
-                for batch in dlp.iter(self._dataset):
+                for batch in ai.dataloader.fetch.iter(self._dataset):
                     self.logger.debug(f"{utcnow()} Creating {len(batch)} batches by {self._args.my_rank} rank ")
                     yield batch
             except StopIteration:
                 return
         self.epoch_number += 1
         dlp.update(epoch=self.epoch_number)
+        ai.update(epoch=self.epoch_number)
+
     @dlp.log
     def finalize(self):
         pass

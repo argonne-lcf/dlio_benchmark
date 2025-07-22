@@ -14,8 +14,6 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-from time import time
-import logging
 import math
 import numpy as np
 from nvidia.dali.pipeline import Pipeline
@@ -23,12 +21,10 @@ import nvidia.dali.fn as fn
 import nvidia.dali.types as types
 
 from dlio_benchmark.common.constants import MODULE_DATA_LOADER
-from dlio_benchmark.common.enumerations import Shuffle, DataLoaderType, DatasetType
+from dlio_benchmark.common.enumerations import DataLoaderType
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
-from dlio_benchmark.utils.utility import utcnow
-from dlio_benchmark.utils.utility import Profile, DLIOLogger
-import os
+from dlio_benchmark.utils.utility import utcnow, Profile, DLIOLogger, ai
 
 dlp = Profile(MODULE_DATA_LOADER)
 
@@ -140,19 +136,24 @@ class DaliDataLoader(BaseDataLoader):
         self.read(True)
         while step < self.num_samples // self.batch_size:
             for pipe in self.pipelines:
+                ai.dataloader.fetch.start()
                 try:
                     outputs = pipe.share_outputs()
                 except StopIteration:
+                    # it is fine to not stop `ai.dataloader.fetch` here
                     return
+                ai.dataloader.fetch.stop()
                 self.logger.debug(f"{utcnow()} Output batch {step} {len(outputs)}")
                 yield outputs
                 step += 1
-                dlp.update(step = step)
+                dlp.update(step=step)
+                ai.update(step=step)
                 pipe.release_outputs()
                 pipe.schedule_run()
         self.epoch_number += 1
-        dlp.update(epoch=self.epoch_number)  
-                
+        dlp.update(epoch=self.epoch_number)
+        ai.update(epoch=self.epoch_number)
+
     @dlp.log
     def finalize(self):
         pass
