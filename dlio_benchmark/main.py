@@ -241,7 +241,7 @@ class DLIOBenchmark(object):
         total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         loader = self.framework.get_loader(DatasetType.VALID)
         self.stats.start_loading()
-        for batch in dlp.iter(loader.next()):
+        for batch in loader.next():
             self.stats.eval_batch_loaded(epoch, step)
             eval_time = self.eval_time
             self.stats.start_compute()
@@ -325,6 +325,12 @@ class DLIOBenchmark(object):
         loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
         self.stats.start_loading()
         for batch in loader.next():
+            if overall_step > max_steps or ((self.total_training_steps > 0) and (overall_step > self.total_training_steps)):
+                if self.args.my_rank == 0:
+                    self.logger.info(f"{utcnow()} Maximum number of steps reached")
+                if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
+                    self.stats.end_block(epoch, block, block_step - 1)
+                break
             self.stats.batch_loaded(epoch, overall_step, block)
             computation_time = self.args.computation_time
             if (isinstance(computation_time, dict) and len(computation_time) > 0) or (isinstance(computation_time, float) and  computation_time > 0):
@@ -346,13 +352,13 @@ class DLIOBenchmark(object):
                 self.next_checkpoint_step += self.steps_between_checkpoints
             else:
                 block_step += 1
-            overall_step += 1
             if overall_step > max_steps or ((self.total_training_steps > 0) and (overall_step > self.total_training_steps)):
                 if self.args.my_rank == 0:
                     self.logger.info(f"{utcnow()} Maximum number of steps reached")
                 if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
                     self.stats.end_block(epoch, block, block_step - 1)
                 break
+            overall_step += 1
             # start a new block here
             if block_step == 1 and block != 1:
                 self.stats.start_block(epoch, block)
@@ -400,7 +406,7 @@ class DLIOBenchmark(object):
             self.framework.get_loader(dataset_type=DatasetType.TRAIN).read()
             if self.do_eval:
                 self.framework.get_loader(dataset_type=DatasetType.VALID).read()
-            for epoch in ai.pipeline.epoch.iter(range(1, self.epochs + 1)):
+            for epoch in ai.pipeline.epoch.iter(range(1, self.epochs + 1), include_iter=False):
                 self.stats.start_epoch(epoch)
                 self.next_checkpoint_step = self.steps_between_checkpoints
                 self.stats.start_train(epoch)
