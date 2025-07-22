@@ -17,14 +17,10 @@
 import os
 import torch
 import ctypes
-import time
 from dlio_benchmark.checkpointing.base_checkpointing import BaseCheckpointing
-from dlio_benchmark.utils.utility import Profile
+from dlio_benchmark.utils.utility import Profile, ai
 
 from dlio_benchmark.common.constants import MODULE_CHECKPOINT
-from dlio_benchmark.common.enumerations import CheckpointLocationType
-from dlio_benchmark.utils.utility import DLIOMPI
-import logging
 
 def get_torch_datatype(datatype):
     if datatype == "fp32":
@@ -56,7 +52,7 @@ class PyTorchCheckpointing(BaseCheckpointing):
             PyTorchCheckpointing.__instance = PyTorchCheckpointing()
         return PyTorchCheckpointing.__instance
 
-    @dlp.log_init
+    @ai.checkpoint.init
     def __init__(self):
         super().__init__("pt")
 
@@ -75,7 +71,6 @@ class PyTorchCheckpointing(BaseCheckpointing):
         else:
             return torch.ones(length, dtype=torch_dtype)
 
-    @dlp.log
     def set_madvise_mergeable(self, tensor):
         """
         Apply MADV_MERGEABLE to a PyTorch tensor's memory region with alignment handling.
@@ -128,7 +123,7 @@ class PyTorchCheckpointing(BaseCheckpointing):
         except Exception:
             return False
 
-    @dlp.log
+    @ai.checkpoint.capture
     def save_state(self, suffix, state, fsync = False):
         name = self.get_name(suffix)
         with open(name, "wb") as f:
@@ -136,7 +131,7 @@ class PyTorchCheckpointing(BaseCheckpointing):
             if fsync: 
                 os.fsync(f.fileno())
 
-    @dlp.log
+    @ai.checkpoint.restart
     def load_state(self, suffix, state):
         name = self.get_name(suffix)
         state = dict() # clear up
