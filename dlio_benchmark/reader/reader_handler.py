@@ -16,20 +16,13 @@
 """
 from abc import ABC, abstractmethod
 
-from dlio_benchmark.common.enumerations import FrameworkType, Shuffle, FileAccess, DatasetType, MetadataType, DataLoaderType, \
-    ReadType
-from dlio_benchmark.framework.framework_factory import FrameworkFactory
-from dlio_benchmark.storage.storage_factory import StorageFactory
-from dlio_benchmark.utils.utility import utcnow
-from dlio_benchmark.utils.utility import Profile
-from dlio_benchmark.utils.config import ConfigArguments
 import numpy as np
-import os
-import math
-import logging
-import glob
+
+from dlio_benchmark.common.enumerations import DatasetType, ReadType
+from dlio_benchmark.utils.utility import utcnow
+from dlio_benchmark.utils.utility import Profile, sleep, ai
+from dlio_benchmark.utils.config import ConfigArguments
 from dlio_benchmark.common.constants import MODULE_DATA_READER
-from dlio_benchmark.utils.utility import sleep
 
 dlp = Profile(MODULE_DATA_READER)
 
@@ -76,8 +69,8 @@ class FormatReader(ABC):
         return
 
     @abstractmethod
+    @ai.data.item
     def next(self):
-        batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
         batch = []
         image_processed = 0
         self.step = 1
@@ -108,6 +101,7 @@ class FormatReader(ABC):
                 break
 
     @abstractmethod
+    @ai.data.item
     def read_index(self, global_sample_idx, step):
         self.step = step
         self.image_idx = global_sample_idx

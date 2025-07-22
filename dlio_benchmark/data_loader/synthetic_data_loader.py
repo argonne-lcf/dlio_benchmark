@@ -33,6 +33,10 @@ class SyntheticDataLoader(BaseDataLoader):
     @dlp.log
     def read(self, init=False):
         return
+    
+    @ai.data.item
+    def getitem(self):
+        return self.batch
 
     @dlp.log
     def next(self):
@@ -47,7 +51,7 @@ class SyntheticDataLoader(BaseDataLoader):
             dlp.update(step=step)
             ai.update(step=step)
             step += 1
-            yield self.batch
+            yield self.getitem()
             ai.dataloader.fetch.start()
 
         self.epoch_number += 1
