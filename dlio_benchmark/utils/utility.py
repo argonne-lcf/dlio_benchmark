@@ -22,58 +22,64 @@ from time import time, sleep as base_sleep
 from functools import wraps
 import threading
 import json
-from typing import Dict
-import pathlib
-from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, cast, Iterator, TypeVar, overload
 
 import numpy as np
-import inspect
 import psutil
 import socket
-import importlib.util
 # UTC timestamp format with microsecond precision
-from dlio_benchmark.common.enumerations import LoggerType, MPIState
+from dlio_benchmark.common.enumerations import MPIState
 try:
-    from dftracer.logger import dftracer as PerfTrace, dft_fn as Profile, DFTRACER_ENABLE as DFTRACER_ENABLE
-except:
-    class Profile(object):
-        def __init__(self,  cat, name=None, epoch=None, step=None, image_idx=None, image_size=None):
-            return 
-        def log(self,  func):
-            return func
-        def log_init(self,  func):
-            return func
-        def iter(self,  func, iter_name="step"):
-            return func
-        def __enter__(self):
-            return
-        def __exit__(self, type, value, traceback):
-            return
-        def update(self, epoch=None, step=None, image_idx=None, image_size=None, args={}):
-            return
-        def flush(self):
-            return
-        def reset(self):
-            return
-        def log_static(self, func):
-            return func
-    class dftracer(object):
-        def __init__(self,):
-            self.type = None
-        def initialize_log(self, logfile=None, data_dir=None, process_id=-1):
-            return
-        def get_time(self):
-            return
-        def enter_event(self):
-            return
-        def exit_event(self):
-            return
-        def log_event(self, name, cat, start_time, duration, string_args=None):
-            return
-        def finalize(self):
-            return
-        
-    PerfTrace = dftracer()
+    from dftracer.logger import (
+        dftracer as PerfTrace,
+        dft_fn as Profile,
+        ai,
+        DFTRACER_ENABLE
+    )
+except ImportError:
+    # Compact fallback classes when dftracer is not available
+    # fmt: off
+    class _NoOp:
+        """Universal no-op class that accepts any method call and returns self or identity function"""
+        def __init__(self, *args, **kwargs): pass
+        def __call__(self, fn=None, *args, **kwargs): return fn if callable(fn) else self
+        def __getattr__(self, name): return self
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def log(self, fn=None, *args, **kwargs): return fn if callable(fn) else lambda f: f
+        def log_init(self, fn=None, *args, **kwargs): return fn if callable(fn) else lambda f: f
+        def log_static(self, fn=None, *args, **kwargs): return fn if callable(fn) else lambda f: f
+        def iter(self, func, *args, **kwargs): return func
+        def update(self, *args, **kwargs): pass
+        def flush(self): pass
+        def reset(self): pass
+        def enable(self): pass
+        def disable(self): pass
+        def derive(self, name): return self
+        def init(self, fn=None, *args, **kwargs): return self
+        def create_children(self, names): pass
+        def get_instance(self): return self
+        def initialize_log(self, *args, **kwargs): return self
+        def enter_event(self): pass
+        def exit_event(self): pass
+        def log_event(self, *args, **kwargs): pass
+        def finalize(self): pass
+        def get_time(self): return 0
+        @property
+        def cat(self): return ""
+        @property 
+        def name(self): return ""
+        @property
+        def type(self): return None
+        @property
+        def logger(self): return self
+    # fmt: on
+
+    Profile = _NoOp
+    PerfTrace = _NoOp
+    dftracer = _NoOp
+    ai = _NoOp()
+
     DFTRACER_ENABLE = False
 
 LOG_TS_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"

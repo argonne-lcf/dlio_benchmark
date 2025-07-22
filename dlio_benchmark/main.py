@@ -45,7 +45,7 @@ from dlio_benchmark.profiler.profiler_factory import ProfilerFactory
 from dlio_benchmark.framework.framework_factory import FrameworkFactory
 from dlio_benchmark.data_generator.generator_factory import GeneratorFactory
 from dlio_benchmark.storage.storage_factory import StorageFactory
-from dlio_benchmark.utils.utility import Profile, PerfTrace, DLIOLogger
+from dlio_benchmark.utils.utility import Profile, ai, DLIOLogger
 
 dlp = Profile(MODULE_DLIO_BENCHMARK)
 # To make sure the output folder is the same in all the nodes. We have to do this.
@@ -232,7 +232,7 @@ class DLIOBenchmark(object):
             self.stats.checkpoint_size = self.checkpointing_mechanism.checkpoint_size    
         self.comm.barrier()
 
-    @dlp.log
+    @ai.pipeline.evaluate
     def _eval(self, epoch):
         """
         Evaluation loop will read a separate dataset and has its own own computation time.
@@ -289,6 +289,7 @@ class DLIOBenchmark(object):
             overall_step = overall_step + 1
         if self.comm.rank == 0:
             self.logger.output(f"{utcnow()} Checkpointing write finished")
+
     @dlp.log
     def _checkpoint_read(self):
         if self.comm.rank == 0:
@@ -308,7 +309,8 @@ class DLIOBenchmark(object):
             overall_step = overall_step + 1
         if self.comm.rank == 0:
             self.logger.output(f"{utcnow()} Checkpointing write started")
-    @dlp.log
+
+    @ai.pipeline.train
     def _train(self, epoch):
         """
         Training loop for reading the dataset and performing training computations.
@@ -365,7 +367,7 @@ class DLIOBenchmark(object):
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
         return overall_step
 
-    @dlp.log
+    @ai
     def run(self):
         """
         Run the total epochs for training. 
@@ -398,7 +400,7 @@ class DLIOBenchmark(object):
             self.framework.get_loader(dataset_type=DatasetType.TRAIN).read()
             if self.do_eval:
                 self.framework.get_loader(dataset_type=DatasetType.VALID).read()
-            for epoch in range(1, self.epochs + 1):
+            for epoch in ai.pipeline.epoch.iter(range(1, self.epochs + 1)):
                 self.stats.start_epoch(epoch)
                 self.next_checkpoint_step = self.steps_between_checkpoints
                 self.stats.start_train(epoch)
