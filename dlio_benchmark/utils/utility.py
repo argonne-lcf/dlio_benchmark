@@ -22,13 +22,15 @@ from time import time, sleep as base_sleep
 from functools import wraps
 import threading
 import json
-from typing import Any, Callable, Dict, List, Optional, cast, Iterator, TypeVar, overload
-
-import numpy as np
-import psutil
+import tracemalloc
+from time import perf_counter
 import socket
-# UTC timestamp format with microsecond precision
+
+import psutil
+import numpy as np
+
 from dlio_benchmark.common.enumerations import MPIState
+
 try:
     from dftracer.logger import (
         dftracer as PerfTrace,
@@ -36,7 +38,7 @@ try:
         ai,
         DFTRACER_ENABLE
     )
-except ImportError:
+except ImportError:  # noqa: E722
     # Compact fallback classes when dftracer is not available
     # fmt: off
     class _NoOp:
@@ -276,10 +278,6 @@ def timeit(func):
         return x, "%10.10f" % begin, "%10.10f" % end, os.getpid()
 
     return wrapper
-
-
-import tracemalloc
-from time import perf_counter
 
 
 def measure_performance(func):

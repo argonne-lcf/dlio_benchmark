@@ -242,14 +242,17 @@ class DLIOBenchmark(object):
         loader = self.framework.get_loader(DatasetType.VALID)
         self.stats.start_loading()
         for batch in loader.next():
+            # @ray: fixing uneven data fetch and computation count (same issue with `_train` below)
+            # Check if max steps reached to prevent incomplete fetch/compute pairs
+            # This ensures accurate event counting by stopping compute when step limit is hit
+            if step > total:
+                break
             self.stats.eval_batch_loaded(epoch, step)
             eval_time = self.eval_time
             self.stats.start_compute()
             self.framework.compute(batch, epoch, step, eval_time)
             self.stats.eval_batch_processed(epoch, step)
             step += 1
-            if step > total:
-                break
             self.stats.start_loading()
         return step - 1
 
@@ -325,6 +328,9 @@ class DLIOBenchmark(object):
         loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
         self.stats.start_loading()
         for batch in loader.next():
+            # @ray: fixing uneven data fetch and computation count
+            # Check if max steps reached to prevent incomplete fetch/compute pairs
+            # This ensures accurate event counting by stopping compute when step limit is hit
             if overall_step > max_steps or ((self.total_training_steps > 0) and (overall_step > self.total_training_steps)):
                 if self.args.my_rank == 0:
                     self.logger.info(f"{utcnow()} Maximum number of steps reached")
@@ -352,12 +358,6 @@ class DLIOBenchmark(object):
                 self.next_checkpoint_step += self.steps_between_checkpoints
             else:
                 block_step += 1
-            if overall_step > max_steps or ((self.total_training_steps > 0) and (overall_step > self.total_training_steps)):
-                if self.args.my_rank == 0:
-                    self.logger.info(f"{utcnow()} Maximum number of steps reached")
-                if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
-                    self.stats.end_block(epoch, block, block_step - 1)
-                break
             overall_step += 1
             # start a new block here
             if block_step == 1 and block != 1:
