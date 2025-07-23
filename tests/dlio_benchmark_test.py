@@ -657,25 +657,57 @@ def test_computation_time_distribution(request, dist) -> None:
         clean()
     finalize()
 
-# Write code to run the resnet model with compute enabled
+
 @pytest.mark.parametrize("framework", [FrameworkType.TENSORFLOW, FrameworkType.PYTORCH])
-def test_resnet_model_with_compute_enabled(framework) -> None:
+def test_resnet_model_with_compute_enabled(framework)-> None:
     init()
     clean()
-    if (comm.rank == 0):
+    with initialize_config_dir(version_base=None, config_dir=config_dir):
+        cfg = compose(
+            config_name="config",
+            overrides=[
+                "++workload.workflow.train=True",
+                "++workload.workflow.generate_data=True",
+                "++workload.model.name=resnet50",
+                f"++workload.framework={framework}",
+                f"++workload.reader.data_loader={framework}",
+                "++workload.train.epochs=1",
+                "++workload.dataset.num_files_train=16",
+                "++workload.reader.read_threads=1",
+                "++workload.train.compute=True",
+            ],
+        )
+        benchmark = run_benchmark(cfg)
+    finalize()
+
+
+@pytest.mark.parametrize("framework", [FrameworkType.TENSORFLOW, FrameworkType.PYTORCH])
+def test_resnet_model_with_comms_enabled(framework) -> None:
+    init()
+    clean()
+    if comm.rank == 0:
         logging.info("")
         logging.info("=" * 80)
-        logging.info(f" DLIO test for ResNet model with format in {framework} framework")
+        logging.info(
+            f" DLIO test for ResNet model with format in {framework} framework"
+        )
         logging.info("=" * 80)
     with initialize_config_dir(version_base=None, config_dir=config_dir):
-        cfg = compose(config_name='config', overrides=['++workload.workflow.train=True',
-                                                       '++workload.workflow.generate_data=True',
-                                                       '++workload.model.name=resnet',
-                                                       f"++workload.framework={framework}",
-                                                       f"++workload.reader.data_loader={framework}",
-                                                       '++workload.train.epochs=1',
-                                                       '++workload.dataset.num_files_train=16',
-                                                       '++workload.reader.read_threads=1'])
+        cfg = compose(
+            config_name="config",
+            overrides=[
+                "++workload.workflow.train=True",
+                "++workload.workflow.generate_data=True",
+                "++workload.model.name=resnet50",
+                f"++workload.framework={framework}",
+                f"++workload.reader.data_loader={framework}",
+                "++workload.train.epochs=1",
+                "++workload.dataset.num_files_train=16",
+                "++workload.reader.read_threads=1",
+                "++workload.train.communication=True",
+                "++workload.train.compute=True",
+            ],
+        )
         benchmark = run_benchmark(cfg)
     finalize()
 

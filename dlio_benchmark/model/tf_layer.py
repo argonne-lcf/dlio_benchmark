@@ -8,12 +8,13 @@ from dlio_benchmark.model.layer import LayerFactoryBase  # type: ignore
 class TensorFlowLayers(LayerFactoryBase):
     """Factory class for creating TensorFlow layers"""
 
-    def __init__(self, loss_function):
+    def __init__(self, loss_function, communication: bool = False):
         super().__init__()
         self._model = None 
         self._optimizer = None
         self._loss_function = loss_function
         self._layer_registry = {}  # Track created layers similar to PyTorch
+        self.communication = communication
 
     def _register_layer(self, layer: keras.layers.Layer, name: Optional[str] = None) -> keras.layers.Layer:
         """Register a layer for automatic model building"""
@@ -190,8 +191,10 @@ class TensorFlowLayers(LayerFactoryBase):
 
         # Instantiate the ModelWrapper
         self._model = ModelWrapper(self._layer_registry)
-
-        
+        if self.communication:
+            import horovod.tensorflow as hvd
+            hvd.init()
+            self._model = hvd.DistributedOptimizer(self._model)
 
         # layer_dict = self._model.get_layer_dict()
         # print(f"Registered layers: {list(layer_dict.keys())}")
@@ -208,29 +211,42 @@ class TensorFlowLayers(LayerFactoryBase):
     def set_optimizer(self, optimizer, *args, **kwargs):
         assert self._model is not None, "Model must be set before optimizer."
         self._optimizer = optimizer(*args, **kwargs)
-        print("set opt called")
         self._model.compile(optimizer=self._optimizer)
     
 
-    def compute(self, input_data: Any, target: Any) -> None:
-        """
-        Performs a full training step: forward pass, loss calculation, and backward pass.
-
-        Args:
-            input_data: The input tensor for the model.
-            target: The target tensor for loss calculation.
-
-        Returns:
-            A tuple containing:
-            - The predicted output from the forward pass.
-            - The calculated loss.
-        """
+    def compute(self, batch) -> None:
         assert self._model is not None, "Model must be set before compute step."
         assert self._optimizer is not None, "Optimizer must be set before compute step."
 
         # Perform the forward pass and backward pass within this function
         # This ensures the GradientTape correctly records all operations.
-        with tf.GradientTape() as tape:
+        # print Input shape of _model 
+
+        #TODO: Remove hardcoding and integrate with ray PR
+        if isinstance(batch, tf.Tensor):
+            if len(batch.shape) == 3:
+                # Duplicate array thrice to make three channels
+                batch = tf.expand_dims(batch, axis=1)
+                batch = tf.repeat(batch, repeats=3, axis=1)
+                # this gives shape (1,3, x,x)
+                # I need shape (1, x, x, 3)
+                batch = tf.transpose(batch, perm=[0, 2, 3, 1])
+            elif len(batch.shape) == 2:
+                batch = tf.reshape(batch, [1, *batch.shape, 1])
+            
+            # cast to float32
+            input_data = tf.cast(batch, tf.float32)
+            batch = tf.cast(batch, tf.float32)
+            target = tf.zeros((input_data.shape[0],1000))
+        else: 
+            input_data, target = batch
+
+        if self.communication:
+            import horovod.tensorflow as hvd
+            tape = hvd.DistributedGradientTape()
+        else:
+            tape = tf.GradientTape()
+        with tape:
             # 1. Forward pass
             pred = self._model(input_data, training=True)
 

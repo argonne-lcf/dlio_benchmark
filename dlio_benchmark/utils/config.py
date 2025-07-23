@@ -87,6 +87,8 @@ class ConfigArguments:
     read_threads: int = 1
     dont_use_mmap: bool = False
     computation_threads: int = 1
+    communication: bool = False
+    compute: bool = False
     computation_time: ClassVar[Dict[str, Any]] = {}
     preprocess_time: ClassVar[Dict[str, Any]] = {}
     prefetch_size: int = 2
@@ -595,6 +597,10 @@ def GetConfig(args, key):
             value = args.computation_time.get("stdev", None)
         elif keys[1] == "seed":
             value = args.seed
+        elif keys[1] == "communication":
+            value = args.communication
+        elif keys[1] == "compute":
+            value = args.compute
 
     if len(keys) > 1 and keys[0] == "evaluation":
         if keys[1] == "eval_time":
@@ -844,6 +850,10 @@ def LoadConfig(args, config):
             args.computation_time["stdev"] = config['train']['computation_time_stdev']
         if 'seed' in config['train']:
             args.seed = config['train']['seed']
+        if 'communication' in config['train']:
+            args.communication = config['train']['communication']
+        if 'compute' in config['train']:
+            args.compute = config['train']['compute']
 
     if 'evaluation' in config:
         args.eval_time = {}

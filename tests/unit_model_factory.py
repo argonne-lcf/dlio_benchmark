@@ -23,7 +23,7 @@ def test_model_factory_output_type(framework, model_type, input_shape, expected_
     # Backward pass
     random_out = torch.randn(1, 1000) if framework == FrameworkType.PYTORCH else tf.random.normal((1, 1000))
     assert random_out.shape == (1, 1000)
-    model.compute(input_data, random_out)
+    model.compute([input_data, random_out])
 
 
 if __name__ == "__main__":

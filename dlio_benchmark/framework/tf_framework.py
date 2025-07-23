@@ -44,10 +44,10 @@ class TFFramework(Framework):
     __instance = None
 
     @dlp.log_init
-    def __init__(self, profiling, model: Model = Model.SLEEP):
+    def __init__(self, profiling, model: Model = Model.SLEEP, communication: bool = False):
         super().__init__()
         self.profiling = profiling
-        self._model = ModelFactory.create_model(FrameworkType.TENSORFLOW, model)
+        self._model = ModelFactory.create_model(FrameworkType.TENSORFLOW, model, communication)
         # TODO: Temporary fix, need to separate the iostat profiler (needed for report gen) and the others
         if profiling:
             if self.args.profiler != Profiler.IOSTAT:
@@ -69,10 +69,10 @@ class TFFramework(Framework):
         return FrameworkType.TENSORFLOW
 
     @staticmethod
-    def get_instance(profiling, model: Model = Model.SLEEP):
+    def get_instance(profiling, model: Model = Model.SLEEP, communication: bool = False):
         """ Static access method. """
         if TFFramework.__instance is None:
-            TFFramework.__instance = TFFramework(profiling, model)
+            TFFramework.__instance = TFFramework(profiling, model, communication)
         return TFFramework.__instance
 
     @dlp.log
@@ -101,7 +101,7 @@ class TFFramework(Framework):
             sleep(computation_time
                   )
         else:
-            self._model.compute(batch[0], batch[1])
+            self._model.compute(batch)
         
 
     @dlp.log

@@ -65,11 +65,11 @@ class TorchFramework(Framework):
     __instance = None
 
     @dlp.log_init
-    def __init__(self, profiling, model: Model = Model.SLEEP):
+    def __init__(self, profiling, model: Model = Model.SLEEP, communication: bool = False):
         super().__init__()
         self.profiling = profiling
         self.reader_handler = None
-        self._model = ModelFactory.create_model(FrameworkType.TENSORFLOW, model)
+        self._model = ModelFactory.create_model(FrameworkType.PYTORCH, model, communication)
 
     @dlp.log
     def init_loader(self, format_type, epoch=0, data_loader=None):
@@ -82,10 +82,10 @@ class TorchFramework(Framework):
         return FrameworkType.PYTORCH
 
     @staticmethod
-    def get_instance(profiling, model: Model = Model.SLEEP):
+    def get_instance(profiling, model: Model = Model.SLEEP, communication: bool = False):
         """Static access method."""
         if TorchFramework.__instance is None:
-            TorchFramework.__instance = TorchFramework(profiling, model)
+            TorchFramework.__instance = TorchFramework(profiling, model, communication)
         return TorchFramework.__instance
 
     @dlp.log
@@ -106,9 +106,11 @@ class TorchFramework(Framework):
 
     def model(self, epoch, batch, computation_time):
         if self._model is None:
+            print("sleeping")
             sleep(computation_time)
         else:
-            self._model.compute(batch[0], batch[1])
+            print("Using model to compute")
+            self._model.compute(batch)
 
     @dlp.log
     def get_loader(self, dataset_type=DatasetType.TRAIN):

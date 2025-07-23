@@ -7,7 +7,7 @@ class LayerFactoryBase(ABC):
     """Abstract base class for layer factory classes."""
 
     @abstractmethod
-    def compute(self, input_data, target):
+    def compute(self, batch):
         pass
 
 

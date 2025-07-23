@@ -3,15 +3,17 @@ import torch
 import torch.nn as nn
 
 
+
 class PyTorchLayers:
     """Factory class for creating PyTorch layers"""
 
-    def __init__(self, loss_function) -> None:
+    def __init__(self, loss_function, communication: bool = False) -> None:
         super().__init__()
         self._optimizer = None
         self._model = None
         self._loss_function = loss_function
         self._layer_registry = {}  # Track created layers
+        self.communication = communication
 
     def _register_layer(self, layer: nn.Module, name: Optional[str] = None) -> nn.Module:
         """Register a layer for automatic model building"""
@@ -149,7 +151,24 @@ class PyTorchLayers:
     def get_model(self, forward_fn: Any, ) -> nn.Module:
         if self._model is not None:
             return self._model
-        
+
+        # If communication init process group
+        if self.communication:
+            from dlio_benchmark.utils.utility import DLIOMPI
+            import torch.distributed as dist
+            import socket
+            import os
+            rank = DLIOMPI.get_instance().rank()
+            if rank == 0:
+                master_addr = socket.gethostname()
+            else:
+                master_addr = None
+            master_addr = DLIOMPI.get_instance().comm().bcast(master_addr, root=0)
+            world_size = DLIOMPI.get_instance().size()
+            os.environ["MASTER_ADDR"] = master_addr
+            os.environ["MASTER_PORT"] = str(2345)
+            dist.init_process_group(backend="nccl" if torch.cuda.is_available() else "gloo", rank=rank, world_size=world_size)
+
         class Model(nn.Module):
             def __init__(self, layer_registry):
                 super().__init__()
@@ -205,20 +224,38 @@ class PyTorchLayers:
                 return forward_fn(x)
         
         self._model = Model(self._layer_registry)
+        #TODO: Set gpu - do we set by rank?
+        if self.communication:
+            from torch.nn.parallel import DistributedDataParallel as DDP
+            self._model = DDP(self._model)
         return self._model
     def set_optimizer(self, optimizer, *args, **kwargs):
         assert self._model is not None, "Model must be set before optimizer."
         self._optimizer = optimizer(self._model.parameters(), *args, **kwargs)
 
-    def compute(self, input_data, target):
+    def compute(self, batch):
         assert self._model is not None
         assert self._optimizer is not None
 
+        #TODO: Remove hardcoding
+        if type(batch) == torch.Tensor:
+            if batch.dim() == 3:
+                # Duplicate array thrice to make three channels
+                batch = batch.unsqueeze(1).repeat(1, 3, 1, 1)
+                # Minimum requirement for resnet
+                # batch = torch.reshape(batch, [*batch.shape])
+            elif batch.dim() == 2:
+                batch = torch.reshape(batch, [1, *batch.shape, 1])
+            # make into float
+            input_data = batch.float()
+            target = torch.zeros(input_data.shape[0], 1000)
+        else: 
+            input_data, target = batch
+        self._model.zero_grad()
         pred = self._model(input_data)
 
         loss = self._loss_function(pred, target)
         loss.backward()
-        print("Loss:", loss.item())
         # print("weights before update:")
         # for name, param in self._model.named_parameters():
         #     if param.requires_grad:
