@@ -21,6 +21,7 @@ import numpy as np
 
 # Reduce TF and CUDA logging
 
+import hydra
 from omegaconf import DictConfig
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -43,7 +44,6 @@ from dlio_benchmark.storage.storage_factory import StorageFactory
 
 dlp = Profile(MODULE_DLIO_BENCHMARK)
 # To make sure the output folder is the same in all the nodes. We have to do this.
-import hydra
 
 dftracer_initialize = True
 dftracer_finalize   = True
