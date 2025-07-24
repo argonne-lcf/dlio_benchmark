@@ -52,6 +52,7 @@ class FormatReader(ABC):
             self.global_index_map = self._args.val_global_index_map
 
     @dlp.log
+    @dft_ai.data.preprocess
     def preprocess(self, a=None):
         sleep(self._args.preprocess_time)
         return a

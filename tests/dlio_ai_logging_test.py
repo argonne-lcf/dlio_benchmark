@@ -32,7 +32,6 @@ from dlio_benchmark.utils.config import ConfigArguments
 from dlio_benchmark.utils.utility import DLIOMPI
 import dlio_benchmark
 
-DATA_ITEM_RELAXATION_TOLERANCE = 2  # Allow +/- 2 data items for relaxed comparison
 comm = MPI.COMM_WORLD
 
 config_dir = os.path.dirname(dlio_benchmark.__file__) + "/configs/"
@@ -74,7 +73,7 @@ def setup_test_env():
     comm.Barrier()
 
 def check_ai_events(path):
-    counter = Counter(root=0, compute=0, data_item=0, fetch_iter=0, train=0, eval=0, epoch=0, ckpt_capture=0, ckpt_restart=0)
+    counter = Counter(root=0, compute=0, item=0, preprocess=0, fetch_iter=0, train=0, eval=0, epoch=0, ckpt_capture=0, ckpt_restart=0)
     with open(path, mode="r") as f:
         for line in f:
             if "[" in line or "]" in line:
@@ -84,7 +83,9 @@ def check_ai_events(path):
             if '"cat":"compute"' in line and '"name":"compute"' in line:
                 counter["compute"] += 1
             if '"cat":"data"' in line and '"name":"item"' in line:
-                counter["data_item"] += 1
+                counter["item"] += 1
+            if '"cat":"data"' in line and '"name":"preprocess"' in line:
+                counter["preprocess"] += 1
             if '"cat":"dataloader"' in line and '"name":"fetch.iter"' in line:
                 counter["fetch_iter"] += 1
             if '"cat":"checkpoint"' in line and '"name":"capture"' in line:
@@ -154,8 +155,9 @@ def test_ai_logging_train(setup_test_env, framework, num_data, batch_size):
     # @ray: this is the tricky part, we run data fetching on background
     # (e.g. using parallel workers). using exact number will be difficult
     # we use relax comparison and approximation (+/- 2) instead.
-    assert pytest.approx(count["data_item"], num_epochs * num_data_pp, rel=DATA_ITEM_RELAXATION_TOLERANCE)
-
+    assert count["item"]       >= num_epochs * (num_data_pp // batch_size)
+    assert count["preprocess"] >= num_epochs * (num_data_pp // batch_size)
+    
     assert count["ckpt_capture"] == 0
     assert count["ckpt_restart"] == 0
 
@@ -213,7 +215,8 @@ def test_ai_logging_train_with_step(setup_test_env, framework, step, read_thread
     assert count["compute"]    == num_epochs * step
 
     # @ray: we are using relax comparison and approximation (+/- 2)
-    assert pytest.approx(count["data_item"], num_epochs * step, rel=DATA_ITEM_RELAXATION_TOLERANCE)
+    assert count["item"] == pytest.approx(num_epochs * step, rel=DATA_EVENTS_RELAXATION_TOLERANCE)
+    assert count["preprocess"] == pytest.approx(num_epochs * step, rel=DATA_EVENTS_RELAXATION_TOLERANCE)
 
     assert count["ckpt_capture"] == 0
     assert count["ckpt_restart"] == 0
@@ -263,8 +266,11 @@ def test_ai_logging_with_eval(setup_test_env, framework):
     assert count["eval"]         == num_epochs
     assert count["fetch_iter"]   == 2 * num_epochs * (num_data_pp // batch_size)
     assert count["compute"]      == 2 * num_epochs * (num_data_pp // batch_size)
+
     # @ray: we are using relax comparison and approximation (+/- 2)
-    assert pytest.approx(count["data_item"], 2 * num_epochs * num_data_pp, rel=DATA_ITEM_RELAXATION_TOLERANCE)
+    assert count["item"]         == 2 * num_epochs * num_data_pp
+    assert count["preprocess"]   == 2 * num_epochs * num_data_pp
+
     assert count["ckpt_capture"] == 0
     assert count["ckpt_restart"] == 0
 
@@ -321,10 +327,13 @@ def test_ai_logging_with_reader(setup_test_env, framework, fmt):
     if fmt == "tfrecord":
         # @ray: tfrecord reader does not have notion of data item since our function
         # will be fused into execution graph, making it impossible to count the events
-        assert count["data_item"] == 0
+        # by just using decorator in python
+        assert count["item"] == 0
+        assert count["preprocess"] == 0
     else:
         # @ray: we are using relax comparison and approximation (+/- 2)
-        assert pytest.approx(count["data_item"], 2 * num_epochs * num_data_pp, rel=DATA_ITEM_RELAXATION_TOLERANCE)
+        assert count["item"]       == 2 * num_epochs * num_data_pp
+        assert count["preprocess"] == 2 * num_epochs * num_data_pp
 
     assert count["ckpt_capture"] == 0
     assert count["ckpt_restart"] == 0
@@ -392,7 +401,8 @@ def test_ai_logging_train_with_checkpoint(setup_test_env, framework, epoch_per_c
     assert count["compute"]    == num_epochs * (num_data_pp // batch_size)
 
     # @ray: we are using relax comparison and approximation (+/- 2)
-    assert pytest.approx(count["data_item"], num_epochs * (num_data_pp // batch_size), rel=DATA_ITEM_RELAXATION_TOLERANCE)
+    assert count["item"]       >= num_epochs * (num_data_pp // batch_size)
+    assert count["preprocess"] >= num_epochs * (num_data_pp // batch_size)
 
     # @ray: this assertion below is only for rank 0
     # @todo: when DLIO supports all_ranks checkpointing, adjust this
@@ -463,7 +473,8 @@ def test_ai_logging_checkpoint_only(setup_test_env, framework, num_checkpoint_wr
     assert count["train"]      == 0
     assert count["eval"]       == 0
     assert count["fetch_iter"] == 0
-    assert count["data_item"]  == 0
+    assert count["item"]       == 0
+    assert count["preprocess"] == 0
 
     # @ray: this assertion below is only for rank 0
     # @todo: when DLIO supports all_ranks checkpointing, adjust this
