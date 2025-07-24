@@ -14,15 +14,12 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-import logging
-
 import numpy as np
-import struct
 
 from dlio_benchmark.common.constants import MODULE_DATA_READER
 from dlio_benchmark.common.enumerations import DataLoaderSampler
 from dlio_benchmark.reader.reader_handler import FormatReader
-from dlio_benchmark.utils.utility import Profile
+from dlio_benchmark.utils.utility import Profile, dft_ai
 
 dlp = Profile(MODULE_DATA_READER)
 
@@ -74,9 +71,6 @@ class IndexedBinaryMMapReader(FormatReader):
             for global_sample_idx, (filename, sample_index) in self.global_index_map.items():
                 self.load_index_file(global_sample_idx, filename, sample_index)
 
-
-
-
     @dlp.log
     def open(self, filename):
         super().open(filename)        
@@ -85,7 +79,6 @@ class IndexedBinaryMMapReader(FormatReader):
     @dlp.log
     def close(self, filename):
         super().close(filename)
-        
 
     @dlp.log
     def get_sample(self, filename, sample_index):
@@ -95,12 +88,14 @@ class IndexedBinaryMMapReader(FormatReader):
         size = self.file_map_ibr[filename][1][sample_index]
         image = buffer[offset:offset+size]
         dlp.update(image_size=size)
+        dft_ai.update(image_size=size)
 
     def next(self):
         for batch in super().next():
             yield batch
 
     @dlp.log
+    @dft_ai.data.item
     def read_index(self, image_idx, step):
         filename, sample_index = self.global_index_map[image_idx]
         self.get_sample(filename, sample_index)

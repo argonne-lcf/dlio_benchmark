@@ -48,12 +48,13 @@ class HDF5Reader(FormatReader):
             image = self.open_file_map[filename][f'records_{idx}'][sample_index]
             image_size += image.nbytes
         dlp.update(image_size=image_size)
+        dft_ai.update(image_size=image.nbytes)
 
     def next(self):
         for batch in super().next():
             yield batch
 
-    @dft_ai.data.item
+    @dlp.log
     def read_index(self, image_idx, step):
         return super().read_index(image_idx, step)
 

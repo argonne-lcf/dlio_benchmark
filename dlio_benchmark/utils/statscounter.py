@@ -245,6 +245,7 @@ class StatsCounter(object):
             self.output[epoch]['host_meminfo'] = lines_to_dict(open("/proc/meminfo", "r").read())
 
     def end_train(self, epoch, steps):
+        self.logger.output(f"DData {self.output[epoch]['au']}")
         au = np.array([self.output[epoch]['au'][k] for k in self.output[epoch]['au']])
         throughput = np.array([self.output[epoch]['throughput'][k] for k in self.output[epoch]['throughput']])
         steps = np.array([len(self.output[epoch]['proc'][k]) for k in self.output[epoch]['throughput']])
@@ -313,8 +314,8 @@ class StatsCounter(object):
         self.start_timestamp = time()
         self.output[epoch]['load'][f'block{block}'] = []
         self.output[epoch]['proc'][f'block{block}'] = []
-        self.output[epoch]['throughput'][f'block{block}'] = []
-        self.output[epoch]['au'][f'block{block}'] = []
+        self.output[epoch]['throughput'][f'block{block}'] = 0.0
+        self.output[epoch]['au'][f'block{block}'] = 0.0
         self.output[epoch]['compute'][f'block{block}'] = []
         ts = utcnow()
         self.per_epoch_stats[epoch][f'block{block}'] = {

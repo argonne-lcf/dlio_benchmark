@@ -14,11 +14,11 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-import numpy as np
 
 from dlio_benchmark.common.constants import MODULE_DATA_READER
+from dlio_benchmark.common.enumerations import DatasetType
 from dlio_benchmark.reader.reader_handler import FormatReader
-from dlio_benchmark.utils.utility import Profile
+from dlio_benchmark.utils.utility import Profile, dft_ai
 
 dlp = Profile(MODULE_DATA_READER)
 
@@ -46,15 +46,25 @@ class SyntheticReader(FormatReader):
 
     @dlp.log
     def next(self):
+        total = self._args.training_steps if self.dataset_type is DatasetType.TRAIN else self._args.eval_steps
+        step = 1
         while True:
+            dft_ai.data.item.start()
             batch = []
             for i in range(self.batch_size):
                 batch.append(self._args.resized_image)
+            dft_ai.data.item.stop()
             yield batch
+            step += 1
+            if step > total:
+                break
+            dft_ai.data.item.start()
 
     @dlp.log
+    @dft_ai.data.item
     def read_index(self, image_idx, step):
         dlp.update(step=step)
+        dft_ai.update(step=step)
         return self._args.resized_image
 
     @dlp.log
