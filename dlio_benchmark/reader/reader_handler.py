@@ -51,7 +51,6 @@ class FormatReader(ABC):
             self.file_map = self._args.val_file_map
             self.global_index_map = self._args.val_global_index_map
 
-    @dlp.log
     @dft_ai.data.preprocess
     def preprocess(self, a=None):
         sleep(self._args.preprocess_time)
@@ -77,8 +76,8 @@ class FormatReader(ABC):
         total_images = len(self.file_map[self.thread_index])
         self.logger.debug(f"{utcnow()} Reading {total_images} images thread {self.thread_index} rank {self._args.my_rank}")
 
-        dft_ai.data.item.start()
         for global_sample_idx, filename, sample_index in self.file_map[self.thread_index]:
+            dft_ai.data.item.start()
             self.image_idx = global_sample_idx
             if filename not in self.open_file_map or self.open_file_map[filename] is None:
                 self.open_file_map[filename] = self.open(filename)
@@ -90,12 +89,11 @@ class FormatReader(ABC):
             if is_last:
                 while len(batch) is not self.batch_size:
                     batch.append(self._args.resized_image)
+            dft_ai.data.item.stop()
             if len(batch) == self.batch_size:
                 self.step += 1
                 batch = np.array(batch)
-                dft_ai.data.item.stop()
                 yield batch
-                dft_ai.data.item.start()
                 batch = []
             if image_processed % self._args.num_samples_per_file == 0:
                 self.close(filename)

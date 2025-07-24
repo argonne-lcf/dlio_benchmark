@@ -94,7 +94,6 @@ class IndexedBinaryMMapReader(FormatReader):
         for batch in super().next():
             yield batch
 
-    @dlp.log
     @dft_ai.data.item
     def read_index(self, image_idx, step):
         filename, sample_index = self.global_index_map[image_idx]

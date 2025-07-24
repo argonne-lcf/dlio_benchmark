@@ -60,7 +60,6 @@ class SyntheticReader(FormatReader):
                 break
             dft_ai.data.item.start()
 
-    @dlp.log
     @dft_ai.data.item
     def read_index(self, image_idx, step):
         dlp.update(step=step)
