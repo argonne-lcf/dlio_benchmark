@@ -14,14 +14,12 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-from numpy import append
 from dlio_benchmark.utils.config import ConfigArguments
 from dlio_benchmark.utils.utility import utcnow, DLIOMPI, DLIOLogger
 
 import os
 import json
 import math
-import logging
 import pandas as pd
 from time import time
 import numpy as np
@@ -245,7 +243,6 @@ class StatsCounter(object):
             self.output[epoch]['host_meminfo'] = lines_to_dict(open("/proc/meminfo", "r").read())
 
     def end_train(self, epoch, steps):
-        self.logger.output(f"DData {self.output[epoch]['au']}")
         au = np.array([self.output[epoch]['au'][k] for k in self.output[epoch]['au']])
         throughput = np.array([self.output[epoch]['throughput'][k] for k in self.output[epoch]['throughput']])
         steps = np.array([len(self.output[epoch]['proc'][k]) for k in self.output[epoch]['throughput']])

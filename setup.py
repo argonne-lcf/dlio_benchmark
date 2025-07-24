@@ -7,6 +7,7 @@ HYDRA_VERSION = "1.3.2"
 
 test_deps = [
     "pytest",
+    "pydftracer @ git+https://github.com/LLNL/dftracer.git@b64cd2a800d6d90c7777405569a6cd2b8b0487c4",
 ]
 core_deps = [
     "Pillow>=9.3.0",

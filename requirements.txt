@@ -10,7 +10,8 @@ nvidia-dali-cuda110>=1.34.0
 omegaconf~=2.2.0
 pandas>=1.5.1
 psutil>=5.9.8
-pydftracer==1.0.11
+# pydftracer==1.0.11
+git+https://github.com/LLNL/dftracer.git@b64cd2a800d6d90c7777405569a6cd2b8b0487c4
 pytest
 tensorflow>=2.13.1
 tensorflow_io>=0.33.0

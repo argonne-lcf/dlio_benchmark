@@ -199,12 +199,74 @@ jobs:
       - name: test_ai_logging
         run: |
           source ${VENV_PATH}/bin/activate
-          mpirun -np 2 pytest -k test_ai_logging_train[pytorch] -v
-          mpirun -np 2 pytest -k test_ai_logging_train[tensorflow] -v
-          mpirun -np 2 pytest -k test_ai_logging_train_with_step[pytorch-3] -v
-          mpirun -np 2 pytest -k test_ai_logging_train_with_step[tensorflow-3] -v
+
+          mpirun -np 2 pytest -k test_ai_logging_train[pytorch-9-2] -v
+          mpirun -np 2 pytest -k test_ai_logging_train[pytorch-9-3] -v
+          mpirun -np 2 pytest -k test_ai_logging_train[pytorch-10-2] -v
+          mpirun -np 2 pytest -k test_ai_logging_train[pytorch-10-3] -v
+          mpirun -np 2 pytest -k test_ai_logging_train[tensorflow-9-2] -v
+          mpirun -np 2 pytest -k test_ai_logging_train[tensorflow-9-3] -v
+          mpirun -np 2 pytest -k test_ai_logging_train[tensorflow-10-2] -v
+          mpirun -np 2 pytest -k test_ai_logging_train[tensorflow-10-3] -v
+
+          mpirun -np 2 pytest -k test_ai_logging_train_with_step[pytorch-2-2] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_step[pytorch-2-3] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_step[pytorch-3-2] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_step[pytorch-3-3] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_step[tensorflow-2-2] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_step[tensorflow-2-3] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_step[tensorflow-3-2] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_step[tensorflow-3-3] -v
+
           mpirun -np 2 pytest -k test_ai_logging_with_eval[pytorch] -v
           mpirun -np 2 pytest -k test_ai_logging_with_eval[tensorflow] -v
+
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[pytorch-hdf5] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[pytorch-npy] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[pytorch-npz] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[pytorch-csv] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[pytorch-jpeg] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[pytorch-png] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[pytorch-indexed_binary] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[pytorch-mmap_indexed_binary] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[pytorch-synthetic] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[tensorflow-hdf5] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[tensorflow-npy] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[tensorflow-npz] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[tensorflow-tfrecord] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[tensorflow-csv] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[tensorflow-jpeg] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[tensorflow-png] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[tensorflow-indexed_binary] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[tensorflow-mmap_indexed_binary] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_reader[tensorflow-synthetic] -v
+
+          mpirun -np 2 pytest -k test_ai_logging_train_with_checkpoint[pytorch-1-na] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_checkpoint[pytorch-1-1] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_checkpoint[pytorch-1-2] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_checkpoint[pytorch-2-na] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_checkpoint[pytorch-2-1] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_checkpoint[pytorch-2-2] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_checkpoint[tensorflow-1-na] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_checkpoint[tensorflow-1-1] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_checkpoint[tensorflow-1-2] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_checkpoint[tensorflow-2-na] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_checkpoint[tensorflow-2-1] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_checkpoint[tensorflow-2-2] -v
+
+          mpirun -np 2 pytest -k test_ai_logging_checkpoint_only[pytorch-3-1] -v
+          mpirun -np 2 pytest -k test_ai_logging_checkpoint_only[pytorch-3-2] -v
+          mpirun -np 2 pytest -k test_ai_logging_checkpoint_only[pytorch-3-3] -v
+          mpirun -np 2 pytest -k test_ai_logging_checkpoint_only[pytorch-4-1] -v
+          mpirun -np 2 pytest -k test_ai_logging_checkpoint_only[pytorch-4-2] -v
+          mpirun -np 2 pytest -k test_ai_logging_checkpoint_only[pytorch-4-3] -v
+          mpirun -np 2 pytest -k test_ai_logging_checkpoint_only[tensorflow-3-1] -v
+          mpirun -np 2 pytest -k test_ai_logging_checkpoint_only[tensorflow-3-2] -v
+          mpirun -np 2 pytest -k test_ai_logging_checkpoint_only[tensorflow-3-3] -v
+          mpirun -np 2 pytest -k test_ai_logging_checkpoint_only[tensorflow-4-1] -v
+          mpirun -np 2 pytest -k test_ai_logging_checkpoint_only[tensorflow-4-2] -v
+          mpirun -np 2 pytest -k test_ai_logging_checkpoint_only[tensorflow-4-3] -v
+         
           rm -rf outputs
       - name: test_checkpoint_epoch
         run: |
