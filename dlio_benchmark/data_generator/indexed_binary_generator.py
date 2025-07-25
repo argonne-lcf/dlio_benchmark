@@ -15,14 +15,14 @@
    limitations under the License.
 """
 
-from dlio_benchmark.data_generator.data_generator import DataGenerator
+import struct
 
+from mpi4py import MPI
 import numpy as np
 
-from dlio_benchmark.utils.utility import Profile, progress, utcnow, DLIOMPI, bytes_to_np_dtype
+from dlio_benchmark.data_generator.data_generator import DataGenerator
 from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
-import struct
-from mpi4py import MPI
+from dlio_benchmark.utils.utility import Profile, progress, utcnow, DLIOMPI, bytes_to_np_dtype, gen_random_tensor
 
 dlp = Profile(MODULE_DATA_GENERATOR)
 
@@ -47,11 +47,11 @@ class IndexedBinaryGenerator(DataGenerator):
         """
         super().generate()
         np.random.seed(10)
+        rng = np.random.default_rng()
         GB=1024*1024*1024
         samples_processed = 0
         total_samples = self.total_files_to_generate * self.num_samples
         dim = self.get_dimension(self.total_files_to_generate)
-        # self.logger.info(dim)
         if self.total_files_to_generate <= self.comm_size:
             # Use collective I/O
             # we need even number os samples for collective I/O
@@ -66,7 +66,7 @@ class IndexedBinaryGenerator(DataGenerator):
                 else:
                     dim1 = dim_
                     dim2 = dim[2*file_index+1]
-                sample_size = dim1 * dim2
+                sample_size = dim1 * dim2 * self._args.record_element_bytes
                 out_path_spec = self.storage.get_uri(self._file_list[file_index])
                 out_path_spec_off_idx = self.index_file_path_off(out_path_spec)
                 out_path_spec_sz_idx = self.index_file_path_size(out_path_spec)
@@ -97,7 +97,7 @@ class IndexedBinaryGenerator(DataGenerator):
                 fh = MPI.File.Open(comm, out_path_spec, amode)
                 samples_per_loop = int(GB / sample_size)
 
-                records = np.random.randint(255, size=sample_size*samples_per_loop, dtype=self.record_element_dtype)
+                records = np.random.randint(255, size=sample_size*samples_per_loop, dtype=np.uint8)
 
                 for sample_index in range(self.my_rank*samples_per_rank, samples_per_rank*(self.my_rank+1), samples_per_loop):
                     #self.logger.info(f"{utcnow()} rank {self.my_rank} writing {sample_index} * {samples_per_loop} for {samples_per_rank} samples")
@@ -115,7 +115,7 @@ class IndexedBinaryGenerator(DataGenerator):
                 else:
                     dim1 = dim_
                     dim2 = dim[2*i+1]
-                sample_size = dim1 * dim2
+                sample_size = dim1 * dim2 * self._args.record_element_bytes
                 total_size = sample_size * self.num_samples
                 write_size = total_size
                 memory_size = self._args.generation_buffer_size
@@ -129,7 +129,8 @@ class IndexedBinaryGenerator(DataGenerator):
                 data_file = open(out_path_spec, "wb")
                 off_file = open(out_path_spec_off_idx, "wb")
                 sz_file = open(out_path_spec_sz_idx, "wb")
-                records = np.random.randint(255, size=write_size, dtype=self.record_element_dtype)
+                records = gen_random_tensor(shape=write_size, dtype=self.record_element_dtype, rng=rng)
+                records = np.random.randint(255, size=write_size, dtype=np.uint8)
                 while written_bytes < total_size:
                     data_to_write = write_size if written_bytes + write_size <= total_size else total_size - written_bytes
                     samples_to_write = data_to_write // sample_size
