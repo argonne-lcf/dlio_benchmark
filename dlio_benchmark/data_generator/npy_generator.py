@@ -14,12 +14,10 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-
-from dlio_benchmark.data_generator.data_generator import DataGenerator
-
 import numpy as np
 
-from dlio_benchmark.utils.utility import Profile, progress, bytes_to_np_dtype, gen_random_tensor
+from dlio_benchmark.data_generator.data_generator import DataGenerator
+from dlio_benchmark.utils.utility import Profile, progress, gen_random_tensor
 from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
 
 dlp = Profile(MODULE_DATA_GENERATOR)
@@ -30,7 +28,6 @@ Generator for creating data in NPZ format.
 class NPYGenerator(DataGenerator):
     def __init__(self):
         super().__init__()
-        self.record_element_dtype = bytes_to_np_dtype(self._args.record_element_bytes) if self._args.record_element_type == "" else np.dtype(self._args.record_element_type)
 
     @dlp.log
     def generate(self):
@@ -44,12 +41,12 @@ class NPYGenerator(DataGenerator):
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
             dim_ = dim[2*i]
             if isinstance(dim_, list):
-                dim1 = dim_[0]
-                dim2 = dim_[1]
+                records = gen_random_tensor(shape=(*dim_, self.num_samples), dtype=self._args.record_element_dtype, rng=rng)
             else:
                 dim1 = dim_
                 dim2 = dim[2*i+1]
-            records = gen_random_tensor(shape=(dim1, dim2, self.num_samples), dtype=self.record_element_dtype, rng=rng)
+                records = gen_random_tensor(shape=(dim1, dim2, self.num_samples), dtype=self._args.record_element_dtype, rng=rng)
+
             out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating NPY Data")
             np.save(out_path_spec, records)

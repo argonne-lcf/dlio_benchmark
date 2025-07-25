@@ -14,14 +14,12 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+import numpy as np
+import PIL.Image as im
 
 from dlio_benchmark.data_generator.data_generator import DataGenerator
-
-import numpy as np
-
 from dlio_benchmark.utils.utility import progress, utcnow
 from dlio_benchmark.utils.utility import Profile
-import PIL.Image as im
 from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
 
 dlp = Profile(MODULE_DATA_GENERATOR)

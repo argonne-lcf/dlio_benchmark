@@ -19,10 +19,7 @@ from abc import ABC, abstractmethod
 
 from dlio_benchmark.utils.config import ConfigArguments
 from dlio_benchmark.storage.storage_factory import StorageFactory
-import math
-from shutil import copyfile
 import numpy as np
-import logging
 from dlio_benchmark.utils.utility import utcnow, add_padding, DLIOMPI
 
 

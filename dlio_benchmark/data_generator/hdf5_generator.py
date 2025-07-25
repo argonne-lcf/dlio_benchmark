@@ -20,7 +20,7 @@ import numpy as np
 
 from dlio_benchmark.common.enumerations import Compression
 from dlio_benchmark.data_generator.data_generator import DataGenerator
-from dlio_benchmark.utils.utility import Profile, progress, bytes_to_np_dtype, gen_random_tensor
+from dlio_benchmark.utils.utility import Profile, progress, gen_random_tensor
 
 from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
 
@@ -32,8 +32,6 @@ Generator for creating data in HDF5 format.
 class HDF5Generator(DataGenerator):
     def __init__(self):
         super().__init__()
-
-        self.record_element_dtype = bytes_to_np_dtype(self._args.record_element_bytes) if self._args.record_element_type == "" else np.dtype(self._args.record_element_type)
         self.record_labels = [0] * self.num_samples
         self.hdf5_compression = None
         self.hdf5_compression_level = None
@@ -46,7 +44,7 @@ class HDF5Generator(DataGenerator):
         hf = h5py.File(name, 'w', libver='latest')
         for dataset_id in range(self._args.num_dataset_per_record):
             hf.create_dataset(f'records_{dataset_id}', shape, compression=self.hdf5_compression,
-                              compression_opts=self.hdf5_compression_level, dtype=self.record_element_dtype, data=records, **kwargs)
+                              compression_opts=self.hdf5_compression_level, dtype=self._args.record_element_dtype, data=records, **kwargs)
         hf.create_dataset('labels', data=self.record_labels)
         hf.close()
 
@@ -75,24 +73,27 @@ class HDF5Generator(DataGenerator):
             if isinstance(dim1, list):
                 if dim1[0] == 1:
                     dim1 = dim1[1:]
-                shape = (1, *dim1)
+
                 if self.num_samples > 1:
                     shape = (self.num_samples, *dim1)
+                else:
+                    shape = (1, *dim1)
 
                 if len(self._args.max_shape) > 0:
                     kwargs["maxshape"] = (shape[0], *self._args.max_shape)
 
-                records = gen_random_tensor(shape=shape, dtype=self.record_element_dtype, rng=rng)
+                records = gen_random_tensor(shape=shape, dtype=self._args.record_element_dtype, rng=rng)
             else:
                 dim2 = dim[2*i+1]
-                shape = (1, dim1, dim2)
                 if self.num_samples > 1:
                     shape = (self.num_samples, dim1, dim2)
+                else:
+                    shape = (1, dim1, dim2)
 
                 if len(self._args.max_shape) > 0:
                     kwargs["maxshape"] = (shape[0], *self._args.max_shape)
 
-                records = gen_random_tensor(shape=shape, dtype=self.record_element_dtype, rng=rng)
+                records = gen_random_tensor(shape=shape, dtype=self._args.record_element_dtype, rng=rng)
 
             progress(i+1, self.total_files_to_generate, "Generating HDF5 Data")
 

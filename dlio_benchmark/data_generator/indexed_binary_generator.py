@@ -22,7 +22,7 @@ import numpy as np
 
 from dlio_benchmark.data_generator.data_generator import DataGenerator
 from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
-from dlio_benchmark.utils.utility import Profile, progress, utcnow, DLIOMPI, bytes_to_np_dtype, gen_random_tensor
+from dlio_benchmark.utils.utility import Profile, progress, utcnow, DLIOMPI
 
 dlp = Profile(MODULE_DATA_GENERATOR)
 
@@ -32,7 +32,6 @@ Generator for creating data in NPZ format.
 class IndexedBinaryGenerator(DataGenerator):
     def __init__(self):
         super().__init__()
-        self.record_element_dtype = bytes_to_np_dtype(self._args.record_element_bytes) if self._args.record_element_type == "" else np.dtype(self._args.record_element_type)
 
     def index_file_path_off(self, prefix_path):
         return prefix_path + '.off.idx'
@@ -47,7 +46,6 @@ class IndexedBinaryGenerator(DataGenerator):
         """
         super().generate()
         np.random.seed(10)
-        rng = np.random.default_rng()
         GB=1024*1024*1024
         samples_processed = 0
         total_samples = self.total_files_to_generate * self.num_samples
@@ -60,13 +58,14 @@ class IndexedBinaryGenerator(DataGenerator):
                 amode = MPI.MODE_WRONLY | MPI.MODE_CREATE
                 comm = MPI.COMM_WORLD
                 dim_ = dim[2*file_index]
+                shape_size = 0
                 if isinstance(dim_, list):
-                    dim1 = dim_[0]
-                    dim2 = dim_[1]
+                    shape_size = sum(dim_)
                 else:
                     dim1 = dim_
                     dim2 = dim[2*file_index+1]
-                sample_size = dim1 * dim2 * self._args.record_element_bytes
+                    shape_size = dim1 * dim2
+                sample_size = shape_size * self._args.record_element_bytes
                 out_path_spec = self.storage.get_uri(self._file_list[file_index])
                 out_path_spec_off_idx = self.index_file_path_off(out_path_spec)
                 out_path_spec_sz_idx = self.index_file_path_size(out_path_spec)
@@ -109,13 +108,14 @@ class IndexedBinaryGenerator(DataGenerator):
         else:
             for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
                 dim_ = dim[2*i]
+                shape_size = 0
                 if isinstance(dim_, list):
-                    dim1 = dim_[0]
-                    dim2 = dim_[1]
+                    shape_size = np.prod(dim_)
                 else:
                     dim1 = dim_
                     dim2 = dim[2*i+1]
-                sample_size = dim1 * dim2 * self._args.record_element_bytes
+                    shape_size = dim1 * dim2
+                sample_size = shape_size * self._args.record_element_bytes
                 total_size = sample_size * self.num_samples
                 write_size = total_size
                 memory_size = self._args.generation_buffer_size
@@ -129,7 +129,6 @@ class IndexedBinaryGenerator(DataGenerator):
                 data_file = open(out_path_spec, "wb")
                 off_file = open(out_path_spec_off_idx, "wb")
                 sz_file = open(out_path_spec_sz_idx, "wb")
-                records = gen_random_tensor(shape=write_size, dtype=self.record_element_dtype, rng=rng)
                 records = np.random.randint(255, size=write_size, dtype=np.uint8)
                 while written_bytes < total_size:
                     data_to_write = write_size if written_bytes + write_size <= total_size else total_size - written_bytes
