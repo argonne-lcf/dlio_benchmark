@@ -173,8 +173,11 @@ class ConfigArguments:
     #################################################
     # dataset
     record_dims: ClassVar[List[int]] = []
+    record_element_type: str = "uint8" # user provided
+
+    # dataset -- derived
     record_element_bytes: int = 4
-    record_element_type: str = ""
+    record_element_dtype: ClassVar[np.dtype] = np.dtype("uint8")
 
     ## dataset: hdf5-only
     num_dataset_per_record: int = 1
@@ -316,11 +319,19 @@ class ConfigArguments:
                 raise Exception(f"Number of checkpoints to read {self.num_checkpoints_read} cannot be larger than number of checkpoints to write {self.num_checkpoints_write}")
         if self.ksm_present and self.checkpoint_randomize_tensor:
             raise Exception(f"checkpoint.ksm is {self.ksm_present} which requires checkpoint.randomize_tensor to be False")
+
+        # HDF5 specific checks        
+        if len(self.record_dims) > 0:
+            if self.record_dims[0] % self.num_dataset_per_record != 0:
+                raise ValueError("hdf5.num_dataset_per_record should be divisible by record_dims[0]")
+
+        # Image specific checks
         if self.format in [FormatType.JPEG, FormatType.PNG]:
             if np.dtype(self.record_element_type) != np.uint8:
-                raise Exception(f"{self.format} format requires record_element_type to be np.uint8, this should be automatically set. Please contact developers if this message appears.")
+                # @ray: ensure compatibility with PIL fromarray (https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.fromarray)
+                raise ValueError(f"{self.format} format requires record_element_type to be np.uint8, this should be automatically set. Please contact developers if this message appears.")
             if len(self.record_dims) > 2:
-                raise Exception(f"{self.format} format does not support more than 2 dimensions, but got {len(self.record_dims)} dimensions.")
+                raise ValueError(f"{self.format} format does not support more than 2 dimensions, but got {len(self.record_dims)} dimensions.")
 
     @staticmethod
     def reset():
@@ -328,6 +339,12 @@ class ConfigArguments:
 
     @dlp.log
     def derive_configurations(self, file_list_train=None, file_list_eval=None):
+        if self.checkpoint_mechanism == CheckpointMechanismType.NONE:
+            if self.framework == FrameworkType.TENSORFLOW:
+                self.checkpoint_mechanism = CheckpointMechanismType.TF_SAVE
+            elif self.framework == FrameworkType.PYTORCH:
+                self.checkpoint_mechanism = CheckpointMechanismType.PT_SAVE
+
         record_dims_length = len(self.record_dims)
         if record_dims_length > 0:
             self.dimension = self.record_dims
@@ -407,6 +424,24 @@ class ConfigArguments:
         elif self.data_loader == DataLoaderType.NATIVE_DALI:
             if self.format in [FormatType.JPEG, FormatType.PNG, FormatType.NPY, FormatType.TFRECORD]:
                 self.native_data_loader = True
+
+
+        # dimension-based derivations
+
+        if self.format in [FormatType.JPEG, FormatType.PNG]:
+            if self.record_element_type != "uint8":
+                # @ray: ensure compatibility with PIL fromarray (https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.fromarray)        
+                # force uint8 on image dataset
+                self.logger.warning(f"Image format {self.format} requires record_element_type to be np.uint8, but given {self.record_element_type}. Re-setting to np.uint8.")
+                self.record_element_type = "uint8"
+
+        # recalculate record_element_bytes if record_element_type is provided
+        # to make them consistent
+        self.record_element_dtype = np.dtype(self.record_element_type)
+        self.record_element_bytes = self.record_element_dtype.itemsize
+
+        # hdf5 specific derivations
+        self.record_length = np.prod(self.record_dims) * self.record_element_bytes
 
     @dlp.log
     def build_sample_map_iter(self, file_list, total_samples, epoch_number):
@@ -779,25 +814,12 @@ def LoadConfig(args, config):
             args.format = FormatType(config['dataset']['format'])
         if 'keep_files' in config['dataset']:
             args.keep_files = config['dataset']['keep_files']
-
         if 'record_element_bytes' in config['dataset']:
             args.record_element_bytes = config['dataset']['record_element_bytes']
         if 'record_element_type' in config['dataset']:
             args.record_element_type = config['dataset']['record_element_type']
-            if args.format in [FormatType.JPEG, FormatType.PNG]:
-                # force uint8 on image dataset
-                args.record_element_type = "uint8"
-            # recalculate record_element_bytes if record_element_type is provided
-            # to make them consistent
-            args.record_element_bytes = np.dtype(args.record_element_type).itemsize
-        else:
-            # if args.format in [FormatType.JPEG, FormatType.PNG]:
-            args.record_element_type = "uint8"
-            args.record_element_bytes = np.dtype(args.record_element_type).itemsize
         if 'record_dims' in config['dataset']:
             args.record_dims = list(config['dataset']['record_dims'])
-            # recalculate args.record_length
-            args.record_length = np.prod(args.record_dims) * args.record_element_bytes
 
         # hdf5 only config
         if 'hdf5' in config['dataset']:
@@ -805,9 +827,6 @@ def LoadConfig(args, config):
                 args.chunk_dims = tuple(config['dataset']['hdf5']['chunk_dims'])
             if 'num_dataset_per_record' in config['dataset']['hdf5']:
                 args.num_dataset_per_record = config['dataset']['hdf5']['num_dataset_per_record']
-            if len(args.record_dims) > 0:
-                if args.record_dims[0] % args.num_dataset_per_record != 0:
-                    raise ValueError("hdf5.num_dataset_per_record should be divisible by record_dims[0]")
             if 'max_shape' in config['dataset']['hdf5']:
                 args.max_shape = list(config['dataset']['hdf5']['max_shape'])
 
