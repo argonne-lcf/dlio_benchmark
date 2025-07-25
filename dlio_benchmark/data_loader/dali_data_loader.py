@@ -147,12 +147,10 @@ class DaliDataLoader(BaseDataLoader):
                 self.logger.debug(f"{utcnow()} Output batch {step} {len(outputs)}")
                 yield outputs
                 step += 1
-                dlp.update(step=step)
                 dft_ai.update(step=step)
                 pipe.release_outputs()
                 pipe.schedule_run()
         self.epoch_number += 1
-        dlp.update(epoch=self.epoch_number)
         dft_ai.update(epoch=self.epoch_number)
 
     @dlp.log

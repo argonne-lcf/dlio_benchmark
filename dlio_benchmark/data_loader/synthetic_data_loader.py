@@ -48,14 +48,12 @@ class SyntheticDataLoader(BaseDataLoader):
         dft_ai.dataloader.fetch.start()
         while step < self.num_samples // self.batch_size:
             dft_ai.dataloader.fetch.stop()
-            dlp.update(step=step)
             dft_ai.update(step=step)
             step += 1
             yield self.getitem()
             dft_ai.dataloader.fetch.start()
 
         self.epoch_number += 1
-        dlp.update(epoch=self.epoch_number)
         dft_ai.update(epoch=self.epoch_number)
 
     @dlp.log

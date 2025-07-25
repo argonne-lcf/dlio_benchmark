@@ -45,7 +45,6 @@ class CSVReader(FormatReader):
     def get_sample(self, filename, sample_index):
         super().get_sample(filename, sample_index)
         image = self.open_file_map[filename][sample_index]
-        dlp.update(image_size=image.nbytes)
         dft_ai.update(image_size=image.nbytes)
 
     def next(self):

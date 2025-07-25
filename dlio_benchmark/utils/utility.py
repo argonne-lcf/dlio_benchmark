@@ -22,9 +22,8 @@ from time import time, sleep as base_sleep
 from functools import wraps
 import threading
 import json
-import tracemalloc
-from time import perf_counter
 import socket
+import argparse
 
 import psutil
 import numpy as np
@@ -97,7 +96,6 @@ class DLIOLogger:
     __instance = None
 
     def __init__(self):
-        console_handler = logging.StreamHandler()
         self.logger = logging.getLogger("DLIO")
         #self.logger.setLevel(logging.DEBUG)
         if DLIOLogger.__instance is not None:
@@ -276,29 +274,6 @@ def timeit(func):
         x = func(*args, **kwargs)
         end = time()
         return x, "%10.10f" % begin, "%10.10f" % end, os.getpid()
-
-    return wrapper
-
-
-def measure_performance(func):
-    '''Measure performance of a function'''
-
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        tracemalloc.start()
-        start_time = perf_counter()
-        func(*args, **kwargs)
-        current, peak = tracemalloc.get_traced_memory()
-        finish_time = perf_counter()
-
-        if DLIOMPI.get_instance().rank() == 0:
-            s = f'Resource usage information \n[PERFORMANCE] {"=" * 50}\n'
-            s += f'[PERFORMANCE] Memory usage:\t\t {current / 10 ** 6:.6f} MB \n'
-            s += f'[PERFORMANCE] Peak memory usage:\t {peak / 10 ** 6:.6f} MB \n'
-            s += f'[PERFORMANCE] Time elapsed:\t\t {finish_time - start_time:.6f} s\n'
-            s += f'[PERFORMANCE] {"=" * 50}\n'
-            DLIOLogger.get_instance().info(s)
-        tracemalloc.stop()
 
     return wrapper
 
