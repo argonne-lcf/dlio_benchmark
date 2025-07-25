@@ -362,27 +362,20 @@ def sleep(config):
         base_sleep(sleep_time)
     return sleep_time
 
-def bytes_to_np_dtype(bytes: int) -> np.dtype:
-    if bytes == 1:
-        return np.int8
-    if bytes == 2:
-        return np.int16
-    if bytes == 4:
-        return np.int32
-    if bytes == 8:
-        return np.int64
-    raise ValueError(f"{bytes}B are not defined in np.dtype")
-
 def gen_random_tensor(shape, dtype, rng=None):
     if rng is None:
         rng = np.random.default_rng()
     if not np.issubdtype(dtype, np.integer):
-        return rng.random(size=shape, dtype=dtype)
+        # Only float32 and float64 are supported by rng.random
+        if dtype not in (np.float32, np.float64):
+            arr = rng.random(size=shape, dtype=np.float32)
+            return arr.astype(dtype)
+        else:
+            return rng.random(size=shape, dtype=dtype)
     
-    # For integer dtypes, we will generate float32 first then 
+    # For integer dtypes, generate float32 first then scale and cast
     dtype_info = np.iinfo(dtype)
     records = rng.random(size=shape, dtype=np.float32)
-    # Then, scale to the range of the target integer dtype
     records = records * (dtype_info.max - dtype_info.min) + dtype_info.min
     records = records.astype(dtype)
     return records
