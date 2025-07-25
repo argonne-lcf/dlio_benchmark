@@ -59,16 +59,20 @@ class TFCheckpointing(BaseCheckpointing):
         tf_dtype = get_tf_datatype(datatype)
         if randomize:
             if tf_dtype in [tf.float16, tf.float32, tf.float64, tf.bfloat16]:
-                return tf.random.uniform(shape=(length,), minval=0, maxval=1, dtype=tf_dtype)
+                tensor = tf.random.uniform(shape=(length,), minval=0, maxval=1, dtype=tf_dtype)
             elif tf_dtype == tf.int8:
                 random_tensor = tf.random.uniform(shape=(length,), minval=-128, maxval=128, dtype=tf.int32)
-                return tf.cast(random_tensor, dtype=tf.int8)
+                tensor = tf.cast(random_tensor, dtype=tf.int8)
             elif tf_dtype == tf.uint8:
                 random_tensor = tf.random.uniform(shape=(length,), minval=0, maxval=256, dtype=tf.int32)
-                return tf.cast(random_tensor, dtype=tf.uint8)
+                tensor = tf.cast(random_tensor, dtype=tf.uint8)
             else:
-                 raise Exception(f"Datatype {tf_dtype} cannot be randomized for random tensor generation.")
-        return tf.ones((length), dtype=tf_dtype)
+                raise Exception(f"Datatype {tf_dtype} cannot be randomized for random tensor generation.")
+        else:
+            tensor = tf.ones((length), dtype=tf_dtype)
+    
+        # Convert tensor to variable to make it trackable for checkpointing
+        return tf.Variable(tensor, trainable=False)
 
     @dlp.log
     def set_madvise_mergeable(self, tensor):
@@ -77,17 +81,17 @@ class TFCheckpointing(BaseCheckpointing):
     @dft_ai.checkpoint.capture
     def save_state(self, suffix, state, fsync = False):
         name = self.get_name(suffix)
-        checkpoint = tf.train.Checkpoint()
-        checkpoint.mapped = state
+        checkpoint = tf.train.Checkpoint(**state)
         checkpoint.save(name)
 
     @dft_ai.checkpoint.restart
     def load_state(self, suffix, state):
         name = self.get_name(suffix)
-        state = dict() # clear up
-        state = tf.train.load_checkpoint(name)
-        self.logger.debug(f"{utcnow()} Checkpoint state loaded: {state}")
-        assert(len(state.keys)!=0)
+        name = f"{name}-1"
+        state = {k: tf.Variable(tf.zeros(shape=v.shape, dtype=v.dtype), trainable=False) for k, v in state.items()}
+        checkpoint = tf.train.Checkpoint(**state)
+        checkpoint.restore(name)
+        assert len(state.keys()) != 0
         
     @dlp.log
     def save_checkpoint(self, epoch, step_number):

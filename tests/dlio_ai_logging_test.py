@@ -410,14 +410,12 @@ def test_ai_logging_train_with_checkpoint(setup_test_env, framework, epoch_per_c
 
     # @ray: this assertion below is only for rank 0
     # @todo: when DLIO supports all_ranks checkpointing, adjust this
-    ckpt_capture = 0
     if comm.rank == 0:
         ckpt_capture = count["ckpt_capture"]
     else:
-        ckpt_capture = None
+        ckpt_capture = 0
 
     ckpt_capture = comm.bcast(ckpt_capture, root=0)
-    assert ckpt_capture is not None
 
     # @ray: in DLIO step has more precedence compared to epoch
     if steps_per_ckpt != -1:
@@ -488,13 +486,10 @@ def test_ai_logging_checkpoint_only(setup_test_env, framework, num_checkpoint_wr
         ckpt_capture = count["ckpt_capture"]
         ckpt_restart = count["ckpt_restart"]
     else:
-        ckpt_capture = None
-        ckpt_restart = None
-
+        ckpt_capture = 0
+        ckpt_restart = 0
     ckpt_capture = comm.bcast(ckpt_capture, root=0)
     ckpt_restart = comm.bcast(ckpt_restart, root=0)
-    assert ckpt_capture is not None
-    assert ckpt_restart is not None
     assert ckpt_capture == num_checkpoint_write
     assert ckpt_restart == num_checkpoint_read
     assert count["compute"] == num_checkpoint_write + num_checkpoint_read
