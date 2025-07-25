@@ -81,29 +81,102 @@ jobs:
       - name: test_dataset_dimension_gen_data
         run: |
           source ${VENV_PATH}/bin/activate
-          mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[float32] -v
-          mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[int32] -v
 
-          mpirun -np 2 pytest -k test_dim_based_image_gen_data[png] -v
-          mpirun -np 2 pytest -k test_dim_based_image_gen_data[jpeg] -v
+          mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[float32-2] -v
+          mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[float32-3] -v
+          mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[float32-4] -v
+          mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[int8-2] -v
+          mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[int8-3] -v
+          mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[int8-4] -v
+          mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[float16-2] -v
+          mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[float16-3] -v
+          mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[float16-4] -v
 
-          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npz-int32] -v
-          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npz-float32] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[png-float32-2] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[png-float32-3] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[png-float32-4] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[png-int8-2] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[png-int8-3] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[png-int8-4] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[png-float16-2] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[png-float16-3] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[png-float16-4] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[jpeg-float32-2] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[jpeg-float32-3] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[jpeg-float32-4] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[jpeg-int8-2] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[jpeg-int8-3] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[jpeg-int8-4] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[jpeg-float16-2] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[jpeg-float16-3] -v
+          mpirun -np 2 pytest -k test_dim_based_image_gen_data[jpeg-float16-4] -v
 
-          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npy-int32] -v
-          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npy-float32] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npz-float32-2] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npz-float32-3] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npz-float32-4] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npz-int8-2] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npz-int8-3] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npz-int8-4] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npz-float16-2] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npz-float16-3] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npz-float16-4] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npy-float32-2] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npy-float32-3] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npy-float32-4] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npy-int8-2] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npy-int8-3] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npy-int8-4] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npy-float16-2] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npy-float16-3] -v
+          mpirun -np 2 pytest -k test_dim_based_np_gen_data[npy-float16-4] -v
 
-          mpirun -np 2 pytest -k test_dim_based_tfrecord_gen_data[int16] -v
-          mpirun -np 2 pytest -k test_dim_based_tfrecord_gen_data[float32] -v
-          mpirun -np 2 pytest -k test_dim_based_tfrecord_gen_data[uint8] -v
+          mpirun -np 2 pytest -k test_dim_based_tfrecord_gen_data[float32-2] -v
+          mpirun -np 2 pytest -k test_dim_based_tfrecord_gen_data[float32-3] -v
+          mpirun -np 2 pytest -k test_dim_based_tfrecord_gen_data[float32-4] -v
+          mpirun -np 2 pytest -k test_dim_based_tfrecord_gen_data[int8-2] -v
+          mpirun -np 2 pytest -k test_dim_based_tfrecord_gen_data[int8-3] -v
+          mpirun -np 2 pytest -k test_dim_based_tfrecord_gen_data[int8-4] -v
+          mpirun -np 2 pytest -k test_dim_based_tfrecord_gen_data[float16-2] -v
+          mpirun -np 2 pytest -k test_dim_based_tfrecord_gen_data[float16-3] -v
+          mpirun -np 2 pytest -k test_dim_based_tfrecord_gen_data[float16-4] -v
 
-          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[int16-1] -v
-          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[int16-2] -v
-          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[int16-3] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-1-2] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-1-3] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-1-4] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-2-2] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-2-3] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-2-4] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-3-2] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-3-3] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-3-4] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[int8-1-2] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[int8-1-3] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[int8-1-4] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[int8-2-2] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[int8-2-3] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[int8-2-4] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[int8-3-2] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[int8-3-3] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[int8-3-4] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float16-1-2] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float16-1-3] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float16-1-4] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float16-2-2] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float16-2-3] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float16-2-4] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float16-3-2] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float16-3-3] -v
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float16-3-4] -v
 
-          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-1] -v
-          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-2] -v
-          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-3] -v
+          mpirun -np 2 pytest -k test_dim_based_csv[float32-2] -v
+          mpirun -np 2 pytest -k test_dim_based_csv[float32-3] -v
+          mpirun -np 2 pytest -k test_dim_based_csv[float32-4] -v
+          mpirun -np 2 pytest -k test_dim_based_csv[int8-2] -v
+          mpirun -np 2 pytest -k test_dim_based_csv[int8-3] -v
+          mpirun -np 2 pytest -k test_dim_based_csv[int8-4] -v
+          mpirun -np 2 pytest -k test_dim_based_csv[float16-2] -v
+          mpirun -np 2 pytest -k test_dim_based_csv[float16-3] -v
+          mpirun -np 2 pytest -k test_dim_based_csv[float16-4] -v
           rm -rf outputs
       - name: test_checkpoint_epoch
         run: |
