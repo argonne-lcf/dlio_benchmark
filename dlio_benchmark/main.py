@@ -40,7 +40,7 @@ from omegaconf import DictConfig, OmegaConf
 from dlio_benchmark.utils.statscounter import StatsCounter
 from hydra.core.config_store import ConfigStore
 from dlio_benchmark.utils.config import LoadConfig, ConfigArguments, GetConfig
-from dlio_benchmark.common.enumerations import Profiler, DatasetType, StorageType, MetadataType, FormatType
+from dlio_benchmark.common.enumerations import Model, Profiler, DatasetType, StorageType, MetadataType, FormatType
 from dlio_benchmark.profiler.profiler_factory import ProfilerFactory
 from dlio_benchmark.framework.framework_factory import FrameworkFactory
 from dlio_benchmark.data_generator.generator_factory import GeneratorFactory
@@ -73,10 +73,8 @@ class DLIOBenchmark(object):
         global dftracer, dftracer_initialize, dftracer_finalize
 
         t0 = time()
-        self.args = ConfigArguments.get_instance()
+        self.args : ConfigArguments = ConfigArguments.get_instance() # type: ignore
         LoadConfig(self.args, cfg)
-        self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root,
-                                                    self.args.framework)
 
         self.output_folder = self.args.output_folder
         os.makedirs(self.args.output_folder, mode=0o755, exist_ok=True)
@@ -85,10 +83,18 @@ class DLIOBenchmark(object):
         self.comm_size = self.args.comm_size = DLIOMPI.get_instance().size()
         self.data_folder = self.args.data_folder
         self.storage_root = self.args.storage_root
+        try:
+            model_enum = Model(self.args.model)
+        except:
+            model_enum = Model.DEFAULT
+        if not self.args.compute:
+            model_enum = Model.DEFAULT
+        self.framework = FrameworkFactory().get_framework(self.args.framework,
+                                                          self.args.do_profiling, model_enum, self.args.communication)
+        self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root,
+                                                    self.args.framework)
         if self.args.storage_root:
             self.storage.create_namespace(exist_ok=True)
-        self.framework = FrameworkFactory().get_framework(self.args.framework,
-                                                          self.args.do_profiling)
 
         # Delete previous logfile
         if self.my_rank == 0:
@@ -126,10 +132,10 @@ class DLIOBenchmark(object):
             self.num_subfolders_eval = self.args.num_subfolders_eval
             self.num_samples = self.args.num_samples_per_file
             self.total_training_steps = self.args.total_training_steps
+            self.computation_time = self.args.computation_time
             
             self.epochs = self.args.epochs
             self.batch_size = self.args.batch_size
-            self.computation_time = self.args.computation_time
 
             if self.do_profiling:
                 self.profiler = ProfilerFactory().get_profiler(self.args.profiler)

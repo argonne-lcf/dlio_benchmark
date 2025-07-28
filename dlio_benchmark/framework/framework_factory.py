@@ -15,7 +15,7 @@
    limitations under the License.
 """
 
-from dlio_benchmark.common.enumerations import FrameworkType
+from dlio_benchmark.common.enumerations import FrameworkType, Model
 from dlio_benchmark.common.error_code import ErrorCodes
 
 
@@ -24,12 +24,12 @@ class FrameworkFactory(object):
         pass
 
     @staticmethod
-    def get_framework(framework_type, profiling):
+    def get_framework(framework_type, profiling, model: Model = Model.SLEEP, communication: bool = False):
         if framework_type == FrameworkType.TENSORFLOW:
             from dlio_benchmark.framework.tf_framework import TFFramework
-            return TFFramework.get_instance(profiling)
+            return TFFramework.get_instance(profiling, model, communication)
         elif framework_type == FrameworkType.PYTORCH:
             from dlio_benchmark.framework.torch_framework import TorchFramework
-            return TorchFramework.get_instance(profiling)
+            return TorchFramework.get_instance(profiling, model, communication)
         else:
             raise Exception(str(ErrorCodes.EC1001))

@@ -20,6 +20,7 @@ import logging
 from time import time, sleep
 from dlio_benchmark.common.constants import MODULE_AI_FRAMEWORK
 from dlio_benchmark.data_loader.data_loader_factory import DataLoaderFactory
+from dlio_benchmark.model.model_factory import ModelFactory
 from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 from dlio_benchmark.utils.utility import Profile, sleep
 from dlio_benchmark.common.error_code import ErrorCodes
@@ -27,7 +28,7 @@ from dlio_benchmark.framework.framework import Framework
 from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.profiler.profiler_factory import ProfilerFactory
 from dlio_benchmark.storage.storage_factory import StorageFactory
-from dlio_benchmark.common.enumerations import FrameworkType, Profiler, FormatType, DatasetType, MetadataType, \
+from dlio_benchmark.common.enumerations import FrameworkType, Model, Profiler, FormatType, DatasetType, MetadataType, \
     DataLoaderType
 
 import tensorflow as tf
@@ -43,15 +44,19 @@ class TFFramework(Framework):
     __instance = None
 
     @dlp.log_init
-    def __init__(self, profiling):
+    def __init__(self, profiling, model: Model = Model.SLEEP, communication: bool = False):
         super().__init__()
         self.profiling = profiling
+        self._model = ModelFactory.create_model(FrameworkType.TENSORFLOW, model, communication)
         # TODO: Temporary fix, need to separate the iostat profiler (needed for report gen) and the others
         if profiling:
             if self.args.profiler != Profiler.IOSTAT:
                 self.tensorboard = ProfilerFactory.get_profiler(Profiler.NONE)
             else:
                 self.tensorboard = ProfilerFactory.get_profiler(Profiler.TENSORBOARD)
+
+        
+        # self.model = DDP(model)
         self.reader_handler = None
 
     @dlp.log
@@ -64,10 +69,10 @@ class TFFramework(Framework):
         return FrameworkType.TENSORFLOW
 
     @staticmethod
-    def get_instance(profiling):
+    def get_instance(profiling, model: Model = Model.SLEEP, communication: bool = False):
         """ Static access method. """
         if TFFramework.__instance is None:
-            TFFramework.__instance = TFFramework(profiling)
+            TFFramework.__instance = TFFramework(profiling, model, communication)
         return TFFramework.__instance
 
     @dlp.log
@@ -87,8 +92,17 @@ class TFFramework(Framework):
 
     @dlp.log
     def compute(self, batch, epoch_number, step, computation_time):
-        return self.model(batch, computation_time)
+        return self.model(epoch_number, batch, computation_time)
         # tf.function(self.model)(epoch_number, step, computation_time)
+
+    
+    def model(self, epoch, batch, computation_time):
+        if self._model is None:
+            sleep(computation_time
+                  )
+        else:
+            self._model.compute(batch)
+        
 
     @dlp.log
     def get_loader(self, dataset_type=DatasetType.TRAIN):
@@ -145,3 +159,4 @@ class TFFramework(Framework):
     @dlp.log
     def isfile(self, id):
         return tf.io.gfile.exists(id) and not tf.io.gfile.isdir(id)
+

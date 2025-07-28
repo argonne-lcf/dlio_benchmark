@@ -108,6 +108,27 @@ class FrameworkType(Enum):
 
     def __str__(self):
         return self.value
+    
+class Model(Enum):
+    """
+    Different Model Architectures
+    """
+    RESNET = 'resnet50'
+    UNET= 'unet3d'
+    BERT = 'bert'
+    SLEEP = 'sleep'
+    DEFAULT = 'default'
+
+    def __str__(self):
+        return self.value
+
+class Loss(Enum):
+    """
+    Loss functions for models
+    """
+    MSE = 'mse'
+    CE = 'cross_entropy'
+    NONE = 'none'
 
 class ComputationType(Enum):
     """

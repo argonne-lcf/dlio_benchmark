@@ -25,7 +25,7 @@ from time import time
 from typing import Any, Dict, List, ClassVar
 
 from dlio_benchmark.common.constants import MODULE_CONFIG
-from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
+from dlio_benchmark.common.enumerations import Model, StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
     FrameworkType, \
     DataLoaderType, Profiler, DatasetType, DataLoaderSampler, CheckpointLocationType, CheckpointMechanismType, CheckpointModeType
 from dlio_benchmark.utils.utility import DLIOMPI, get_trace_name, utcnow
@@ -43,7 +43,7 @@ class ConfigArguments:
 
     # command line argument
     # Framework to use
-    model: str = "default"
+    model: Model = Model.DEFAULT
     framework: FrameworkType = FrameworkType.TENSORFLOW
     # Dataset format, such as PNG, JPEG
     format: FormatType = FormatType.TFRECORD
@@ -87,6 +87,8 @@ class ConfigArguments:
     read_threads: int = 1
     dont_use_mmap: bool = False
     computation_threads: int = 1
+    communication: bool = False
+    compute: bool = False
     computation_time: ClassVar[Dict[str, Any]] = {}
     preprocess_time: ClassVar[Dict[str, Any]] = {}
     prefetch_size: int = 2
@@ -294,6 +296,11 @@ class ConfigArguments:
                 raise Exception("To perform subset Checkpointing, please set a target data parallelism: workload.parallelism.data.")
             elif self.data_parallelism * self.tensor_parallelism * self.pipeline_parallelism < self.comm_size:
                 raise Exception(f"Comm size: {self.comm_size} is larger than 3D parallelism size: {self.data_parallelism * self.tensor_parallelism * self.pipeline_parallelism}")
+
+        if self.do_train and self.model in (Model.DEFAULT, Model.SLEEP) and not self.computation_time:
+            # TODO: Is this a good check?
+            raise Exception(f"workload.model.name is not set and workload.train.computation_time is not set. Please set one of them.")
+
         if self.checkpoint_mode == CheckpointModeType.DEFAULT:
             if self.comm_size % (self.pipeline_parallelism * self.tensor_parallelism) != 0:
                 raise Exception(f"Number of processes {self.comm_size} is not a multiple of model parallelism size: {self.pipeline_parallelism * self.tensor_parallelism}")
@@ -590,6 +597,10 @@ def GetConfig(args, key):
             value = args.computation_time.get("stdev", None)
         elif keys[1] == "seed":
             value = args.seed
+        elif keys[1] == "communication":
+            value = args.communication
+        elif keys[1] == "compute":
+            value = args.compute
 
     if len(keys) > 1 and keys[0] == "evaluation":
         if keys[1] == "eval_time":
@@ -839,6 +850,10 @@ def LoadConfig(args, config):
             args.computation_time["stdev"] = config['train']['computation_time_stdev']
         if 'seed' in config['train']:
             args.seed = config['train']['seed']
+        if 'communication' in config['train']:
+            args.communication = config['train']['communication']
+        if 'compute' in config['train']:
+            args.compute = config['train']['compute']
 
     if 'evaluation' in config:
         args.eval_time = {}
@@ -904,7 +919,12 @@ def LoadConfig(args, config):
 
     if 'model' in config:
         if 'name' in config['model']:
-            args.model = config['model']['name']
+            try:
+                args.model =  Model(config['model']['name'])
+            except ValueError as e:
+                # This is to maintain compatibility with older configurations
+                #TODO: Do we need to set computation time here as well?
+                args.model = Model.SLEEP
         if 'type' in config['model']:
             args.model_type = config['model']['type']
         if 'model_size_bytes' in config['model']:

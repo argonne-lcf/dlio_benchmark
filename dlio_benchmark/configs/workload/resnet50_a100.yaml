@@ -9,8 +9,8 @@ workflow:
  train: True
 
 dataset:
- num_files_train: 1024
- num_samples_per_file: 1251
+ num_files_train: 2
+ num_samples_per_file: 800
  record_length_bytes: 114660.07
  record_length_bytes_resize: 150528
  data_folder: data/resnet50
