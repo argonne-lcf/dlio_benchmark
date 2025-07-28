@@ -223,6 +223,7 @@ class TensorFlowLayers(LayerFactoryBase):
         # print Input shape of _model 
 
         if self.communication:
+            raise NotImplementedError("Distributed training with tensorflow ( horovod ) is not implemented.")
             import horovod.tensorflow as hvd
             tape = hvd.DistributedGradientTape()
         else:
