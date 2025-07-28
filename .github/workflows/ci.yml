@@ -292,3 +292,15 @@ jobs:
           source ${VENV_PATH}/bin/activate
           rm -rf output data checkpoints
           mpirun -np 2 ${DLIO_EXEC} workload=llama_8b_zero3 ++workload.model.parallelism.data=1024 ++workload.checkpoint.mode=subset
+      - name: test_model_comms
+        run: |
+          source ${VENV_PATH}/bin/activate
+          rm -rf output data checkpoints
+          mpirun -np 2 pytest -k test_resnet_model_with_comms_enabled -v
+          rm -rf data
+      - name: test_model_compute
+        run: |
+          source ${VENV_PATH}/bin/activate
+          rm -rf output data checkpoints
+          mpirun -np 2 pytest -k test_resnet_model_with_compute_enabled -v
+          rm -rf data
