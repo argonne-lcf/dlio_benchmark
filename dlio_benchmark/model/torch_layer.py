@@ -233,24 +233,10 @@ class PyTorchLayers:
         assert self._model is not None, "Model must be set before optimizer."
         self._optimizer = optimizer(self._model.parameters(), *args, **kwargs)
 
-    def compute(self, batch):
+    def compute(self, input_data, target) -> None:
         assert self._model is not None
         assert self._optimizer is not None
 
-        #TODO: Remove hardcoding
-        if type(batch) == torch.Tensor:
-            if batch.dim() == 3:
-                # Duplicate array thrice to make three channels
-                batch = batch.unsqueeze(1).repeat(1, 3, 1, 1)
-                # Minimum requirement for resnet
-                # batch = torch.reshape(batch, [*batch.shape])
-            elif batch.dim() == 2:
-                batch = torch.reshape(batch, [1, *batch.shape, 1])
-            # make into float
-            input_data = batch.float()
-            target = torch.zeros(input_data.shape[0], 1000)
-        else: 
-            input_data, target = batch
         self._model.zero_grad()
         pred = self._model(input_data)
 

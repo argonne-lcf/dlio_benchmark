@@ -36,9 +36,15 @@ class UnifiedModel(ABC):
         """Forward pass through the model"""
         pass
 
+    @abstractmethod
+    def validate_data(self, data: Any) -> Tuple[Any, Any]:
+        """Validate the input batch data and return input and target tensors"""
+        pass
+
 
     def compute(self, batch):
-        self.layer_factory.compute(batch)
+        input_data, target_data = self.validate_data(batch)
+        self.layer_factory.compute(input_data, target_data)
 
 class TorchModel(UnifiedModel):
     """Torch implementation of the unified model"""

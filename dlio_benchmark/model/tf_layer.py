@@ -214,32 +214,13 @@ class TensorFlowLayers(LayerFactoryBase):
         self._model.compile(optimizer=self._optimizer)
     
 
-    def compute(self, batch) -> None:
+    def compute(self, input_data, target) -> None:
         assert self._model is not None, "Model must be set before compute step."
         assert self._optimizer is not None, "Optimizer must be set before compute step."
 
         # Perform the forward pass and backward pass within this function
         # This ensures the GradientTape correctly records all operations.
         # print Input shape of _model 
-
-        #TODO: Remove hardcoding and integrate with ray PR
-        if isinstance(batch, tf.Tensor):
-            if len(batch.shape) == 3:
-                # Duplicate array thrice to make three channels
-                batch = tf.expand_dims(batch, axis=1)
-                batch = tf.repeat(batch, repeats=3, axis=1)
-                # this gives shape (1,3, x,x)
-                # I need shape (1, x, x, 3)
-                batch = tf.transpose(batch, perm=[0, 2, 3, 1])
-            elif len(batch.shape) == 2:
-                batch = tf.reshape(batch, [1, *batch.shape, 1])
-            
-            # cast to float32
-            input_data = tf.cast(batch, tf.float32)
-            batch = tf.cast(batch, tf.float32)
-            target = tf.zeros((input_data.shape[0],1000))
-        else: 
-            input_data, target = batch
 
         if self.communication:
             import horovod.tensorflow as hvd

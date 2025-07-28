@@ -1,11 +1,9 @@
  
 
 
-from functools import partial
 from dlio_benchmark.common.enumerations import FrameworkType, Loss
-from dlio_benchmark.model.layer import LayerFactoryBase
 from dlio_benchmark.model.model import UnifiedModel
-from typing import Any, Optional, Type, Union
+from typing import Any, Optional, Tuple, Type, Union
 
 #TODO: Verify correctness of resnet50
 
@@ -133,4 +131,43 @@ class ResNet50(UnifiedModel):
         x = self.fc(x)
         
         return x
+    
+    def validate_data(self, data: Any) -> Tuple[Any, Any]:
+        try:
+            if self.framework == FrameworkType.PYTORCH:
+                import torch
+                if isinstance(data, torch.Tensor):
+                    if len(data.shape) == 3:
+                        # Duplicate array thrice to make three channels
+                        data = data.unsqueeze(1).repeat(1, 3, 1, 1)
+                    elif len(data.shape) == 2:
+                        data = data.unsqueeze(1).unsqueeze(2).repeat(1, 3, 1, 1)
+                    input_data = data.float()
+                    # We can generate target data, since it is not input/output
+                    target = torch.zeros((input_data.shape[0], self.num_classes))
+                else:
+                    input_data, target = data
+            else:  # TensorFlow
+                import tensorflow as tf
+                if isinstance(data, tf.Tensor):
+                    if len(data.shape) == 3:
+                        # Duplicate array thrice to make three channels
+                        data = tf.expand_dims(data, axis=1)
+                        data = tf.repeat(data, repeats=3, axis=1)
+                        # this gives shape (1,3, x,x)
+                        # I need shape (1, x, x, 3)
+                        data = tf.transpose(data, perm=[0, 2, 3, 1])
+                    elif len(data.shape) == 2:
+                        data = tf.reshape(data, [1, *data.shape, 1])
+                    
+                    # cast to float32
+                    input_data = tf.cast(data, tf.float32)
+                    data = tf.cast(data, tf.float32)
+                    target = tf.zeros((input_data.shape[0],1000))
+                else: 
+                    input_data, target = data
+        except Exception as e:
+            raise ValueError(f"Invalid data format: {e}")
+
+        return input_data, target
     
