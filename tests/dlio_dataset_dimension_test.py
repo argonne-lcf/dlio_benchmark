@@ -89,7 +89,7 @@ def generate_dlio_param(framework, storage_root, fmt, num_data, num_epochs=2):
 
 def generate_random_shape(dim):
     if comm.rank == 0:
-        shape = [np.random.randint(1, 100) for _ in range(dim)]
+        shape = [np.random.randint(1, 10) for _ in range(dim)]
     else:
         shape = None
     shape = comm.bcast(shape, root=0)

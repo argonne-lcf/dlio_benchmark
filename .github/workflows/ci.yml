@@ -145,7 +145,7 @@ jobs:
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-1-4] -v
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-2-2] -v
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-2-3] -v
-          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-2-4] -v --capture=no
+          mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-2-4] -v
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-3-2] -v
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-3-3] -v
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-3-4] -v
@@ -170,7 +170,7 @@ jobs:
 
           mpirun -np 2 pytest -k test_dim_based_csv[float32-2] -v
           mpirun -np 2 pytest -k test_dim_based_csv[float32-3] -v
-          mpirun -np 2 pytest -k test_dim_based_csv[float32-4] -v --capture=no
+          mpirun -np 2 pytest -k test_dim_based_csv[float32-4] -v
           mpirun -np 2 pytest -k test_dim_based_csv[int8-2] -v
           mpirun -np 2 pytest -k test_dim_based_csv[int8-3] -v
           mpirun -np 2 pytest -k test_dim_based_csv[int8-4] -v
