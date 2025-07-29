@@ -27,7 +27,7 @@ from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle,
     FrameworkType, \
     DataLoaderType, Profiler, DataLoaderSampler, CheckpointLocationType, CheckpointMechanismType, CheckpointModeType
 from dlio_benchmark.utils.utility import DLIOMPI, get_trace_name, utcnow
-from dlio_benchmark.utils.utility import Profile, PerfTrace, DFTRACER_ENABLE, DLIOLogger, OUTPUT_LEVEL
+from dlio_benchmark.utils.utility import Profile, PerfTrace, DFTRACER_ENABLE, DLIOLogger, OUTPUT_LEVEL, gen_random_tensor
 from dataclasses import dataclass
 from omegaconf import OmegaConf, DictConfig
 import math
@@ -186,6 +186,9 @@ class ConfigArguments:
 
     ## reader
     transformed_sample: ClassVar[List[int]] = []
+    transformed_sample_type: str = "uint8" # user provided
+    ## reader -- derived
+    transformed_sample_dtype: ClassVar[np.dtype] = np.dtype("uint8")
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -360,8 +363,9 @@ class ConfigArguments:
 
         if (file_list_train is not None and file_list_eval is not None):
             if self.transformed_sample is not None and len(self.transformed_sample) > 0:
-                self.logger.debug(f"Using transformed sample size {self.transformed_sample}")
-                self.resized_image = np.random.randint(255, size=self.transformed_sample, dtype=np.uint8)
+                self.logger.output(f"Generating random tensor with shape {self.transformed_sample} and dtype {self.transformed_sample_dtype}")
+                rng = np.random.default_rng()
+                self.resized_image = gen_random_tensor(shape=self.transformed_sample, dtype=self.transformed_sample_dtype, rng=rng)
             else:
                 self.resized_image = np.random.randint(255, size=(self.max_dimension, self.max_dimension), dtype=np.uint8)
             self.file_list_train = file_list_train
@@ -442,6 +446,8 @@ class ConfigArguments:
 
         # hdf5 specific derivations
         self.record_length = np.prod(self.record_dims) * self.record_element_bytes
+
+        self.transformed_sample_dtype = np.dtype(self.transformed_sample_type)
 
     @dlp.log
     def build_sample_map_iter(self, file_list, total_samples, epoch_number):
@@ -892,6 +898,8 @@ def LoadConfig(args, config):
             args.pin_memory = reader['pin_memory']
         if 'transformed_sample' in reader:
             args.transformed_sample = list(reader['transformed_sample'])
+        if 'transformed_sample_type' in reader:
+            args.transformed_sample_type = reader['transformed_sample_type']
 
     # training relevant setting
     if 'train' in config:

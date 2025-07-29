@@ -113,8 +113,8 @@ def setup_test_env():
     comm.Barrier()
     yield storage_root
     comm.Barrier()
-    if comm.rank == 0:
-        delete_folder(storage_root)
+    # if comm.rank == 0:
+    #     delete_folder(storage_root)
     comm.Barrier()
 
 
@@ -140,7 +140,7 @@ def test_dim_based_hdf5_gen_data(setup_test_env, dtype, dim) -> None:
     num_dataset_per_record = 3
     shape_per_dataset = (1, *generate_random_shape(dim))
     shape = (num_dataset_per_record * shape_per_dataset[0], *shape_per_dataset[1:])
-    num_data_pp = 2
+    num_data_pp = 8
     num_data = num_data_pp * comm.size
     storage_root = setup_test_env
     with initialize_config_dir(version_base=None, config_dir=config_dir):
@@ -189,7 +189,7 @@ def check_image(path):
 def test_dim_based_image_gen_data(setup_test_env, dtype, fmt, dim) -> None:
     framework = "pytorch"
     shape = generate_random_shape(dim)
-    num_data_pp = 2
+    num_data_pp = 8
     num_data = num_data_pp * comm.size
     storage_root = setup_test_env
 
@@ -260,7 +260,7 @@ def test_dim_based_np_gen_data(setup_test_env, fmt, dtype, dim) -> None:
     framework = "pytorch"
     num_samples_per_file = 1
     shape = generate_random_shape(dim)
-    num_data_pp = 2
+    num_data_pp = 8
     num_data = num_data_pp * comm.size
     final_shape = (*shape, num_samples_per_file)
     storage_root = setup_test_env
@@ -318,7 +318,7 @@ def test_dim_based_tfrecord_gen_data(setup_test_env, dtype, dim) -> None:
     fmt = "tfrecord"
     shape = generate_random_shape(dim)
     storage_root = setup_test_env
-    num_data_pp = 2
+    num_data_pp = 8
     num_data = num_data_pp * comm.size
     with initialize_config_dir(version_base=None, config_dir=config_dir):
         cfg = compose(
@@ -384,7 +384,7 @@ def test_dim_based_indexed_gen_data(setup_test_env, dtype, num_samples_per_file,
     fmt = "indexed_binary"
     shape = generate_random_shape(dim)
     storage_root = setup_test_env
-    num_data_pp = 2
+    num_data_pp = 8
     num_data = num_data_pp * comm.size
     with initialize_config_dir(version_base=None, config_dir=config_dir):
         cfg = compose(
@@ -444,7 +444,7 @@ def test_dim_based_csv(setup_test_env, dtype, dim) -> None:
     fmt = "csv"
     shape = generate_random_shape(dim)
     storage_root = setup_test_env
-    num_data_pp = 2
+    num_data_pp = 8
     num_data = num_data_pp * comm.size
     with initialize_config_dir(version_base=None, config_dir=config_dir):
         cfg = compose(
@@ -471,3 +471,73 @@ def test_dim_based_csv(setup_test_env, dtype, dim) -> None:
 
     num_rows = check_csv(chosen_path)
     assert num_rows == expected_rows
+
+
+@pytest.mark.timeout(120, method="thread")
+@pytest.mark.parametrize("dtype, transformed_dtype, dim", [
+    (dtype, transformed_dtype, dim)
+    for dtype in DTYPES
+    for transformed_dtype in ["uint8", "float32"]
+    for dim in DIMENSIONS
+])
+def test_transformed_sample(setup_test_env, dtype, transformed_dtype, dim) -> None:
+    import torch
+    from dlio_benchmark.common.enumerations import DatasetType
+
+    torch_to_numpy_dtype_map = {
+        torch.float32: np.float32,
+        torch.float64: np.float64,
+        torch.float16: np.float16,
+        torch.int8: np.int8,
+        torch.int16: np.int16,
+        torch.int32: np.int32,
+        torch.int64: np.int64,
+        torch.uint8: np.uint8,
+        torch.bool: np.bool_,
+        torch.complex64: np.complex64,
+        torch.complex128: np.complex128,
+    }
+    framework = "pytorch"
+    fmt = "hdf5"
+    shape = generate_random_shape(dim)
+    transformed_sample = generate_random_shape(2)
+    print("Transformed sample shape:", transformed_sample)
+    storage_root = setup_test_env
+    num_data_pp = 8
+    num_data = num_data_pp * comm.size
+    bbatch = None
+    with initialize_config_dir(version_base=None, config_dir=config_dir):
+        cfg = compose(
+            config_name="config",
+            overrides=[
+                f"++workload.dataset.record_element_type={dtype}",
+                f"++workload.dataset.record_dims={list(shape)}",
+                f"++workload.reader.transformed_sample={list(transformed_sample)}",
+                f"++workload.reader.transformed_sample_type={transformed_dtype}",
+                "++workload.reader.batch_size=1",
+                "++workload.reader.read_threads=1",
+            ] + generate_dlio_param(framework=framework, 
+                                    storage_root=storage_root, 
+                                    fmt=fmt,
+                                    num_data=num_data),
+        )
+        comm.Barrier()
+        ConfigArguments.reset()
+        benchmark = DLIOBenchmark(cfg["workload"])
+        benchmark.initialize()
+        epoch = 1
+        benchmark.args.reconfigure(epoch)
+        print(f"Initializing data loader ({benchmark.args.data_loader}) with format {benchmark.args.format} and num epoch {epoch}")
+        benchmark.framework.init_loader(benchmark.args.format, epoch=epoch, data_loader=benchmark.args.data_loader)
+        benchmark.framework.get_loader(dataset_type=DatasetType.TRAIN).read()
+        loader = benchmark.framework.get_loader(dataset_type=DatasetType.TRAIN)
+        for epoch in range(1, epoch + 1):
+            for batch in loader.next():
+                bbatch = batch
+                break
+            benchmark.framework.get_loader(DatasetType.TRAIN).finalize()
+        benchmark.finalize()
+
+    assert bbatch is not None
+    assert list(bbatch.shape) == [1, *transformed_sample]
+    assert torch_to_numpy_dtype_map.get(bbatch.dtype) == np.dtype(transformed_dtype)

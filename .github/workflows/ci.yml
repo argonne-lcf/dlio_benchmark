@@ -82,6 +82,25 @@ jobs:
         run: |
           source ${VENV_PATH}/bin/activate
 
+          mpirun -np 2 pytest -k test_transformed_sample[float32-uint8-2] -v
+          mpirun -np 2 pytest -k test_transformed_sample[float32-uint8-3] -v
+          mpirun -np 2 pytest -k test_transformed_sample[float32-uint8-4] -v
+          mpirun -np 2 pytest -k test_transformed_sample[float32-float32-2] -v
+          mpirun -np 2 pytest -k test_transformed_sample[float32-float32-3] -v
+          mpirun -np 2 pytest -k test_transformed_sample[float32-float32-4] -v
+          mpirun -np 2 pytest -k test_transformed_sample[int8-uint8-2] -v
+          mpirun -np 2 pytest -k test_transformed_sample[int8-uint8-3] -v
+          mpirun -np 2 pytest -k test_transformed_sample[int8-uint8-4] -v
+          mpirun -np 2 pytest -k test_transformed_sample[int8-float32-2] -v
+          mpirun -np 2 pytest -k test_transformed_sample[int8-float32-3] -v
+          mpirun -np 2 pytest -k test_transformed_sample[int8-float32-4] -v
+          mpirun -np 2 pytest -k test_transformed_sample[float16-uint8-2] -v
+          mpirun -np 2 pytest -k test_transformed_sample[float16-uint8-3] -v
+          mpirun -np 2 pytest -k test_transformed_sample[float16-uint8-4] -v
+          mpirun -np 2 pytest -k test_transformed_sample[float16-float32-2] -v
+          mpirun -np 2 pytest -k test_transformed_sample[float16-float32-3] -v
+          mpirun -np 2 pytest -k test_transformed_sample[float16-float32-4] -v
+
           mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[float32-2] -v
           mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[float32-3] -v
           mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[float32-4] -v
