@@ -113,8 +113,8 @@ def setup_test_env():
     comm.Barrier()
     yield storage_root
     comm.Barrier()
-    # if comm.rank == 0:
-    #     delete_folder(storage_root)
+    if comm.rank == 0:
+        delete_folder(storage_root)
     comm.Barrier()
 
 
