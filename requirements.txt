@@ -2,12 +2,13 @@
 --extra-index-url https://developer.download.nvidia.com/compute/redist
 
 Pillow>=9.3.0
-PyYAML~=6.0.0
-hydra-core==1.3.2
+PyYAML>=6.0.0
+hydra-core>=1.3.2
+h5py>=3.11.0
 mpi4py>=3.1.4
 numpy>=1.23.5
 nvidia-dali-cuda110>=1.34.0
-omegaconf~=2.2.0
+omegaconf>=2.2.0
 pandas>=1.5.1
 psutil>=5.9.8
 pydftracer==1.0.11
