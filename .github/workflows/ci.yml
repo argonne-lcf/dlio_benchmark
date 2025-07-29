@@ -79,6 +79,7 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
       - name: test_dataset_dimension_gen_data
+        timeout-minutes: 60
         run: |
           source ${VENV_PATH}/bin/activate
 
@@ -91,6 +92,8 @@ jobs:
           mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[float16-2] -v
           mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[float16-3] -v
           mpirun -np 2 pytest -k test_dim_based_hdf5_gen_data[float16-4] -v
+
+          rm -rf outputs
 
           mpirun -np 2 pytest -k test_dim_based_image_gen_data[png-float32-2] -v
           mpirun -np 2 pytest -k test_dim_based_image_gen_data[png-float32-3] -v
@@ -111,6 +114,8 @@ jobs:
           mpirun -np 2 pytest -k test_dim_based_image_gen_data[jpeg-float16-3] -v
           mpirun -np 2 pytest -k test_dim_based_image_gen_data[jpeg-float16-4] -v
 
+          rm -rf outputs
+
           mpirun -np 2 pytest -k test_dim_based_np_gen_data[npz-float32-2] -v
           mpirun -np 2 pytest -k test_dim_based_np_gen_data[npz-float32-3] -v
           mpirun -np 2 pytest -k test_dim_based_np_gen_data[npz-float32-4] -v
@@ -130,6 +135,8 @@ jobs:
           mpirun -np 2 pytest -k test_dim_based_np_gen_data[npy-float16-3] -v
           mpirun -np 2 pytest -k test_dim_based_np_gen_data[npy-float16-4] -v
 
+          rm -rf outputs
+
           mpirun -np 2 pytest -k test_dim_based_tfrecord_gen_data[float32-2] -v
           mpirun -np 2 pytest -k test_dim_based_tfrecord_gen_data[float32-3] -v
           mpirun -np 2 pytest -k test_dim_based_tfrecord_gen_data[float32-4] -v
@@ -140,6 +147,8 @@ jobs:
           mpirun -np 2 pytest -k test_dim_based_tfrecord_gen_data[float16-3] -v
           mpirun -np 2 pytest -k test_dim_based_tfrecord_gen_data[float16-4] -v
 
+          rm -rf outputs
+
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-1-2] -v
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-1-3] -v
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-1-4] -v
@@ -149,6 +158,9 @@ jobs:
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-3-2] -v
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-3-3] -v
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float32-3-4] -v
+
+          rm -rf outputs
+
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[int8-1-2] -v
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[int8-1-3] -v
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[int8-1-4] -v
@@ -158,6 +170,9 @@ jobs:
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[int8-3-2] -v
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[int8-3-3] -v
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[int8-3-4] -v
+
+          rm -rf outputs
+
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float16-1-2] -v
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float16-1-3] -v
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float16-1-4] -v
@@ -168,12 +183,20 @@ jobs:
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float16-3-3] -v
           mpirun -np 2 pytest -k test_dim_based_indexed_gen_data[float16-3-4] -v
 
+          rm -rf outputs
+
           mpirun -np 2 pytest -k test_dim_based_csv[float32-2] -v
           mpirun -np 2 pytest -k test_dim_based_csv[float32-3] -v
           mpirun -np 2 pytest -k test_dim_based_csv[float32-4] -v
+
+          rm -rf outputs
+
           mpirun -np 2 pytest -k test_dim_based_csv[int8-2] -v
           mpirun -np 2 pytest -k test_dim_based_csv[int8-3] -v
           mpirun -np 2 pytest -k test_dim_based_csv[int8-4] -v
+
+          rm -rf outputs
+
           mpirun -np 2 pytest -k test_dim_based_csv[float16-2] -v
           mpirun -np 2 pytest -k test_dim_based_csv[float16-3] -v
           mpirun -np 2 pytest -k test_dim_based_csv[float16-4] -v
