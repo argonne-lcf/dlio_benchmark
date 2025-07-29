@@ -252,7 +252,23 @@ dataset
      - the chunk size for hdf5. 
    * - keep_files
      - True
-     - whether to keep the dataset files afer the simulation.    
+     - whether to keep the dataset files afer the simulation.
+   * - record_dims
+     - []
+     - The dimensions of each record in the dataset. This will be prioritized over record_length and record_length_resize if provided
+   * - record_element_type
+     - uint8
+     - The data type of each element in the record. Default is `uint8` (1 byte)
+   * - num_dataset_per_record
+     - 1
+     - (HDF5 only) The number of datasets to generate per record. The value of this parameter need to be divisible by first element of record_dims
+   * - chunk_dims
+     - []
+     - (HDF5 only) The dimensions of chunking mechanism in HDF5
+   * - max_shape
+     - []
+     - (HDF5 only) The maximum shape of resizeable dataset. if not provided, the dataset will not be resizeable and HDF5 will internally set it to the value of `record_dims`
+
 
 .. note:: 
 
@@ -318,6 +334,13 @@ reader
    * - odirect
      - False
      - enable O_DIRECT for the npy and npz formats only to bypass OS cache. 
+   * - transformed_sample
+     - []
+     - The shape of the transformed sample. This will be prioritized over `record_length_resize` if provided.
+   * - transformed_sample_type
+     - uint8
+     - The data type of the transformed sample. Default is `uint8` (1 byte)
+
 .. note:: 
 
   TensorFlow and PyTorch behave differently for some parameters. For ``read_threads``, tensorflow does 
