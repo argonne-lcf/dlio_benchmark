@@ -336,6 +336,10 @@ class ConfigArguments:
             if len(self.record_dims) > 2:
                 raise ValueError(f"{self.format} format does not support more than 2 dimensions, but got {len(self.record_dims)} dimensions.")
 
+        # check if both record_dims and record_length_stdev are set
+        if len(self.record_dims) > 0 and self.record_length_stdev > 0:
+            raise ValueError("Both record_dims and record_length_stdev are set. This is not supported. If you need stdev on your records, please specify record_length_bytes with record_length_bytes_stdev instead.")
+
     @staticmethod
     def reset():
         ConfigArguments.__instance = None
