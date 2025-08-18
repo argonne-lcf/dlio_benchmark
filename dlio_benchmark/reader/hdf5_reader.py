@@ -29,7 +29,7 @@ class HDF5Reader(FormatReader):
     @dlp.log_init
     def __init__(self, dataset_type, thread_index, epoch):
         super().__init__(dataset_type, thread_index)
-        self.dataset_indices = list(range(self._args.num_dataset_per_record))
+        self.dataset_indices = list(range(self._args.num_dset_per_record))
 
     @dlp.log
     def open(self, filename):

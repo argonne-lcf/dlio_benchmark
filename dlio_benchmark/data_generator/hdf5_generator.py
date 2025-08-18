@@ -42,7 +42,7 @@ class HDF5Generator(DataGenerator):
 
     def create_file(self, name, shape, records, **kwargs):
         hf = h5py.File(name, 'w', libver='latest')
-        for dataset_id in range(self._args.num_dataset_per_record):
+        for dataset_id in range(self._args.num_dset_per_record):
             hf.create_dataset(f'records_{dataset_id}', shape, compression=self.hdf5_compression,
                               compression_opts=self.hdf5_compression_level, dtype=self._args.record_element_dtype, data=records, **kwargs)
         hf.create_dataset('labels', data=self.record_labels)
@@ -60,8 +60,8 @@ class HDF5Generator(DataGenerator):
         rng = np.random.default_rng()
 
         dim = self.get_dimension(self.total_files_to_generate)
-        if self._args.num_dataset_per_record > 1:
-            dim = [[int(d[0] / self._args.num_dataset_per_record), *d[1:]] for d in dim]
+        if self._args.num_dset_per_record > 1:
+            dim = [[int(d[0] / self._args.num_dset_per_record), *d[1:]] for d in dim]
 
         kwargs = {}
 

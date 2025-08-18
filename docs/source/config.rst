@@ -259,7 +259,7 @@ dataset
    * - record_element_type
      - uint8
      - The data type of each element in the record. Default is `uint8` (1 byte)
-   * - num_dataset_per_record
+   * - num_dset_per_record
      - 1
      - (HDF5 only) The number of datasets to generate per record. The value of this parameter need to be divisible by first element of record_dims
    * - chunk_dims

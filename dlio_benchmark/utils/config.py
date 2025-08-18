@@ -180,7 +180,7 @@ class ConfigArguments:
     record_element_dtype: ClassVar[np.dtype] = np.dtype("uint8")
 
     ## dataset: hdf5-only
-    num_dataset_per_record: int = 1
+    num_dset_per_record: int = 1
     chunk_dims: ClassVar[List[int]] = []
     max_shape: ClassVar[List[int]] = []
 
@@ -325,8 +325,8 @@ class ConfigArguments:
 
         # HDF5 specific checks        
         if len(self.record_dims) > 0:
-            if self.record_dims[0] % self.num_dataset_per_record != 0:
-                raise ValueError("hdf5.num_dataset_per_record should be divisible by record_dims[0]")
+            if self.record_dims[0] % self.num_dset_per_record != 0:
+                raise ValueError("hdf5.num_dset_per_record should be divisible by record_dims[0]")
 
         # Image specific checks
         if self.format in [FormatType.JPEG, FormatType.PNG]:
@@ -831,8 +831,8 @@ def LoadConfig(args, config):
         if 'hdf5' in config['dataset']:
             if 'chunk_dims' in config['dataset']['hdf5']:
                 args.chunk_dims = tuple(config['dataset']['hdf5']['chunk_dims'])
-            if 'num_dataset_per_record' in config['dataset']['hdf5']:
-                args.num_dataset_per_record = config['dataset']['hdf5']['num_dataset_per_record']
+            if 'num_dset_per_record' in config['dataset']['hdf5']:
+                args.num_dset_per_record = config['dataset']['hdf5']['num_dset_per_record']
             if 'max_shape' in config['dataset']['hdf5']:
                 args.max_shape = list(config['dataset']['hdf5']['max_shape'])
 

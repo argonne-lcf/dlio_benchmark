@@ -137,9 +137,9 @@ def check_h5(path):
 def test_dim_based_hdf5_gen_data(setup_test_env, dtype, dim) -> None:
     fmt = "hdf5"
     framework = "pytorch"
-    num_dataset_per_record = 3
+    num_dset_per_record = 3
     shape_per_dataset = (1, *generate_random_shape(dim))
-    shape = (num_dataset_per_record * shape_per_dataset[0], *shape_per_dataset[1:])
+    shape = (num_dset_per_record * shape_per_dataset[0], *shape_per_dataset[1:])
     num_data_pp = 8
     num_data = num_data_pp * comm.size
     storage_root = setup_test_env
@@ -149,7 +149,7 @@ def test_dim_based_hdf5_gen_data(setup_test_env, dtype, dim) -> None:
             overrides=[
                 f"++workload.dataset.record_dims={list(shape)}",
                 f"++workload.dataset.record_element_type={dtype}",
-                f"++workload.dataset.hdf5.num_dataset_per_record={num_dataset_per_record}",
+                f"++workload.dataset.hdf5.num_dset_per_record={num_dset_per_record}",
             ] + generate_dlio_param(framework=framework, 
                                     storage_root=storage_root, 
                                     fmt=fmt,
@@ -170,7 +170,7 @@ def test_dim_based_hdf5_gen_data(setup_test_env, dtype, dim) -> None:
 
     assert shape_per_dataset == gen_shape
     assert dtype == gen_dtype
-    assert num_dataset_per_record == gen_num_ds
+    assert num_dset_per_record == gen_num_ds
 
 def check_image(path):
     from PIL import Image
