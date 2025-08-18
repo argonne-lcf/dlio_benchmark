@@ -512,8 +512,8 @@ def test_transformed_sample(setup_test_env, dtype, transformed_dtype, dim) -> No
             overrides=[
                 f"++workload.dataset.record_element_type={dtype}",
                 f"++workload.dataset.record_dims={list(shape)}",
-                f"++workload.reader.transformed_sample={list(transformed_sample)}",
-                f"++workload.reader.transformed_sample_type={transformed_dtype}",
+                f"++workload.reader.transformed_record_dims={list(transformed_sample)}",
+                f"++workload.reader.transformed_record_element_type={transformed_dtype}",
                 "++workload.reader.batch_size=1",
                 "++workload.reader.read_threads=1",
             ] + generate_dlio_param(framework=framework, 

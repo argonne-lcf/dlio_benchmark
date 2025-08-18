@@ -258,7 +258,7 @@ dataset
      - The dimensions of each record in the dataset. This will be prioritized over record_length and record_length_resize if provided
    * - record_element_type
      - uint8
-     - The data type of each element in the record. Default is `uint8` (1 byte)
+     - The data type of each element in the record. Default is `uint8` (1 byte), supports all `NumPy data types <https://numpy.org/devdocs/user/basics.types.html>`_
    * - num_dset_per_record
      - 1
      - (HDF5 only) The number of datasets to generate per record. The value of this parameter need to be divisible by first element of record_dims
@@ -334,12 +334,12 @@ reader
    * - odirect
      - False
      - enable O_DIRECT for the npy and npz formats only to bypass OS cache. 
-   * - transformed_sample
+   * - transformed_record_dims
      - []
      - The shape of the transformed sample. This will be prioritized over `record_length_resize` if provided.
-   * - transformed_sample_type
+   * - transformed_record_element_type
      - uint8
-     - The data type of the transformed sample. Default is `uint8` (1 byte)
+     - The data type of the transformed sample. Default is `uint8` (1 byte), supports all `NumPy data types <https://numpy.org/devdocs/user/basics.types.html>`_
 
 .. note:: 
 
