@@ -14,21 +14,12 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-from time import time
-import logging
-import math
 import numpy as np
-from nvidia.dali.pipeline import Pipeline
-import nvidia.dali.fn as fn
-import nvidia.dali.types as types
 
 from dlio_benchmark.common.constants import MODULE_DATA_LOADER
-from dlio_benchmark.common.enumerations import Shuffle, DataLoaderType, DatasetType
+from dlio_benchmark.common.enumerations import DataLoaderType
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
-from dlio_benchmark.reader.reader_factory import ReaderFactory
-from dlio_benchmark.utils.utility import utcnow
-from dlio_benchmark.utils.utility import Profile
-import os
+from dlio_benchmark.utils.utility import utcnow, Profile, dft_ai
 
 dlp = Profile(MODULE_DATA_LOADER)
 
@@ -38,21 +29,32 @@ class SyntheticDataLoader(BaseDataLoader):
         super().__init__(format_type, dataset_type, epoch, DataLoaderType.SYNTHETIC)
         shape = self._args.resized_image.shape
         self.batch = np.zeros((self.batch_size, shape[0], shape[1]))
-        #self.batch = 1
 
     @dlp.log
     def read(self, init=False):
         return
+    
+    @dft_ai.data.item
+    def getitem(self):
+        return self.batch
 
     @dlp.log
     def next(self):
         super().next()
         self.logger.debug(f"{utcnow()} Iterating pipelines by {self._args.my_rank} rank ")
-        step = 0
         self.read(True)
+
+        step = 1
+        dft_ai.dataloader.fetch.start()
         while step < self.num_samples // self.batch_size:
-            yield self.batch
+            dft_ai.dataloader.fetch.stop()
+            dft_ai.update(step=step)
             step += 1
+            yield self.getitem()
+            dft_ai.dataloader.fetch.start()
+
+        self.epoch_number += 1
+        dft_ai.update(epoch=self.epoch_number)
 
     @dlp.log
     def finalize(self):

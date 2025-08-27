@@ -14,18 +14,13 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-import math
-import logging
-from time import time
-import numpy as np
 
 import nvidia.dali.fn as fn
 from dlio_benchmark.common.constants import MODULE_DATA_READER
 from dlio_benchmark.reader.reader_handler import FormatReader
 from dlio_benchmark.utils.utility import utcnow
-from dlio_benchmark.common.enumerations import DatasetType, Shuffle
-import nvidia.dali.tfrecord as tfrec
-from dlio_benchmark.utils.utility import PerfTrace, Profile
+from dlio_benchmark.common.enumerations import Shuffle
+from dlio_benchmark.utils.utility import Profile
 
 dlp = Profile(MODULE_DATA_READER)
 
@@ -59,7 +54,7 @@ class DaliNPYReader(FormatReader):
             prefetch_size = self._args.prefetch_size
 
         stick_to_shard = True
-        if random_shuffle == True:
+        if random_shuffle:
             seed_change_epoch = False
         if seed_change_epoch:
             stick_to_shard = False
@@ -95,6 +90,7 @@ class DaliNPYReader(FormatReader):
     @dlp.log
     def finalize(self):
         pass
+
     def is_index_based(self):
         return False
 

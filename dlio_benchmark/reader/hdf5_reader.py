@@ -14,12 +14,10 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-import logging
-
 import h5py
 
 from dlio_benchmark.common.constants import MODULE_DATA_READER
-from dlio_benchmark.utils.utility import Profile
+from dlio_benchmark.utils.utility import Profile, dft_ai
 from dlio_benchmark.reader.reader_handler import FormatReader
 
 dlp = Profile(MODULE_DATA_READER)
@@ -46,6 +44,7 @@ class HDF5Reader(FormatReader):
         super().get_sample(filename, sample_index)
         image = self.open_file_map[filename]['records'][sample_index]
         dlp.update(image_size=image.nbytes)
+        dft_ai.update(image_size=image.nbytes)
 
     def next(self):
         for batch in super().next():

@@ -15,23 +15,14 @@
    limitations under the License.
 """
 
-import os
-import logging
-from time import time, sleep
 from dlio_benchmark.common.constants import MODULE_AI_FRAMEWORK
-from dlio_benchmark.data_loader.data_loader_factory import DataLoaderFactory
-from dlio_benchmark.utils.utility import utcnow, DLIOMPI
-from dlio_benchmark.utils.utility import Profile, sleep
-from dlio_benchmark.common.error_code import ErrorCodes
+from dlio_benchmark.utils.utility import Profile, dft_ai
 from dlio_benchmark.framework.framework import Framework
-from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.profiler.profiler_factory import ProfilerFactory
-from dlio_benchmark.storage.storage_factory import StorageFactory
-from dlio_benchmark.common.enumerations import FrameworkType, Profiler, FormatType, DatasetType, MetadataType, \
+from dlio_benchmark.common.enumerations import FrameworkType, Profiler, DatasetType, MetadataType, \
     DataLoaderType
 
 import tensorflow as tf
-import tensorflow_io as tfio
 from tensorflow.python.framework import errors
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -85,7 +76,7 @@ class TFFramework(Framework):
     def trace_object(self, string, step, r):
         pass  # tf.profiler.experimental.Trace(string, step_num=step, _r=r)
 
-    @dlp.log
+    @dft_ai.compute
     def compute(self, batch, epoch_number, step, computation_time):
         return self.model(batch, computation_time)
         # tf.function(self.model)(epoch_number, step, computation_time)
