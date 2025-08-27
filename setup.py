@@ -7,7 +7,6 @@ HYDRA_VERSION = "1.3.2"
 
 test_deps = [
     "pytest",
-    "pydftracer @ git+https://github.com/LLNL/dftracer.git@b64cd2a800d6d90c7777405569a6cd2b8b0487c4",
 ]
 core_deps = [
     "Pillow>=9.3.0",
@@ -18,6 +17,7 @@ core_deps = [
     "omegaconf>=2.2.0",
     "pandas>=1.5.1",
     "psutil>=5.9.8",
+    "pydftracer>=2.0.2"
 ]
 x86_deps = [
     f"hydra-core>={HYDRA_VERSION}",
@@ -41,7 +41,7 @@ else:
 extras = {
     "test": test_deps,
     "dftracer": [
-        "pydftracer @ git+https://github.com/LLNL/dftracer.git@b64cd2a800d6d90c7777405569a6cd2b8b0487c4",
+        "dftracer>=2.0.1",
     ],
 }
 

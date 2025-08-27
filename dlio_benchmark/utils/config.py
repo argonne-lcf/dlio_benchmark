@@ -772,7 +772,7 @@ def GetConfig(args, key):
     if len(keys) > 0 and keys[0] == "metric":
         if len(keys) > 1 and keys[1] == "au":
             value = args.au
-    return str(value) if value else None
+    return str(value) if value is not None else None
 
 def LoadConfig(args, config):
     '''
