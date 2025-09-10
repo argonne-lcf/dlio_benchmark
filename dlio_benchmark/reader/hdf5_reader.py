@@ -14,8 +14,6 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-import logging
-
 import h5py
 
 from dlio_benchmark.common.constants import MODULE_DATA_READER
@@ -31,6 +29,7 @@ class HDF5Reader(FormatReader):
     @dlp.log_init
     def __init__(self, dataset_type, thread_index, epoch):
         super().__init__(dataset_type, thread_index)
+        self.dataset_indices = list(range(self._args.num_dset_per_record))
 
     @dlp.log
     def open(self, filename):
@@ -44,8 +43,11 @@ class HDF5Reader(FormatReader):
     @dlp.log
     def get_sample(self, filename, sample_index):
         super().get_sample(filename, sample_index)
-        image = self.open_file_map[filename]['records'][sample_index]
-        dlp.update(image_size=image.nbytes)
+        image_size = 0
+        for idx in self.dataset_indices:
+            image = self.open_file_map[filename][f'records_{idx}'][sample_index]
+            image_size += image.nbytes
+        dlp.update(image_size=image_size)
 
     def next(self):
         for batch in super().next():

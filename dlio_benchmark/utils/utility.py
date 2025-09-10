@@ -390,3 +390,21 @@ def sleep(config):
     if sleep_time > 0.0:
         base_sleep(sleep_time)
     return sleep_time
+
+def gen_random_tensor(shape, dtype, rng=None):
+    if rng is None:
+        rng = np.random.default_rng()
+    if not np.issubdtype(dtype, np.integer):
+        # Only float32 and float64 are supported by rng.random
+        if dtype not in (np.float32, np.float64):
+            arr = rng.random(size=shape, dtype=np.float32)
+            return arr.astype(dtype)
+        else:
+            return rng.random(size=shape, dtype=dtype)
+    
+    # For integer dtypes, generate float32 first then scale and cast
+    dtype_info = np.iinfo(dtype)
+    records = rng.random(size=shape, dtype=np.float32)
+    records = records * (dtype_info.max - dtype_info.min) + dtype_info.min
+    records = records.astype(dtype)
+    return records

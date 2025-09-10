@@ -14,10 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-import logging
-
 import numpy as np
-import struct
 
 from dlio_benchmark.common.constants import MODULE_DATA_READER
 from dlio_benchmark.common.enumerations import DataLoaderSampler
@@ -70,9 +67,6 @@ class IndexedBinaryReader(FormatReader):
         elif self._args.data_loader_sampler == DataLoaderSampler.INDEX:
             for global_sample_idx, (filename, sample_index) in self.global_index_map.items():
                 self.load_index_file(global_sample_idx, filename, sample_index)
-
-
-
 
     @dlp.log
     def open(self, filename):

@@ -15,17 +15,12 @@
    limitations under the License.
 """
 
+import numpy as np
+import pandas as pd
+
 from dlio_benchmark.common.enumerations import Compression
 from dlio_benchmark.data_generator.data_generator import DataGenerator
-import math
-import os
-
-import numpy as np
-import csv
-
-from shutil import copyfile
-from dlio_benchmark.utils.utility import progress
-import pandas as pd
+from dlio_benchmark.utils.utility import progress, gen_random_tensor
 
 """
 Generator for creating data in CSV format.
@@ -33,20 +28,29 @@ Generator for creating data in CSV format.
 class CSVGenerator(DataGenerator):
     def __init__(self):
         super().__init__()
+
     def generate(self):
         """
         Generate csv data for training. It generates a 2d dataset and writes it to file.
         """
         super().generate()
         np.random.seed(10)
-        record_label = 0
+        rng = np.random.default_rng()
         dim = self.get_dimension(self.total_files_to_generate)
         for i in range(self.my_rank, int(self.total_files_to_generate), self.comm_size):
             progress(i+1, self.total_files_to_generate, "Generating CSV Data")
-            dim1 = dim[2*i]
-            dim2 = dim[2*i+1]
-            record = np.random.randint(255, size=dim1*dim2, dtype=np.uint8)
-            records = [record]*self.num_samples
+            dim_ = dim[2*i]
+            total_size = np.prod(dim_)
+            if isinstance(dim_, list):
+                shape = dim_
+            else:
+                dim1 = dim[2*i]
+                dim2 = dim[2*i+1]
+                shape = (dim1, dim2)
+            total_size = np.prod(shape)
+
+            record = gen_random_tensor(shape=total_size, dtype=self._args.record_element_dtype, rng=rng)
+            records = [record] * self.num_samples
             df = pd.DataFrame(data=records)
             out_path_spec = self.storage.get_uri(self._file_list[i])
             compression = None
@@ -62,5 +66,5 @@ class CSVGenerator(DataGenerator):
                     out_path_spec = out_path_spec + ".zip"
                 elif self.compression == Compression.XZ:
                     out_path_spec = out_path_spec + ".xz"
-            df.to_csv(out_path_spec, compression=compression)
+            df.to_csv(out_path_spec, compression=compression, index=False, header=False)
         np.random.seed()

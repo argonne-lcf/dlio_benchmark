@@ -14,16 +14,11 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+import numpy as np
 
 from dlio_benchmark.common.enumerations import Compression
 from dlio_benchmark.data_generator.data_generator import DataGenerator
-
-import logging
-import numpy as np
-
-from dlio_benchmark.utils.utility import progress, utcnow
-from dlio_benchmark.utils.utility import Profile
-from shutil import copyfile
+from dlio_benchmark.utils.utility import Profile, progress, gen_random_tensor
 from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
 
 dlp = Profile(MODULE_DATA_GENERATOR)
@@ -42,15 +37,17 @@ class NPZGenerator(DataGenerator):
         """
         super().generate()
         np.random.seed(10)
+        rng = np.random.default_rng()
         record_labels = [0] * self.num_samples
         dim = self.get_dimension(self.total_files_to_generate)
         for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
-            dim1 = dim[2*i]
-            dim2 = dim[2*i+1]
-            records = np.random.randint(255, size=(dim1, dim2, self.num_samples), dtype=np.uint8)
+            dim_ = dim[2*i]
+            if isinstance(dim_, list):
+                records = gen_random_tensor(shape=(*dim_, self.num_samples), dtype=self._args.record_element_dtype, rng=rng)
+            else:
+                records = gen_random_tensor(shape=(dim_, dim[2*i+1], self.num_samples), dtype=self._args.record_element_dtype, rng=rng)
             out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating NPZ Data")
-            prev_out_spec = out_path_spec
             if self.compression != Compression.ZIP:
                 np.savez(out_path_spec, x=records, y=record_labels)
             else:

@@ -17,23 +17,22 @@
 import os
 from subprocess import call
 
-from dlio_benchmark.data_generator.data_generator import DataGenerator
 import numpy as np
 import tensorflow as tf
-from dlio_benchmark.utils.utility import Profile
 
-from dlio_benchmark.utils.utility import progress, utcnow
-from shutil import copyfile
+from dlio_benchmark.data_generator.data_generator import DataGenerator
+from dlio_benchmark.utils.utility import Profile, progress, gen_random_tensor
 from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
 
 dlp = Profile(MODULE_DATA_GENERATOR)
-import logging
+
 class TFRecordGenerator(DataGenerator):
     """
     Generator for creating data in TFRecord format.
     """
     def __init__(self):
         super().__init__()
+
     @dlp.log
     def generate(self):
         """
@@ -43,23 +42,33 @@ class TFRecordGenerator(DataGenerator):
         """
         super().generate()
         np.random.seed(10)
-        # This creates a 2D image representing a single record
-        record_label = 0
+        rng = np.random.default_rng()
+        # This creates a N-D image representing a single record
         dim = self.get_dimension(self.total_files_to_generate)
         for i in dlp.iter(range(self.my_rank, self.total_files_to_generate, self.comm_size)):
             progress(i+1, self.total_files_to_generate, "Generating TFRecord Data")
             out_path_spec = self.storage.get_uri(self._file_list[i])
-            dim1 = dim[2*i]
-            dim2 = dim[2*i+1]
+            dim_ = dim[2*i]
+            size_shape = 0
+            shape = ()
+            if isinstance(dim_, list):
+                size_shape = np.prod(dim_)
+                shape = dim_
+            else:
+                dim1 = dim_
+                dim2 = dim[2*i+1]
+                size_shape = dim1 * dim2
+                shape = (dim1, dim2)
+            size_bytes = size_shape * self._args.record_element_bytes
             # Open a TFRecordWriter for the output-file.
             with tf.io.TFRecordWriter(out_path_spec) as writer:
                 for i in range(0, self.num_samples):
                     # This creates a 2D image representing a single record
-                    record = np.random.randint(255, size=(dim1, dim2), dtype=np.uint8)
+                    record = gen_random_tensor(shape=shape, dtype=self._args.record_element_dtype, rng=rng)
                     img_bytes = record.tobytes()
                     data = {
                         'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img_bytes])),
-                        'size': tf.train.Feature(int64_list=tf.train.Int64List(value=[self._dimension]))
+                        'size': tf.train.Feature(int64_list=tf.train.Int64List(value=[size_bytes]))
                     }
                     # Wrap the data as TensorFlow Features.
                     feature = tf.train.Features(feature=data)
