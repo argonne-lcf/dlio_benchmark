@@ -288,9 +288,9 @@ To enable this functionality, one has to install DFTracer throught
 .. code-block:: bash 
 
     pip install dftracer
+    pip install dftracer[dfanalyzer]
 
-
-or 
+or
 
 .. code-block:: bash 
 
