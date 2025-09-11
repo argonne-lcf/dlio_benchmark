@@ -294,7 +294,7 @@ or
 
 .. code-block:: bash 
 
-    git clone git@github.com:hariharan-devarajan/dftracer.git
+    git clone git@github.com:LLNL/dftracer.git
     cd dftracer
     python setup.py build
     python setup.py install
