@@ -25,7 +25,7 @@ dlp = Profile(MODULE_DATA_READER)
 
 class NPZReader(FormatReader):
     """
-    Reader for NPZ files
+    Reader for NPZ files using S3 protocol
     """
 
     @dlp.log_init
@@ -34,7 +34,12 @@ class NPZReader(FormatReader):
 
     @dlp.log
     def open(self, filename):
-        return np.load(filename, allow_pickle=True)['x']
+        if not self.storage.isfile(filename):
+            data = self.storage.get_data(filename)
+            image = io.BytesIO(data)
+            return np.load(filename, allow_pickle=True)['x']
+        else:
+            super().open(filename)
 
     @dlp.log
     def close(self, filename):

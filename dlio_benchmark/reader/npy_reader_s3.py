@@ -23,9 +23,9 @@ from dlio_benchmark.utils.utility import Profile
 dlp = Profile(MODULE_DATA_READER)
 
 
-class NPZReader(FormatReader):
+class NPYReaderS3(NPYReader):
     """
-    Reader for NPZ files
+    Reader for NPY files using S3 protocol
     """
 
     @dlp.log_init
@@ -34,7 +34,12 @@ class NPZReader(FormatReader):
 
     @dlp.log
     def open(self, filename):
-        return np.load(filename, allow_pickle=True)['x']
+        if not self.storage.isfile(filename):
+            data = self.storage.get_data(filename)
+            image = io.BytesIO(data)
+            return np.load(image, allow_pickle=True)
+        else:
+            super().open(filename)
 
     @dlp.log
     def close(self, filename):
@@ -52,16 +57,14 @@ class NPZReader(FormatReader):
 
     @dlp.log
     def read_index(self, image_idx, step):
-        dlp.update(step=step)
         return super().read_index(image_idx, step)
 
     @dlp.log
     def finalize(self):
         return super().finalize()
-    
+
     def is_index_based(self):
         return True
 
     def is_iterator_based(self):
         return True
-

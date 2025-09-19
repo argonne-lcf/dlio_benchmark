@@ -34,7 +34,6 @@ class NPYReader(FormatReader):
 
     @dlp.log
     def open(self, filename):
-        super().open(filename)
         return np.load(filename)
 
     @dlp.log

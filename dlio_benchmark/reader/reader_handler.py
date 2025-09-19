@@ -57,6 +57,7 @@ class FormatReader(ABC):
         else:
             self.file_map = self._args.val_file_map
             self.global_index_map = self._args.val_global_index_map
+        self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root, self._args.framework)
 
     @dlp.log
     def preprocess(self, a=None):
