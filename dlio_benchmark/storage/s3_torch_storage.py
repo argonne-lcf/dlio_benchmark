@@ -16,6 +16,7 @@
 """
 from time import time
 
+from dotenv import load_dotenv
 from dlio_benchmark.common.constants import MODULE_STORAGE
 from dlio_benchmark.storage.storage_handler import DataStorage, Namespace
 from dlio_benchmark.common.enumerations import NamespaceType, MetadataType
@@ -27,6 +28,7 @@ from dlio_benchmark.utils.utility import Profile
 
 dlp = Profile(MODULE_STORAGE)
 
+load_dotenv()
 
 class S3PyTorchConnectorStorage(S3Storage):
     """
@@ -38,6 +40,7 @@ class S3PyTorchConnectorStorage(S3Storage):
         super().__init__(framework)
         self.namespace = Namespace(namespace, NamespaceType.FLAT)
         self.region = os.getenv("AWS_REGION", "us-east-1")
+        self.endpoint = os.getenv("AWS_ENDPOINT", None)
 
         # Build connector config, possibly with env overrides
         self.client_config = S3ClientConfig(
@@ -48,6 +51,7 @@ class S3PyTorchConnectorStorage(S3Storage):
         # Initialize the S3Client instance
         self.client = S3Client(
             region=self.region,
+            endpoint_url=self.endpoint,
             s3client_config=self.client_config,
         )        
 

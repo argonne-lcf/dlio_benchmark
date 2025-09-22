@@ -43,6 +43,9 @@ extras = {
     "dftracer": [
         "pydftracer==1.0.11",
     ],
+    "s3": [
+        "s3torchconnector",
+    ],
 }
 
 here = pathlib.Path(__file__).parent.resolve()
