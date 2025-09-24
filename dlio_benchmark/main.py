@@ -163,7 +163,7 @@ class DLIOBenchmark(object):
 
         if self.args.generate_data:
             if self.args.my_rank == 0:
-                self.logger.output(f"{utcnow()} Starting data --generation")
+                self.logger.output(f"{utcnow()} Starting data generation")
             self.data_generator.generate()
             # important to have this barrier to ensure that the data generation is done for all the ranks
             self.comm.barrier()
@@ -187,7 +187,7 @@ class DLIOBenchmark(object):
                 else:
                     num_subfolders = self.num_subfolders_eval
                 filenames = self.storage.walk_node(os.path.join(self.args.data_folder, f"{dataset_type}"))
-                self.logger.output(f"here are the filenames {filenames}")
+                self.logger.info(f"filenames {filenames}")
                 if (len(filenames) == 0):
                     continue
                 if self.storage.get_node(
@@ -200,21 +200,19 @@ class DLIOBenchmark(object):
                     files = [self.storage.get_basename(f) for f in fullpaths]
                     idx = np.argsort(files)
                     fullpaths = [fullpaths[i] for i in idx]
-                    self.logger.output(f"once get_node here are the fullpaths {fullpaths}")
+                    self.logger.debug(f"fullpaths {fullpaths}")
                 else:
                     assert (num_subfolders == 0)
                     fullpaths = [self.storage.get_uri(os.path.join(self.args.data_folder, f"{dataset_type}", entry))
                                 for entry in filenames if entry.endswith(f'{self.args.format}')]
                     fullpaths = sorted(fullpaths)
-                    self.logger.output(f"in else of get_node here are the fullpaths {fullpaths}")
+                    self.logger.debug(f"fullpaths {fullpaths}")
                 #self.logger.debug(f"subfolder {num_subfolders} fullpaths {fullpaths}")
                 self.logger.output(f"subfolder {num_subfolders} fullpaths {fullpaths}")
                 if dataset_type is DatasetType.TRAIN:
                     file_list_train = fullpaths
-                    self.logger.output(f"here are the file_list_train {file_list_train}")
                 elif dataset_type is DatasetType.VALID:
                     file_list_eval = fullpaths
-                    self.logger.output(f"here are the file_list_eval {file_list_eval}")
             if not self.generate_only and self.num_files_train > len(file_list_train):
                 raise Exception(
                     "Not enough training dataset is found; Please run the code with ++workload.workflow.generate_data=True")
