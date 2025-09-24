@@ -40,6 +40,7 @@ class GeneratorFactory(object):
             return NPZGenerator()
         elif type == FormatType.NPY:
             from dlio_benchmark.data_generator.npy_generator import NPYGenerator
+            print("comes here")
             return NPYGenerator()            
         elif type == FormatType.JPEG:
             from dlio_benchmark.data_generator.jpeg_generator import JPEGGenerator

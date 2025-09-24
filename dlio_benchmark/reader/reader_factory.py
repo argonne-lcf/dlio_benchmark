@@ -68,7 +68,7 @@ class ReaderFactory(object):
                     from dlio_benchmark.reader.npy_reader_odirect import NPYReaderODirect
                     return NPYReaderODirect(dataset_type, thread_index, epoch_number)
                 elif _args.storage_type == StorageType.S3:
-                    from dlio_benchmark.reader.npy_reader_s3 import NPS3Reader
+                    from dlio_benchmark.reader.npy_reader_s3 import NPYReaderS3
                     return NPYReaderS3(dataset_type, thread_index, epoch_number)
                 else:
                     from dlio_benchmark.reader.npy_reader import NPYReader

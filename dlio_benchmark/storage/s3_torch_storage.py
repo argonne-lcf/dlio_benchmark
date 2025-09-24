@@ -19,9 +19,11 @@ from time import time
 from dotenv import load_dotenv
 from dlio_benchmark.common.constants import MODULE_STORAGE
 from dlio_benchmark.storage.storage_handler import DataStorage, Namespace
+from dlio_benchmark.storage.s3_storage import S3Storage
 from dlio_benchmark.common.enumerations import NamespaceType, MetadataType
+from urllib.parse import urlparse
 import os
-from s3torchconnector import S3Client, S3ClientConfig
+from s3torchconnector._s3client import S3Client, S3ClientConfig
 import torch
 
 from dlio_benchmark.utils.utility import Profile
@@ -43,21 +45,21 @@ class S3PyTorchConnectorStorage(S3Storage):
         self.endpoint = os.getenv("AWS_ENDPOINT", None)
 
         # Build connector config, possibly with env overrides
-        self.client_config = S3ClientConfig(
+        self.s3_client_config = S3ClientConfig(
             force_path_style=os.getenv("S3_FORCE_PATH_STYLE", "false").lower() == "true",
             max_attempts=int(os.getenv("S3_MAX_ATTEMPTS", "5")),
         )
 
         # Initialize the S3Client instance
-        self.client = S3Client(
+        self.s3_client = S3Client(
             region=self.region,
-            endpoint_url=self.endpoint,
-            s3client_config=self.client_config,
-        )        
+            endpoint=self.endpoint,
+            s3client_config=self.s3_client_config,
+        )
 
     @dlp.log
     def get_uri(self, id):
-        return "s3://" + os.path.join(self.namespace.name, id)
+        return id
 
     @dlp.log
     def create_namespace(self, exist_ok=False):
@@ -77,7 +79,27 @@ class S3PyTorchConnectorStorage(S3Storage):
 
     @dlp.log
     def walk_node(self, id, use_pattern=False):
-        return super().walk_node(self.get_uri(id), use_pattern)
+        # Parse s3://bucket/prefix path
+        parsed = urlparse(id)
+        if parsed.scheme != 's3':
+            raise ValueError(f"Unsupported URI scheme: {parsed.scheme}")
+    
+        bucket = parsed.netloc
+        prefix = parsed.path.lstrip('/')
+
+        if not use_pattern:
+            return self.list_objects(bucket, prefix)
+        else:
+            ext = prefix.split('.')[-1]
+            if ext != ext.lower():
+                raise Exception(f"Unknown file format {ext}")
+
+            # Pattern matching: check both lowercase and uppercase extensions
+            lower_results = self.list_objects(bucket, prefix)
+            upper_prefix = prefix.replace(ext, ext.upper())
+            upper_results = self.list_objects(bucket, upper_prefix)
+
+            return lower_results + upper_results
 
     @dlp.log
     def delete_node(self, id):
@@ -85,21 +107,36 @@ class S3PyTorchConnectorStorage(S3Storage):
 
     @dlp.log
     def put_data(self, id, data, offset=None, length=None):
-        writer = self.s3_client.put_object(self.bucket, key)
-        writer.write(data)
-        writer.commit()        
+        # Parse s3://bucket/prefix path
+        parsed = urlparse(id)
+        if parsed.scheme != 's3':
+            raise ValueError(f"Unsupported URI scheme: {parsed.scheme}")
+    
+        bucket_name = parsed.netloc
+        print(f"Starting put_data {bucket_name}, {id}")
+        writer = self.s3_client.put_object(bucket_name, id)
+        writer.write(data.getvalue())
+        writer.close()
         return None
 
     @dlp.log
     def get_data(self, id, data, offset=None, length=None):
-        obj_name = os.path.relpath(id)  # or just s3_key = id
+        obj_name = id  # or just s3_key = id
+        print(f"Starting get_data {id}")
+        # Parse s3://bucket/prefix path
+        parsed = urlparse(id)
+        if parsed.scheme != 's3':
+            raise ValueError(f"Unsupported URI scheme: {parsed.scheme}")
+    
+        bucket_name = parsed.netloc
+        print(f"Starting get_data {bucket_name}, {id}")
 
         if offset is not None and length is not None:
             start = offset
             end = offset + length - 1
-            reader = self.s3_client.get_object(self.namespace.name, obj_name, start=start, end=end)
+            reader = self.s3_client.get_object(bucket_name, obj_name, start=start, end=end)
         else:
-            reader = self.s3_client.get_object(self.namespace.name, obj_name)
+            reader = self.s3_client.get_object(bucket_name, obj_name)
 
         return reader.read()        
 
@@ -108,15 +145,21 @@ class S3PyTorchConnectorStorage(S3Storage):
         paths = []
         try:
             # list_objects returns an iterable stream of ObjectInfo
+            print(bucket_name)
+            print(prefix)
+            prefix = f"s3://{bucket_name}/" + prefix.lstrip("/") + '/'
+            print(prefix)
             obj_stream = self.s3_client.list_objects(bucket_name, prefix or "")
 
-            for obj_info in obj_stream:
-                key = obj_info.key
-                if prefix:
-                    stripped_key = key[len(prefix)+1:] if key.startswith(prefix) else key
-                    paths.append(stripped_key)
-                else:
-                    paths.append(key)
+            for list_obj_result in obj_stream:
+                print(list_obj_result)
+                for obj_info in list_obj_result.object_info:
+                    key = obj_info.key
+                    if prefix:
+                        stripped_key = key[len(prefix):] if key.startswith(prefix) else key
+                        paths.append(stripped_key)
+                    else:
+                        paths.append(key)
         except Exception as e:
             print(f"Error listing objects in bucket '{bucket_name}': {e}")
 

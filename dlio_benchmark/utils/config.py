@@ -450,7 +450,10 @@ class ConfigArguments:
                 global_sample_index = sample_list[sample_index]
                 samples_sum += global_sample_index
                 file_index = int(math.floor(global_sample_index/self.num_samples_per_file))
-                abs_path = os.path.abspath(file_list[file_index])
+                if self.storage_type == StorageType.LOCAL_FS:
+                    abs_path = os.path.abspath(file_list[file_index])
+                else:
+                    abs_path = file_list[file_index]
                 sample_index = global_sample_index % self.num_samples_per_file
                 process_thread_file_map[global_sample_index] = (abs_path, sample_index)
         return process_thread_file_map, samples_sum
