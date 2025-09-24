@@ -51,7 +51,6 @@ class DataGenerator(ABC):
         self.logger = self._args.logger
         self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root,
                                                                         self._args.framework)
-        self.logger.output(f"{utcnow()} Starting data generation with storage as {self.storage}")
 
     def get_dimension(self, num_samples=1):
         if (self._dimension_stdev>0):

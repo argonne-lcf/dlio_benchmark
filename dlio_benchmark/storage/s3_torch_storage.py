@@ -113,7 +113,6 @@ class S3PyTorchConnectorStorage(S3Storage):
             raise ValueError(f"Unsupported URI scheme: {parsed.scheme}")
     
         bucket_name = parsed.netloc
-        print(f"Starting put_data {bucket_name}, {id}")
         writer = self.s3_client.put_object(bucket_name, id)
         writer.write(data.getvalue())
         writer.close()
@@ -122,14 +121,12 @@ class S3PyTorchConnectorStorage(S3Storage):
     @dlp.log
     def get_data(self, id, data, offset=None, length=None):
         obj_name = id  # or just s3_key = id
-        print(f"Starting get_data {id}")
         # Parse s3://bucket/prefix path
         parsed = urlparse(id)
         if parsed.scheme != 's3':
             raise ValueError(f"Unsupported URI scheme: {parsed.scheme}")
     
         bucket_name = parsed.netloc
-        print(f"Starting get_data {bucket_name}, {id}")
 
         if offset is not None and length is not None:
             start = offset
@@ -145,14 +142,10 @@ class S3PyTorchConnectorStorage(S3Storage):
         paths = []
         try:
             # list_objects returns an iterable stream of ObjectInfo
-            print(bucket_name)
-            print(prefix)
             prefix = f"s3://{bucket_name}/" + prefix.lstrip("/") + '/'
-            print(prefix)
             obj_stream = self.s3_client.list_objects(bucket_name, prefix or "")
 
             for list_obj_result in obj_stream:
-                print(list_obj_result)
                 for obj_info in list_obj_result.object_info:
                     key = obj_info.key
                     if prefix:
