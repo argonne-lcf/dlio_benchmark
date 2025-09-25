@@ -36,7 +36,6 @@ class NPYReaderS3(NPYReader):
 
     @dlp.log
     def open(self, filename):
-        print(f"filename here is {filename}")
         if not self.storage.isfile(filename):
             data = self.storage.get_data(filename, None)
             image = io.BytesIO(data)

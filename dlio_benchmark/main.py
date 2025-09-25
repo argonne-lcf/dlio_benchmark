@@ -207,8 +207,7 @@ class DLIOBenchmark(object):
                                 for entry in filenames if entry.endswith(f'{self.args.format}')]
                     fullpaths = sorted(fullpaths)
                     self.logger.debug(f"fullpaths {fullpaths}")
-                #self.logger.debug(f"subfolder {num_subfolders} fullpaths {fullpaths}")
-                self.logger.output(f"subfolder {num_subfolders} fullpaths {fullpaths}")
+                self.logger.debug(f"subfolder {num_subfolders} fullpaths {fullpaths}")
                 if dataset_type is DatasetType.TRAIN:
                     file_list_train = fullpaths
                 elif dataset_type is DatasetType.VALID:
