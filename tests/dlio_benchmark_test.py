@@ -703,6 +703,9 @@ def test_resnet_model_with_comms_enabled(framework) -> None:
                 f"++workload.reader.data_loader={framework}",
                 "++workload.train.epochs=1",
                 "++workload.dataset.num_files_train=16",
+                "++workload.dataset.num_samples_per_file=256",
+                "++workload.dataset.record_length_bytes=114660.07",
+                "++workload.dataset.record_length_bytes_resize=150528",
                 "++workload.reader.read_threads=1",
                 "++workload.train.communication=True",
                 "++workload.train.compute=True",
@@ -713,4 +716,15 @@ def test_resnet_model_with_comms_enabled(framework) -> None:
 
 
 if __name__ == '__main__':
-    unittest.main()
+    def main():
+        # for framework in [FrameworkType.TENSORFLOW, FrameworkType.PYTORCH]:
+        for framework in [FrameworkType.PYTORCH]:
+            print(f"\nRunning test_resnet_model_with_comms_enabled for {framework}...")
+            try:
+                test_resnet_model_with_comms_enabled(framework)
+                print(f"[SUCCESS] test_resnet_model_with_comms_enabled({framework}) completed.")
+            except Exception as e:
+                print(f"[FAIL] test_resnet_model_with_comms_enabled({framework}) failed: {e}")
+
+    if __name__ == '__main__':
+        main()

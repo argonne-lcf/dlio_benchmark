@@ -15,7 +15,7 @@ params = [
 
 @pytest.mark.parametrize("framework, model_type, input_shape, expected_type", params)
 def test_model_factory_output_type(framework, model_type, input_shape, expected_type):
-    model = ModelFactory().create_model(framework, model_type)
+    model = ModelFactory().create_model(framework, model_type, communication=False, gpu_id=0)
     if framework == FrameworkType.PYTORCH:
         input_data = torch.randn(*input_shape)
     else:
