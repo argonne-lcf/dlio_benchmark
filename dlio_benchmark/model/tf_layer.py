@@ -8,13 +8,14 @@ from dlio_benchmark.model.layer import LayerFactoryBase  # type: ignore
 class TensorFlowLayers(LayerFactoryBase):
     """Factory class for creating TensorFlow layers"""
 
-    def __init__(self, loss_function, communication: bool = False):
+    def __init__(self, loss_function, communication: bool = False, gpu_id: int = -1) -> None:
         super().__init__()
         self._model = None 
         self._optimizer = None
         self._loss_function = loss_function
         self._layer_registry = {}  # Track created layers similar to PyTorch
         self.communication = communication
+        self.gpu_id = gpu_id
 
     def _register_layer(self, layer: keras.layers.Layer, name: Optional[str] = None) -> keras.layers.Layer:
         """Register a layer for automatic model building"""

@@ -47,7 +47,7 @@ class TFFramework(Framework):
     def __init__(self, profiling, model: Model = Model.SLEEP, communication: bool = False):
         super().__init__()
         self.profiling = profiling
-        self._model = ModelFactory.create_model(FrameworkType.TENSORFLOW, model, communication)
+        self._model = ModelFactory.create_model(FrameworkType.TENSORFLOW, model, communication, gpu_id=DLIOMPI.get_instance().local_rank())
         # TODO: Temporary fix, need to separate the iostat profiler (needed for report gen) and the others
         if profiling:
             if self.args.profiler != Profiler.IOSTAT:

@@ -14,15 +14,15 @@ from dlio_benchmark.model.torch_layer import PyTorchLayers
 class UnifiedModel(ABC):
     """Abstract base class for unified models"""
 
-    def __init__(self, framework: FrameworkType, loss_function: Loss, communication: bool = False):
+    def __init__(self, framework: FrameworkType, loss_function: Loss, communication: bool = False, gpu_id: int = -1) -> None:
         self.framework = framework
         self.layers = []
         self._model = None
         # Initialize the appropriate layer factory
         if framework == FrameworkType.PYTORCH:
-            self.layer_factory = PyTorchLayers(torch_loss(loss_function), communication)
+            self.layer_factory = PyTorchLayers(torch_loss(loss_function), communication, gpu_id)
         elif framework == FrameworkType.TENSORFLOW:
-            self.layer_factory = TensorFlowLayers(tf_loss(loss_function), communication)
+            self.layer_factory = TensorFlowLayers(tf_loss(loss_function), communication, gpu_id)
         else:
             raise ValueError(f"Unsupported framework: {framework}")
     

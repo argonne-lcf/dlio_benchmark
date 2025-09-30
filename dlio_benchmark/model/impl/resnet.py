@@ -53,8 +53,8 @@ class ResNet50Block:
 class ResNet50(UnifiedModel):
     """ResNet50 implementation"""
 
-    def __init__(self, framework: FrameworkType, communication, num_classes: int = 1000):
-        super().__init__(framework, Loss.CE, communication)
+    def __init__(self, framework: FrameworkType, communication, gpu_id, num_classes: int = 1000):
+        super().__init__(framework, Loss.CE, communication, gpu_id)
         self.num_classes = num_classes
         self.build_model()
         # bound_forward = partial(self.forward, self)

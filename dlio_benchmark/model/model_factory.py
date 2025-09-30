@@ -8,9 +8,9 @@ class ModelFactory:
         pass
 
     @staticmethod
-    def create_model(framework: FrameworkType, model_type: Model, communication: bool = False) -> UnifiedModel:
+    def create_model(framework: FrameworkType, model_type: Model, communication: bool = False, gpu_id: int = -1) -> UnifiedModel:
         if model_type == Model.RESNET:
-            return ResNet50(framework, communication)
+            return ResNet50(framework, communication, gpu_id)
         elif model_type in (Model.SLEEP, Model.DEFAULT):
             return None
         raise ValueError(f"Unsupported model type: {model_type}")

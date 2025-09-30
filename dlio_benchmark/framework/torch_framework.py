@@ -69,7 +69,8 @@ class TorchFramework(Framework):
         super().__init__()
         self.profiling = profiling
         self.reader_handler = None
-        self._model = ModelFactory.create_model(FrameworkType.PYTORCH, model, communication)
+        # TODO: Check if we need to add config for gpu, use local_rank or 0 always maybe
+        self._model = ModelFactory.create_model(FrameworkType.PYTORCH, model, communication, gpu_id=DLIOMPI.get_instance().local_rank())
 
     @dlp.log
     def init_loader(self, format_type, epoch=0, data_loader=None):

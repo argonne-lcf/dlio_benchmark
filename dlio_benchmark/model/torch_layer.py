@@ -7,13 +7,14 @@ import torch.nn as nn
 class PyTorchLayers:
     """Factory class for creating PyTorch layers"""
 
-    def __init__(self, loss_function, communication: bool = False) -> None:
+    def __init__(self, loss_function, communication: bool = False, gpu_id: int = -1) -> None:
         super().__init__()
         self._optimizer = None
         self._model = None
         self._loss_function = loss_function
         self._layer_registry = {}  # Track created layers
         self.communication = communication
+        self.gpu_id = gpu_id
 
     def _register_layer(self, layer: nn.Module, name: Optional[str] = None) -> nn.Module:
         """Register a layer for automatic model building"""
@@ -225,6 +226,12 @@ class PyTorchLayers:
         
         self._model = Model(self._layer_registry)
         #TODO: Set gpu - do we set by rank?
+        if self.gpu_id >= 0:
+            if torch.cuda.is_available():
+                self._model = self._model.cuda("cuda:{}".format(self.gpu_id))
+            else:
+                print("Warning: CUDA not available, running on CPU.")
+                self._model = self._model.cpu()
         if self.communication:
             from torch.nn.parallel import DistributedDataParallel as DDP
             self._model = DDP(self._model)
@@ -238,6 +245,9 @@ class PyTorchLayers:
         assert self._optimizer is not None
 
         self._model.zero_grad()
+        if self.gpu_id >= 0 and torch.cuda.is_available():
+            input_data = input_data.cuda("cuda:{}".format(self.gpu_id))
+            target = target.cuda("cuda:{}".format(self.gpu_id))
         pred = self._model(input_data)
 
         loss = self._loss_function(pred, target)
