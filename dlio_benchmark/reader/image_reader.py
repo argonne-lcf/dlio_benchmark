@@ -14,8 +14,6 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-import logging
-
 import numpy as np
 from PIL import Image
 
@@ -63,12 +61,6 @@ class ImageReader(FormatReader):
     def finalize(self):
         return super().finalize()
 
-    def is_index_based(self):
-        return True
-
-    def is_iterator_based(self):
-        return True
-    
     def is_index_based(self):
         return True
 

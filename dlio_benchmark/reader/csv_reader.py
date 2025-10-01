@@ -35,7 +35,7 @@ class CSVReader(FormatReader):
     @dlp.log
     def open(self, filename):
         super().open(filename)
-        return pd.read_csv(filename, compression="infer").to_numpy()
+        return pd.read_csv(filename, compression="infer", header=None).to_numpy()
 
     @dlp.log
     def close(self, filename):

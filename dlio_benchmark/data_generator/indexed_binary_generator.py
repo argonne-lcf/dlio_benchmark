@@ -15,18 +15,14 @@
    limitations under the License.
 """
 
-from dlio_benchmark.common.enumerations import Compression
-from dlio_benchmark.data_generator.data_generator import DataGenerator
+import struct
 
-import logging
+from mpi4py import MPI
 import numpy as np
 
-from dlio_benchmark.utils.utility import progress, utcnow, DLIOMPI
-from dlio_benchmark.utils.utility import Profile
-from shutil import copyfile
+from dlio_benchmark.data_generator.data_generator import DataGenerator
 from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
-import struct
-from mpi4py import MPI
+from dlio_benchmark.utils.utility import Profile, progress, utcnow, DLIOMPI
 
 dlp = Profile(MODULE_DATA_GENERATOR)
 
@@ -54,7 +50,6 @@ class IndexedBinaryGenerator(DataGenerator):
         samples_processed = 0
         total_samples = self.total_files_to_generate * self.num_samples
         dim = self.get_dimension(self.total_files_to_generate)
-        # self.logger.info(dim)
         if self.total_files_to_generate <= self.comm_size:
             # Use collective I/O
             # we need even number os samples for collective I/O
@@ -62,9 +57,15 @@ class IndexedBinaryGenerator(DataGenerator):
             for file_index in dlp.iter(range(int(self.total_files_to_generate))):
                 amode = MPI.MODE_WRONLY | MPI.MODE_CREATE
                 comm = MPI.COMM_WORLD
-                dim1 = dim[2*file_index]
-                dim2 = dim[2*file_index + 1]
-                sample_size = dim1 * dim2
+                dim_ = dim[2*file_index]
+                shape_size = 0
+                if isinstance(dim_, list):
+                    shape_size = sum(dim_)
+                else:
+                    dim1 = dim_
+                    dim2 = dim[2*file_index+1]
+                    shape_size = dim1 * dim2
+                sample_size = shape_size * self._args.record_element_bytes
                 out_path_spec = self.storage.get_uri(self._file_list[file_index])
                 out_path_spec_off_idx = self.index_file_path_off(out_path_spec)
                 out_path_spec_sz_idx = self.index_file_path_size(out_path_spec)
@@ -94,7 +95,7 @@ class IndexedBinaryGenerator(DataGenerator):
                 
                 fh = MPI.File.Open(comm, out_path_spec, amode)
                 samples_per_loop = int(GB / sample_size)
-                
+
                 records = np.random.randint(255, size=sample_size*samples_per_loop, dtype=np.uint8)
 
                 for sample_index in range(self.my_rank*samples_per_rank, samples_per_rank*(self.my_rank+1), samples_per_loop):
@@ -106,9 +107,15 @@ class IndexedBinaryGenerator(DataGenerator):
                 fh.Close()
         else:
             for i in dlp.iter(range(self.my_rank, int(self.total_files_to_generate), self.comm_size)):
-                dim1 = dim[2*i]
-                dim2 = dim[2*i + 1]
-                sample_size = dim1 * dim2
+                dim_ = dim[2*i]
+                shape_size = 0
+                if isinstance(dim_, list):
+                    shape_size = np.prod(dim_)
+                else:
+                    dim1 = dim_
+                    dim2 = dim[2*i+1]
+                    shape_size = dim1 * dim2
+                sample_size = shape_size * self._args.record_element_bytes
                 total_size = sample_size * self.num_samples
                 write_size = total_size
                 memory_size = self._args.generation_buffer_size
@@ -117,8 +124,7 @@ class IndexedBinaryGenerator(DataGenerator):
                 out_path_spec = self.storage.get_uri(self._file_list[i])
                 out_path_spec_off_idx = self.index_file_path_off(out_path_spec)
                 out_path_spec_sz_idx = self.index_file_path_size(out_path_spec)
-                progress(i + 1, self.total_files_to_generate, "Generating Indexed Binary Data")
-                prev_out_spec = out_path_spec
+                progress(i + 1, self.total_files_to_generate, "Generating Indexed Binary Data")                
                 written_bytes = 0
                 data_file = open(out_path_spec, "wb")
                 off_file = open(out_path_spec_off_idx, "wb")

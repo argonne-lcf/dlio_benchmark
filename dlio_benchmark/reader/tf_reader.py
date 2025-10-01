@@ -82,6 +82,15 @@ class TFReader(FormatReader):
     @dlp.log
     def next(self):
         self.logger.debug(f"{utcnow()} Reading {len(self._file_list)} files thread {self.thread_index} rank {self._args.my_rank}")
+
+        # @ray: solution to prevent error when tf.data.Dataset cannot find files provided within self._file_list
+        # the use case is usually as follow: user is providing workload.dataset.num_files_eval=0 since they do not
+        # want to do any evaluation
+        # since this method (`next`) requires to return a iterator, we will just return an empty array where array
+        # itself is an iterator
+        if len(self._file_list) == 0:
+            return []
+
         filenames = tf.data.Dataset.list_files(self._file_list, shuffle=False)
         # sharding in the file list if we have enought files. 
         if (len(self._file_list) >= self._args.comm_size):
