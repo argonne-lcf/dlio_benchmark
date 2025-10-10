@@ -43,7 +43,7 @@ class GeneratorFactory(object):
                 from dlio_benchmark.data_generator.npz_generator import NPZGenerator
                 return NPZGenerator()
         elif type == FormatType.NPY:
-            if self._args.storage_type == StorageType.S3:
+            if _args.storage_type == StorageType.S3:
                 from dlio_benchmark.data_generator.npy_generator_s3 import NPYGeneratorS3
                 return NPYGeneratorS3()
             else:
