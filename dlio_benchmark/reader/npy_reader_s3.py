@@ -36,12 +36,9 @@ class NPYReaderS3(NPYReader):
 
     @dlp.log
     def open(self, filename):
-        if not self.storage.isfile(filename):
-            data = self.storage.get_data(filename, None)
-            image = io.BytesIO(data)
-            return np.load(image, allow_pickle=True)
-        else:
-            super().open(filename)
+        data = self.storage.get_data(filename, None)
+        image = io.BytesIO(data)
+        return np.load(image, allow_pickle=True)
 
     @dlp.log
     def close(self, filename):

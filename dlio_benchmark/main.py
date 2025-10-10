@@ -187,7 +187,7 @@ class DLIOBenchmark(object):
                 else:
                     num_subfolders = self.num_subfolders_eval
                 filenames = self.storage.walk_node(os.path.join(self.args.data_folder, f"{dataset_type}"))
-                self.logger.info(f"filenames {filenames}")
+                self.logger.debug(f"filenames {filenames}")
                 if (len(filenames) == 0):
                     continue
                 if self.storage.get_node(

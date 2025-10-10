@@ -16,7 +16,6 @@
 """
 from dlio_benchmark.storage.file_storage import FileStorage
 from dlio_benchmark.storage.s3_storage import S3Storage
-from dlio_benchmark.storage.s3_torch_storage import S3PyTorchConnectorStorage
 from dlio_benchmark.common.enumerations import StorageType, FrameworkType
 from dlio_benchmark.common.error_code import ErrorCodes
 
@@ -30,6 +29,7 @@ class StorageFactory(object):
             return FileStorage(namespace, framework)
         elif storage_type == StorageType.S3:
             if framework == FrameworkType.PYTORCH:
+                from dlio_benchmark.storage.s3_torch_storage import S3PyTorchConnectorStorage
                 return S3PyTorchConnectorStorage(namespace, framework)
             return S3Storage(namespace, framework)
         else:

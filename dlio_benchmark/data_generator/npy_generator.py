@@ -15,9 +15,7 @@
    limitations under the License.
 """
 import numpy as np
-import io
 
-from dlio_benchmark.common.enumerations import StorageType
 from dlio_benchmark.data_generator.data_generator import DataGenerator
 from dlio_benchmark.utils.utility import Profile, progress, gen_random_tensor
 from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
@@ -51,10 +49,5 @@ class NPYGenerator(DataGenerator):
 
             out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating NPY Data")
-            if self._args.storage_type == StorageType.S3:
-                buffer = io.BytesIO()
-                np.save(buffer, records)
-                self.storage.put_data(out_path_spec, buffer)
-            else:
-                np.save(out_path_spec, records)
+            np.save(out_path_spec, records)
         np.random.seed()
