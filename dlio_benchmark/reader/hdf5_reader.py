@@ -17,7 +17,7 @@
 import h5py
 
 from dlio_benchmark.common.constants import MODULE_DATA_READER
-from dlio_benchmark.utils.utility import Profile, ai
+from dlio_benchmark.utils.utility import Profile, dft_ai
 from dlio_benchmark.reader.reader_handler import FormatReader
 
 dlp = Profile(MODULE_DATA_READER)
@@ -53,7 +53,7 @@ class HDF5Reader(FormatReader):
         for batch in super().next():
             yield batch
 
-    @ai.data.item
+    @dft_ai.data.item
     def read_index(self, image_idx, step):
         return super().read_index(image_idx, step)
 

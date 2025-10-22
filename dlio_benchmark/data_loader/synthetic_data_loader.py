@@ -19,7 +19,7 @@ import numpy as np
 from dlio_benchmark.common.constants import MODULE_DATA_LOADER
 from dlio_benchmark.common.enumerations import DataLoaderType
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
-from dlio_benchmark.utils.utility import utcnow, Profile, ai
+from dlio_benchmark.utils.utility import utcnow, Profile, dft_ai
 
 dlp = Profile(MODULE_DATA_LOADER)
 
@@ -34,7 +34,7 @@ class SyntheticDataLoader(BaseDataLoader):
     def read(self, init=False):
         return
     
-    @ai.data.item
+    @dft_ai.data.item
     def getitem(self):
         return self.batch
 
@@ -45,18 +45,18 @@ class SyntheticDataLoader(BaseDataLoader):
         self.read(True)
 
         step = 1
-        ai.dataloader.fetch.start()
+        dft_ai.dataloader.fetch.start()
         while step < self.num_samples // self.batch_size:
-            ai.dataloader.fetch.stop()
+            dft_ai.dataloader.fetch.stop()
             dlp.update(step=step)
-            ai.update(step=step)
+            dft_ai.update(step=step)
             step += 1
             yield self.getitem()
-            ai.dataloader.fetch.start()
+            dft_ai.dataloader.fetch.start()
 
         self.epoch_number += 1
         dlp.update(epoch=self.epoch_number)
-        ai.update(epoch=self.epoch_number)
+        dft_ai.update(epoch=self.epoch_number)
 
     @dlp.log
     def finalize(self):

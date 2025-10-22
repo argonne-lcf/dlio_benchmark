@@ -20,7 +20,7 @@ from dlio_benchmark.framework.framework import Framework, DummyTraceObject
 from dlio_benchmark.common.constants import MODULE_AI_FRAMEWORK
 import torch
 import functools
-from dlio_benchmark.utils.utility import Profile, ai, sleep
+from dlio_benchmark.utils.utility import Profile, dft_ai, sleep
 
 HANDLED_FUNCTIONS = {}
 dlp = Profile(MODULE_AI_FRAMEWORK)
@@ -81,7 +81,7 @@ class TorchFramework(Framework):
     def trace_object(self, string, step, r):
         return DummyTraceObject(string, step, r)
 
-    @ai.compute
+    @dft_ai.compute
     def compute(self, batch, epoch_number, step, computation_time):
         return self.model(batch, computation_time)
 

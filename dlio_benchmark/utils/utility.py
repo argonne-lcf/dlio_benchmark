@@ -35,7 +35,7 @@ try:
     from dftracer.logger import (
         dftracer as PerfTrace,
         dft_fn as Profile,
-        ai,
+        ai as dft_ai,
         DFTRACER_ENABLE
     )
 except ImportError:  # noqa: E722
@@ -80,7 +80,7 @@ except ImportError:  # noqa: E722
     Profile = _NoOp
     PerfTrace = _NoOp
     dftracer = _NoOp
-    ai = _NoOp()
+    dft_ai = _NoOp()
 
     DFTRACER_ENABLE = False
 

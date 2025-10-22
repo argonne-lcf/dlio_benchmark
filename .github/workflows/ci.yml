@@ -196,6 +196,15 @@ jobs:
           mpirun -np 2 pytest -k test_dim_based_csv[float16-2] -v
           mpirun -np 2 pytest -k test_dim_based_csv[float16-3] -v
           mpirun -np 2 pytest -k test_dim_based_csv[float16-4] -v
+      - name: test_ai_logging
+        run: |
+          source ${VENV_PATH}/bin/activate
+          mpirun -np 2 pytest -k test_ai_logging_train[pytorch] -v
+          mpirun -np 2 pytest -k test_ai_logging_train[tensorflow] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_step[pytorch-3] -v
+          mpirun -np 2 pytest -k test_ai_logging_train_with_step[tensorflow-3] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_eval[pytorch] -v
+          mpirun -np 2 pytest -k test_ai_logging_with_eval[tensorflow] -v
           rm -rf outputs
       - name: test_checkpoint_epoch
         run: |

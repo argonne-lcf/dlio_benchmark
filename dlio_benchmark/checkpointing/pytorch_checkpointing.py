@@ -18,7 +18,7 @@ import os
 import torch
 import ctypes
 from dlio_benchmark.checkpointing.base_checkpointing import BaseCheckpointing
-from dlio_benchmark.utils.utility import Profile, ai
+from dlio_benchmark.utils.utility import Profile, dft_ai
 
 from dlio_benchmark.common.constants import MODULE_CHECKPOINT
 
@@ -52,7 +52,7 @@ class PyTorchCheckpointing(BaseCheckpointing):
             PyTorchCheckpointing.__instance = PyTorchCheckpointing()
         return PyTorchCheckpointing.__instance
 
-    @ai.checkpoint.init
+    @dft_ai.checkpoint.init
     def __init__(self):
         super().__init__("pt")
 
@@ -123,7 +123,7 @@ class PyTorchCheckpointing(BaseCheckpointing):
         except Exception:
             return False
 
-    @ai.checkpoint.capture
+    @dft_ai.checkpoint.capture
     def save_state(self, suffix, state, fsync = False):
         name = self.get_name(suffix)
         with open(name, "wb") as f:
@@ -131,7 +131,7 @@ class PyTorchCheckpointing(BaseCheckpointing):
             if fsync: 
                 os.fsync(f.fileno())
 
-    @ai.checkpoint.restart
+    @dft_ai.checkpoint.restart
     def load_state(self, suffix, state):
         name = self.get_name(suffix)
         state = dict() # clear up

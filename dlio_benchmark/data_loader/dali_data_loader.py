@@ -24,7 +24,7 @@ from dlio_benchmark.common.constants import MODULE_DATA_LOADER
 from dlio_benchmark.common.enumerations import DataLoaderType
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
-from dlio_benchmark.utils.utility import utcnow, Profile, DLIOLogger, ai
+from dlio_benchmark.utils.utility import utcnow, Profile, DLIOLogger, dft_ai
 
 dlp = Profile(MODULE_DATA_LOADER)
 
@@ -136,23 +136,24 @@ class DaliDataLoader(BaseDataLoader):
         self.read(True)
         while step < self.num_samples // self.batch_size:
             for pipe in self.pipelines:
-                ai.dataloader.fetch.start()
+                dft_ai.dataloader.fetch.start()
                 try:
                     outputs = pipe.share_outputs()
                 except StopIteration:
-                    # it is fine to not stop `ai.dataloader.fetch` here
+                    # it is fine to not stop `dft_ai.dataloader.fetch` here since
+                    # it will be reset at the next run
                     return
-                ai.dataloader.fetch.stop()
+                dft_ai.dataloader.fetch.stop()
                 self.logger.debug(f"{utcnow()} Output batch {step} {len(outputs)}")
                 yield outputs
                 step += 1
                 dlp.update(step=step)
-                ai.update(step=step)
+                dft_ai.update(step=step)
                 pipe.release_outputs()
                 pipe.schedule_run()
         self.epoch_number += 1
         dlp.update(epoch=self.epoch_number)
-        ai.update(epoch=self.epoch_number)
+        dft_ai.update(epoch=self.epoch_number)
 
     @dlp.log
     def finalize(self):

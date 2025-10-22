@@ -14,15 +14,12 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-import os
-
-from dlio_benchmark.checkpointing.base_checkpointing import BaseCheckpointing
-from dlio_benchmark.utils.utility import Profile, ai
 import tensorflow as tf
 
 from dlio_benchmark.common.constants import MODULE_CHECKPOINT
-from dlio_benchmark.common.enumerations import CheckpointLocationType
-from dlio_benchmark.utils.utility import DLIOMPI, utcnow
+from dlio_benchmark.checkpointing.base_checkpointing import BaseCheckpointing
+from dlio_benchmark.utils.utility import Profile, dft_ai
+from dlio_benchmark.utils.utility import utcnow
 
 def get_tf_datatype(datatype):
     if datatype == "fp32":
@@ -53,7 +50,7 @@ class TFCheckpointing(BaseCheckpointing):
             TFCheckpointing.__instance = TFCheckpointing()
         return TFCheckpointing.__instance
     
-    @ai.checkpoint.init
+    @dft_ai.checkpoint.init
     def __init__(self):
         super().__init__("pb")
 
@@ -77,14 +74,14 @@ class TFCheckpointing(BaseCheckpointing):
     def set_madvise_mergeable(self, tensor):
         return False
 
-    @ai.checkpoint.capture
+    @dft_ai.checkpoint.capture
     def save_state(self, suffix, state, fsync = False):
         name = self.get_name(suffix)
         checkpoint = tf.train.Checkpoint()
         checkpoint.mapped = state
         checkpoint.save(name)
 
-    @ai.checkpoint.restart
+    @dft_ai.checkpoint.restart
     def load_state(self, suffix, state):
         name = self.get_name(suffix)
         state = dict() # clear up

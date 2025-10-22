@@ -21,7 +21,7 @@ from dlio_benchmark.common.constants import MODULE_DATA_LOADER
 from dlio_benchmark.common.enumerations import DataLoaderType, FormatType, DatasetType
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
-from dlio_benchmark.utils.utility import utcnow, Profile, DLIOLogger, ai
+from dlio_benchmark.utils.utility import utcnow, Profile, DLIOLogger, dft_ai
 
 import numpy as np
 
@@ -97,14 +97,14 @@ class TFDataLoader(BaseDataLoader):
     def next(self):
         super().next()
         step = 1
-        for batch in ai.dataloader.fetch.iter(self._dataset):
+        for batch in dft_ai.dataloader.fetch.iter(self._dataset):
             dlp.update(step=step)
-            ai.update(step=step)
+            dft_ai.update(step=step)
             step += 1
             yield batch
         self.epoch_number += 1
         dlp.update(epoch=self.epoch_number)
-        ai.update(epoch=self.epoch_number)
+        dft_ai.update(epoch=self.epoch_number)
 
     @dlp.log
     def finalize(self):

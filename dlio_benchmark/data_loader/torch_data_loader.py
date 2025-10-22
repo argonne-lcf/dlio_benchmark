@@ -24,7 +24,7 @@ from dlio_benchmark.common.constants import MODULE_DATA_LOADER
 from dlio_benchmark.common.enumerations import DatasetType, DataLoaderType
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
-from dlio_benchmark.utils.utility import utcnow, DLIOMPI, Profile, ai
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI, Profile, dft_ai
 from dlio_benchmark.utils.config import ConfigArguments
 
 dlp = Profile(MODULE_DATA_LOADER)
@@ -77,7 +77,7 @@ class TorchDataset(Dataset):
         step = int(math.ceil(self.num_images_read / self.batch_size))
         self.logger.debug(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample")
         dlp.update(step=step)
-        ai.update(step=step)
+        dft_ai.update(step=step)
         return self.reader.read_index(image_idx, step)
 
 
@@ -164,14 +164,14 @@ class TorchDataLoader(BaseDataLoader):
         total = self._args.training_steps if self.dataset_type is DatasetType.TRAIN else self._args.eval_steps
         self.logger.debug(f"{utcnow()} Rank {self._args.my_rank} should read {total} batches")
         step = 1
-        for batch in ai.dataloader.fetch.iter(self._dataset):
+        for batch in dft_ai.dataloader.fetch.iter(self._dataset):
             dlp.update(step=step)
-            ai.update(step=step)
+            dft_ai.update(step=step)
             step += 1
             yield batch
         self.epoch_number += 1
         dlp.update(epoch=self.epoch_number)
-        ai.update(epoch=self.epoch_number)
+        dft_ai.update(epoch=self.epoch_number)
 
     @dlp.log
     def finalize(self):

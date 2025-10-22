@@ -16,7 +16,7 @@
 """
 
 from dlio_benchmark.common.constants import MODULE_AI_FRAMEWORK
-from dlio_benchmark.utils.utility import Profile, ai
+from dlio_benchmark.utils.utility import Profile, dft_ai
 from dlio_benchmark.framework.framework import Framework
 from dlio_benchmark.profiler.profiler_factory import ProfilerFactory
 from dlio_benchmark.common.enumerations import FrameworkType, Profiler, DatasetType, MetadataType, \
@@ -76,7 +76,7 @@ class TFFramework(Framework):
     def trace_object(self, string, step, r):
         pass  # tf.profiler.experimental.Trace(string, step_num=step, _r=r)
 
-    @ai.compute
+    @dft_ai.compute
     def compute(self, batch, epoch_number, step, computation_time):
         return self.model(batch, computation_time)
         # tf.function(self.model)(epoch_number, step, computation_time)

@@ -20,7 +20,7 @@ import numpy as np
 
 from dlio_benchmark.common.enumerations import DatasetType, ReadType
 from dlio_benchmark.utils.utility import utcnow
-from dlio_benchmark.utils.utility import Profile, sleep, ai
+from dlio_benchmark.utils.utility import Profile, sleep, dft_ai
 from dlio_benchmark.utils.config import ConfigArguments
 from dlio_benchmark.common.constants import MODULE_DATA_READER
 
@@ -69,7 +69,7 @@ class FormatReader(ABC):
         return
 
     @abstractmethod
-    @ai.data.item
+    @dft_ai.data.item
     def next(self):
         batch = []
         image_processed = 0
@@ -101,7 +101,7 @@ class FormatReader(ABC):
                 break
 
     @abstractmethod
-    @ai.data.item
+    @dft_ai.data.item
     def read_index(self, global_sample_idx, step):
         self.step = step
         self.image_idx = global_sample_idx

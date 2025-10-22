@@ -21,7 +21,7 @@ from dlio_benchmark.common.constants import MODULE_DATA_LOADER
 from dlio_benchmark.common.enumerations import DataLoaderType, DatasetType
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
-from dlio_benchmark.utils.utility import utcnow, Profile, ai
+from dlio_benchmark.utils.utility import utcnow, Profile, dft_ai
 
 dlp = Profile(MODULE_DATA_LOADER)
 
@@ -67,16 +67,16 @@ class NativeDaliDataLoader(BaseDataLoader):
             pipeline.reset()
         for step in range(num_samples // batch_size):
             dlp.update(step=step)
-            ai.update(step=step)
+            dft_ai.update(step=step)
             try:
-                for batch in ai.dataloader.fetch.iter(self._dataset):
+                for batch in dft_ai.dataloader.fetch.iter(self._dataset):
                     self.logger.debug(f"{utcnow()} Creating {len(batch)} batches by {self._args.my_rank} rank ")
                     yield batch
             except StopIteration:
                 return
         self.epoch_number += 1
         dlp.update(epoch=self.epoch_number)
-        ai.update(epoch=self.epoch_number)
+        dft_ai.update(epoch=self.epoch_number)
 
     @dlp.log
     def finalize(self):
