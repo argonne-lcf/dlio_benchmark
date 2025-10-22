@@ -7,6 +7,7 @@ HYDRA_VERSION = "1.3.2"
 
 test_deps = [
     "pytest",
+    "pytest-xdist",
     "dftracer>=2.0.1",
 ]
 core_deps = [
