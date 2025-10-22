@@ -77,7 +77,7 @@ jobs:
           python -m venv ${VENV_PATH}
           source ${VENV_PATH}/bin/activate
           pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements-test.txt
       - name: test_dataset_dimension_gen_data
         run: |
           source ${VENV_PATH}/bin/activate

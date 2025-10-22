@@ -11,6 +11,8 @@ omegaconf~=2.2.0
 pandas>=1.5.1
 psutil>=5.9.8
 pydftracer>=2.0.2
+dftracer>=2.0.1
+pytest
 tensorflow>=2.13.1
 tensorflow_io>=0.33.0
 torch>=2.2.0
