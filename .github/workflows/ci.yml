@@ -197,6 +197,10 @@ jobs:
           mpirun -np 2 pytest -k test_dim_based_csv[float16-3] -v
           mpirun -np 2 pytest -k test_dim_based_csv[float16-4] -v
       - name: test_ai_logging
+        env:
+          DFTRACER_INC_METADATA: 1
+          DFTRACER_TRACE_COMPRESSION: 0
+          DFTRACER_DISABLE_IO: 0
         run: |
           source ${VENV_PATH}/bin/activate
 
