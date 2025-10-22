@@ -15,23 +15,12 @@
    limitations under the License.
 """
 
-from dlio_benchmark.common.error_code import ErrorCodes
-from dlio_benchmark.common.enumerations import FormatType, FrameworkType, DatasetType, DataLoaderType
-from dlio_benchmark.data_loader.data_loader_factory import DataLoaderFactory
+from dlio_benchmark.common.enumerations import FrameworkType, DatasetType, DataLoaderType
 from dlio_benchmark.framework.framework import Framework, DummyTraceObject
 from dlio_benchmark.common.constants import MODULE_AI_FRAMEWORK
-import os
 import torch
 import functools
-import logging
-from dlio_benchmark.utils.utility import utcnow, DLIOMPI
-from dlio_benchmark.utils.utility import Profile
-
-from time import time
-
-from dlio_benchmark.reader.reader_factory import ReaderFactory
-from dlio_benchmark.storage.storage_factory import StorageFactory
-from dlio_benchmark.utils.utility import sleep
+from dlio_benchmark.utils.utility import Profile, ai, sleep
 
 HANDLED_FUNCTIONS = {}
 dlp = Profile(MODULE_AI_FRAMEWORK)
@@ -92,7 +81,7 @@ class TorchFramework(Framework):
     def trace_object(self, string, step, r):
         return DummyTraceObject(string, step, r)
 
-    @dlp.log
+    @ai.compute
     def compute(self, batch, epoch_number, step, computation_time):
         return self.model(batch, computation_time)
 
