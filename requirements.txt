@@ -12,8 +12,8 @@ pandas>=1.5.1
 psutil>=5.9.8
 pydftracer==1.0.11
 pytest
-tensorflow>=2.13.1
-tensorflow_io>=0.33.0
+tensorflow>=2.13.1,<=2.16.2
+tensorflow_io>=0.33.0,<=0.37.1
 torch>=2.2.0
 torchaudio
 torchvision

@@ -21,8 +21,8 @@ core_deps = [
 x86_deps = [
     f"hydra-core>={HYDRA_VERSION}",
     "nvidia-dali-cuda120>=1.34.0",
-    "tensorflow>=2.13.1",
-    "tensorflow_io>=0.33.0",
+    "tensorflow>=2.13.1,<=2.16.2",
+    "tensorflow_io>=0.33.0,<=0.37.1",
     "torch>=2.2.0",
     "torchaudio",
     "torchvision",
