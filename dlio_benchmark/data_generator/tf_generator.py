@@ -15,10 +15,11 @@
    limitations under the License.
 """
 import os
-from subprocess import call
+import struct
 
 import numpy as np
 import tensorflow as tf
+import tensorflow_io as tfio  # noqa:F401
 
 from dlio_benchmark.data_generator.data_generator import DataGenerator
 from dlio_benchmark.utils.utility import Profile, progress, gen_random_tensor
@@ -78,7 +79,6 @@ class TFRecordGenerator(DataGenerator):
                     serialized = example.SerializeToString()
                     # Write the serialized data to the TFRecords file.
                     writer.write(serialized)
-            tfrecord2idx_script = "tfrecord2idx"
             folder = "train"
             if "valid" in out_path_spec:
                 folder = "valid"
@@ -87,5 +87,25 @@ class TFRecordGenerator(DataGenerator):
             self.storage.create_node(index_folder, exist_ok=True)
             tfrecord_idx = f"{index_folder}/{filename}.idx"
             if not self.storage.isfile(tfrecord_idx):
-                call([tfrecord2idx_script, out_path_spec, self.storage.get_uri(tfrecord_idx)])
+                self.create_index_file(out_path_spec, self.storage.get_uri(tfrecord_idx))
         np.random.seed()
+
+    @dlp.log
+    def create_index_file(self, src: str, dest: str):
+        """Slightly edited body of the tfrecord2idx script from the DALI project"""
+
+        with tf.io.gfile.GFile(src, "rb") as f, tf.io.gfile.GFile(dest, "w") as idx_f:
+            while True:
+                current = f.tell()
+                # length
+                byte_len = f.read(8)
+                if len(byte_len) == 0:
+                    break
+                # crc
+                f.read(4)
+                proto_len = struct.unpack("q", byte_len)[0]
+                # proto
+                f.read(proto_len)
+                # crc
+                f.read(4)
+                idx_f.write(f"{current} {f.tell() - current}\n")
