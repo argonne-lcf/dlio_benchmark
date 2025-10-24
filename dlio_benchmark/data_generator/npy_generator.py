@@ -23,7 +23,7 @@ from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
 dlp = Profile(MODULE_DATA_GENERATOR)
 
 """
-Generator for creating data in NPZ format.
+Generator for creating data in NPY format.
 """
 class NPYGenerator(DataGenerator):
     def __init__(self):

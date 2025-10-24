@@ -45,6 +45,12 @@ extras = {
     "dftracer": [
         "dftracer>=2.0.1",
     ],
+    "s3": [
+        "s3torchconnector",
+    ],
+    "env": [
+        "python-dotenv>=1.0.0"
+    ],
 }
 
 here = pathlib.Path(__file__).parent.resolve()
