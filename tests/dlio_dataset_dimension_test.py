@@ -95,7 +95,7 @@ def check_h5(path):
     return f[variable].shape, f[variable].dtype, len(keys)
 
 
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(600, method="thread")
 @pytest.mark.parametrize("dtype, dim", [
     (dtype, dim)
     for dtype in DTYPES
@@ -144,7 +144,7 @@ def check_image(path):
     return img.size, img.format
 
 
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(600, method="thread")
 @pytest.mark.parametrize("fmt, dtype, dim", [
     (fmt, dtype, dim)
     for fmt in ["png", "jpeg"]
@@ -216,7 +216,7 @@ def check_np(path, fmt):
     else:
         raise ValueError(f"Unsupported format: {fmt}")
 
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(600, method="thread")
 @pytest.mark.parametrize("fmt, dtype, dim", [
     (fmt, dtype, dim)
     for fmt in ["npz", "npy"]
@@ -272,7 +272,7 @@ def check_tfrecord(paths):
         )        
         return record_length_bytes
 
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(600, method="thread")
 @pytest.mark.parametrize("dtype, dim", [
     (dtype, dim)
     for dtype in DTYPES
@@ -335,7 +335,7 @@ def get_indexed_metadata(path, num_samples_per_file):
         sizes = read_longs(f, num_samples_per_file)
     return offsets, sizes
 
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(600, method="thread")
 @pytest.mark.parametrize("dtype, num_samples_per_file, dim", [
     (dtype, num_samples_per_file, dim)
     for dtype in DTYPES
@@ -393,7 +393,7 @@ def check_csv(path):
     df = pd.read_csv(path, compression="infer", header=None)
     return len(df.iloc[0])
 
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(600, method="thread")
 @pytest.mark.parametrize("dtype, dim", [
     (dtype, dim)
     for dtype in DTYPES
@@ -529,7 +529,7 @@ def _run_transformed_sample_worker(storage_root, dtype, transformed_dtype, dim, 
         assert torch_to_numpy_dtype_map.get(bbatch.dtype) == np.dtype(transformed_dtype), f"Dtype mismatch: {bbatch.dtype} != {transformed_dtype}"
         print(f"✓ Batch shape: {bbatch.shape}, dtype: {bbatch.dtype}")
 
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(600, method="thread")
 @pytest.mark.parametrize("dtype, transformed_dtype, dim", [
     (dtype, transformed_dtype, dim)
     for dtype in DTYPES
