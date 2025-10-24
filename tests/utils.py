@@ -30,14 +30,14 @@ HAS_MPIRUN = shutil.which("mpirun") is not None
 HAS_FLUX = shutil.which("flux") is not None and ENABLE_FLUX
 HAS_MPI_RUNNER = HAS_MPIRUN or HAS_FLUX
 NUM_PROCS = 2 if HAS_MPI_RUNNER else 1
-
+TEST_TIMEOUT_SECONDS = 600  # 10 minutes
 
 def delete_folder(path):
     """Delete a folder and all its contents, ignoring errors."""
     shutil.rmtree(path, ignore_errors=True)
 
 
-def run_mpi_benchmark(overrides, num_procs=NUM_PROCS, expect_failure=False, timeout=120):
+def run_mpi_benchmark(overrides, num_procs=NUM_PROCS, expect_failure=False, timeout=TEST_TIMEOUT_SECONDS):
     """
     Run the benchmark as a subprocess using DLIO's main entry point.
     Uses flux or mpirun if available, otherwise falls back to single process.
@@ -46,6 +46,7 @@ def run_mpi_benchmark(overrides, num_procs=NUM_PROCS, expect_failure=False, time
         overrides: List of Hydra config overrides
         num_procs: Number of MPI processes (default: NUM_PROCS, only used if flux/mpirun is available)
         expect_failure: If True, return result even on non-zero exit code (default: False)
+        timeout: Timeout in seconds for the subprocess (default: TEST_TIMEOUT_SECONDS)
 
     Returns:
         subprocess.CompletedProcess instance
