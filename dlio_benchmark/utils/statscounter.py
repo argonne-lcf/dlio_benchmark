@@ -14,14 +14,12 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-from numpy import append
 from dlio_benchmark.utils.config import ConfigArguments
 from dlio_benchmark.utils.utility import utcnow, DLIOMPI, DLIOLogger
 
 import os
 import json
 import math
-import logging
 import pandas as pd
 from time import time
 import numpy as np
@@ -313,8 +311,8 @@ class StatsCounter(object):
         self.start_timestamp = time()
         self.output[epoch]['load'][f'block{block}'] = []
         self.output[epoch]['proc'][f'block{block}'] = []
-        self.output[epoch]['throughput'][f'block{block}'] = []
-        self.output[epoch]['au'][f'block{block}'] = []
+        self.output[epoch]['throughput'][f'block{block}'] = 0.0
+        self.output[epoch]['au'][f'block{block}'] = 0.0
         self.output[epoch]['compute'][f'block{block}'] = []
         ts = utcnow()
         self.per_epoch_stats[epoch][f'block{block}'] = {

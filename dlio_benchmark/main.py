@@ -16,16 +16,13 @@
 """
 import os
 import math
-import logging
 from time import time
-import json
 import numpy as np
 
 # Reduce TF and CUDA logging
-from numpy import random
 
-from dlio_benchmark.checkpointing.checkpointing_factory import CheckpointingFactory
-from dlio_benchmark.common.constants import MODULE_DLIO_BENCHMARK
+import hydra
+from omegaconf import DictConfig
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['AUTOGRAPH_VERBOSITY'] = '0'
@@ -34,22 +31,19 @@ import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
-from dataclasses import dataclass
-from dlio_benchmark.utils.utility import utcnow, measure_performance, get_trace_name, DLIOMPI
-from omegaconf import DictConfig, OmegaConf
+from dlio_benchmark.checkpointing.checkpointing_factory import CheckpointingFactory
+from dlio_benchmark.common.constants import MODULE_DLIO_BENCHMARK
+from dlio_benchmark.common.enumerations import DatasetType, MetadataType
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI, Profile, dft_ai, DLIOLogger
 from dlio_benchmark.utils.statscounter import StatsCounter
-from hydra.core.config_store import ConfigStore
 from dlio_benchmark.utils.config import LoadConfig, ConfigArguments, GetConfig
-from dlio_benchmark.common.enumerations import Profiler, DatasetType, StorageType, MetadataType, FormatType
 from dlio_benchmark.profiler.profiler_factory import ProfilerFactory
 from dlio_benchmark.framework.framework_factory import FrameworkFactory
 from dlio_benchmark.data_generator.generator_factory import GeneratorFactory
 from dlio_benchmark.storage.storage_factory import StorageFactory
-from dlio_benchmark.utils.utility import Profile, PerfTrace, DLIOLogger
 
 dlp = Profile(MODULE_DLIO_BENCHMARK)
 # To make sure the output folder is the same in all the nodes. We have to do this.
-import hydra
 
 dftracer_initialize = True
 dftracer_finalize   = True
@@ -232,7 +226,7 @@ class DLIOBenchmark(object):
             self.stats.checkpoint_size = self.checkpointing_mechanism.checkpoint_size    
         self.comm.barrier()
 
-    @dlp.log
+    @dft_ai.pipeline.evaluate
     def _eval(self, epoch):
         """
         Evaluation loop will read a separate dataset and has its own own computation time.
@@ -241,15 +235,18 @@ class DLIOBenchmark(object):
         total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         loader = self.framework.get_loader(DatasetType.VALID)
         self.stats.start_loading()
-        for batch in dlp.iter(loader.next()):
+        for batch in loader.next():
+            # @ray: fixing uneven data fetch and computation count (same issue with `_train` below)
+            # Check if max steps reached to prevent incomplete fetch/compute pairs
+            # This ensures accurate event counting by stopping compute when step limit is hit
+            if step > total:
+                break
             self.stats.eval_batch_loaded(epoch, step)
             eval_time = self.eval_time
             self.stats.start_compute()
             self.framework.compute(batch, epoch, step, eval_time)
             self.stats.eval_batch_processed(epoch, step)
             step += 1
-            if step > total:
-                break
             self.stats.start_loading()
         return step - 1
 
@@ -289,6 +286,7 @@ class DLIOBenchmark(object):
             overall_step = overall_step + 1
         if self.comm.rank == 0:
             self.logger.output(f"{utcnow()} Checkpointing write finished")
+
     @dlp.log
     def _checkpoint_read(self):
         if self.comm.rank == 0:
@@ -308,7 +306,8 @@ class DLIOBenchmark(object):
             overall_step = overall_step + 1
         if self.comm.rank == 0:
             self.logger.output(f"{utcnow()} Checkpointing write started")
-    @dlp.log
+
+    @dft_ai.pipeline.train
     def _train(self, epoch):
         """
         Training loop for reading the dataset and performing training computations.
@@ -323,6 +322,15 @@ class DLIOBenchmark(object):
         loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
         self.stats.start_loading()
         for batch in loader.next():
+            # @ray: fixing uneven data fetch and computation count
+            # Check if max steps reached to prevent incomplete fetch/compute pairs
+            # This ensures accurate event counting by stopping compute when step limit is hit
+            if overall_step > max_steps or ((self.total_training_steps > 0) and (overall_step > self.total_training_steps)):
+                if self.args.my_rank == 0:
+                    self.logger.info(f"{utcnow()} Maximum number of steps reached")
+                if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
+                    self.stats.end_block(epoch, block, block_step - 1)
+                break
             self.stats.batch_loaded(epoch, overall_step, block)
             computation_time = self.args.computation_time
             if (isinstance(computation_time, dict) and len(computation_time) > 0) or (isinstance(computation_time, float) and  computation_time > 0):
@@ -345,12 +353,6 @@ class DLIOBenchmark(object):
             else:
                 block_step += 1
             overall_step += 1
-            if overall_step > max_steps or ((self.total_training_steps > 0) and (overall_step > self.total_training_steps)):
-                if self.args.my_rank == 0:
-                    self.logger.info(f"{utcnow()} Maximum number of steps reached")
-                if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
-                    self.stats.end_block(epoch, block, block_step - 1)
-                break
             # start a new block here
             if block_step == 1 and block != 1:
                 self.stats.start_block(epoch, block)
@@ -365,7 +367,7 @@ class DLIOBenchmark(object):
             self.next_checkpoint_epoch += self.epochs_between_checkpoints
         return overall_step
 
-    @dlp.log
+    @dft_ai
     def run(self):
         """
         Run the total epochs for training. 
@@ -398,7 +400,7 @@ class DLIOBenchmark(object):
             self.framework.get_loader(dataset_type=DatasetType.TRAIN).read()
             if self.do_eval:
                 self.framework.get_loader(dataset_type=DatasetType.VALID).read()
-            for epoch in range(1, self.epochs + 1):
+            for epoch in dft_ai.pipeline.epoch.iter(range(1, self.epochs + 1), include_iter=False):
                 self.stats.start_epoch(epoch)
                 self.next_checkpoint_step = self.steps_between_checkpoints
                 self.stats.start_train(epoch)

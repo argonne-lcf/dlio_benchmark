@@ -7,6 +7,8 @@ HYDRA_VERSION = "1.3.2"
 
 test_deps = [
     "pytest",
+    "pytest-xdist",
+    "dftracer>=2.0.1",
 ]
 core_deps = [
     "Pillow>=9.3.0",
@@ -17,12 +19,12 @@ core_deps = [
     "omegaconf>=2.2.0",
     "pandas>=1.5.1",
     "psutil>=5.9.8",
+    "pydftracer>=2.0.2"
 ]
 x86_deps = [
     f"hydra-core>={HYDRA_VERSION}",
     "nvidia-dali-cuda120>=1.34.0",
     "tensorflow>=2.13.1",
-    "tensorflow_io>=0.33.0",
     "torch>=2.2.0",
     "torchaudio",
     "torchvision",
@@ -41,7 +43,7 @@ else:
 extras = {
     "test": test_deps,
     "dftracer": [
-        "pydftracer==1.0.11",
+        "dftracer>=2.0.1",
     ],
 }
 
