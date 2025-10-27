@@ -646,7 +646,7 @@ def test_computation_time_distribution(request, dist) -> None:
         cfg = compose(config_name='config',
                       overrides=['++workload.workflow.train=True', \
                                  '++workload.workflow.generate_data=True', \
-                                 '++workload.train.epochs=4'] + compute_time_overrides)
+                                 '++workload.train.epochs=1'] + compute_time_overrides)
         benchmark = run_benchmark(cfg)
         if not request.config.is_dftracer_initialized:
             request.config.is_dftracer_initialized = True

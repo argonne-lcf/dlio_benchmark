@@ -17,7 +17,7 @@
 import pandas as pd
 
 from dlio_benchmark.common.constants import MODULE_DATA_READER
-from dlio_benchmark.utils.utility import Profile
+from dlio_benchmark.utils.utility import Profile, dft_ai
 from dlio_benchmark.reader.reader_handler import FormatReader
 
 dlp = Profile(MODULE_DATA_READER)
@@ -45,7 +45,7 @@ class CSVReader(FormatReader):
     def get_sample(self, filename, sample_index):
         super().get_sample(filename, sample_index)
         image = self.open_file_map[filename][sample_index]
-        dlp.update(image_size=image.nbytes)
+        dft_ai.update(image_size=image.nbytes)
 
     def next(self):
         for batch in super().next():

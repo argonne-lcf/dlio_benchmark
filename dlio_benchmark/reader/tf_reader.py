@@ -15,13 +15,10 @@
    limitations under the License.
 """
 import math
-import logging
-from time import time
 
 from dlio_benchmark.common.constants import MODULE_DATA_READER
-from dlio_benchmark.utils.utility import utcnow
-from dlio_benchmark.utils.utility import Profile
-from dlio_benchmark.common.enumerations import DatasetType, Shuffle
+from dlio_benchmark.utils.utility import utcnow, Profile
+from dlio_benchmark.common.enumerations import Shuffle
 from dlio_benchmark.reader.reader_handler import FormatReader
 import tensorflow as tf
 
@@ -118,6 +115,7 @@ class TFReader(FormatReader):
 
         self._dataset = self._dataset.repeat()
         total = math.floor(len(self._file_list)/self._args.comm_size / self.batch_size * self._args.num_samples_per_file)
+        
         return self._dataset.take(total*self._args.epochs).prefetch(buffer_size=self._args.prefetch_size)
     
     @dlp.log

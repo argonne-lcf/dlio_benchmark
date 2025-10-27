@@ -16,20 +16,13 @@
 """
 from abc import ABC, abstractmethod
 
-from dlio_benchmark.common.enumerations import FrameworkType, Shuffle, FileAccess, DatasetType, MetadataType, DataLoaderType, \
-    ReadType
-from dlio_benchmark.framework.framework_factory import FrameworkFactory
-from dlio_benchmark.storage.storage_factory import StorageFactory
-from dlio_benchmark.utils.utility import utcnow
-from dlio_benchmark.utils.utility import Profile
-from dlio_benchmark.utils.config import ConfigArguments
 import numpy as np
-import os
-import math
-import logging
-import glob
+
+from dlio_benchmark.common.enumerations import DatasetType, ReadType
+from dlio_benchmark.utils.utility import utcnow
+from dlio_benchmark.utils.utility import Profile, sleep, dft_ai
+from dlio_benchmark.utils.config import ConfigArguments
 from dlio_benchmark.common.constants import MODULE_DATA_READER
-from dlio_benchmark.utils.utility import sleep
 
 dlp = Profile(MODULE_DATA_READER)
 
@@ -59,7 +52,7 @@ class FormatReader(ABC):
             self.global_index_map = self._args.val_global_index_map
         self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root, self._args.framework)
 
-    @dlp.log
+    @dft_ai.data.preprocess
     def preprocess(self, a=None):
         sleep(self._args.preprocess_time)
         return a
@@ -78,7 +71,6 @@ class FormatReader(ABC):
 
     @abstractmethod
     def next(self):
-        batch_size = self._args.batch_size if self.dataset_type is DatasetType.TRAIN else self._args.batch_size_eval
         batch = []
         image_processed = 0
         self.step = 1
@@ -86,6 +78,7 @@ class FormatReader(ABC):
         self.logger.debug(f"{utcnow()} Reading {total_images} images thread {self.thread_index} rank {self._args.my_rank}")
 
         for global_sample_idx, filename, sample_index in self.file_map[self.thread_index]:
+            dft_ai.data.item.start()
             self.image_idx = global_sample_idx
             if filename not in self.open_file_map or self.open_file_map[filename] is None:
                 self.open_file_map[filename] = self.open(filename)
@@ -97,6 +90,7 @@ class FormatReader(ABC):
             if is_last:
                 while len(batch) is not self.batch_size:
                     batch.append(self._args.resized_image)
+            dft_ai.data.item.stop()
             if len(batch) == self.batch_size:
                 self.step += 1
                 batch = np.array(batch)
@@ -109,6 +103,7 @@ class FormatReader(ABC):
                 break
 
     @abstractmethod
+    @dft_ai.data.item
     def read_index(self, global_sample_idx, step):
         self.step = step
         self.image_idx = global_sample_idx

@@ -431,7 +431,7 @@ class BaseCheckpointing(ABC):
         self.checkpoint_storage.create_node(checkpoint_id, exist_ok=True)
         if self.rank_to_checkpoint == my_rank:
             if self.model_state:
-                self.load_state(suffix=f"{checkpoint_id}/model_states-{my_rank}", state=self.model_state, fsync = self.args.checkpoint_fsync)
+                self.load_state(suffix=f"{checkpoint_id}/model_states-{my_rank}", state=self.model_state)
             
             if self.layer_state:
                 start_time = time.time()
@@ -443,7 +443,7 @@ class BaseCheckpointing(ABC):
                             for layer_index in range(start_layer, end_layer + 1):
                                 self.load_state(suffix=f"{checkpoint_id}/layer_{layer_index}-model_{self.model_parallelism_rank}_model_states", state=self.layer_state[str(layer_index)])
                         else:
-                            self.load_state(suffix=f"{checkpoint_id}/model_{self.model_parallelism_rank}_model_states", state=self.layer_state, fsync = self.args.checkpoint_fsync)
+                            self.load_state(suffix=f"{checkpoint_id}/model_{self.model_parallelism_rank}_model_states", state=self.layer_state)
                 else:
                     # in this case, model is sharded across the data parallel ranks
                     assert(self.args.pipeline_parallelism == 1)

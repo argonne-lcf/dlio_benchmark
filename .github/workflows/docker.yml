@@ -38,13 +38,16 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract Docker metadata
+        if: github.event_name != 'pull_request'
         id: meta
         uses: docker/metadata-action@v5.5.0
         with:
           images: |
             ${{ secrets.DOCKERHUB_USERNAME }}/dlio
             ghcr.io/${{ github.repository }}
+
       - name: Build and push Docker image
+        if: github.event_name != 'pull_request'
         id: build-and-push
         uses: docker/build-push-action@v5.1.0
         with:
