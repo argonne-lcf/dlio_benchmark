@@ -15,26 +15,31 @@
    limitations under the License.
 """
 import numpy as np
+import io
 
 from dlio_benchmark.common.constants import MODULE_DATA_READER
-from dlio_benchmark.reader.reader_handler import FormatReader
+from dlio_benchmark.reader.npz_reader import NPZReader
 from dlio_benchmark.utils.utility import Profile
 
 dlp = Profile(MODULE_DATA_READER)
 
-
-class NPYReader(FormatReader):
+class NPZReaderS3(NPZReader):
     """
-    Reader for NPY files
+    Reader for NPZ files using S3 protocol
     """
 
     @dlp.log_init
     def __init__(self, dataset_type, thread_index, epoch):
-        super().__init__(dataset_type, thread_index)
+        super().__init__(dataset_type, thread_index, epoch)
 
     @dlp.log
     def open(self, filename):
-        return np.load(filename)
+        if not self.storage.isfile(filename):
+            data = self.storage.get_data(filename, None)
+            image = io.BytesIO(data)
+            return np.load(image, allow_pickle=True)['x']
+        else:
+            super().open(filename)
 
     @dlp.log
     def close(self, filename):
@@ -52,14 +57,16 @@ class NPYReader(FormatReader):
 
     @dlp.log
     def read_index(self, image_idx, step):
+        dlp.update(step=step)
         return super().read_index(image_idx, step)
 
     @dlp.log
     def finalize(self):
         return super().finalize()
-
+    
     def is_index_based(self):
         return True
 
     def is_iterator_based(self):
         return True
+

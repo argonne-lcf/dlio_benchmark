@@ -18,6 +18,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
+from dlio_benchmark.storage.storage_factory import StorageFactory
 from dlio_benchmark.common.enumerations import DatasetType, ReadType
 from dlio_benchmark.utils.utility import utcnow
 from dlio_benchmark.utils.utility import Profile, sleep, dft_ai
@@ -50,6 +51,7 @@ class FormatReader(ABC):
         else:
             self.file_map = self._args.val_file_map
             self.global_index_map = self._args.val_global_index_map
+        self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root, self._args.framework)
 
     @dft_ai.data.preprocess
     def preprocess(self, a=None):

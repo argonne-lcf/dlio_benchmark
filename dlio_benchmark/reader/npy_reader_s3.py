@@ -15,26 +15,30 @@
    limitations under the License.
 """
 import numpy as np
+import io
 
 from dlio_benchmark.common.constants import MODULE_DATA_READER
 from dlio_benchmark.reader.reader_handler import FormatReader
+from dlio_benchmark.reader.npy_reader import NPYReader
 from dlio_benchmark.utils.utility import Profile
 
 dlp = Profile(MODULE_DATA_READER)
 
 
-class NPYReader(FormatReader):
+class NPYReaderS3(NPYReader):
     """
-    Reader for NPY files
+    Reader for NPY files using S3 protocol
     """
 
     @dlp.log_init
     def __init__(self, dataset_type, thread_index, epoch):
-        super().__init__(dataset_type, thread_index)
+        super().__init__(dataset_type, thread_index, epoch)
 
     @dlp.log
     def open(self, filename):
-        return np.load(filename)
+        data = self.storage.get_data(filename, None)
+        image = io.BytesIO(data)
+        return np.load(image, allow_pickle=True)
 
     @dlp.log
     def close(self, filename):

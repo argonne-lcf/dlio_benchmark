@@ -181,6 +181,7 @@ class DLIOBenchmark(object):
                 else:
                     num_subfolders = self.num_subfolders_eval
                 filenames = self.storage.walk_node(os.path.join(self.args.data_folder, f"{dataset_type}"))
+                self.logger.debug(f"filenames {filenames} {num_subfolders}")
                 if (len(filenames) == 0):
                     continue
                 if self.storage.get_node(
@@ -193,11 +194,13 @@ class DLIOBenchmark(object):
                     files = [self.storage.get_basename(f) for f in fullpaths]
                     idx = np.argsort(files)
                     fullpaths = [fullpaths[i] for i in idx]
+                    self.logger.debug(f"fullpaths {fullpaths}")
                 else:
                     assert (num_subfolders == 0)
                     fullpaths = [self.storage.get_uri(os.path.join(self.args.data_folder, f"{dataset_type}", entry))
                                 for entry in filenames if entry.endswith(f'{self.args.format}')]
                     fullpaths = sorted(fullpaths)
+                    self.logger.debug(f"fullpaths {fullpaths}")
                 self.logger.debug(f"subfolder {num_subfolders} fullpaths {fullpaths}")
                 if dataset_type is DatasetType.TRAIN:
                     file_list_train = fullpaths
@@ -314,7 +317,8 @@ class DLIOBenchmark(object):
         :return: returns total steps.
         """
         block = 1  # A continuous period of training steps, ended by checkpointing
-        block_step = overall_step = 1  # Steps are taken within blocks
+        block_step = 1 # Steps are taken within blocks
+        overall_step = 0  # 0-indexed to prevent mismatch in steps taken within blocks
         max_steps = math.floor(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
         self.steps_per_epoch = max_steps
         # Start the very first block
@@ -322,15 +326,6 @@ class DLIOBenchmark(object):
         loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
         self.stats.start_loading()
         for batch in loader.next():
-            # @ray: fixing uneven data fetch and computation count
-            # Check if max steps reached to prevent incomplete fetch/compute pairs
-            # This ensures accurate event counting by stopping compute when step limit is hit
-            if overall_step > max_steps or ((self.total_training_steps > 0) and (overall_step > self.total_training_steps)):
-                if self.args.my_rank == 0:
-                    self.logger.info(f"{utcnow()} Maximum number of steps reached")
-                if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
-                    self.stats.end_block(epoch, block, block_step - 1)
-                break
             self.stats.batch_loaded(epoch, overall_step, block)
             computation_time = self.args.computation_time
             if (isinstance(computation_time, dict) and len(computation_time) > 0) or (isinstance(computation_time, float) and  computation_time > 0):
@@ -353,6 +348,15 @@ class DLIOBenchmark(object):
             else:
                 block_step += 1
             overall_step += 1
+            # @ray, @deepak: fixing uneven data fetch and computation count
+            # Check if max steps reached to prevent incomplete fetch/compute pairs
+            # This ensures accurate event counting by stopping compute when step limit is hit
+            if overall_step >= max_steps or ((self.total_training_steps > 0) and (overall_step > self.total_training_steps)):
+                if self.args.my_rank == 0:
+                    self.logger.info(f"{utcnow()} Maximum number of steps reached")
+                if (block_step != 1 and self.do_checkpoint) or (not self.do_checkpoint):
+                    self.stats.end_block(epoch, block, block_step - 1)
+                break
             # start a new block here
             if block_step == 1 and block != 1:
                 self.stats.start_block(epoch, block)
