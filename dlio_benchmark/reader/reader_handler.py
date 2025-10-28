@@ -18,6 +18,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
+from dlio_benchmark.storage.storage_factory import StorageFactory
 from dlio_benchmark.common.enumerations import DatasetType, ReadType
 from dlio_benchmark.utils.utility import utcnow
 from dlio_benchmark.utils.utility import Profile, sleep, dft_ai

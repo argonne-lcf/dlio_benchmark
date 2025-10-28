@@ -1,0 +1,45 @@
+model: 
+  name: default
+
+framework: pytorch
+
+workflow:
+  generate_data: False
+  train: True
+  evaluation: True
+  profiling: False
+
+dataset: 
+  data_folder: s3://s3pytorchconnector
+  format: npz
+  num_files_train: 64
+  num_files_eval: 8
+  num_samples_per_file: 1
+  record_length_bytes: 4096
+  num_subfolders_train: 0
+  num_subfolders_eval: 0
+
+storage:
+  storage_type: s3
+  storage_root: s3pytorchconnector
+  storage_options:
+    access_key_id: access-key
+    secret_access_key: secret-key
+    endpoint_url: http://localhost:9020
+    region: us-east-1
+
+reader: 
+  data_loader: pytorch
+  batch_size: 4
+  batch_size_eval: 1
+
+train:
+  epochs: 10
+  computation_time: 1.00
+
+evaluation: 
+  eval_time: 0.5
+  epochs_between_evals: 1
+
+profiling: 
+  profiler: iostat

@@ -33,6 +33,7 @@ from omegaconf import OmegaConf, DictConfig
 import math
 import os
 import numpy as np
+from typing import Optional, Dict
 
 dlp = Profile(MODULE_CONFIG)
 @dataclass
@@ -54,6 +55,7 @@ class ConfigArguments:
     # Set root as the current directory by default
     storage_root: str = "./"
     storage_type: StorageType = StorageType.LOCAL_FS
+    storage_options: Optional[Dict[str, str]] = None
     record_length: int = 64 * 1024
     record_length_stdev: int = 0
     record_length_resize: int = 0
@@ -569,6 +571,11 @@ def GetConfig(args, key):
             value = args.storage_type
         elif keys[1] == "storage_root":
             value = args.storage_root
+        elif keys[1] == "storage_options" and len(keys) > 2:
+            if args.storage_type == "s3":
+                option_key = keys[2]
+                if option_key in ["access_key_id", "secret_access_key", "endpoint_url", "region"]:
+                    value = config["storage"].get("storage_options", {}).get(option_key)
     
     if len(keys) > 1 and keys[0] == "dataset":
         if keys[1] == "record_length_bytes":
@@ -789,6 +796,8 @@ def LoadConfig(args, config):
             args.storage_type = StorageType(config['storage']['storage_type'])
         if 'storage_root' in config['storage']:
             args.storage_root = config['storage']['storage_root']
+        if 'storage_options' in config['storage']:
+            args.storage_options = config['storage']['storage_options']
 
     # dataset related settings
     if 'dataset' in config:

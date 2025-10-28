@@ -16,7 +16,6 @@
 """
 from time import time
 
-from dotenv import load_dotenv
 from dlio_benchmark.common.constants import MODULE_STORAGE
 from dlio_benchmark.storage.storage_handler import DataStorage, Namespace
 from dlio_benchmark.storage.s3_storage import S3Storage
@@ -30,8 +29,6 @@ from dlio_benchmark.utils.utility import Profile
 
 dlp = Profile(MODULE_STORAGE)
 
-load_dotenv()
-
 class S3PyTorchConnectorStorage(S3Storage):
     """
     Storage APIs for S3 objects.
@@ -41,8 +38,19 @@ class S3PyTorchConnectorStorage(S3Storage):
     def __init__(self, namespace, framework=None):
         super().__init__(framework)
         self.namespace = Namespace(namespace, NamespaceType.FLAT)
-        self.region = os.getenv("AWS_REGION", "us-east-1")
-        self.endpoint = os.getenv("AWS_ENDPOINT", None)
+
+        # Access config values from self._args (inherited from DataStorage)
+        storage_options = getattr(self._args, "storage_options", {}) or {}
+
+        self.access_key_id = storage_options.get("access_key_id", os.getenv("AWS_ACCESS_KEY_ID"))
+        self.secret_access_key = storage_options.get("secret_access_key", os.getenv("AWS_SECRET_ACCESS_KEY"))
+        self.endpoint = storage_options.get("endpoint_url", os.getenv("AWS_ENDPOINT_URL"))
+        self.region = storage_options.get("region", os.getenv("AWS_REGION", "us-east-1"))
+
+        if self.access_key_id:
+            os.environ["AWS_ACCESS_KEY_ID"] = self.access_key_id
+        if self.secret_access_key:
+            os.environ["AWS_SECRET_ACCESS_KEY"] = self.secret_access_key
 
         # Build connector config, possibly with env overrides
         self.s3_client_config = S3ClientConfig(
