@@ -14,22 +14,18 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-from time import time
-import logging
 import math
 import pickle
 import torch
-from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler
+from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import Sampler
-import numpy as np
 
 from dlio_benchmark.common.constants import MODULE_DATA_LOADER
-from dlio_benchmark.common.enumerations import Shuffle, DatasetType, DataLoaderType
+from dlio_benchmark.common.enumerations import DatasetType, DataLoaderType
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
-from dlio_benchmark.utils.utility import utcnow, DLIOMPI
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI, Profile, dft_ai
 from dlio_benchmark.utils.config import ConfigArguments
-from dlio_benchmark.utils.utility import Profile
 
 dlp = Profile(MODULE_DATA_LOADER)
 
@@ -76,12 +72,12 @@ class TorchDataset(Dataset):
     def __len__(self):
         return self.num_samples
 
-    @dlp.log
     def __getitem__(self, image_idx):
         self.num_images_read += 1
         step = int(math.ceil(self.num_images_read / self.batch_size))
         self.logger.debug(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample")
-        dlp.update(step = step)
+        dlp.update(step=step)
+        dft_ai.update(step=step)
         return self.reader.read_index(image_idx, step)
 
 
@@ -111,6 +107,7 @@ class TorchDataLoader(BaseDataLoader):
     @dlp.log_init
     def __init__(self, format_type, dataset_type, epoch_number):
         super().__init__(format_type, dataset_type, epoch_number, DataLoaderType.PYTORCH)
+
     @dlp.log
     def read(self):
         dataset = TorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples,
@@ -167,14 +164,14 @@ class TorchDataLoader(BaseDataLoader):
         total = self._args.training_steps if self.dataset_type is DatasetType.TRAIN else self._args.eval_steps
         self.logger.debug(f"{utcnow()} Rank {self._args.my_rank} should read {total} batches")
         step = 1
-        # TODO: @hariharan-devarajan: change below line when we bump the dftracer version to 
-        #       `dlp.iter(self._dataset, name=self.next.__qualname__)`
-        for batch in dlp.iter(self._dataset):
-            dlp.update(step = step)
+        for batch in dft_ai.dataloader.fetch.iter(self._dataset):
+            dlp.update(step=step)
+            dft_ai.update(step=step)
             step += 1
             yield batch
         self.epoch_number += 1
         dlp.update(epoch=self.epoch_number)
+        dft_ai.update(epoch=self.epoch_number)
 
     @dlp.log
     def finalize(self):

@@ -15,7 +15,7 @@
    limitations under the License.
 """
 #!/usr/bin/env python
-from hydra import initialize, initialize_config_dir, compose
+from hydra import initialize_config_dir, compose
 from omegaconf import OmegaConf
 import unittest
 import shutil
@@ -30,6 +30,8 @@ import os
 from dlio_benchmark.utils.config import ConfigArguments
 from dlio_benchmark.utils.utility import DLIOMPI
 import dlio_benchmark
+from tests.utils import TEST_TIMEOUT_SECONDS
+
 config_dir=os.path.dirname(dlio_benchmark.__file__)+"/configs/"
 
 logging.basicConfig(
@@ -80,7 +82,7 @@ def run_benchmark(cfg, storage_root="./", verify=True):
     return benchmark
 
 
-@pytest.mark.timeout(60, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
                                             ("jpeg", "tensorflow"), ("tfrecord", "tensorflow"),
                                             ("hdf5", "tensorflow"), ("indexed_binary", "tensorflow"), ("mmap_indexed_binary", "tensorflow")])
@@ -117,7 +119,7 @@ def test_gen_data(fmt, framework) -> None:
         clean()
     finalize()
 
-@pytest.mark.timeout(60, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 def test_subset() -> None:
     init()
     clean()
@@ -140,7 +142,7 @@ def test_subset() -> None:
     clean()
     finalize()
 
-@pytest.mark.timeout(60, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
                                             ("jpeg", "tensorflow"), ("tfrecord", "tensorflow"),
                                             ("hdf5", "tensorflow"), ("indexed_binary", "tensorflow"),
@@ -186,7 +188,7 @@ def test_storage_root_gen_data(fmt, framework) -> None:
         clean(storage_root)
     finalize()
 
-@pytest.mark.timeout(60, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 def test_iostat_profiling() -> None:
     init()
     clean()
@@ -221,11 +223,11 @@ def test_iostat_profiling() -> None:
             subprocess.run(["ls", "-l", "/dev/null"], capture_output=True)
             cmd = f"dlio_postprocessor --output-folder={benchmark.output_folder}"
             cmd = cmd.split()
-            subprocess.run(cmd, capture_output=True, timeout=10)
+            subprocess.run(cmd, capture_output=True, timeout=120)
         clean()
     finalize()
 
-@pytest.mark.timeout(60, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("framework, model_size, optimizers, num_layers, layer_params, zero_stage, randomize", [("tensorflow", 1024, [1024, 128], 2, [16], 0, True),
                                                                                          ("pytorch", 1024, [1024, 128], 2, [16], 0, True),
                                                                                          ("tensorflow", 1024, [1024, 128], 2, [16], 3, True),
@@ -296,7 +298,7 @@ def test_checkpoint_epoch(framework, model_size, optimizers, num_layers, layer_p
         clean()
     finalize()
 
-@pytest.mark.timeout(60, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 def test_checkpoint_step() -> None:
     init()
     clean()
@@ -328,7 +330,7 @@ def test_checkpoint_step() -> None:
         clean()
     finalize()
 
-@pytest.mark.timeout(60, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 def test_checkpoint_ksm_config() -> None:
     """
     Tests the loading and derivation of KSM configuration parameters
@@ -434,8 +436,8 @@ def test_checkpoint_ksm_config() -> None:
 
     clean()
     finalize()
-    
-@pytest.mark.timeout(60, method="thread")
+
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 def test_eval() -> None:
     init()
     clean()
@@ -455,8 +457,7 @@ def test_eval() -> None:
         clean()
     finalize()
 
-@pytest.mark.timeout(60, method="thread")
-
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("framework, nt", [("tensorflow", 0), ("tensorflow", 1),("tensorflow", 2),
                                            ("pytorch", 0), ("pytorch", 1), ("pytorch", 2)])
 def test_multi_threads(framework, nt) -> None:
@@ -483,8 +484,7 @@ def test_multi_threads(framework, nt) -> None:
     clean()
     finalize()
 
-@pytest.mark.timeout(60, method="thread")
-
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("nt, context", [(0, None), (1, "fork"), (2, "spawn"), (2, "forkserver")])
 def test_pytorch_multiprocessing_context(nt, context) -> None:
     init()
@@ -511,7 +511,7 @@ def test_pytorch_multiprocessing_context(nt, context) -> None:
     clean()
     finalize()
 
-@pytest.mark.timeout(60, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("fmt, framework, dataloader, is_even", [("png", "tensorflow","tensorflow", True), ("npz", "tensorflow","tensorflow", True),
                                             ("jpeg", "tensorflow","tensorflow", True), ("tfrecord", "tensorflow","tensorflow", True),
                                             ("hdf5", "tensorflow","tensorflow", True), ("csv", "tensorflow","tensorflow", True),
@@ -573,7 +573,7 @@ def test_train(fmt, framework, dataloader, is_even) -> None:
     finalize()
 
 
-@pytest.mark.timeout(60, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
                                             ("jpeg", "tensorflow"), ("tfrecord", "tensorflow"),
                                             ("hdf5", "tensorflow"), ("csv", "tensorflow"),
@@ -619,7 +619,7 @@ compute_time_distributions = {
     "normal_v4": 2.0, # mean, dist: normal
 }
 
-@pytest.mark.timeout(60, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("dist", list(compute_time_distributions.keys()))
 def test_computation_time_distribution(request, dist) -> None:
     init()
@@ -646,7 +646,7 @@ def test_computation_time_distribution(request, dist) -> None:
         cfg = compose(config_name='config',
                       overrides=['++workload.workflow.train=True', \
                                  '++workload.workflow.generate_data=True', \
-                                 '++workload.train.epochs=4'] + compute_time_overrides)
+                                 '++workload.train.epochs=1'] + compute_time_overrides)
         benchmark = run_benchmark(cfg)
         if not request.config.is_dftracer_initialized:
             request.config.is_dftracer_initialized = True

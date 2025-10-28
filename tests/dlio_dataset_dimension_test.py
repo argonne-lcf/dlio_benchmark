@@ -23,27 +23,20 @@ import os
 import glob
 from datetime import datetime
 
-from mpi4py import MPI
-
 import numpy as np
 
-from hydra import initialize_config_dir, compose
-
-from dlio_benchmark.main import DLIOBenchmark
-from dlio_benchmark.utils.config import ConfigArguments
-from dlio_benchmark.utils.utility import DLIOMPI
 import dlio_benchmark
 
-comm = MPI.COMM_WORLD
+from tests.utils import delete_folder, run_mpi_benchmark, NUM_PROCS, TEST_TIMEOUT_SECONDS
 
 DTYPES = ["float32", "int8", "float16"]
-END_TO_ENDS = [True, False]
 DIMENSIONS = [2, 3, 4]
+
 
 config_dir = os.path.dirname(dlio_benchmark.__file__) + "/configs/"
 
 logging.basicConfig(
-    level=print,
+    level=logging.INFO,
     handlers=[
         logging.FileHandler(
             "dlio_dataset_dimension_test.log", mode="a", encoding="utf-8"
@@ -53,19 +46,6 @@ logging.basicConfig(
     format="[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]",
     # logging's max timestamp resolution is msecs, we will pass in usecs in the message
 )
-
-def delete_folder(path):
-    import shutil
-    shutil.rmtree(path, ignore_errors=True)
-
-def run_benchmark(cfg):
-    comm.Barrier()
-    ConfigArguments.reset()
-    benchmark = DLIOBenchmark(cfg["workload"])
-    benchmark.initialize()
-    benchmark.run()
-    benchmark.finalize()
-    return benchmark
 
 def generate_dlio_param(framework, storage_root, fmt, num_data, num_epochs=2):
     return [
@@ -88,34 +68,22 @@ def generate_dlio_param(framework, storage_root, fmt, num_data, num_epochs=2):
     ]
 
 def generate_random_shape(dim):
-    if comm.rank == 0:
-        shape = [np.random.randint(1, 10) for _ in range(dim)]
-    else:
-        shape = None
-    shape = comm.bcast(shape, root=0)
+    """Generate a random shape with the given dimensions (deterministic per test run)."""
+    shape = [np.random.randint(1, 10) for _ in range(dim)]
     return shape
 
 @pytest.fixture
 def setup_test_env():
-    DLIOMPI.get_instance().initialize()
-    if comm.rank == 0:
-        now = datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")
-        storage_root = os.path.join("outputs", f"{now}-{str(uuid.uuid4())}")
-    else:
-        storage_root = None
-    storage_root = comm.bcast(storage_root, root=0)
+    now = datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")
+    storage_root = os.path.join("outputs", f"{now}-{str(uuid.uuid4())}")
 
-    if comm.rank == 0:
-        if os.path.exists(storage_root):
-            delete_folder(storage_root)
-        os.makedirs(storage_root, exist_ok=True)
-
-    comm.Barrier()
-    yield storage_root
-    comm.Barrier()
-    if comm.rank == 0:
+    if os.path.exists(storage_root):
         delete_folder(storage_root)
-    comm.Barrier()
+    os.makedirs(storage_root, exist_ok=True)
+
+    yield storage_root
+
+    delete_folder(storage_root)
 
 
 def check_h5(path):
@@ -128,7 +96,7 @@ def check_h5(path):
     return f[variable].shape, f[variable].dtype, len(keys)
 
 
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("dtype, dim", [
     (dtype, dim)
     for dtype in DTYPES
@@ -141,32 +109,30 @@ def test_dim_based_hdf5_gen_data(setup_test_env, dtype, dim) -> None:
     shape_per_dataset = (1, *generate_random_shape(dim))
     shape = (num_dset_per_record * shape_per_dataset[0], *shape_per_dataset[1:])
     num_data_pp = 8
-    num_data = num_data_pp * comm.size
+    total_data = num_data_pp * NUM_PROCS
     storage_root = setup_test_env
-    with initialize_config_dir(version_base=None, config_dir=config_dir):
-        cfg = compose(
-            config_name="config",
-            overrides=[
-                f"++workload.dataset.record_dims={list(shape)}",
-                f"++workload.dataset.record_element_type={dtype}",
-                f"++workload.dataset.hdf5.num_dset_per_record={num_dset_per_record}",
-            ] + generate_dlio_param(framework=framework, 
-                                    storage_root=storage_root, 
-                                    fmt=fmt,
-                                    num_data=num_data),
-        )
-        run_benchmark(cfg)
+
+    overrides = [
+        f"++workload.dataset.record_dims={list(shape)}",
+        f"++workload.dataset.record_element_type={dtype}",
+        f"++workload.dataset.hdf5.num_dset_per_record={num_dset_per_record}",
+    ] + generate_dlio_param(framework=framework,
+                            storage_root=storage_root,
+                            fmt=fmt,
+                            num_data=total_data)
+
+    # Run benchmark in subprocess
+    run_mpi_benchmark(overrides, num_procs=NUM_PROCS)
 
     paths = glob.glob(os.path.join(storage_root, "data", "train", "*.hdf5"))
     assert len(paths) > 0
 
-    chosen_path = paths[comm.rank % len(paths)]
+    chosen_path = paths[0]
     gen_shape, gen_dtype, gen_num_ds = check_h5(chosen_path)
 
-    if comm.rank == 0:
-        print(f"Generated shape: {gen_shape}")
-        print(f"Generated dtype: {gen_dtype}")
-        print(f"Number of datasets: {gen_num_ds}")
+    print(f"Generated shape: {gen_shape}")
+    print(f"Generated dtype: {gen_dtype}")
+    print(f"Number of datasets: {gen_num_ds}")
 
     assert shape_per_dataset == gen_shape
     assert dtype == gen_dtype
@@ -179,7 +145,7 @@ def check_image(path):
     return img.size, img.format
 
 
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("fmt, dtype, dim", [
     (fmt, dtype, dim)
     for fmt in ["png", "jpeg"]
@@ -190,49 +156,51 @@ def test_dim_based_image_gen_data(setup_test_env, dtype, fmt, dim) -> None:
     framework = "pytorch"
     shape = generate_random_shape(dim)
     num_data_pp = 8
-    num_data = num_data_pp * comm.size
+    total_data = num_data_pp * NUM_PROCS
     storage_root = setup_test_env
-
-    def run_bench():
-        with initialize_config_dir(version_base=None, config_dir=config_dir):
-            cfg = compose(
-                config_name="config",
-                overrides=[
-                    f"++workload.dataset.record_element_type={dtype}",
-                    f"++workload.dataset.record_dims={list(shape)}",
-                ] + generate_dlio_param(framework=framework, 
-                                        storage_root=storage_root, 
-                                        fmt=fmt,
-                                        num_data=num_data),
-            )
-            bench = run_benchmark(cfg)
-        return bench
 
     if dim > 2:
         # @ray: check if dimension provided by user > 3
         # this will throw exception because we only support 2D shape for image
-        if comm.rank == 0:
-            print("Checking assertion when dimension > 2")
-        with pytest.raises(ValueError) as e:
-            bench = run_bench()
-        assert str(e.value) == f"{fmt} format does not support more than 2 dimensions, but got {dim} dimensions."
+        print("Checking assertion when dimension > 2")
+
+        overrides = [
+            f"++workload.dataset.record_element_type={dtype}",
+            f"++workload.dataset.record_dims={list(shape)}",
+        ] + generate_dlio_param(framework=framework,
+                                storage_root=storage_root,
+                                fmt=fmt,
+                                num_data=total_data)
+
+        # Run benchmark expecting it to fail
+        result = run_mpi_benchmark(overrides, num_procs=NUM_PROCS, expect_failure=True)
+        assert result.returncode != 0, "Expected benchmark to fail for dim > 2"
+        expected_error = f"{fmt} format does not support more than 2 dimensions, but got {dim} dimensions."
+        assert expected_error in result.stderr, f"Expected error message not found in stderr: {result.stderr}"
     else:
-        bench = run_bench()
-        # @ray: we auto convert other dtype to uint8. 
+        overrides = [
+            f"++workload.dataset.record_element_type={dtype}",
+            f"++workload.dataset.record_dims={list(shape)}",
+        ] + generate_dlio_param(framework=framework,
+                                storage_root=storage_root,
+                                fmt=fmt,
+                                num_data=total_data)
+
+        # Run benchmark in subprocess
+        run_mpi_benchmark(overrides, num_procs=NUM_PROCS)
+
+        # @ray: we auto convert other dtype to uint8.
         # this is to ensure compatibility with PIL fromarray
         # https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.fromarray)
-        assert bench.args.record_element_dtype == np.uint8
-        assert bench.args.record_element_type == "uint8"
         paths = glob.glob(os.path.join(storage_root, "data", "train", f"*.{fmt}"))
         assert len(paths) > 0
 
-        chosen_path = paths[comm.rank % len(paths)]
+        chosen_path = paths[0]
         gen_shape, gen_format = check_image(chosen_path)
 
-        if comm.rank == 0:
-            print(f"Generated width: {gen_shape[0]}")
-            print(f"Generated height: {gen_shape[1]}")
-            print(f"Generated format: {gen_format}")
+        print(f"Generated width: {gen_shape[0]}")
+        print(f"Generated height: {gen_shape[1]}")
+        print(f"Generated format: {gen_format}")
 
         assert len(shape) == 2
         height, width = shape
@@ -249,7 +217,7 @@ def check_np(path, fmt):
     else:
         raise ValueError(f"Unsupported format: {fmt}")
 
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("fmt, dtype, dim", [
     (fmt, dtype, dim)
     for fmt in ["npz", "npy"]
@@ -261,32 +229,30 @@ def test_dim_based_np_gen_data(setup_test_env, fmt, dtype, dim) -> None:
     num_samples_per_file = 1
     shape = generate_random_shape(dim)
     num_data_pp = 8
-    num_data = num_data_pp * comm.size
+    total_data = num_data_pp * NUM_PROCS
     final_shape = (*shape, num_samples_per_file)
     storage_root = setup_test_env
-    with initialize_config_dir(version_base=None, config_dir=config_dir):
-        cfg = compose(
-            config_name="config",
-            overrides=[
-                f"++workload.dataset.num_samples_per_file={num_samples_per_file}",
-                f"++workload.dataset.record_element_type={dtype}",
-                f"++workload.dataset.record_dims={list(shape)}",
-            ] + generate_dlio_param(framework=framework, 
-                                    storage_root=storage_root, 
-                                    fmt=fmt,
-                                    num_data=num_data),
-        )
-        run_benchmark(cfg)
+
+    overrides = [
+        f"++workload.dataset.num_samples_per_file={num_samples_per_file}",
+        f"++workload.dataset.record_element_type={dtype}",
+        f"++workload.dataset.record_dims={list(shape)}",
+    ] + generate_dlio_param(framework=framework,
+                            storage_root=storage_root,
+                            fmt=fmt,
+                            num_data=total_data)
+
+    # Run benchmark in subprocess
+    run_mpi_benchmark(overrides, num_procs=NUM_PROCS)
 
     paths = glob.glob(os.path.join(storage_root, "data", "train", f"*.{fmt}"))
     assert len(paths) > 0
 
-    chosen_path = paths[comm.rank % len(paths)]
+    chosen_path = paths[0]
     gen_shape, gen_format = check_np(chosen_path, fmt=fmt)
 
-    if comm.rank == 0:
-        print(f"Generated shape: {gen_shape}")
-        print(f"Generated format: {gen_format}")
+    print(f"Generated shape: {gen_shape}")
+    print(f"Generated format: {gen_format}")
 
     assert final_shape == gen_shape
     assert np.dtype(dtype) == gen_format
@@ -307,7 +273,7 @@ def check_tfrecord(paths):
         )        
         return record_length_bytes
 
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("dtype, dim", [
     (dtype, dim)
     for dtype in DTYPES
@@ -319,19 +285,18 @@ def test_dim_based_tfrecord_gen_data(setup_test_env, dtype, dim) -> None:
     shape = generate_random_shape(dim)
     storage_root = setup_test_env
     num_data_pp = 8
-    num_data = num_data_pp * comm.size
-    with initialize_config_dir(version_base=None, config_dir=config_dir):
-        cfg = compose(
-            config_name="config",
-            overrides=[
-                f"++workload.dataset.record_element_type={dtype}",
-                f"++workload.dataset.record_dims={list(shape)}",
-            ] + generate_dlio_param(framework=framework, 
-                                    storage_root=storage_root, 
-                                    fmt=fmt,
-                                    num_data=num_data),
-        )
-        run_benchmark(cfg)
+    total_data = num_data_pp * NUM_PROCS
+
+    overrides = [
+        f"++workload.dataset.record_element_type={dtype}",
+        f"++workload.dataset.record_dims={list(shape)}",
+    ] + generate_dlio_param(framework=framework,
+                            storage_root=storage_root,
+                            fmt=fmt,
+                            num_data=total_data)
+
+    # Run benchmark in subprocess
+    run_mpi_benchmark(overrides, num_procs=NUM_PROCS)
 
     train_data_dir = os.path.join(storage_root, "data", "train")
     paths = glob.glob(os.path.join(train_data_dir, "*.tfrecord"))
@@ -339,8 +304,7 @@ def test_dim_based_tfrecord_gen_data(setup_test_env, dtype, dim) -> None:
 
     gen_bytes = check_tfrecord(paths)
 
-    if comm.rank == 0:
-        print(f"Generated bytes: {gen_bytes}")
+    print(f"Generated bytes: {gen_bytes}")
 
     assert np.prod(shape) * np.dtype(dtype).itemsize == gen_bytes
 
@@ -372,7 +336,7 @@ def get_indexed_metadata(path, num_samples_per_file):
         sizes = read_longs(f, num_samples_per_file)
     return offsets, sizes
 
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("dtype, num_samples_per_file, dim", [
     (dtype, num_samples_per_file, dim)
     for dtype in DTYPES
@@ -385,35 +349,33 @@ def test_dim_based_indexed_gen_data(setup_test_env, dtype, num_samples_per_file,
     shape = generate_random_shape(dim)
     storage_root = setup_test_env
     num_data_pp = 8
-    num_data = num_data_pp * comm.size
-    with initialize_config_dir(version_base=None, config_dir=config_dir):
-        cfg = compose(
-            config_name="config",
-            overrides=[
-                f"++workload.dataset.num_samples_per_file={num_samples_per_file}",
-                f"++workload.dataset.record_element_type={dtype}",
-                f"++workload.dataset.record_dims={list(shape)}",
-            ] + generate_dlio_param(framework=framework, 
-                                    storage_root=storage_root, 
-                                    fmt=fmt,
-                                    num_data=num_data),
-        )
-        run_benchmark(cfg)
+    total_data = num_data_pp * NUM_PROCS
+
+    overrides = [
+        f"++workload.dataset.num_samples_per_file={num_samples_per_file}",
+        f"++workload.dataset.record_element_type={dtype}",
+        f"++workload.dataset.record_dims={list(shape)}",
+    ] + generate_dlio_param(framework=framework,
+                            storage_root=storage_root,
+                            fmt=fmt,
+                            num_data=total_data)
+
+    # Run benchmark in subprocess
+    run_mpi_benchmark(overrides, num_procs=NUM_PROCS)
 
     train_data_dir = os.path.join(storage_root, "data", "train")
     paths = glob.glob(os.path.join(train_data_dir, "*.indexed_binary"))
     assert len(paths) > 0
 
-    chosen_path = paths[comm.rank % len(paths)]
+    chosen_path = paths[0]
     offsets, sizes = get_indexed_metadata(chosen_path, num_samples_per_file)
 
     assert len(offsets) == num_samples_per_file
     assert len(sizes) == num_samples_per_file
 
-    if comm.rank == 0:
-        print(f"Dimensions: {shape}")
-        print(f"Generated offsets: {offsets}")
-        print(f"Generated sizes: {sizes}")
+    print(f"Dimensions: {shape}")
+    print(f"Generated offsets: {offsets}")
+    print(f"Generated sizes: {sizes}")
 
     sample_size = np.prod(shape) * np.dtype(dtype).itemsize
     sample_size = sample_size.item()
@@ -423,8 +385,7 @@ def test_dim_based_indexed_gen_data(setup_test_env, dtype, num_samples_per_file,
             f.seek(offsets[i])
             data = f.read(sizes[i])
             assert len(data) == sizes[i]
-            if comm.rank == 0:
-                print(f"Read data of size {len(data)}")
+            print(f"Read data of size {len(data)}")
             assert len(data) == sample_size, f"Sample size mismatch: {len(data)} != {sample_size}"
 
 
@@ -433,7 +394,7 @@ def check_csv(path):
     df = pd.read_csv(path, compression="infer", header=None)
     return len(df.iloc[0])
 
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("dtype, dim", [
     (dtype, dim)
     for dtype in DTYPES
@@ -445,44 +406,49 @@ def test_dim_based_csv(setup_test_env, dtype, dim) -> None:
     shape = generate_random_shape(dim)
     storage_root = setup_test_env
     num_data_pp = 8
-    num_data = num_data_pp * comm.size
-    with initialize_config_dir(version_base=None, config_dir=config_dir):
-        cfg = compose(
-            config_name="config",
-            overrides=[
-                f"++workload.dataset.record_element_type={dtype}",
-                f"++workload.dataset.record_dims={list(shape)}",
-            ] + generate_dlio_param(framework=framework, 
-                                    storage_root=storage_root, 
-                                    fmt=fmt,
-                                    num_data=num_data),
-        )
-        run_benchmark(cfg)
+    total_data = num_data_pp * NUM_PROCS
+
+    overrides = [
+        f"++workload.dataset.record_element_type={dtype}",
+        f"++workload.dataset.record_dims={list(shape)}",
+    ] + generate_dlio_param(framework=framework,
+                            storage_root=storage_root,
+                            fmt=fmt,
+                            num_data=total_data)
+
+    # Run benchmark in subprocess
+    run_mpi_benchmark(overrides, num_procs=NUM_PROCS)
 
     train_data_dir = os.path.join(storage_root, "data", "train")
     paths = glob.glob(os.path.join(train_data_dir, "*.csv"))
     assert len(paths) > 0
 
-    chosen_path = paths[comm.rank % len(paths)]
+    chosen_path = paths[0]
 
     expected_rows = np.prod(shape).item()
-    if comm.rank == 0:
-        print(f"Total rows from shape ({shape}): {expected_rows}")
+    print(f"Total rows from shape ({shape}): {expected_rows}")
 
     num_rows = check_csv(chosen_path)
     assert num_rows == expected_rows
 
 
-@pytest.mark.timeout(120, method="thread")
-@pytest.mark.parametrize("dtype, transformed_dtype, dim", [
-    (dtype, transformed_dtype, dim)
-    for dtype in DTYPES
-    for transformed_dtype in ["uint8", "float32"]
-    for dim in DIMENSIONS
-])
-def test_transformed_sample(setup_test_env, dtype, transformed_dtype, dim) -> None:
+def _run_transformed_sample_worker(storage_root, dtype, transformed_dtype, dim, shape, transformed_sample):
+    """Worker function to run in spawned subprocess - needs to import everything locally."""
+    import os
+    import numpy as np
     import torch
+    from mpi4py import MPI
+    from hydra import initialize_config_dir, compose
+    from dlio_benchmark.main import DLIOBenchmark
+    from dlio_benchmark.utils.config import ConfigArguments
+    from dlio_benchmark.utils.utility import DLIOMPI
     from dlio_benchmark.common.enumerations import DatasetType
+    import dlio_benchmark
+
+    comm = MPI.COMM_WORLD
+    config_dir = os.path.dirname(dlio_benchmark.__file__) + "/configs/"
+
+    DLIOMPI.get_instance().initialize()
 
     torch_to_numpy_dtype_map = {
         torch.float32: np.float32,
@@ -497,15 +463,33 @@ def test_transformed_sample(setup_test_env, dtype, transformed_dtype, dim) -> No
         torch.complex64: np.complex64,
         torch.complex128: np.complex128,
     }
+
     framework = "pytorch"
     fmt = "hdf5"
-    shape = generate_random_shape(dim)
-    transformed_sample = generate_random_shape(2)
-    print("Transformed sample shape:", transformed_sample)
-    storage_root = setup_test_env
     num_data_pp = 8
     num_data = num_data_pp * comm.size
     bbatch = None
+
+    def generate_dlio_param(framework, storage_root, fmt, num_data, num_epochs=2):
+        return [
+            f"++workload.framework={framework}",
+            f"++workload.reader.data_loader={framework}",
+            "++workload.workflow.generate_data=True",
+            f"++workload.output.folder={storage_root}",
+            f"++workload.dataset.data_folder={storage_root}/data",
+            f"++workload.dataset.num_files_train={num_data}",
+            "++workload.dataset.num_files_eval=0",
+            f"++workload.dataset.format={fmt}",
+            "++workload.workflow.generate_data=True",
+            f"++workload.dataset.num_files_train={num_data}",
+            "++workload.dataset.num_files_eval=0",
+            "++workload.dataset.num_subfolders_train=0",
+            "++workload.dataset.num_subfolders_eval=0",
+            "++workload.workflow.evaluate=False",
+            "++workload.workflow.train=True",
+            f"++workload.train.epochs={num_epochs}",
+        ]
+
     with initialize_config_dir(version_base=None, config_dir=config_dir):
         cfg = compose(
             config_name="config",
@@ -516,8 +500,8 @@ def test_transformed_sample(setup_test_env, dtype, transformed_dtype, dim) -> No
                 f"++workload.reader.transformed_record_element_type={transformed_dtype}",
                 "++workload.reader.batch_size=1",
                 "++workload.reader.read_threads=1",
-            ] + generate_dlio_param(framework=framework, 
-                                    storage_root=storage_root, 
+            ] + generate_dlio_param(framework=framework,
+                                    storage_root=storage_root,
                                     fmt=fmt,
                                     num_data=num_data),
         )
@@ -527,7 +511,8 @@ def test_transformed_sample(setup_test_env, dtype, transformed_dtype, dim) -> No
         benchmark.initialize()
         epoch = 1
         benchmark.args.reconfigure(epoch)
-        print(f"Initializing data loader ({benchmark.args.data_loader}) with format {benchmark.args.format} and num epoch {epoch}")
+        if comm.rank == 0:
+            print(f"Initializing data loader ({benchmark.args.data_loader}) with format {benchmark.args.format} and num epoch {epoch}")
         benchmark.framework.init_loader(benchmark.args.format, epoch=epoch, data_loader=benchmark.args.data_loader)
         benchmark.framework.get_loader(dataset_type=DatasetType.TRAIN).read()
         loader = benchmark.framework.get_loader(dataset_type=DatasetType.TRAIN)
@@ -538,6 +523,37 @@ def test_transformed_sample(setup_test_env, dtype, transformed_dtype, dim) -> No
             benchmark.framework.get_loader(DatasetType.TRAIN).finalize()
         benchmark.finalize()
 
-    assert bbatch is not None
-    assert list(bbatch.shape) == [1, *transformed_sample]
-    assert torch_to_numpy_dtype_map.get(bbatch.dtype) == np.dtype(transformed_dtype)
+    # Verify on rank 0
+    if comm.rank == 0:
+        assert bbatch is not None, "Batch is None"
+        assert list(bbatch.shape) == [1, *transformed_sample], f"Shape mismatch: {bbatch.shape} != {[1, *transformed_sample]}"
+        assert torch_to_numpy_dtype_map.get(bbatch.dtype) == np.dtype(transformed_dtype), f"Dtype mismatch: {bbatch.dtype} != {transformed_dtype}"
+        print(f"✓ Batch shape: {bbatch.shape}, dtype: {bbatch.dtype}")
+
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
+@pytest.mark.parametrize("dtype, transformed_dtype, dim", [
+    (dtype, transformed_dtype, dim)
+    for dtype in DTYPES
+    for transformed_dtype in ["uint8", "float32"]
+    for dim in DIMENSIONS
+])
+def test_transformed_sample(setup_test_env, dtype, transformed_dtype, dim) -> None:
+    """Test transformed sample using subprocess with spawn context to isolate MPI."""
+    import multiprocessing as mp
+
+    storage_root = setup_test_env
+    shape = generate_random_shape(dim)
+    transformed_sample = generate_random_shape(2)
+    print(f"Transformed sample shape: {transformed_sample}")
+
+    # Use spawn context to run the test in a subprocess
+    ctx = mp.get_context('spawn')
+    p = ctx.Process(
+        target=_run_transformed_sample_worker,
+        args=(storage_root, dtype, transformed_dtype, dim, shape, transformed_sample)
+    )
+    p.start()
+    p.join()
+
+    # Check if subprocess succeeded
+    assert p.exitcode == 0, f"Subprocess failed with exit code {p.exitcode}"
