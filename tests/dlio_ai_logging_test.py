@@ -53,7 +53,7 @@ import glob
 from datetime import datetime
 from collections import Counter
 
-from tests.utils import delete_folder, run_mpi_benchmark, NUM_PROCS
+from tests.utils import delete_folder, run_mpi_benchmark, NUM_PROCS, TEST_TIMEOUT_SECONDS
 
 
 @pytest.fixture
@@ -122,7 +122,7 @@ def get_rank_trace_files(all_paths, num_procs):
 
     return rank_traces
 
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("framework, num_data, batch_size", [
     (framework, num_data, batch_size)
     for framework in ["pytorch", "tensorflow"]
@@ -193,7 +193,7 @@ def test_ai_logging_train(setup_test_env, framework, num_data, batch_size):
     assert global_item_count       >= expected_total_iters, f"Expected at least {expected_total_iters} item events globally, got {global_item_count}"
     assert global_preprocess_count >= expected_total_iters, f"Expected at least {expected_total_iters} preprocess events globally, got {global_preprocess_count}"
 
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("framework, step, read_threads", [
     (framework, step, read_threads)
     for framework in ["pytorch", "tensorflow"]
@@ -264,7 +264,7 @@ def test_ai_logging_train_with_step(setup_test_env, framework, step, read_thread
     assert global_preprocess_count >= expected_total, f"Expected at least {expected_total} preprocess events globally, got {global_preprocess_count}"
 
 
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("framework", ["pytorch", "tensorflow"])
 def test_ai_logging_with_eval(setup_test_env, framework):
     storage_root = setup_test_env
@@ -327,7 +327,7 @@ def test_ai_logging_with_eval(setup_test_env, framework):
     assert global_item_count       >= expected_total, f"Expected at least {expected_total} item events globally, got {global_item_count}"
     assert global_preprocess_count >= expected_total, f"Expected at least {expected_total} preprocess events globally, got {global_preprocess_count}"
 
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("framework, fmt", [
     (framework, fmt)
     for framework in ["pytorch", "tensorflow"]
@@ -411,7 +411,7 @@ def test_ai_logging_with_reader(setup_test_env, framework, fmt):
 # @ray: future note: it seems DLIO hasn't implemented the all_ranks checkpointing yet
 # this test suite is only for checkpointing on rank_zero only
 # @todo: add test-cases to test all_ranks by adding ++workload.checkpoint.type=<VALUE>
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("framework, epoch_per_ckpt, steps_per_ckpt", [
     (framework, epoch_per_ckpt, steps_per_ckpt)
     for framework in ["pytorch", "tensorflow"]
@@ -499,7 +499,7 @@ def test_ai_logging_train_with_checkpoint(setup_test_env, framework, epoch_per_c
 
     assert ckpt_capture_total == expected_checkpoints, f"Expected {expected_checkpoints} checkpoint captures, got {ckpt_capture_total}"
 
-@pytest.mark.timeout(120, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("framework, num_checkpoint_write, num_checkpoint_read", [
     (framework, num_checkpoint_write, num_checkpoint_read)
     for framework in ["pytorch", "tensorflow"]
