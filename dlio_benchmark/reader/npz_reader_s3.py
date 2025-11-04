@@ -17,6 +17,7 @@
 import numpy as np
 import io
 
+from dlio_benchmark.storage.storage_factory import StorageFactory
 from dlio_benchmark.common.constants import MODULE_DATA_READER
 from dlio_benchmark.reader.npz_reader import NPZReader
 from dlio_benchmark.utils.utility import Profile
@@ -31,6 +32,7 @@ class NPZReaderS3(NPZReader):
     @dlp.log_init
     def __init__(self, dataset_type, thread_index, epoch):
         super().__init__(dataset_type, thread_index, epoch)
+        self.storage = StorageFactory().get_storage(self._args.storage_type, self._args.storage_root, self._args.framework)
 
     @dlp.log
     def open(self, filename):
