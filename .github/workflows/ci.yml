@@ -305,3 +305,39 @@ jobs:
           source ${VENV_PATH}/bin/activate
           rm -rf output data checkpoints
           mpirun -np 2 ${DLIO_EXEC} workload=llama_8b_zero3 ++workload.model.parallelism.data=1024 ++workload.checkpoint.mode=subset
+      # S3-specific setup and tests
+      - name: Install S3TorchConnector
+        run: |
+          source ${VENV_PATH}/bin/activate
+          pip install s3torchconnector
+      - name: test_s3_gen_data
+        run: |
+          source ${VENV_PATH}/bin/activate
+          mpirun -np 1 pytest -k test_s3_gen_data[npy-pytorch] -v
+          mpirun -np 1 pytest -k test_s3_gen_data[npz-pytorch] -v
+      - name: test_s3_train
+        run: |
+          source ${VENV_PATH}/bin/activate
+          mpirun -np 1 pytest -k test_s3_train[npy-pytorch-pytorch-True] -v
+          mpirun -np 1 pytest -k test_s3_train[npz-pytorch-pytorch-True] -v
+          mpirun -np 1 pytest -k test_s3_train[npy-pytorch-pytorch-False] -v
+          mpirun -np 1 pytest -k test_s3_train[npz-pytorch-pytorch-False] -v
+      - name: test_s3_eval
+        run: |
+          source ${VENV_PATH}/bin/activate
+          mpirun -np 1 pytest -k test_s3_eval -v
+      - name: test_s3_multi_threads
+        run: |
+          source ${VENV_PATH}/bin/activate
+          mpirun -np 1 pytest -k test_s3_multi_threads[pytorch-0]  -v
+          mpirun -np 1 pytest -k test_s3_multi_threads[pytorch-1]  -v
+          mpirun -np 1 pytest -k test_s3_multi_threads[pytorch-2]  -v
+      - name: test_s3_pytorch_multiprocessing_context
+        run: |
+          source ${VENV_PATH}/bin/activate
+          mpirun -np 1 pytest -k test_s3_pytorch_multiprocessing_context[0-None] -v
+          mpirun -np 1 pytest -k test_s3_pytorch_multiprocessing_context[1-fork] -v
+      - name: test_s3_subset
+        run: |
+          source ${VENV_PATH}/bin/activate
+          mpirun -np 1 pytest -k test_s3_subset -v

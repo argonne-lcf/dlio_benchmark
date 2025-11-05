@@ -15,6 +15,7 @@
    limitations under the License.
 """
 import numpy as np
+import io
 
 from dlio_benchmark.common.enumerations import Compression
 from dlio_benchmark.data_generator.data_generator import DataGenerator
@@ -25,9 +26,9 @@ from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
 dlp = Profile(MODULE_DATA_GENERATOR)
 
 """
-Generator for creating data in NPZ format.
+Generator for creating data in NPZ format for S3 storage.
 """
-class NPZGenerator(DataGenerator):
+class NPZGeneratorS3(DataGenerator):
     def __init__(self):
         super().__init__()
 
@@ -49,8 +50,10 @@ class NPZGenerator(DataGenerator):
                 records = gen_random_tensor(shape=(dim_, dim[2*i+1], self.num_samples), dtype=self._args.record_element_dtype, rng=rng)
             out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating NPZ Data")
+            buffer =  io.BytesIO()
             if self.compression != Compression.ZIP:
-                np.savez(out_path_spec, x=records, y=record_labels)
+                np.savez(buffer, x=records, y=record_labels)
             else:
-                np.savez_compressed(out_path_spec, x=records, y=record_labels)
+                np.savez_compressed(buffer, x=records, y=record_labels)
+            self.storage.put_data(out_path_spec, buffer)
         np.random.seed()

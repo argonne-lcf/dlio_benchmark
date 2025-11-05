@@ -19,7 +19,7 @@ from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 
 from dlio_benchmark.utils.config import ConfigArguments
 
-from dlio_benchmark.common.enumerations import FormatType, DataLoaderType
+from dlio_benchmark.common.enumerations import FormatType, DataLoaderType, StorageType
 from dlio_benchmark.common.error_code import ErrorCodes
 
 
@@ -67,6 +67,9 @@ class ReaderFactory(object):
                 if _args.odirect == True:
                     from dlio_benchmark.reader.npy_reader_odirect import NPYReaderODirect
                     return NPYReaderODirect(dataset_type, thread_index, epoch_number)
+                elif _args.storage_type == StorageType.S3:
+                    from dlio_benchmark.reader.npy_reader_s3 import NPYReaderS3
+                    return NPYReaderS3(dataset_type, thread_index, epoch_number)
                 else:
                     from dlio_benchmark.reader.npy_reader import NPYReader
                     return NPYReader(dataset_type, thread_index, epoch_number)                           
@@ -77,6 +80,9 @@ class ReaderFactory(object):
                 if _args.odirect == True:
                     from dlio_benchmark.reader.npz_reader_odirect import NPZReaderODIRECT
                     return NPZReaderODIRECT(dataset_type, thread_index, epoch_number)         
+                elif _args.storage_type == StorageType.S3:
+                    from dlio_benchmark.reader.npz_reader_s3 import NPZReaderS3
+                    return NPZReaderS3(dataset_type, thread_index, epoch_number)
                 else:
                     from dlio_benchmark.reader.npz_reader import NPZReader
                     return NPZReader(dataset_type, thread_index, epoch_number)
