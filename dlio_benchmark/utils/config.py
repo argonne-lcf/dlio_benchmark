@@ -33,6 +33,7 @@ from omegaconf import OmegaConf, DictConfig
 import math
 import os
 import numpy as np
+from typing import Optional, Dict
 
 dlp = Profile(MODULE_CONFIG)
 @dataclass
@@ -54,6 +55,7 @@ class ConfigArguments:
     # Set root as the current directory by default
     storage_root: str = "./"
     storage_type: StorageType = StorageType.LOCAL_FS
+    storage_options: Optional[Dict[str, str]] = None
     record_length: int = 64 * 1024
     record_length_stdev: int = 0
     record_length_resize: int = 0
@@ -189,6 +191,11 @@ class ConfigArguments:
     transformed_record_element_type: str = "uint8" # user provided
     ## reader -- derived
     transformed_record_element_dtype: ClassVar[np.dtype] = np.dtype("uint8")
+
+    # s3 defaults
+    s3_region: str = "us-east-1"
+    s3_force_path_style = False
+    s3_max_attempts: int = 5
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -339,6 +346,56 @@ class ConfigArguments:
         # check if both record_dims and record_length_stdev are set
         if len(self.record_dims) > 0 and self.record_length_stdev > 0:
             raise ValueError("Both record_dims and record_length_bytes_stdev are set. This is not supported. If you need stdev on your records, please specify record_length_bytes with record_length_bytes_stdev instead.")
+
+        # S3 specific checks
+        if self.storage_type == StorageType.S3 and self.framework == FrameworkType.PYTORCH:
+            if self.format not in (FormatType.NPZ, FormatType.NPY):
+                raise Exception(f"For S3 using PyTorch framework, only NPZ or NPY formats are supported. Got format {self.format}")
+
+            # Also validate that s3torchconnector dependency is available
+            try:
+                from s3torchconnector._s3client import S3Client, S3ClientConfig
+            except ImportError:
+                raise Exception(
+                    "The s3torchconnector package is required for S3 with PyTorch but is not installed. "
+                    "Please install it before running the benchmark."
+                )
+
+            if self.format == FormatType.NPY:
+                # Ensure the NPY S3 reader is used with s3
+                try:
+                    from dlio_benchmark.reader.npy_reader_s3 import NPYReaderS3
+                except ImportError:
+                    raise Exception(
+                        "S3 with NPY requires dlio_benchmark.reader.npy_reader_s3.NPYReaderS3, "
+                        "but it could not be imported. Ensure the module is available."
+                    )
+            elif self.format == FormatType.NPZ:
+                # Ensure the NPZ S3 reader is used with s3
+                try:
+                    from dlio_benchmark.reader.npz_reader_s3 import NPZReaderS3
+                except ImportError:
+                    raise Exception(
+                        "S3 with NPZ requires dlio_benchmark.reader.npz_reader_s3.NPZReaderS3, "
+                        "but it could not be imported. Ensure the module is available."
+                    )
+
+            # Validate required credentials is set for s3 (from config)
+            missing = []
+            access_key_id = self.storage_options.get("access_key_id")
+            if not access_key_id:
+                missing.append("storage_options['access_key_id']")
+            secret_access_key = self.storage_options.get("secret_access_key")
+            if not secret_access_key:
+                missing.append("storage_options['secret_access_key']")
+            endpoint = self.storage_options.get("endpoint_url")
+            if not endpoint:
+                missing.append("storage_options['endpoint_url']")
+            if missing:
+                raise Exception(
+                    "Missing required S3 credentials for s3torchconnector: " + ", ".join(missing)
+                )
+
 
     @staticmethod
     def reset():
@@ -521,7 +578,10 @@ class ConfigArguments:
                 global_sample_index = sample_list[sample_index]
                 samples_sum += global_sample_index
                 file_index = int(math.floor(global_sample_index/self.num_samples_per_file))
-                abs_path = os.path.abspath(file_list[file_index])
+                if self.storage_type == StorageType.LOCAL_FS:
+                    abs_path = os.path.abspath(file_list[file_index])
+                else:
+                    abs_path = file_list[file_index]
                 sample_index = global_sample_index % self.num_samples_per_file
                 process_thread_file_map[global_sample_index] = (abs_path, sample_index)
         return process_thread_file_map, samples_sum
@@ -566,6 +626,11 @@ def GetConfig(args, key):
             value = args.storage_type
         elif keys[1] == "storage_root":
             value = args.storage_root
+        elif keys[1] == "storage_options" and len(keys) > 2:
+            if args.storage_type == "s3":
+                option_key = keys[2]
+                if option_key in ["access_key_id", "secret_access_key", "endpoint_url", "region", "s3_force_path_style", "s3_max_attempts"]:
+                    value = config["storage"].get("storage_options", {}).get(option_key)
     
     if len(keys) > 1 and keys[0] == "dataset":
         if keys[1] == "record_length_bytes":
@@ -786,6 +851,8 @@ def LoadConfig(args, config):
             args.storage_type = StorageType(config['storage']['storage_type'])
         if 'storage_root' in config['storage']:
             args.storage_root = config['storage']['storage_root']
+        if 'storage_options' in config['storage']:
+            args.storage_options = config['storage']['storage_options']
 
     # dataset related settings
     if 'dataset' in config:

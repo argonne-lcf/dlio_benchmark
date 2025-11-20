@@ -28,6 +28,10 @@ class StorageFactory(object):
         if storage_type == StorageType.LOCAL_FS:
             return FileStorage(namespace, framework)
         elif storage_type == StorageType.S3:
+            from dlio_benchmark.common.enumerations import FrameworkType
+            if framework == FrameworkType.PYTORCH:
+                from dlio_benchmark.storage.s3_torch_storage import S3PyTorchConnectorStorage
+                return S3PyTorchConnectorStorage(namespace, framework)
             return S3Storage(namespace, framework)
         else:
             raise Exception(str(ErrorCodes.EC1001))
