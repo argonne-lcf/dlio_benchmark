@@ -18,6 +18,7 @@ import numpy as np
 
 from dlio_benchmark.common.enumerations import Compression
 from dlio_benchmark.data_generator.data_generator import DataGenerator
+
 from dlio_benchmark.utils.utility import Profile, progress, gen_random_tensor
 from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
 
