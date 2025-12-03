@@ -14,11 +14,10 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+from dlio_benchmark.utils.config import ConfigArguments
 
-from dlio_benchmark.common.enumerations import FormatType
+from dlio_benchmark.common.enumerations import FormatType, StorageType
 from dlio_benchmark.common.error_code import ErrorCodes
-
-
 
 class GeneratorFactory(object):
     def __init__(self):
@@ -26,6 +25,7 @@ class GeneratorFactory(object):
 
     @staticmethod
     def get_generator(type):
+        _args = ConfigArguments.get_instance()
         if type == FormatType.TFRECORD:
             from dlio_benchmark.data_generator.tf_generator import TFRecordGenerator
             return TFRecordGenerator()
@@ -36,11 +36,19 @@ class GeneratorFactory(object):
             from dlio_benchmark.data_generator.csv_generator import CSVGenerator
             return CSVGenerator()
         elif type == FormatType.NPZ:
-            from dlio_benchmark.data_generator.npz_generator import NPZGenerator
-            return NPZGenerator()
+            if _args.storage_type == StorageType.S3:
+                from dlio_benchmark.data_generator.npz_generator_s3 import NPZGeneratorS3
+                return NPZGeneratorS3()
+            else:
+                from dlio_benchmark.data_generator.npz_generator import NPZGenerator
+                return NPZGenerator()
         elif type == FormatType.NPY:
-            from dlio_benchmark.data_generator.npy_generator import NPYGenerator
-            return NPYGenerator()            
+            if _args.storage_type == StorageType.S3:
+                from dlio_benchmark.data_generator.npy_generator_s3 import NPYGeneratorS3
+                return NPYGeneratorS3()
+            else:
+                from dlio_benchmark.data_generator.npy_generator import NPYGenerator
+                return NPYGenerator()            
         elif type == FormatType.JPEG:
             from dlio_benchmark.data_generator.jpeg_generator import JPEGGenerator
             return JPEGGenerator()

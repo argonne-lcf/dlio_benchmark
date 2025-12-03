@@ -15,17 +15,19 @@
    limitations under the License.
 """
 import numpy as np
+import io
 
 from dlio_benchmark.data_generator.data_generator import DataGenerator
+
 from dlio_benchmark.utils.utility import Profile, progress, gen_random_tensor
 from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
 
 dlp = Profile(MODULE_DATA_GENERATOR)
 
 """
-Generator for creating data in NPY format.
+Generator for creating data in NPY format for S3 Storage.
 """
-class NPYGenerator(DataGenerator):
+class NPYGeneratorS3(DataGenerator):
     def __init__(self):
         super().__init__()
 
@@ -49,5 +51,7 @@ class NPYGenerator(DataGenerator):
 
             out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating NPY Data")
-            np.save(out_path_spec, records)
+            buffer = io.BytesIO()
+            np.save(buffer, records)
+            self.storage.put_data(out_path_spec, buffer)
         np.random.seed()
