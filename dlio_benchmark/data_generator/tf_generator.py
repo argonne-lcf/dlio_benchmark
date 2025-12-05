@@ -19,7 +19,6 @@ import struct
 
 import numpy as np
 import tensorflow as tf
-import tensorflow_io as tfio  # noqa:F401
 
 from dlio_benchmark.data_generator.data_generator import DataGenerator
 from dlio_benchmark.utils.utility import Profile, progress, gen_random_tensor
