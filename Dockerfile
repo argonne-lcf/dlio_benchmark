@@ -10,5 +10,5 @@ RUN pip install pybind11
 
 # Add contents of the current directory to /workspace/dlio in the container
 ADD . /workspace/dlio
-RUN pip install /workspace/dlio
-RUN rm -rf /workspace/dlio
+RUN pip install --no-cache-dir /workspace/dlio
+RUN rm -rf /workspace/dlio /root/.cache/pip
