@@ -407,7 +407,10 @@ class ConfigArguments:
             if self.framework == FrameworkType.TENSORFLOW:
                 self.checkpoint_mechanism = CheckpointMechanismType.TF_SAVE
             elif self.framework == FrameworkType.PYTORCH:
-                self.checkpoint_mechanism = CheckpointMechanismType.PT_SAVE
+                if self.storage_type == StorageType.S3:
+                    self.checkpoint_mechanism = CheckpointMechanismType.PT_S3_SAVE
+                else:
+                    self.checkpoint_mechanism = CheckpointMechanismType.PT_SAVE
 
         record_dims_length = len(self.record_dims)
         if record_dims_length > 0:
