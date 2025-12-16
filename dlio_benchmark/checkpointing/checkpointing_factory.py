@@ -21,7 +21,6 @@ from dlio_benchmark.common.error_code import ErrorCodes
 from dlio_benchmark.utils.config import ConfigArguments
 from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 
-
 class CheckpointingFactory(object):
     def __init__(self):
         pass
@@ -40,5 +39,8 @@ class CheckpointingFactory(object):
         elif checkpoint_mechanism_type == CheckpointMechanismType.PT_SAVE:
             from dlio_benchmark.checkpointing.pytorch_checkpointing import PyTorchCheckpointing
             return PyTorchCheckpointing.get_instance()
+        elif checkpoint_mechanism_type == CheckpointMechanismType.PT_S3_SAVE:
+            from dlio_benchmark.checkpointing.pytorch_s3_checkpointing import PyTorchS3Checkpointing
+            return PyTorchS3Checkpointing.get_instance()
         else:
             raise Exception(str(ErrorCodes.EC1005))

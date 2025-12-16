@@ -358,8 +358,19 @@ class ConfigArguments:
             except ImportError:
                 raise Exception(
                     "The s3torchconnector package is required for S3 with PyTorch but is not installed. "
-                    "Please install it before running the benchmark."
+                    "Please install it before running the benchmark data generation or loading for S3."
                 )
+
+            if self.do_checkpoint == True:
+                try:
+                    from s3torchconnector import S3Checkpoint
+                except ImportError:
+                    raise Exception(
+                        "The s3torchconnector package is required for S3 with PyTorch but is not installed. "
+                        "Please install it before running the benchmark checkpointing for S3."
+                    )
+                if self.checkpoint_mechanism != CheckpointMechanismType.PT_S3_SAVE:
+                    raise Exception(f"For S3 checkpointing using PyTorch framework, invalid mechanism type supported. Got mechanism type as {self.checkpoint_mechanism}")
 
             if self.format == FormatType.NPY:
                 # Ensure the NPY S3 reader is used with s3
@@ -407,7 +418,10 @@ class ConfigArguments:
             if self.framework == FrameworkType.TENSORFLOW:
                 self.checkpoint_mechanism = CheckpointMechanismType.TF_SAVE
             elif self.framework == FrameworkType.PYTORCH:
-                self.checkpoint_mechanism = CheckpointMechanismType.PT_SAVE
+                if self.storage_type == StorageType.S3:
+                    self.checkpoint_mechanism = CheckpointMechanismType.PT_S3_SAVE
+                else:
+                    self.checkpoint_mechanism = CheckpointMechanismType.PT_SAVE
 
         record_dims_length = len(self.record_dims)
         if record_dims_length > 0:
