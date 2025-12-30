@@ -24,7 +24,7 @@ import uuid
 from io import BytesIO
 import glob
 from mpi4py import MPI
-import pathlib
+from tests.utils import TEST_TIMEOUT_SECONDS
 
 comm = MPI.COMM_WORLD
 
@@ -40,8 +40,10 @@ import dlio_benchmark
 from unittest.mock import patch
 try:
     from s3torchconnector._s3client import MockS3Client
+    from s3torchconnector import S3Checkpoint
 except ImportError as e:
     MockS3Client = None
+    S3Checkpoint = None
 from urllib.parse import urlparse
 
 config_dir=os.path.dirname(dlio_benchmark.__file__)+"/configs/"
@@ -60,7 +62,6 @@ from dlio_benchmark.main import DLIOBenchmark, set_dftracer_initialize, set_dftr
 def finalize():
     # DLIOMPI.get_instance().finalize()
     pass
-
 
 def clean_s3(mock_client, bucket: str, prefixes: list[str]) -> None:
     comm.Barrier()
@@ -127,12 +128,33 @@ class MockS3Writer:
         self.key = key
         self.storage = storage
         self.buffer = bytearray()
+        self._closed = False
+
+    def __enter__(self):
+        # return the object used as 'writer' in the with-block
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        # Emulate a flush before close
+        self.flush()
+        # Always close; optionally handle exceptions if needed
+        self.close()
+        # Return False to propagate exceptions, True to suppress.
+        return False
 
     def write(self, data):
+        if isinstance(data, str):
+            data = data.encode("utf-8")
         self.buffer.extend(data)
 
+    def flush(self):
+        # No-op for mock
+        pass
+
     def close(self):
-        self.storage[self.key] = bytes(self.buffer)
+        if not self._closed:
+            self.storage[self.key] = bytes(self.buffer)
+            self._closed = True
 
 class MockObjectInfo:
     def __init__(self, key):
@@ -237,7 +259,21 @@ def setup_test_env():
     yield storage_root, storage_type, mock_client, s3_overrides
     comm.Barrier()
 
-@pytest.mark.timeout(60, method="thread")
+@pytest.fixture
+def patch_s3_checkpoint(setup_test_env):
+    storage_root, storage_type, mock_client, s3_overrides = setup_test_env
+    s3_overrides += [f"++workload.checkpoint.checkpoint_folder=s3://{storage_root}/checkpoints"]
+
+    def mock_init(self, region=None, endpoint=None, s3client_config=None):
+        self.region = region
+        self.endpoint = endpoint
+        self.s3client_config = s3client_config
+        self._client = mock_client
+
+    with patch("dlio_benchmark.checkpointing.pytorch_s3_checkpointing.S3Checkpoint.__init__", new=mock_init):
+        yield setup_test_env  # yield the full tuple so tests can still use all values
+
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("fmt, framework", [("npy", "pytorch"), ("npz", "pytorch")])
 def test_s3_gen_data(setup_test_env, fmt, framework) -> None:
     storage_root, storage_type, mock_client, s3_overrides = setup_test_env
@@ -272,7 +308,7 @@ def test_s3_gen_data(setup_test_env, fmt, framework) -> None:
             clean_s3(mock_client, bucket_name, ["train/", "valid/"])
         finalize()
 
-@pytest.mark.timeout(60, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 def test_s3_subset(setup_test_env) -> None:
     storage_root, storage_type, mock_client, s3_overrides = setup_test_env
     with patch("dlio_benchmark.storage.s3_torch_storage.S3Client", return_value=mock_client):
@@ -303,7 +339,7 @@ def test_s3_subset(setup_test_env) -> None:
         clean_s3(mock_client, bucket_name, ["train/", "valid/"])
         finalize()
 
-@pytest.mark.timeout(60, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 def test_s3_eval(setup_test_env) -> None:
     storage_root, storage_type, mock_client, s3_overrides = setup_test_env
     with patch("dlio_benchmark.storage.s3_torch_storage.S3Client", return_value=mock_client):
@@ -326,7 +362,7 @@ def test_s3_eval(setup_test_env) -> None:
             clean_s3(mock_client, bucket_name, ["train/", "valid/"])
         finalize()
 
-@pytest.mark.timeout(60, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("framework, nt", [("pytorch", 0), ("pytorch", 1), ("pytorch", 2)])
 def test_s3_multi_threads(setup_test_env, framework, nt) -> None:
     storage_root, storage_type, mock_client, s3_overrides = setup_test_env
@@ -353,7 +389,7 @@ def test_s3_multi_threads(setup_test_env, framework, nt) -> None:
         clean_s3(mock_client, bucket_name, ["train/", "valid/"])
         finalize()
 
-@pytest.mark.timeout(60, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("nt, context", [(0, None), (1, "fork"), (2, "spawn"), (2, "forkserver")])
 def test_s3_pytorch_multiprocessing_context(setup_test_env, nt, context, monkeypatch) -> None:
     if nt == 2 and context in ("spawn", "forkserver"):
@@ -392,7 +428,7 @@ def test_s3_pytorch_multiprocessing_context(setup_test_env, nt, context, monkeyp
     clean_s3(mock_client, bucket_name, ["train/", "valid/"])
     finalize()
 
-@pytest.mark.timeout(60, method="thread")
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("fmt, framework, dataloader, is_even", [
                                             ("npz", "pytorch", "pytorch", True),
                                             ("npz", "pytorch", "pytorch", False),
@@ -427,6 +463,200 @@ def test_s3_train(setup_test_env, fmt, framework, dataloader, is_even) -> None:
         # Clean up mock S3 after test
         clean_s3(mock_client, bucket_name, ["train/", "valid/"])
         finalize()
+
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
+@pytest.mark.parametrize("framework, model_size, optimizers, num_layers, layer_params, zero_stage, randomize", [
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 0, True),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 3, True),
+                                                                                         ("pytorch", 1024, [128], 1, [16], 0, True),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 0, False),
+                                                                                         ("pytorch", 1024, [1024, 128], 2, [16], 3, False),
+                                                                                         ("pytorch", 1024, [128], 1, [16], 0, False)])
+def test_s3_checkpoint_epoch(patch_s3_checkpoint, framework, model_size, optimizers, num_layers, layer_params, zero_stage, randomize) -> None:
+    storage_root, storage_type, mock_client, s3_overrides = patch_s3_checkpoint
+    if comm.rank == 0:
+        logging.info("")
+        logging.info("=" * 80)
+        logging.info(f" DLIO test for checkpointing at the end of epochs")
+        logging.info("=" * 80)
+    with patch("dlio_benchmark.storage.s3_torch_storage.S3Client", return_value=mock_client):
+        with initialize_config_dir(version_base=None, config_dir=config_dir):
+            epochs = 8
+            epoch_per_ckp = 2
+            cfg = compose(config_name='config',
+                          overrides=s3_overrides + [f'++workload.framework={framework}',
+                                     f'++workload.reader.data_loader={framework}',
+                                     '++workload.workflow.train=True',
+                                     '++workload.workflow.generate_data=True',
+                                     f'++workload.checkpoint.randomize_tensor={randomize}',
+                                     '++workload.train.computation_time=0.01',
+                                     '++workload.evaluation.eval_time=0.005',
+                                     f'++workload.train.epochs={epochs}', '++workload.workflow.checkpoint=True',
+                                     f'++workload.checkpoint.epochs_between_checkpoints={epoch_per_ckp}',
+                                     f'++workload.model.model_size={model_size}',
+                                     f'++workload.model.optimization_groups={optimizers}',
+                                     f'++workload.model.num_layers={num_layers}',
+                                     f'++workload.model.parallelism.zero_stage={zero_stage}',
+                                     f'++workload.model.layer_parameters={layer_params}',
+                                     f'++workload.model.parallelism.tensor={comm.size}'])
+            #comm.Barrier()
+            benchmark = run_benchmark(cfg)
+            bucket_name = cfg.workload.storage.storage_root
+            # Filter keys based on actual prefix
+            load_bin = mock_client.list_objects(bucket_name, "checkpoints/")
+            n = 0
+            if len(layer_params) > 0:
+                n = num_layers
+            nranks = comm.size
+            num_model_files = 1
+            num_optimizer_files = 1
+            # We are setting num_layer_files to be one because pipeline parallelism is not used.
+            num_layer_files = 1
+            files_per_checkpoint = (num_model_files + num_optimizer_files + num_layer_files) * nranks
+            if framework == "pytorch":
+                num_check_files = epochs / epoch_per_ckp * files_per_checkpoint
+                assert (len(load_bin) == num_check_files), f"files produced are {len(load_bin)} {num_check_files} {load_bin}"
+            #comm.Barrier()
+            clean_s3(mock_client, bucket_name, ["checkpoints/"])
+        finalize()
+
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
+def test_s3_checkpoint_step(patch_s3_checkpoint) -> None:
+    storage_root, storage_type, mock_client, s3_overrides = patch_s3_checkpoint
+    if (comm.rank == 0):
+        logging.info("")
+        logging.info("=" * 80)
+        logging.info(f" DLIO test for checkpointing at the end of steps")
+        logging.info("=" * 80)
+    with patch("dlio_benchmark.storage.s3_torch_storage.S3Client", return_value=mock_client):
+        with initialize_config_dir(version_base=None, config_dir=config_dir):
+            cfg = compose(config_name='config',
+                          overrides=s3_overrides + ['++workload.workflow.train=True', \
+                                     '++workload.workflow.generate_data=True', \
+                                     '++workload.train.computation_time=0.01', \
+                                     '++workload.evaluation.eval_time=0.005', \
+                                     '++workload.train.epochs=8', '++workload.workflow.checkpoint=True', \
+                                     '++workload.checkpoint.steps_between_checkpoints=2'])
+            comm.Barrier()
+            benchmark = run_benchmark(cfg)
+            bucket_name = cfg.workload.storage.storage_root
+            dataset = cfg['workload']['dataset']
+            nstep = dataset.num_files_train * dataset.num_samples_per_file // cfg['workload']['reader'].batch_size // benchmark.comm_size
+            ncheckpoints = nstep // 2 * 8
+            load_bin = mock_client.list_objects(bucket_name, "checkpoints/")
+            assert (len(load_bin) == ncheckpoints)
+            clean_s3(mock_client, bucket_name, ["checkpoints/"])
+        finalize()
+
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
+def test_s3_checkpoint_ksm_config(patch_s3_checkpoint) -> None:
+    """
+    Tests the loading and derivation of KSM configuration parameters
+    based on the presence and content of the checkpoint.ksm subsection.
+    """
+    storage_root, storage_type, mock_client, s3_overrides = patch_s3_checkpoint
+    if comm.rank == 0:
+        logging.info("")
+        logging.info("=" * 80)
+        logging.info(f" DLIO test for KSM checkpoint configuration loading")
+        logging.info("=" * 80)
+
+    # --- Test Case 1: KSM enabled with defaults ---
+    # KSM is enabled just by adding the 'ksm: {}' section in overrides
+    logging.info("Testing KSM enabled with defaults...")
+    with patch("dlio_benchmark.storage.s3_torch_storage.S3Client", return_value=mock_client):
+        with initialize_config_dir(version_base=None, config_dir=config_dir):
+            cfg = compose(config_name='config',
+                          overrides=s3_overrides + [
+                              '++workload.workflow.checkpoint=True',
+                              '++workload.checkpoint.ksm={}',
+                              '++workload.workflow.generate_data=False',
+                              '++workload.workflow.train=False',
+                              '++workload.checkpoint.num_checkpoints_write=1',
+                              '++workload.checkpoint.num_checkpoints_read=1',
+                              '++workload.checkpoint.randomize_tensor=False',
+                          ])
+            ConfigArguments.reset()
+            # Pass only the workload part of the config
+            benchmark = DLIOBenchmark(cfg['workload'])
+            # initialize() loads and derives the config
+            benchmark.initialize()
+            bucket_name = cfg.workload.storage.storage_root
+
+            # Get the loaded arguments instance
+            args = ConfigArguments.get_instance()
+
+            # --- Assertions for Case 1 ---
+            # Check derived ksm_init flag
+            assert args.ksm_init is True, "[Test Case 1 Failed] ksm_init should be True when ksm section is present"
+            # Check default KSM parameter values loaded into flat args attributes
+            assert args.ksm_madv_mergeable_id == 12, f"[Test Case 1 Failed] Expected default madv_mergeable_id 12, got {args.ksm_madv_mergeable_id}"
+            assert args.ksm_high_ram_trigger == 30.0, f"[Test Case 1 Failed] Expected default high_ram_trigger 30.0, got {args.ksm_high_ram_trigger}"
+            assert args.ksm_low_ram_exit == 15.0, f"[Test Case 1 Failed] Expected default low_ram_exit 15.0, got {args.ksm_low_ram_exit}"
+            assert args.ksm_await_time == 200, f"[Test Case 1 Failed] Expected default await_time 200, got {args.ksm_await_time}"
+            logging.info("[Test Case 1 Passed]")
+
+    # --- Test Case 2: KSM enabled with overrides ---
+    logging.info("Testing KSM enabled with overrides...")
+    with patch("dlio_benchmark.storage.s3_torch_storage.S3Client", return_value=mock_client):
+        with initialize_config_dir(version_base=None, config_dir=config_dir):
+            cfg = compose(config_name='config',
+                          overrides=s3_overrides + [
+                              '++workload.workflow.checkpoint=True',
+                              '++workload.checkpoint.ksm.high_ram_trigger=25.5',
+                              '++workload.checkpoint.ksm.await_time=100',
+                              '++workload.workflow.generate_data=False',
+                              '++workload.workflow.train=False',
+                              '++workload.checkpoint.num_checkpoints_write=1',
+                              '++workload.checkpoint.num_checkpoints_read=1',
+                              '++workload.checkpoint.randomize_tensor=False'
+                          ])
+            ConfigArguments.reset()
+            benchmark = DLIOBenchmark(cfg['workload'])
+            benchmark.initialize()
+
+            args = ConfigArguments.get_instance()
+
+            # --- Assertions for Case 2 ---
+            # Check derived ksm_init flag
+            assert args.ksm_init is True, "[Test Case 2 Failed] ksm_init should be True"
+            # Check overridden values
+            assert args.ksm_high_ram_trigger == 25.5, f"[Test Case 2 Failed] Expected overridden high_ram_trigger 25.5, got {args.ksm_high_ram_trigger}"
+            assert args.ksm_await_time == 100, f"[Test Case 2 Failed] Expected overridden await_time 100, got {args.ksm_await_time}"
+            # Check defaults for non-overridden values
+            assert args.ksm_madv_mergeable_id == 12, f"[Test Case 2 Failed] Expected default madv_mergeable_id 12, got {args.ksm_madv_mergeable_id}"
+            assert args.ksm_low_ram_exit == 15.0, f"[Test Case 2 Failed] Expected default low_ram_exit 15.0, got {args.ksm_low_ram_exit}"
+            logging.info("[Test Case 2 Passed]")
+
+    # --- Test Case 3: KSM disabled (section omitted) ---
+    logging.info("Testing KSM disabled (section omitted)...")
+    with patch("dlio_benchmark.storage.s3_torch_storage.S3Client", return_value=mock_client):
+        with initialize_config_dir(version_base=None, config_dir=config_dir):
+            cfg = compose(config_name='config',
+                          overrides=s3_overrides + [
+                              '++workload.workflow.checkpoint=True',
+                              '++workload.workflow.generate_data=False',
+                              '++workload.workflow.train=False',
+                              '++workload.checkpoint.num_checkpoints_write=1',
+                              '++workload.checkpoint.num_checkpoints_read=1',
+                              '++workload.checkpoint.randomize_tensor=False'
+                          ])
+            ConfigArguments.reset()
+            benchmark = DLIOBenchmark(cfg['workload'])
+            benchmark.initialize()
+
+            args = ConfigArguments.get_instance()
+
+            # --- Assertions for Case 3 ---
+            assert args.ksm_init is False, "[Test Case 3 Failed] ksm_init should be False when ksm section is omitted"
+            assert args.ksm_madv_mergeable_id == 12, f"[Test Case 3 Failed] Expected default madv_mergeable_id 12, got {args.ksm_madv_mergeable_id}"
+            assert args.ksm_high_ram_trigger == 30.0, f"[Test Case 3 Failed] Expected default high_ram_trigger 30.0, got {args.ksm_high_ram_trigger}"
+            assert args.ksm_low_ram_exit == 15.0, f"[Test Case 3 Failed] Expected default low_ram_exit 15.0, got {args.ksm_low_ram_exit}"
+            assert args.ksm_await_time == 200, f"[Test Case 3 Failed] Expected default await_time 200, got {args.ksm_await_time}"
+            logging.info("[Test Case 3 Passed]")
+
+    clean_s3(mock_client, bucket_name, ["checkpoints/"])
+    finalize()
 
 if __name__ == '__main__':
     unittest.main()
