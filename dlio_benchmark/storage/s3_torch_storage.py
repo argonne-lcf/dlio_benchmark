@@ -55,7 +55,7 @@ class S3PyTorchConnectorStorage(S3Storage):
         # Build connector config, possibly with config overrides
         force_path_style_opt = self._args.s3_force_path_style
         if "s3_force_path_style" in storage_options:
-            force_path_style_opt = storage_options["s3_force_path_style"].strip().lower() == "true"
+            force_path_style_opt = storage_options["s3_force_path_style"]
         max_attempts_opt = self._args.s3_max_attempts
         if "s3_max_attempts" in storage_options:
             try:
