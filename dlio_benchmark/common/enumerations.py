@@ -134,7 +134,8 @@ class FormatType(Enum):
     INDEXED_BINARY = 'indexed_binary'
     MMAP_INDEXED_BINARY = 'mmap_indexed_binary'
     SYNTHETIC = 'synthetic'
-    
+    PARQUET = 'parquet'
+
     def __str__(self):
         return self.value
 
@@ -162,6 +163,8 @@ class FormatType(Enum):
             return FormatType.MMAP_INDEXED_BINARY
         elif FormatType.SYNTHETIC.value == value:
             return FormatType.SYNTHETIC
+        elif FormatType.PARQUET.value == value:
+            return FormatType.PARQUET
 
 class DataLoaderType(Enum):
     """
@@ -276,6 +279,7 @@ class Compression(Enum):
     BZIP2 = 'bz2'
     ZIP = 'zip'
     XZ = 'xz'
+    SNAPPY = 'snappy'
 
     def __str__(self):
         return self.value
