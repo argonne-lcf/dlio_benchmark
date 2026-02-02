@@ -1,5 +1,6 @@
 """
    Copyright (c) 2025, UChicago Argonne, LLC
+   Copyright (c) 2026, Enakta Labs, LTD
    All Rights Reserved
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +15,12 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+import io
+import os
 import math
 import pickle
 import torch
+import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import Sampler
 
@@ -105,13 +109,29 @@ class dlio_sampler(Sampler):
 
 class TorchDataLoader(BaseDataLoader):
     @dlp.log_init
-    def __init__(self, format_type, dataset_type, epoch_number):
-        super().__init__(format_type, dataset_type, epoch_number, DataLoaderType.PYTORCH)
+    def __init__(self, format_type, dataset_type, epoch_number, data_loader_type):
+        super().__init__(format_type, dataset_type, epoch_number, data_loader_type)
 
     @dlp.log
     def read(self):
-        dataset = TorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples,
-                               self._args.read_threads, self.batch_size)
+        dataset = None
+        if self.data_loader_type == DataLoaderType.PYTORCH:
+            dataset = TorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples,
+                                   self._args.read_threads, self.batch_size)
+        elif self.data_loader_type == DataLoaderType.DAOS_PYTORCH:
+            # to avoid loading pydoas.torch at the top level if not needed or not installed
+            from pydaos.torch import Dataset as DaosDataset
+
+            prefix = os.path.join(self._args.data_folder, f"{self.dataset_type}")
+            dataset = DaosDataset(pool=self._args.daos_pool,
+                                  cont=self._args.daos_cont,
+                                  path=prefix,
+                                  transform_fn=lambda b: np.load(io.BytesIO(b), allow_pickle=True)["x"])
+
+            self.num_samples = len(dataset)
+        else:
+            raise ValueError(f"Unsupported data loader type {self.data_loader_type}")
+
         sampler = dlio_sampler(self._args.my_rank, self._args.comm_size, self.num_samples, self._args.epochs)
         if self._args.read_threads >= 1:
             prefetch_factor = math.ceil(self._args.prefetch_size / self._args.read_threads)
