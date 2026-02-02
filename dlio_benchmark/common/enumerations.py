@@ -279,6 +279,8 @@ class Compression(Enum):
     BZIP2 = 'bz2'
     ZIP = 'zip'
     XZ = 'xz'
+    LZ4 = 'lz4'
+    ZSTD = 'zstd'
     SNAPPY = 'snappy'
 
     def __str__(self):
