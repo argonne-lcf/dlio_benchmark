@@ -33,5 +33,8 @@ class StorageFactory(object):
                 from dlio_benchmark.storage.s3_torch_storage import S3PyTorchConnectorStorage
                 return S3PyTorchConnectorStorage(namespace, framework)
             return S3Storage(namespace, framework)
+        elif storage_type == StorageType.DAOS_PYTORCH:
+            from dlio_benchmark.storage.daos_torch_storage import DaosTorchStorage
+            return DaosTorchStorage(namespace, framework)
         else:
             raise Exception(str(ErrorCodes.EC1001))

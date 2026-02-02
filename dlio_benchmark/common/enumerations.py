@@ -58,6 +58,7 @@ class StorageType(Enum):
     LOCAL_FS = 'local_fs'
     PARALLEL_FS = 'parallel_fs'
     S3 = 's3'
+    DAOS_PYTORCH = 'daos_pytorch'
 
     def __str__(self):
         return self.value
@@ -173,6 +174,7 @@ class DataLoaderType(Enum):
     CUSTOM='custom'
     NONE='none'
     SYNTHETIC='synthetic'
+    DAOS_PYTORCH="daos_pytorch"
     
     def __str__(self):
         return self.value
