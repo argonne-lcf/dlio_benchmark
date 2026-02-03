@@ -15,17 +15,15 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-import io
 import os
 import math
 import pickle
 import torch
-import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import Sampler
 
 from dlio_benchmark.common.constants import MODULE_DATA_LOADER
-from dlio_benchmark.common.enumerations import DatasetType, DataLoaderType
+from dlio_benchmark.common.enumerations import DatasetType, DataLoaderType, FormatType
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.utils.utility import utcnow, DLIOMPI, Profile, dft_ai
@@ -107,6 +105,17 @@ class dlio_sampler(Sampler):
             yield sample
 
 
+def get_torch_daos_data_reader(format):
+    import io
+    import numpy as np
+
+    if format == FormatType.NPZ:
+        return lambda b: np.load(io.BytesIO(b), allow_pickle=True)["x"]
+    elif format == FormatType.NPY:
+        return lambda b: np.load(io.BytesIO(b), allow_pickle=True)
+    else:
+        raise ValueError(f"TorchDaosDataset does not support {format}")
+
 class TorchDataLoader(BaseDataLoader):
     @dlp.log_init
     def __init__(self, format_type, dataset_type, epoch_number, data_loader_type):
@@ -126,7 +135,7 @@ class TorchDataLoader(BaseDataLoader):
             dataset = DaosDataset(pool=self._args.daos_pool,
                                   cont=self._args.daos_cont,
                                   path=prefix,
-                                  transform_fn=lambda b: np.load(io.BytesIO(b), allow_pickle=True)["x"])
+                                  transform_fn=get_torch_daos_data_reader(self.format_type))
 
             self.num_samples = len(dataset)
         else:
