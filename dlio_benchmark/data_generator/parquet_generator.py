@@ -53,9 +53,15 @@ class ParquetGenerator(DataGenerator):
 
     def _generate_column_data(self, col_spec, num_samples):
         """Generate data for a single column based on its dtype specification."""
-        name = col_spec['name'] if isinstance(col_spec, dict) else col_spec
-        dtype = col_spec.get('dtype', 'float32') if isinstance(col_spec, dict) else 'float32'
-        size = col_spec.get('size', 1024) if isinstance(col_spec, dict) else 1024
+        # Handle both dict and Hydra DictConfig by accessing values and casting to native types
+        if hasattr(col_spec, 'get'):  # dict-like (dict or DictConfig)
+            name = str(col_spec.get('name', 'data'))
+            dtype = str(col_spec.get('dtype', 'float32'))
+            size = int(col_spec.get('size', 1024))
+        else:
+            name = str(col_spec)
+            dtype = 'float32'
+            size = 1024
 
         if dtype in ('float32', 'float64'):
             np_dtype = np.float32 if dtype == 'float32' else np.float64
