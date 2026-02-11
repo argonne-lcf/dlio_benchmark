@@ -27,6 +27,7 @@ class CheckpointMechanismType(Enum):
     TF_SAVE = 'tf_save'
     PT_SAVE = 'pt_save'
     PT_S3_SAVE = 'pt_s3_save'
+    PT_ADLS_SAVE = 'pt_adls_save'
 
     def __str__(self):
         return self.value
@@ -58,6 +59,7 @@ class StorageType(Enum):
     LOCAL_FS = 'local_fs'
     PARALLEL_FS = 'parallel_fs'
     S3 = 's3'
+    ADLS_GEN2 = 'adls_gen2'
 
     def __str__(self):
         return self.value
@@ -69,6 +71,7 @@ class MetadataType(Enum):
     FILE = 'file'
     DIRECTORY = 'directory'
     S3_OBJECT = 's3_object'
+    ADLS_OBJECT = 'adls_object'
 
     def __str__(self):
         return self.value

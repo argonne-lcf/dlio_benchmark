@@ -36,14 +36,14 @@ class GeneratorFactory(object):
             from dlio_benchmark.data_generator.csv_generator import CSVGenerator
             return CSVGenerator()
         elif type == FormatType.NPZ:
-            if _args.storage_type == StorageType.S3:
+            if _args.storage_type == StorageType.S3 or _args.storage_type == StorageType.ADLS_GEN2:
                 from dlio_benchmark.data_generator.npz_generator_s3 import NPZGeneratorS3
                 return NPZGeneratorS3()
             else:
                 from dlio_benchmark.data_generator.npz_generator import NPZGenerator
                 return NPZGenerator()
         elif type == FormatType.NPY:
-            if _args.storage_type == StorageType.S3:
+            if _args.storage_type == StorageType.S3 or _args.storage_type == StorageType.ADLS_GEN2:
                 from dlio_benchmark.data_generator.npy_generator_s3 import NPYGeneratorS3
                 return NPYGeneratorS3()
             else:

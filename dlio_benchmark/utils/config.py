@@ -762,6 +762,8 @@ def GetConfig(args, key):
             value = args.steps_between_checkpoints
         elif keys[1] == "type":
             value = args.checkpoint_type
+        elif keys[1] == "checkpoint_mechanism":
+            value = args.checkpoint_mechanism
         elif keys[1] == 'mode':
             value = args.checkpoint_mode
         elif keys[1] == "checkpoint_mechanism_classname":
@@ -1044,6 +1046,8 @@ def LoadConfig(args, config):
             args.steps_between_checkpoints = config['checkpoint']['steps_between_checkpoints']
         if 'type' in config['checkpoint']:
             args.checkpoint_type = CheckpointLocationType(config['checkpoint']['type'])
+        if 'checkpoint_mechanism' in config['checkpoint']:
+            args.checkpoint_mechanism = CheckpointMechanismType(config['checkpoint']['checkpoint_mechanism'])
         if 'checkpoint_mechanism_classname' in config['checkpoint']:
             args.checkpoint_mechanism_classname = config['checkpoint']['checkpoint_mechanism_classname']
         if 'fsync' in config['checkpoint']:
