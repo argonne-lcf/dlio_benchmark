@@ -55,7 +55,7 @@ class DaosTorchStorage(DataStorage):
             return {get_dir(fname) for fname in chunk}
 
         workers = cpu_count()
-        chunk_size = len(files) //workers
+        chunk_size = len(files) // min(workers, len(files))
 
         dirs = set()
         with ThreadPoolExecutor(max_workers=workers) as ex:
