@@ -987,14 +987,14 @@ def LoadConfig(args, config):
                             # Default 'read' to True if not specified (backward compatibility)
                             args.parquet_field_specs[col_name] = {
                                 'dtype': col_spec.get('dtype', 'float32'),
-                                'size': col_spec.get('size', 1024),
+                                'size': col_spec.get('size', 1),
                                 'read': col_spec.get('read', True)
                             }
                         else:
                             # Handle simple string column names
                             args.parquet_field_specs[str(col_spec)] = {
                                 'dtype': 'float32',
-                                'size': 1024,
+                                'size': 1,
                                 'read': True
                             }
                 else:

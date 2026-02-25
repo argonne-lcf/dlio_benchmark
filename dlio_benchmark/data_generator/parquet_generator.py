@@ -68,21 +68,31 @@ class ParquetGenerator(DataGenerator):
             # Backward compatible: single 'data' column with list of uint8
             return pa.schema([('data', pa.list_(pa.uint8()))])
         
+        # Scalar PyArrow type map for numeric dtypes
+        SCALAR_PA_TYPES = {
+            'int8': pa.int8(),
+            'float16': pa.float16(),
+            'float32': pa.float32(),
+            'float64': pa.float64(),
+        }
+
         fields = []
         for col_spec in self.parquet_columns:
             if hasattr(col_spec, 'get'):
                 name = str(col_spec.get('name', 'data'))
                 dtype = str(col_spec.get('dtype', 'float32'))
-                size = int(col_spec.get('size', 1024))
+                size = int(col_spec.get('size', 1))
             else:
                 name = str(col_spec)
                 dtype = 'float32'
-                size = 1024
-            
-            if dtype in ('float32', 'float64'):
-                pa_inner = pa.float32() if dtype == 'float32' else pa.float64()
-                # Use fixed size list for better memory efficiency
-                fields.append(pa.field(name, pa.list_(pa_inner, size)))
+                size = 1
+
+            if size == 1 and dtype in SCALAR_PA_TYPES:
+                # Scalar path: single-element numeric columns — most efficient for reads
+                fields.append(pa.field(name, SCALAR_PA_TYPES[dtype]))
+            elif dtype in SCALAR_PA_TYPES:
+                # List path: multi-element numeric columns
+                fields.append(pa.field(name, pa.list_(SCALAR_PA_TYPES[dtype], size)))
             elif dtype == 'list':
                 fields.append(pa.field(name, pa.list_(pa.float32(), size)))
             elif dtype == 'string':
@@ -94,7 +104,7 @@ class ParquetGenerator(DataGenerator):
             else:
                 # Fallback: treat unknown dtype as float32 list
                 fields.append(pa.field(name, pa.list_(pa.float32(), size)))
-        
+
         return pa.schema(fields)
 
     def _generate_column_data_batch(self, col_spec, batch_size):
@@ -108,11 +118,41 @@ class ParquetGenerator(DataGenerator):
         if hasattr(col_spec, 'get'):  # dict-like (dict or DictConfig)
             name = str(col_spec.get('name', 'data'))
             dtype = str(col_spec.get('dtype', 'float32'))
-            size = int(col_spec.get('size', 1024))
+            size = int(col_spec.get('size', 1))
         else:
             name = str(col_spec)
             dtype = 'float32'
-            size = 1024
+            size = 1
+
+        # Scalar path: size=1 numeric columns — avoid FixedSizeListArray overhead
+        if size == 1 and dtype == 'int8':
+            data = np.random.randint(-128, 128, batch_size, dtype=np.int8)
+            return name, pa.array(data, type=pa.int8())
+
+        if size == 1 and dtype == 'float16':
+            data = np.random.rand(batch_size).astype(np.float16)
+            return name, pa.array(data, type=pa.float16())
+
+        if size == 1 and dtype in ('float32', 'float64'):
+            np_dtype = np.float32 if dtype == 'float32' else np.float64
+            pa_type = pa.float32() if dtype == 'float32' else pa.float64()
+            data = np.random.rand(batch_size).astype(np_dtype)
+            return name, pa.array(data, type=pa_type)
+
+        # List path: multi-element columns use FixedSizeListArray
+        if dtype == 'int8':
+            data = np.random.randint(-128, 128, (batch_size, size), dtype=np.int8)
+            flat_data = data.ravel()
+            arrow_flat = pa.array(flat_data, type=pa.int8())
+            arrow_data = pa.FixedSizeListArray.from_arrays(arrow_flat, size)
+            return name, arrow_data
+
+        if dtype == 'float16':
+            data = np.random.rand(batch_size, size).astype(np.float16)
+            flat_data = data.ravel()
+            arrow_flat = pa.array(flat_data, type=pa.float16())
+            arrow_data = pa.FixedSizeListArray.from_arrays(arrow_flat, size)
+            return name, arrow_data
 
         if dtype in ('float32', 'float64'):
             np_dtype = np.float32 if dtype == 'float32' else np.float64
