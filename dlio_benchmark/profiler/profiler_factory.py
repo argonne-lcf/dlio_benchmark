@@ -15,12 +15,9 @@
    limitations under the License.
 """
 
-from dlio_benchmark.profiler.iostat_profiler import IostatProfiler
-from dlio_benchmark.common.error_code import ErrorCodes
-from dlio_benchmark.profiler.darshan_profiler import DarshanProfiler
-from dlio_benchmark.profiler.no_profiler import NoProfiler
 from dlio_benchmark.common.enumerations import Profiler
-from dlio_benchmark.profiler.tf_profiler import TFProfiler
+from dlio_benchmark.common.error_code import ErrorCodes
+
 
 class ProfilerFactory(object):
     def __init__(self):
@@ -29,12 +26,16 @@ class ProfilerFactory(object):
     @staticmethod
     def get_profiler(type):
         if type == Profiler.NONE:
+            from dlio_benchmark.profiler.no_profiler import NoProfiler
             return NoProfiler()
         if type == Profiler.IOSTAT:
+            from dlio_benchmark.profiler.iostat_profiler import IostatProfiler
             return IostatProfiler.get_instance()
         elif type == Profiler.DARSHAN:
+            from dlio_benchmark.profiler.darshan_profiler import DarshanProfiler
             return DarshanProfiler.get_instance()
         elif type == Profiler.TENSORBOARD:
+            from dlio_benchmark.profiler.tf_profiler import TFProfiler
             return TFProfiler.get_instance()
         else:
             raise Exception(str(ErrorCodes.EC1001))
