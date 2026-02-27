@@ -105,6 +105,10 @@ class ConfigArguments:
     checkpoint_type: CheckpointLocationType = CheckpointLocationType.RANK_ZERO
     checkpoint_mechanism: CheckpointMechanismType = CheckpointMechanismType.NONE
     checkpoint_mode: CheckpointModeType = CheckpointModeType.DEFAULT
+    checkpoint_daos_pool: str = None
+    checkpoint_daos_cont: str = None
+    checkpoint_daos_chunk_size: int = 64*1024*1024
+    checkpoint_daos_chunks_limit: int = 32
     model_datatype: str = "fp16"
     optimizer_datatype: str = "fp32"
     checkpoint_fsync: bool = False
@@ -145,6 +149,8 @@ class ConfigArguments:
     multiprocessing_context: str = "fork"
     pin_memory: bool = True
     odirect: bool = False
+    daos_pool: str = None
+    daos_cont: str = None
 
     # derived fields
     required_samples: int = 1
@@ -459,7 +465,7 @@ class ConfigArguments:
         if self.data_loader_sampler is None and self.data_loader_classname is None:
             if self.data_loader == DataLoaderType.TENSORFLOW:
                 self.data_loader_sampler = DataLoaderSampler.ITERATIVE
-            elif self.data_loader in [DataLoaderType.PYTORCH, DataLoaderType.DALI]:
+            elif self.data_loader in [DataLoaderType.PYTORCH, DataLoaderType.DAOS_PYTORCH, DataLoaderType.DALI]:
                 self.data_loader_sampler = DataLoaderSampler.INDEX
         if self.data_loader_classname is not None:
             from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
@@ -681,6 +687,10 @@ def GetConfig(args, key):
             value = args.format
         elif keys[1] == "keep_files":
             value = args.keep_files
+        elif keys[1] == "daos_pool":
+            value = args.daos_pool
+        elif keys[1] == "daos_cont":
+            value = args.daos_cont
 
     # data reader
     reader = None
@@ -776,8 +786,16 @@ def GetConfig(args, key):
             value = args.num_checkpoints_read
         elif keys[1] == "checkpoint_rank_sync":
             value = args.checkpoint_rank_sync
-        elif keys[1] == "recovery_rank_shift":  
+        elif keys[1] == "recovery_rank_shift":
             value = args.checkpoint_recovery_rank_shift
+        elif keys[1] == "checkpoint_daos_pool":
+            value = args.checkpoint_daos_pool
+        elif keys[1] == "checkpoint_daos_cont":
+            value = args.checkpoint_daos_cont
+        elif keys[1] == "checkpoint_daos_chunk_size":
+            value = args.checkpoint_daos_chunk_size
+        elif keys[1] == "checkpoint_daos_chunks_limit":
+            value = args.checkpoint_daos_chunks_limit
 
     if len(keys) > 1 and keys[0] == "model":
         if keys[1] == "name":
@@ -911,6 +929,10 @@ def LoadConfig(args, config):
             args.record_element_type = config['dataset']['record_element_type']
         if 'record_dims' in config['dataset']:
             args.record_dims = list(config['dataset']['record_dims'])
+        if 'daos_pool' in config['dataset']:
+            args.daos_pool = config['dataset']['daos_pool']
+        if 'daos_cont' in config['dataset']:
+            args.daos_cont = config['dataset']['daos_cont']
 
         # hdf5 only config
         if 'hdf5' in config['dataset']:
@@ -1072,6 +1094,14 @@ def LoadConfig(args, config):
                 args.ksm_low_ram_exit = config['checkpoint']['ksm']['low_ram_exit']
             if 'await_time' in config['checkpoint']['ksm']:
                 args.ksm_await_time = config['checkpoint']['ksm']['await_time']
+        if 'checkpoint_daos_pool' in config['checkpoint']:
+            args.checkpoint_daos_pool = config['checkpoint']['checkpoint_daos_pool']
+        if 'checkpoint_daos_cont' in config['checkpoint']:
+            args.checkpoint_daos_cont = config['checkpoint']['checkpoint_daos_cont']
+        if 'checkpoint_daos_chunk_size' in config['checkpoint']:
+            args.checkpoint_daos_chunk_size = config['checkpoint']['checkpoint_daos_chunk_size']
+        if 'checkpoint_daos_chunks_limit' in config['checkpoint']:
+            args.checkpoint_daos_chunks_limit = config['checkpoint']['checkpoint_daos_chunks_limit']
 
     if 'model' in config:
         if 'name' in config['model']:

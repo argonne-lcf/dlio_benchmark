@@ -1,5 +1,6 @@
 """
    Copyright (c) 2025, UChicago Argonne, LLC
+   Copyright (c) 2026, Enakta Labs, LTD
    All Rights Reserved
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,14 +15,16 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+import os
 import math
 import pickle
 import torch
+from abc import abstractmethod
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import Sampler
 
 from dlio_benchmark.common.constants import MODULE_DATA_LOADER
-from dlio_benchmark.common.enumerations import DatasetType, DataLoaderType
+from dlio_benchmark.common.enumerations import DatasetType, DataLoaderType, FormatType
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.utils.utility import utcnow, DLIOMPI, Profile, dft_ai
@@ -87,7 +90,7 @@ class dlio_sampler(Sampler):
         self.rank = rank
         self.num_samples = num_samples
         self.epochs = epochs
-        samples_per_proc = int(math.ceil(num_samples/size)) 
+        samples_per_proc = int(math.ceil(num_samples/size))
         start_sample = self.rank * samples_per_proc
         end_sample = (self.rank + 1) * samples_per_proc - 1
         if end_sample > num_samples - 1:
@@ -103,15 +106,18 @@ class dlio_sampler(Sampler):
             yield sample
 
 
-class TorchDataLoader(BaseDataLoader):
+class BaseTorchDataLoader(BaseDataLoader):
     @dlp.log_init
-    def __init__(self, format_type, dataset_type, epoch_number):
-        super().__init__(format_type, dataset_type, epoch_number, DataLoaderType.PYTORCH)
+    def __init__(self, format_type, dataset_type, epoch_number, data_loader_type):
+        super().__init__(format_type, dataset_type, epoch_number, data_loader_type)
+
+    @abstractmethod
+    def get_dataset(self) -> Dataset:
+        return None
 
     @dlp.log
     def read(self):
-        dataset = TorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples,
-                               self._args.read_threads, self.batch_size)
+        dataset = self.get_dataset()
         sampler = dlio_sampler(self._args.my_rank, self._args.comm_size, self.num_samples, self._args.epochs)
         if self._args.read_threads >= 1:
             prefetch_factor = math.ceil(self._args.prefetch_size / self._args.read_threads)
@@ -132,7 +138,7 @@ class TorchDataLoader(BaseDataLoader):
         else:
             kwargs={'multiprocessing_context':self._args.multiprocessing_context,
                     'prefetch_factor': prefetch_factor}
-            if torch.__version__ != '1.3.1':       
+            if torch.__version__ != '1.3.1':
                 kwargs['persistent_workers'] = True
         if torch.__version__ == '1.3.1':
             if 'prefetch_factor' in kwargs:
@@ -143,9 +149,9 @@ class TorchDataLoader(BaseDataLoader):
                                        num_workers=self._args.read_threads,
                                        pin_memory=self._args.pin_memory,
                                        drop_last=True,
-                                       worker_init_fn=dataset.worker_init, 
+                                       worker_init_fn=dataset.worker_init,
                                        **kwargs)
-        else: 
+        else:
             self._dataset = DataLoader(dataset,
                                        batch_size=self.batch_size,
                                        sampler=sampler,
@@ -176,3 +182,12 @@ class TorchDataLoader(BaseDataLoader):
     @dlp.log
     def finalize(self):
         pass
+
+class TorchDataLoader(BaseTorchDataLoader):
+    @dlp.log_init
+    def __init__(self, format_type, dataset_type, epoch_number):
+        super().__init__(format_type, dataset_type, epoch_number, DataLoaderType.PYTORCH)
+
+    def get_dataset(self) -> Dataset:
+        return TorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples,
+                            self.read_threads, self.batch_size)
