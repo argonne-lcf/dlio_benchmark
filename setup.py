@@ -48,6 +48,11 @@ extras = {
     "s3": [
         "s3torchconnector",
     ],
+    "adls": [
+        "azure-storage-file-datalake>=12.0.0",
+        "azure-identity>=1.12.0",
+        "azstoragetorch>=0.1.0",
+    ],
 }
 
 here = pathlib.Path(__file__).parent.resolve()
