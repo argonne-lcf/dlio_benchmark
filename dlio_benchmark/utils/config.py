@@ -347,6 +347,36 @@ class ConfigArguments:
         if len(self.record_dims) > 0 and self.record_length_stdev > 0:
             raise ValueError("Both record_dims and record_length_bytes_stdev are set. This is not supported. If you need stdev on your records, please specify record_length_bytes with record_length_bytes_stdev instead.")
 
+        # AIStore specific checks (uses S3 generators/readers)
+        if self.storage_type == StorageType.AISTORE and self.framework == FrameworkType.PYTORCH:
+            if self.format not in (FormatType.NPZ, FormatType.NPY):
+                raise Exception(f"For AIStore using PyTorch framework, only NPZ or NPY formats are supported. Got format {self.format}")
+            
+            # Validate that aistore SDK is available (check module-level flag
+            # so mock-based tests can patch AISTORE_AVAILABLE without the real SDK)
+            from dlio_benchmark.storage import aistore_storage as _ais_mod
+            if not _ais_mod.AISTORE_AVAILABLE:
+                raise Exception(
+                    "The aistore package is required for AIStore storage but is not installed. "
+                    "Install it with: pip install aistore"
+                )
+            
+            # AIStore uses S3 generators/readers, so validate those exist
+            if self.format == FormatType.NPY:
+                try:
+                    from dlio_benchmark.reader.npy_reader_s3 import NPYReaderS3
+                except ImportError:
+                    raise Exception(
+                        "AIStore with NPY requires dlio_benchmark.reader.npy_reader_s3.NPYReaderS3"
+                    )
+            elif self.format == FormatType.NPZ:
+                try:
+                    from dlio_benchmark.reader.npz_reader_s3 import NPZReaderS3
+                except ImportError:
+                    raise Exception(
+                        "AIStore with NPZ requires dlio_benchmark.reader.npz_reader_s3.NPZReaderS3"
+                    )
+
         # S3 specific checks
         if self.storage_type == StorageType.S3 and self.framework == FrameworkType.PYTORCH:
             if self.format not in (FormatType.NPZ, FormatType.NPY):
