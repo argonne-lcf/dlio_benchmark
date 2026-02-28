@@ -362,8 +362,8 @@ class DLIOBenchmark(object):
             self.stats.start_loading()
 
         self.comm.barrier()
+        self.stats.end_block(epoch, block, block_step - 1)
         if self.do_checkpoint and (self.steps_between_checkpoints < 0) and (epoch == self.next_checkpoint_epoch):
-            self.stats.end_block(epoch, block, block_step-1)
             self.stats.start_save_ckpt(epoch, block, overall_step-1)
             self.checkpointing_mechanism.save_checkpoint(epoch, overall_step)
             self.stats.end_save_ckpt(epoch, block)
