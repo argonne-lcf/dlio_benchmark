@@ -67,7 +67,8 @@ class ReaderFactory(object):
                 if _args.odirect == True:
                     from dlio_benchmark.reader.npy_reader_odirect import NPYReaderODirect
                     return NPYReaderODirect(dataset_type, thread_index, epoch_number)
-                elif _args.storage_type == StorageType.S3:
+                # Use S3 readers for both S3 and AIStore
+                elif _args.storage_type in (StorageType.S3, StorageType.AISTORE):
                     from dlio_benchmark.reader.npy_reader_s3 import NPYReaderS3
                     return NPYReaderS3(dataset_type, thread_index, epoch_number)
                 else:
@@ -80,7 +81,8 @@ class ReaderFactory(object):
                 if _args.odirect == True:
                     from dlio_benchmark.reader.npz_reader_odirect import NPZReaderODIRECT
                     return NPZReaderODIRECT(dataset_type, thread_index, epoch_number)         
-                elif _args.storage_type == StorageType.S3:
+                # Use S3 readers for both S3 and AIStore
+                elif _args.storage_type in (StorageType.S3, StorageType.AISTORE):
                     from dlio_benchmark.reader.npz_reader_s3 import NPZReaderS3
                     return NPZReaderS3(dataset_type, thread_index, epoch_number)
                 else:

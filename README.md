@@ -17,6 +17,14 @@ pip install .
 dlio_benchmark ++workload.workflow.generate_data=True
 ```
 
+### Bare metal installation with AIStore support
+
+```bash
+git clone https://github.com/argonne-lcf/dlio_benchmark
+cd dlio_benchmark/
+pip install .[aistore]
+```
+
 ### Bare metal installation with profiler
 
 ```bash
@@ -150,7 +158,9 @@ The YAML file is loaded through hydra (https://hydra.cc/). The default setting a
 
 * We assume the data/label pairs are stored in the same file. Storing data and labels in separate files will be supported in future.
 
-* File format support: we only support tfrecord, hdf5, npz, csv, jpg, jpeg formats. Other data formats can be extended. 
+* File format support: we only support tfrecord, hdf5, npz, csv, jpg, jpeg formats. Other data formats can be extended.
+
+* Storage backend support: we support local filesystem, AWS S3, and AIStore as storage backends. Other storage backends can be extended.
 
 * Data Loader support: we support reading datasets using TensorFlow tf.data data loader, PyTorch DataLoader, and a set of custom data readers implemented in ./reader. For TensorFlow tf.data data loader, PyTorch DataLoader  
   - We have complete support for tfrecord format in TensorFlow data loader. 
@@ -163,7 +173,7 @@ General new features needed including:
 * support for new workloads: if you think that your workload(s) would be interested to the public, and would like to provide the yaml file to be included in the repo, please submit an issue.  
 * support for new data loaders, such as DALI loader, MxNet loader, etc
 * support for new frameworks, such as MxNet
-* support for noval file systems or storage, such as AWS S3. 
+* support for novel file systems or storage, such as AWS S3, AIStore, etc.
 * support for loading new data formats. 
 
 If you would like to contribute, please submit an issue to https://github.com/argonne-lcf/dlio_benchmark/issues, and contact ALCF DLIO team, Huihuo Zheng at huihuo.zheng@anl.gov

@@ -8,7 +8,15 @@ The installation of DLIO follows the standard python package installation as fol
     cd dlio_benchmark/
     pip install .
 
-One can also build and install the package as follows 
+To install with AIStore support:
+
+.. code-block:: bash
+
+    git clone https://github.com/argonne-lcf/dlio_benchmark
+    cd dlio_benchmark/
+    pip install .[aistore]
+
+One can also build and install the package as follows
 
 .. code-block:: bash
 
