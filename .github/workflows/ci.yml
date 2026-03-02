@@ -358,3 +358,26 @@ jobs:
         run: |
           source ${VENV_PATH}/bin/activate
           mpirun -np 1 pytest -k test_s3_checkpoint_step -v
+      # AIStore-specific tests (mock-based, no real cluster needed)
+      - name: test_aistore_gen_data
+        run: |
+          source ${VENV_PATH}/bin/activate
+          mpirun -np 1 pytest -k test_aistore_gen_data[npy-pytorch] -v
+          mpirun -np 1 pytest -k test_aistore_gen_data[npz-pytorch] -v
+      - name: test_aistore_train
+        run: |
+          source ${VENV_PATH}/bin/activate
+          mpirun -np 1 pytest -k test_aistore_train[npy-pytorch-True] -v
+          mpirun -np 1 pytest -k test_aistore_train[npz-pytorch-True] -v
+          mpirun -np 1 pytest -k test_aistore_train[npy-pytorch-False] -v
+          mpirun -np 1 pytest -k test_aistore_train[npz-pytorch-False] -v
+      - name: test_aistore_eval
+        run: |
+          source ${VENV_PATH}/bin/activate
+          mpirun -np 1 pytest -k test_aistore_eval -v
+      - name: test_aistore_multi_threads
+        run: |
+          source ${VENV_PATH}/bin/activate
+          mpirun -np 1 pytest -k test_aistore_multi_threads[pytorch-0] -v
+          mpirun -np 1 pytest -k test_aistore_multi_threads[pytorch-1] -v
+          mpirun -np 1 pytest -k test_aistore_multi_threads[pytorch-2] -v

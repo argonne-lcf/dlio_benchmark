@@ -19,6 +19,13 @@ from dlio_benchmark.storage.s3_storage import S3Storage
 from dlio_benchmark.common.enumerations import StorageType
 from dlio_benchmark.common.error_code import ErrorCodes
 
+# Guarded import for AIStore native storage
+try:
+    from dlio_benchmark.storage.aistore_storage import AIStoreStorage
+    AISTORE_AVAILABLE = True
+except ImportError:
+    AISTORE_AVAILABLE = False
+
 class StorageFactory(object):
     def __init__(self):
         pass
@@ -27,6 +34,14 @@ class StorageFactory(object):
     def get_storage(storage_type, namespace, framework=None):
         if storage_type == StorageType.LOCAL_FS:
             return FileStorage(namespace, framework)
+        elif storage_type == StorageType.AISTORE:
+            # Native AIStore storage using official Python SDK
+            if not AISTORE_AVAILABLE:
+                raise ImportError(
+                    "AIStore storage type requires the aistore package. "
+                    "Install it with: pip install aistore"
+                )
+            return AIStoreStorage(namespace, framework)
         elif storage_type == StorageType.S3:
             from dlio_benchmark.common.enumerations import FrameworkType
             if framework == FrameworkType.PYTORCH:
