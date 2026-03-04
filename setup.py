@@ -53,6 +53,9 @@ extras = {
         "azure-identity>=1.12.0",
         "azstoragetorch>=0.1.0",
     ],
+    "aistore": [
+        "aistore",
+    ],
 }
 
 here = pathlib.Path(__file__).parent.resolve()

@@ -60,6 +60,7 @@ class StorageType(Enum):
     PARALLEL_FS = 'parallel_fs'
     S3 = 's3'
     ADLS_GEN2 = 'adls_gen2'
+    AISTORE = 'aistore'
 
     def __str__(self):
         return self.value
