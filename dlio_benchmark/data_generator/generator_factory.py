@@ -37,7 +37,7 @@ class GeneratorFactory(object):
             return CSVGenerator()
         elif type == FormatType.NPZ:
             # Use S3 generators for both S3 and AIStore
-            if _args.storage_type in (StorageType.S3, StorageType.AISTORE):
+            if _args.storage_type in (StorageType.S3, StorageType.ADLS_GEN2, StorageType.AISTORE):
                 from dlio_benchmark.data_generator.npz_generator_s3 import NPZGeneratorS3
                 return NPZGeneratorS3()
             else:
@@ -45,7 +45,7 @@ class GeneratorFactory(object):
                 return NPZGenerator()
         elif type == FormatType.NPY:
             # Use S3 generators for both S3 and AIStore
-            if _args.storage_type in (StorageType.S3, StorageType.AISTORE):
+            if _args.storage_type in (StorageType.S3, StorageType.ADLS_GEN2, StorageType.AISTORE):
                 from dlio_benchmark.data_generator.npy_generator_s3 import NPYGeneratorS3
                 return NPYGeneratorS3()
             else:

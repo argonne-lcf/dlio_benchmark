@@ -1,0 +1,46 @@
+model: 
+  name: unet3d
+  type: cnn
+  model_size: 499153191
+
+framework: pytorch
+
+workflow:
+  generate_data: True
+  train: True
+  checkpoint: False
+
+dataset: 
+  data_folder: abfs://dliobenchmark@dlio.dfs.core.windows.net
+  format: npz
+  num_files_train: 168
+  num_samples_per_file: 1
+  record_length_bytes: 146600628
+  record_length_bytes_stdev: 0
+  record_length_bytes_resize: 2097152
+
+storage:
+  storage_type: adls_gen2
+  storage_root: dliobenchmark
+  storage_options:
+    connection_string: DefaultEndpointsProtocol=https;AccountName=<account_name>;AccountKey=<account_key>;EndpointSuffix=core.windows.net
+
+reader: 
+  data_loader: pytorch
+  batch_size: 7
+  read_threads: 4
+  file_shuffle: seed
+  sample_shuffle: seed
+
+train:
+  epochs: 7
+  computation_time: 0.323
+
+checkpoint:
+  checkpoint_mechanism: pt_adls_save
+  checkpoint_folder: checkpoints/unet3d
+  checkpoint_after_epoch: 5
+  epochs_between_checkpoints: 2
+
+metric:
+  au: 0.90
