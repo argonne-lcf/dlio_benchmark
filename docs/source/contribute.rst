@@ -28,7 +28,7 @@ We welcome the contribution from the community for developing new features of th
 * Support for loading new data formats.
 * Support for new data loaders, such as DALI loader, MxNet loader, etc
 * Support for new frameworks, such as MxNet. 
-* Support for noval file or storage systems, such as AWS S3.
+* Support for novel file or storage systems, such as AWS S3, AIStore, etc.
 
 If there are other features that you think would be great to have in DLIO, please submit an issue with label ``feature request``. 
 
