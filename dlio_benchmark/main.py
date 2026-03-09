@@ -191,8 +191,7 @@ class DLIOBenchmark(object):
                     fullpaths = self.storage.walk_node(
                         os.path.join(self.args.data_folder, f"{dataset_type}/*/*.{self.args.format}"),
                         use_pattern=True)
-                    files = [self.storage.get_basename(f) for f in fullpaths]
-                    idx = np.argsort(files)
+                    idx = np.argsort(fullpaths)
                     fullpaths = [fullpaths[i] for i in idx]
                     self.logger.debug(f"fullpaths {fullpaths}")
                 else:
