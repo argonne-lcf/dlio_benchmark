@@ -381,3 +381,14 @@ jobs:
           mpirun -np 1 pytest -k test_aistore_multi_threads[pytorch-0] -v
           mpirun -np 1 pytest -k test_aistore_multi_threads[pytorch-1] -v
           mpirun -np 1 pytest -k test_aistore_multi_threads[pytorch-2] -v
+      - name: test_s3_multi_endpoint_yamlcsv
+        run: |
+          source ${VENV_PATH}/bin/activate
+          mpirun -np 1 pytest -k "test_s3_multi_endpoint_yamlcsv[pytorch-rank0-yamlcsv]" -v
+          mpirun -np 1 pytest -k "test_s3_multi_endpoint_yamlcsv[pytorch-rank1-yamlcsv]" -v
+          mpirun -np 1 pytest -k "test_s3_multi_endpoint_yamlcsv[pytorch-rank2-yamlcsv]" -v
+      - name: test_s3_multi_endpoint_env_precedence
+        run: |
+          source ${VENV_PATH}/bin/activate
+          mpirun -np 1 pytest -k "test_s3_multi_endpoint_env_precedence[pytorch-rank1-envcsv-over-yamlcsv]" -v
+          mpirun -np 1 pytest -k "test_s3_multi_endpoint_env_precedence[pytorch-rank0-envsingle-no-csv]" -v

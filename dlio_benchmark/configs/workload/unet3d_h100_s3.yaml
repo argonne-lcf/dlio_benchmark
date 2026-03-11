@@ -25,7 +25,8 @@ storage:
   storage_options:
     access_key_id: access-key
     secret_access_key: secret-key
-    endpoint_url: http://localhost:9020
+    endpoint_url: http://localhost:9020,http://localhost:9021,http://localhost:9022
+    # Comma-separated multi-endpoints; rank r uses endpoints[r % N]
     region: us-east-1
     s3_force_path_style: False
     s3_max_attempts: 5

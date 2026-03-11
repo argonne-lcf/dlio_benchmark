@@ -23,6 +23,7 @@ from dlio_benchmark.common.enumerations import NamespaceType, MetadataType
 from urllib.parse import urlparse
 import os
 from s3torchconnector._s3client import S3Client, S3ClientConfig
+from dlio_benchmark.utils.s3_multi_endpoint import resolve_s3_endpoint
 import torch
 
 from dlio_benchmark.utils.utility import Profile
@@ -44,30 +45,44 @@ class S3PyTorchConnectorStorage(S3Storage):
 
         self.access_key_id = storage_options.get("access_key_id")
         self.secret_access_key = storage_options.get("secret_access_key")
-        self.endpoint = storage_options.get("endpoint_url")
-        self.region = storage_options.get("region", self._args.s3_region)
 
+        # IMPORTANT: resolve CSV -> per-rank endpoint (env overrides honored)
+        resolved_endpoint = resolve_s3_endpoint(storage_options.get("endpoint_url"))
+        self.endpoint = resolved_endpoint  # may be None; s3torchconnector will default by region
+
+        # Region selection (prefer YAML storage_options, else fall back to global arg)
+        self.region = storage_options.get("region", getattr(self._args, "s3_region", "us-east-1"))
+
+        # Export creds to env for s3torchconnector (if provided)
         if self.access_key_id:
-            os.environ["AWS_ACCESS_KEY_ID"] = self.access_key_id
+            os.environ["AWS_ACCESS_KEY_ID"] = str(self.access_key_id)
         if self.secret_access_key:
-            os.environ["AWS_SECRET_ACCESS_KEY"] = self.secret_access_key
+            os.environ["AWS_SECRET_ACCESS_KEY"] = str(self.secret_access_key)
 
-        # Build connector config, possibly with config overrides
-        force_path_style_opt = self._args.s3_force_path_style
+        # s3_force_path_style: handle bool or string
+        force_path_style_opt = getattr(self._args, "s3_force_path_style", False)
         if "s3_force_path_style" in storage_options:
-            force_path_style_opt = storage_options["s3_force_path_style"].strip().lower() == "true"
-        max_attempts_opt = self._args.s3_max_attempts
+            v = storage_options["s3_force_path_style"]
+            if isinstance(v, bool):
+                force_path_style_opt = v
+            elif isinstance(v, str):
+                force_path_style_opt = v.strip().lower() == "true"
+
+        # s3_max_attempts: int with safe fallback
+        max_attempts_opt = getattr(self._args, "s3_max_attempts", 5)
         if "s3_max_attempts" in storage_options:
             try:
                 max_attempts_opt = int(storage_options["s3_max_attempts"])
             except (TypeError, ValueError):
-                max_attempts_opt = self._args.s3_max_attempt
+                pass  # keep fallback
+
+        # Build s3torchconnector client config
         self.s3_client_config = S3ClientConfig(
             force_path_style=force_path_style_opt,
             max_attempts=max_attempts_opt,
         )
 
-        # Initialize the S3Client instance
+        # Initialize the S3Client instance (endpoint may be None)
         self.s3_client = S3Client(
             region=self.region,
             endpoint=self.endpoint,
