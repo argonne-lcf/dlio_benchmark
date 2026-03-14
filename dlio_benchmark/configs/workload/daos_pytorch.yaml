@@ -1,0 +1,37 @@
+model:
+  name: default
+
+framework: pytorch
+storage:
+  storage_type: "daos_pytorch"
+  storage_root: "/"
+
+workflow:
+  generate_data: False
+  train: True
+  evaluation: True
+  profiling: False
+
+dataset:
+  data_folder: /data/default
+  format: npz
+  num_files_train: 1024
+  num_files_eval: 64
+  num_samples_per_file: 1
+  record_length: 4096
+  num_subfolders_train: 2
+  num_subfolders_eval: 2
+  daos_pool: default-pool
+  daos_cont: samples
+
+
+reader:
+  data_loader: daos_pytorch
+  batch_size: 32
+  read_threads: 4
+
+checkpoint:
+  checkpoint_folder: /checkpoints
+  checkpoint_daos_pool: default-pool
+  checkpoint_daos_cont: checkpoints
+  checkpoint_mechanism_classname: dlio_benchmark.checkpointing.pytorch_daos_checkpointing.PyTorchDaosCheckpointing
