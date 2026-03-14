@@ -14,6 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+import io
 import numpy as np
 
 from dlio_benchmark.data_generator.data_generator import DataGenerator
@@ -49,5 +50,8 @@ class NPYGenerator(DataGenerator):
 
             out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating NPY Data")
-            np.save(out_path_spec, records)
+            output = out_path_spec if self.storage.islocalfs() else io.BytesIO()
+            np.save(output, records)
+            if not self.storage.islocalfs():
+                self.storage.put_data(out_path_spec, output.getvalue())
         np.random.seed()

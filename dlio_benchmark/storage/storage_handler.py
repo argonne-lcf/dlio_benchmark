@@ -130,3 +130,9 @@ class DataStorage(ABC):
         if self.is_framework_nativeio_available:
             return self.framework.isfile(id)
         return None
+
+    def islocalfs(self):
+        """
+        Method return true if the storage can operate on the files locally
+        """
+        return False
