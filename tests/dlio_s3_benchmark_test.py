@@ -658,5 +658,115 @@ def test_s3_checkpoint_ksm_config(patch_s3_checkpoint) -> None:
     clean_s3(mock_client, bucket_name, ["checkpoints/"])
     finalize()
 
+# ============================
+# Multi-endpoint tests (no direct storage imports)
+# ============================
+
+# Wrapper that captures endpoint argument passed to S3Client(...)
+def _capture_endpoint_factory(region=None, endpoint=None, s3client_config=None):
+    SafeMockS3Client.last_region = region
+    SafeMockS3Client.last_endpoint = endpoint
+    SafeMockS3Client.last_cfg = s3client_config
+    return SafeMockS3Client({})
+
+@pytest.mark.parametrize(
+    "rank, csv, expected",
+    [
+        pytest.param(0, "http://e0,http://e1,http://e2", "http://e0",
+                     id="pytorch-rank0-yamlcsv"),
+        pytest.param(1, "http://e0,http://e1,http://e2", "http://e1",
+                     id="pytorch-rank1-yamlcsv"),
+        pytest.param(2, "http://e0,http://e1,http://e2", "http://e2",
+                     id="pytorch-rank2-yamlcsv"),
+    ]
+)
+def test_s3_multi_endpoint_yamlcsv(setup_test_env, monkeypatch, rank, csv, expected):
+    # Initialize environment (MPI + s3 settings)
+    storage_root, storage_type, mock_client, s3_overrides = setup_test_env
+
+    # simulate MPI rank inside the resolver module
+    import dlio_benchmark.utils.s3_multi_endpoint as sme
+    monkeypatch.setattr(sme, "_RANK", rank, raising=False)
+
+    # capture the endpoint used inside storage
+    import dlio_benchmark.storage.s3_torch_storage as stmod
+    monkeypatch.setattr(stmod, "S3Client", _capture_endpoint_factory)
+
+    # Remove the fixture’s endpoint override so our test value wins cleanly
+    filtered = [
+        ov for ov in s3_overrides
+        if not ov.startswith("++workload.storage.storage_options.endpoint_url=")
+    ]
+
+    # Compose overrides: workload selection, speed-ups, and our CSV (quoted)
+    overrides = filtered + [
+        "workload=unet3d_a100_s3",
+        "workload.workflow.train=false",
+        "workload.workflow.generate_data=true",             # ensure storage path runs
+        "workload.reader.read_threads=0",
+        "workload.dataset.num_files_train=1",
+        f"workload.storage.storage_options.endpoint_url='{csv}'",  # QUOTED CSV
+    ]
+
+    with initialize_config_dir(version_base=None, config_dir=config_dir):
+        cfg = compose(config_name="config", overrides=overrides)
+        run_benchmark(cfg)
+
+    assert SafeMockS3Client.last_endpoint == expected
+
+@pytest.mark.parametrize(
+    "rank, env_csv, yaml_csv, expected",
+    [
+        pytest.param(1, "http://env0,http://env1",
+                         "http://yaml0,http://yaml1",
+                         "http://env1",
+                         id="pytorch-rank1-envcsv-over-yamlcsv" ),
+        pytest.param(0, None, None,
+                         "http://single",
+                         id="pytorch-rank0-envsingle-no-csv")
+    ]
+)
+def test_s3_multi_endpoint_env_precedence(setup_test_env, monkeypatch, rank, env_csv, yaml_csv, expected):
+    storage_root, storage_type, mock_client, s3_overrides = setup_test_env
+
+    import dlio_benchmark.utils.s3_multi_endpoint as sme
+    monkeypatch.setattr(sme, "_RANK", rank, raising=False)
+
+    import dlio_benchmark.storage.s3_torch_storage as stmod
+    monkeypatch.setattr(stmod, "S3Client", _capture_endpoint_factory)
+
+    # Clean previous env
+    monkeypatch.delenv("DLIO_S3_ENDPOINTS", raising=False)
+    monkeypatch.delenv("DLIO_S3_ENDPOINT", raising=False)
+
+    # Set env for the test case
+    if env_csv:
+        monkeypatch.setenv("DLIO_S3_ENDPOINTS", env_csv)
+    if expected == "http://single":
+        monkeypatch.setenv("DLIO_S3_ENDPOINT", "http://single")
+
+    # Remove the fixture’s endpoint override so our simulated YAML/env wins
+    filtered = [
+        ov for ov in s3_overrides
+        if "workload.storage.storage_options.endpoint_url" not in ov.replace(" ", "")
+    ]
+
+    overrides = filtered + [
+        "workload=unet3d_a100_s3",
+        "workload.workflow.train=false",
+        "workload.workflow.generate_data=true",   # ensure storage is constructed
+        "workload.reader.read_threads=0",
+        "workload.dataset.num_files_train=1",
+    ]
+    if yaml_csv:
+        # Simulate a YAML-provided CSV value, env should override this
+        overrides.append(f"workload.storage.storage_options.endpoint_url='{yaml_csv}'")
+
+    with initialize_config_dir(version_base=None, config_dir=config_dir):
+        cfg = compose(config_name="config", overrides=overrides)
+        run_benchmark(cfg)
+
+    assert SafeMockS3Client.last_endpoint == expected
+
 if __name__ == '__main__':
     unittest.main()
