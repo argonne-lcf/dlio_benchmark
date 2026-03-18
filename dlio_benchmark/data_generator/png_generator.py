@@ -14,6 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+import io
 import numpy as np
 import PIL.Image as im
 
@@ -49,5 +50,8 @@ class PNGGenerator(DataGenerator):
                 self.logger.info(f"Generated file {i}/{self.total_files_to_generate}")
             out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating PNG Data")
-            img.save(out_path_spec, format='PNG', bits=8)
+            output = out_path_spec if self.storage.islocalfs() else io.BytesIO()
+            img.save(output, format='PNG', bits=8)
+            if not self.storage.islocalfs():
+                self.storage.put_data(out_path_spec, output.getvalue())
         np.random.seed()

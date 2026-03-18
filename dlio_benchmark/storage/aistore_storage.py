@@ -16,7 +16,6 @@
 """
 
 import os
-import io
 import logging
 
 try:
@@ -89,12 +88,12 @@ class AIStoreStorage(DataStorage):
         Extract the object key from a full S3/AIS URI.
 
         Why this is needed:
-        - S3 generators (NPYGeneratorS3, NPYReaderS3) pass full URIs like:
+        - Generators call storage.get_uri(file_list[i]) which pass full URIs like:
           "s3://dlio-benchmark-native/train/img_08_of_16.npy"
           or "ais://dlio-benchmark-native/train/img_08_of_16.npy"
         - AIStore SDK expects just the object key:
           "train/img_08_of_16.npy"
-        - This method strips the "s3://" or "ais://" prefix and bucket name
+        - This method strips the scheme and bucket name from the URI
 
         Handles: 
           s3://bucket/path/file.ext -> path/file.ext
@@ -226,22 +225,12 @@ class AIStoreStorage(DataStorage):
 
             key = self._clean_key(id)
 
-            # Convert data to bytes
-            if isinstance(data, io.BytesIO):
-                data.seek(0)
-                body = data.read()
-            elif isinstance(data, bytes):
-                body = data
-            else:
-                body = bytes(data)
-
-            # Put object
             obj = self.bucket.object(key)
-            obj.get_writer().put_content(body)
+            obj.get_writer().put_content(data)
 
             # TODO: add offset and length support
 
-            logging.debug(f"Successfully uploaded: {key} ({len(body)} bytes)")
+            logging.debug(f"Successfully uploaded: {key} ({len(data)} bytes)")
             return True
         except Exception as e:
             logging.error(f"Error putting data to {id}: {e}")
