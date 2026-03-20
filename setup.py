@@ -48,6 +48,9 @@ extras = {
     "s3": [
         "s3torchconnector",
     ],
+    "aistore": [
+        "aistore",
+    ],
 }
 
 here = pathlib.Path(__file__).parent.resolve()

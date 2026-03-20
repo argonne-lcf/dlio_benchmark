@@ -131,7 +131,7 @@ class S3PyTorchConnectorStorage(S3Storage):
     
         bucket_name = parsed.netloc
         writer = self.s3_client.put_object(bucket_name, id)
-        writer.write(data.getvalue())
+        writer.write(data)
         writer.close()
         return None
 

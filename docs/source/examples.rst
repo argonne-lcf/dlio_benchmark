@@ -310,6 +310,85 @@ ResNet50: 3D Image classification
         read_threads: 8
         computation_threads: 8
 
+ResNet50 with AIStore: Image Classification on AIStore
+---------------------------------------------------------
+* Storage Backend: AIStore (native SDK)
+* Framework: PyTorch
+* Dataset: NPY format files stored in an AIStore bucket.
+* Demonstrates using DLIO with AIStore as the storage backend.
+
+.. code-block:: yaml
+
+    # contents of aistore_resnet50_cpu_prod.yaml
+    model:
+      name: aistore_resnet50_cpu_production
+      type: cnn
+
+    framework: pytorch
+
+    workflow:
+      generate_data: True
+      train: True
+      checkpoint: False
+      evaluation: True
+
+    dataset:
+      data_folder: s3://mlcommons-resnet50-cpu
+      format: npy
+      num_files_train: 10000
+      num_files_eval: 1000
+      num_samples_per_file: 100
+      record_length_bytes: 150528
+      num_subfolders_train: 100
+      num_subfolders_eval: 10
+
+    storage:
+      storage_type: aistore
+      storage_root: mlcommons-resnet50-cpu
+      storage_options:
+        endpoint_url: http://aistore-proxy:8080
+
+    reader:
+      data_loader: pytorch
+      batch_size: 64
+      batch_size_eval: 64
+      read_threads: 8
+      file_shuffle: seed
+      sample_shuffle: seed
+      prefetch_size: 4
+
+    train:
+      epochs: 10
+      computation_time: 0.05
+
+    evaluation:
+      eval_time: 0.025
+      epochs_between_evals: 1
+
+First, install DLIO with AIStore support:
+
+.. code-block:: bash
+
+    pip install .[aistore]
+
+Generate the data:
+
+.. code-block:: bash
+
+    dlio_benchmark workload=aistore_resnet50_cpu_prod \
+      ++workload.storage.storage_options.endpoint_url=http://your-aistore-proxy:8080 \
+      ++workload.workflow.generate_data=True \
+      ++workload.workflow.train=False
+
+Run the benchmark:
+
+.. code-block:: bash
+
+    mpirun -np 8 dlio_benchmark workload=aistore_resnet50_cpu_prod \
+      ++workload.storage.storage_options.endpoint_url=http://your-aistore-proxy:8080 \
+      ++workload.workflow.generate_data=False \
+      ++workload.workflow.train=True
+
 LLM (Large Language Model) checkpointing
 -----------------------------------------
 * Reference Implementation: git@github.com:argonne-lcf/Megatron-DeepSpeed.git

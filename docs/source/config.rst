@@ -48,7 +48,8 @@ A `DLIO` YAML configuration file contains following sections:
 * **model** - specifying the name of the model. This is simply an indentifyer of the configuration file. It does not have impact on the actual simulation. 
 * **framework** - specifying the framework to use for the benchmark, available options: tensorflow, pytorch
 * **workflow** - specifying what workflow operations to execute in the pipeline. Workflow operations include: dataset generation (``generate_data``), training (``train``), evaluation (``evaluation``), checkpointing (``checkpoint``), debugging (``debug``), etc. 
-* **dataset** - specifying all the information related to the dataset. 
+* **storage** - specifying the storage backend configuration (local filesystem, S3, or AIStore).
+* **dataset** - specifying all the information related to the dataset.
 * **reader** - specifying the configuration for data loading, such as data_loader, number of workers, etc. 
 * **train** - specifying the setup for training
 * **evaluation** - specifying the setup for evaluation. 
@@ -195,6 +196,73 @@ workflow
  ``evaluation``, ``checkpoint``, and ``profiling`` have depency on ``train``. If ``train`` is set to be ```False```, ``evaluation``, ``checkpoint``, ``profiling`` will be reset to ```False``` automatically. 
 
   Even though ``generate_data`` and ``train`` can be performed together in one job, we suggest to perform them seperately to eliminate potential caching effect. One can generate the data first by running DLIO with ```generate_data=True``` and ```train=False```, and then run training benchmark with ```generate_data=False``` and ```train=True```. 
+
+storage
+------------------
+.. list-table::
+   :widths: 15 10 30
+   :header-rows: 1
+
+   * - Parameter
+     - Default
+     - Description
+   * - storage_type
+     - local_fs
+     - The storage backend to use. Available options: ``local_fs``, ``parallel_fs``, ``s3``, ``aistore``.
+   * - storage_root
+     - ./
+     - The root path or bucket name for the storage backend. For local filesystem, this is a directory path. For S3 and AIStore, this is the bucket name.
+   * - storage_options
+     - {}
+     - A dictionary of backend-specific options (see below).
+
+**Storage options for AIStore:**
+
+.. list-table::
+   :widths: 15 10 30
+   :header-rows: 1
+
+   * - Parameter
+     - Default
+     - Description
+   * - endpoint_url
+     - http://localhost:8080
+     - The URL of the AIStore proxy endpoint.
+
+**Storage options for S3:**
+
+.. list-table::
+   :widths: 15 10 30
+   :header-rows: 1
+
+   * - Parameter
+     - Default
+     - Description
+   * - endpoint_url
+     - (none)
+     - The S3 endpoint URL.
+   * - region
+     - us-east-1
+     - The S3 region.
+
+.. note::
+
+  For AIStore, install the optional dependency with ``pip install .[aistore]``. The AIStore backend uses the native AIStore Python SDK for direct access. Data folder paths should use the ``s3://`` URI format (e.g., ``s3://bucket-name``).
+
+  For S3, install the optional dependency with ``pip install .[s3]``.
+
+**Example AIStore configuration:**
+
+.. code-block:: yaml
+
+  storage:
+    storage_type: aistore
+    storage_root: my-bucket
+    storage_options:
+      endpoint_url: http://aistore-proxy:8080
+
+  dataset:
+    data_folder: s3://my-bucket
 
 dataset
 ------------------

@@ -14,6 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+import io
 import numpy as np
 
 from dlio_benchmark.common.enumerations import Compression
@@ -48,8 +49,11 @@ class NPZGenerator(DataGenerator):
                 records = gen_random_tensor(shape=(dim_, dim[2*i+1], self.num_samples), dtype=self._args.record_element_dtype, rng=rng)
             out_path_spec = self.storage.get_uri(self._file_list[i])
             progress(i+1, self.total_files_to_generate, "Generating NPZ Data")
+            output = out_path_spec if self.storage.islocalfs() else io.BytesIO()
             if self.compression != Compression.ZIP:
-                np.savez(out_path_spec, x=records, y=record_labels)
+                np.savez(output, x=records, y=record_labels)
             else:
-                np.savez_compressed(out_path_spec, x=records, y=record_labels)
+                np.savez_compressed(output, x=records, y=record_labels)
+            if not self.storage.islocalfs():
+                self.storage.put_data(out_path_spec, output.getvalue())
         np.random.seed()
