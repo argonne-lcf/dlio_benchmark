@@ -11,15 +11,6 @@
 ## Getting started
 
 
-```bash
-$: pip install mpi4py
-$: python3 -m venv ~/venv
-$: source ~/venv/bin/activate
-$: git clone https://github.com/enaktalabs/dlio_benchmark.git -b daos-pytorch
-$: cd dlio_benchmark
-$: pip install .
-```
-
 Since `DAOS PyTorch` client was not released outside the `master` branch you'd need to build and install the `pydaos3-package` on the compute node manually (`torch` integration comes with `pydaos` package):
 
 
@@ -27,35 +18,31 @@ Since `DAOS PyTorch` client was not released outside the `master` branch you'd n
 
 $: pip install $(DAOS_BUILD_OUTPUT)/install/lib/daos/python
 
-````
-
-## Current limitations
-
-`torch.utils.data.Dataset` provides only methods for read-only access to underlying data, which means that it cannot generate benchmark samples, as would be expected for general purpose `FileStorage` implementations.
-On the same note, `dlio_benchmark` expects `FileStorage` implementations to walk the directories with samples to build the list of training and validation datasets.
-`DaosDfsStorage` implementation provides an ad-hoc solution by building the directory map from the samples filename. Obviously, it's not the fastest nor the most efficient way, but it serves the purpose for the moment.
-
-
-## Generating samples
-
-By using `dfuse` and local mount:
-
-```bash
-
-$: dfuse /mnt/dfuse test-pool test-container
-
-$: mpirun -np 4 dlio_benchmark workload=dfuse_pytorch ++workload.workflow.generate_data=True ++workload.workflow.train=False ++workload.dataset.data_folder=/mnt/dfuse/dataset ++workload.dataset.num_files_train=5000 ++workload.dataset.record_length=15000 ++workload.dataset.record_length_stdev=0 ++workload.dataset.record_length_resize=0
-
 ```
 
 
-## Running benchmark with `DAOS` PyTorch client
+
+## Example of running benchmark with `DAOS` PyTorch client
 
 
 ```bash
+# LD_LIBRARY_PATH is needed to load DAOS libraries from build directory
+export LD_LIBRARY_PATH=/lus/flare/projects/DAOS_Testing/daos/install/lib64/:$LD_LIBRARY_PATH
 
-$: mpirun -np 4 dlio_benchmark workload=daos_pytorch ++workload.workflow.generate_data=False ++workload.workflow.checkpoint=False ++workload.dataset.num_files_train=5000 ++workload.dataset.record_length=15000 ++workload.train.epochs=3  ++workload.dataset.daos_pool=test-pool ++workload.dataset.daos_cont=test-container ++workload.reader.batch_size=32 ++workload.reader.read_threads=4 ++workload.dataset.data_folder=/dataset
-
+mpiexec --np ${NTOTRANKS} -ppn ${NRANKS} --cpu-bind depth -d ${NDEPTH} --no-vni \
+	dlio_benchmark workload=daos_pytorch \
+	++workload.workflow.generate_data=True  \
+	++workload.dataset.daos_pool=DAOS_Testing \
+	++workload.dataset.daos_cont=defaults \
+	++workload.workflow.checkpoint=True \
+	++workload.checkpoint.checkpoint_daos_pool=DAOS_Testing \
+	++workload.checkpoint.checkpoint_daos_cont=defaults \
+	++workload.checkpoint.checkpoint_folder=/checkpoints \
+	++workload.dataset.data_folder=/datasets/small-08 \
+	++workload.dataset.num_files_train=80000 \
+	++workload.dataset.num_files_eval=10000 \
+	++workload.reader.batch_size=32 \
+	++workload.reader.read_threads=4 \
+	++workload.dataset.record_length_bytes=1048576 \
+	++workload.train.epochs=5
 ```
-
-Note that, while generating samples with dfuse `workload.dataset.data_folder=/mnt/dfuse/dataset` was pointing to `local` path whereas during training `workload.dataset.data_folder=/dataset` specifies the path inside POSIX container.

@@ -17,7 +17,7 @@
 
 import os
 
-from pydaos.torch import Dataset
+from pydaos.torch import Dataset, Checkpoint
 from dlio_benchmark.utils.utility import Profile
 from dlio_benchmark.common.constants import MODULE_STORAGE
 from dlio_benchmark.storage.storage_handler import DataStorage, Namespace
@@ -31,47 +31,41 @@ dlp = Profile(MODULE_STORAGE)
 
 class DaosTorchStorage(DataStorage):
     """
-    This is very ad-hoc implementation of DataStorage interface for pydaos.torch evaluation.
-    It supports only read only operation.
-    There's no generic, POSIX like interface yet so this implementation relies only on what Dataset provides:
+    Implementation of DataStorage interface for via DAOS Pytorch client integration.
+    There's no generic, POSIX like Python interface yet, so this implementation relies only on what Dataset provides:
     list of file names. Which, then converted to list of files and directories so get_node and walk_node
     operate on these two lists.
+    pydaos.torch.Checkpoint interface is used to implement put_data.
     """
 
     @dlp.log_init
     def __init__(self, namespace="/", framework=None):
         super().__init__(framework)
+        self.namespace = Namespace(namespace, NamespaceType.HIERARCHICAL)
 
         args = ConfigArguments.get_instance()
 
-        dataset = Dataset(args.daos_pool, args.daos_cont, args.data_folder)
-        files = [name for (name, size) in dataset.objects]
+        self.pool = args.daos_pool
+        self.cont = args.daos_cont
+        self.prefix = args.data_folder
 
-        def get_dir(fname):
-            d = os.path.dirname(fname)
-            return os.path.normpath(d)
+        self._dirs = None
+        self._files = None
+        self._checkpoint = None
 
-        def process_chunk(chunk):
-            return {get_dir(fname) for fname in chunk}
-
-        workers = cpu_count()
-        chunk_size = len(files) // min(workers, len(files))
-
-        dirs = set()
-        with ThreadPoolExecutor(max_workers=workers) as ex:
-            futures = [ex.submit(process_chunk, files[i:i + chunk_size])
-                       for i in range(0, len(files), chunk_size)]
-
-            for future in as_completed(futures):
-                dirs.update(future.result())
-
-        self._dirs = dirs
-        self._files = files
-        self.namespace = Namespace(namespace, NamespaceType.HIERARCHICAL)
+        # Should initialize DAOS early in the parent process for the sake of atfork call in the module init
+        if args.generate_data or args.generate_only:
+            self._dirs = []
+            self._files = []
+            # setting transfer_chunk_size to zero forces Checkpoint interface to use sync write call
+            # otherwise it would spawn a queue with several threads, which is overkill for writing sample files
+            self._checkpoint = Checkpoint(pool=self.pool, cont=self.cont, transfer_chunk_size=0)
+        else:
+            self.ensure_cache()
 
     @dlp.log
     def get_uri(self, id):
-        return os.path.join(self.namespace.name, id)
+        return os.path.join(self.namespace.name, self.prefix, id)
 
     @dlp.log
     def create_namespace(self, exist_ok=False):
@@ -91,6 +85,8 @@ class DaosTorchStorage(DataStorage):
 
     @dlp.log
     def get_node(self, id=""):
+        self.ensure_cache()
+
         path = self.get_uri(id)
         path = os.path.normpath(path)
 
@@ -101,6 +97,8 @@ class DaosTorchStorage(DataStorage):
 
     @dlp.log
     def walk_node(self, id, use_pattern=False):
+        self.ensure_cache()
+
         path = self.get_uri(id)
 
         if use_pattern:
@@ -122,7 +120,12 @@ class DaosTorchStorage(DataStorage):
 
     @dlp.log
     def put_data(self, id, data, offset=None, length=None):
-        raise NotImplementedError
+        # in case when a caller wants to list files after writing new ones
+        # cache needs to be invalidate to force it re-read directories later
+        self.invalidate_cache()
+
+        with self._checkpoint.writer(id) as w:
+            w.write(data)
 
     @dlp.log
     def get_data(self, id, data, offset=None, length=None):
@@ -130,3 +133,35 @@ class DaosTorchStorage(DataStorage):
 
     def get_basename(self, id):
         return os.path.basename(id)
+
+    def invalidate_cache(self):
+        self._dirs = None
+        self._files = None
+
+    def ensure_cache(self):
+        if self._dirs:
+            return
+
+        with Dataset(self.pool, self.cont, self.prefix) as dataset:
+            files = [name for (name, size) in dataset.objects]
+
+        def get_dir(fname):
+            d = os.path.dirname(fname)
+            return os.path.normpath(d)
+
+        def process_chunk(chunk):
+            return {get_dir(fname) for fname in chunk}
+
+        workers = cpu_count()
+        chunk_size = len(files) // min(workers, len(files))
+
+        dirs = set()
+        with ThreadPoolExecutor(max_workers=workers) as ex:
+            futures = [ex.submit(process_chunk, files[i:i + chunk_size])
+                       for i in range(0, len(files), chunk_size)]
+
+            for future in as_completed(futures):
+                dirs.update(future.result())
+
+        self._dirs = dirs
+        self._files = files
