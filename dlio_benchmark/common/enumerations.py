@@ -27,6 +27,7 @@ class CheckpointMechanismType(Enum):
     TF_SAVE = 'tf_save'
     PT_SAVE = 'pt_save'
     PT_S3_SAVE = 'pt_s3_save'
+    PT_MSC_SAVE = 'pt_msc_save'
 
     def __str__(self):
         return self.value
@@ -59,6 +60,7 @@ class StorageType(Enum):
     PARALLEL_FS = 'parallel_fs'
     S3 = 's3'
     AISTORE = 'aistore'
+    MSC = 'msc'
 
     def __str__(self):
         return self.value

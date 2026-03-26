@@ -26,6 +26,13 @@ try:
 except ImportError:
     AISTORE_AVAILABLE = False
 
+# Guarded import for Multi-Storage Client
+try:
+    from dlio_benchmark.storage.msc_storage import MscStorage
+    MSC_AVAILABLE = True
+except ImportError:
+    MSC_AVAILABLE = False
+
 class StorageFactory(object):
     def __init__(self):
         pass
@@ -48,5 +55,12 @@ class StorageFactory(object):
                 from dlio_benchmark.storage.s3_torch_storage import S3PyTorchConnectorStorage
                 return S3PyTorchConnectorStorage(namespace, framework)
             return S3Storage(namespace, framework)
+        elif storage_type == StorageType.MSC:
+            if not MSC_AVAILABLE:
+                raise ImportError(
+                    "MSC storage type requires the multi-storage-client package. "
+                    "Install it with: pip install multi-storage-client"
+                )
+            return MscStorage(namespace, framework)
         else:
             raise Exception(str(ErrorCodes.EC1001))

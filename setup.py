@@ -24,7 +24,12 @@ core_deps = [
 x86_deps = [
     f"hydra-core>={HYDRA_VERSION}",
     "nvidia-dali-cuda120>=1.34.0",
-    "tensorflow>=2.13.1",
+    "torch>=2.2.0",
+    "torchaudio",
+    "torchvision",
+]
+darwin_arm64_deps = [
+    f"hydra-core>={HYDRA_VERSION}",
     "torch>=2.2.0",
     "torchaudio",
     "torchvision",
@@ -34,9 +39,12 @@ ppc_deps = [
 ]
 
 deps = core_deps
+platform = sysconfig.get_platform()
 
-if "ppc" in sysconfig.get_platform():
+if "ppc" in platform:
     deps.extend(ppc_deps)
+elif platform.startswith("macosx") and "arm64" in platform:
+    deps.extend(darwin_arm64_deps)
 else:
     deps.extend(x86_deps)
 
@@ -50,6 +58,9 @@ extras = {
     ],
     "aistore": [
         "aistore",
+    ],
+    "msc": [
+        "multi-storage-client[boto3]",
     ],
 }
 

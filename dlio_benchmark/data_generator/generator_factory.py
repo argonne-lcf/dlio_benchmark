@@ -14,8 +14,10 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-from dlio_benchmark.common.enumerations import FormatType
+from dlio_benchmark.common.enumerations import FormatType, StorageType
 from dlio_benchmark.common.error_code import ErrorCodes
+from dlio_benchmark.utils.config import ConfigArguments
+
 
 class GeneratorFactory(object):
     def __init__(self):
@@ -45,10 +47,20 @@ class GeneratorFactory(object):
             from dlio_benchmark.data_generator.png_generator import PNGGenerator
             return PNGGenerator()
         elif type == FormatType.SYNTHETIC:
-            from dlio_benchmark.data_generator.synthetic_generator import SyntheticGenerator
+            from dlio_benchmark.data_generator.synthetic_generator import (
+                SyntheticGenerator,
+            )
             return SyntheticGenerator()
         elif type == FormatType.INDEXED_BINARY or type == FormatType.MMAP_INDEXED_BINARY:
-            from dlio_benchmark.data_generator.indexed_binary_generator import IndexedBinaryGenerator
-            return IndexedBinaryGenerator()
+            if ConfigArguments.get_instance().storage_type == StorageType.MSC:
+                from dlio_benchmark.data_generator.indexed_binary_msc_generator import (
+                    IndexedBinaryMscGenerator,
+                )
+                return IndexedBinaryMscGenerator()
+            else:
+                from dlio_benchmark.data_generator.indexed_binary_generator import (
+                    IndexedBinaryGenerator,
+                )
+                return IndexedBinaryGenerator()
         else:
             raise Exception(str(ErrorCodes.EC1001))
