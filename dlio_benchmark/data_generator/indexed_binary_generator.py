@@ -56,7 +56,7 @@ class IndexedBinaryGenerator(DataGenerator):
         # and collective I/O paths that use np.random.* directly).
         np.random.seed(self.BASE_SEED + self.my_rank)
 
-        GB = 1024 * 1024 * 1024
+        GiB = 1024 * 1024 * 1024
         samples_processed = 0
         total_samples = self.total_files_to_generate * self.num_samples
         dim = self.get_dimension(self.total_files_to_generate)
@@ -89,7 +89,7 @@ class IndexedBinaryGenerator(DataGenerator):
                 fh_sz = MPI.File.Open(comm, out_path_spec_sz_idx, amode)
                 off_type = np.uint64
                 elements_per_loop = min(
-                    int(GB / np.dtype(off_type).itemsize), samples_per_rank
+                    int(GiB / np.dtype(off_type).itemsize), samples_per_rank
                 )
                 offsets_processed = 0
                 for element_index in range(
@@ -122,7 +122,7 @@ class IndexedBinaryGenerator(DataGenerator):
                     self.logger.info(f"{utcnow()} Starting Sample generation.")
 
                 fh = MPI.File.Open(comm, out_path_spec, amode)
-                samples_per_loop = int(GB / sample_size)
+                samples_per_loop = int(GiB / sample_size)
 
                 # Rank-unique deterministic data for collective writes.
                 records = gen_random_tensor(

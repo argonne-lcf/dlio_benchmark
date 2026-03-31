@@ -220,7 +220,7 @@ class ObjStoreLibStorage(S3Storage):
 
         # Dynamically import and initialize the appropriate library
         if storage_library == "s3dlio":
-            logging.debug("ObjStoreLibStorage: using s3dlio — zero-copy multi-protocol (20-30 GB/s)")
+            logging.debug("ObjStoreLibStorage: using s3dlio — zero-copy multi-protocol (20-30 GiB/s)")
             try:
                 import s3dlio
                 # s3dlio reads AWS_ENDPOINT_URL for custom endpoints (MinIO, VAST, Ceph).
@@ -238,7 +238,7 @@ class ObjStoreLibStorage(S3Storage):
                 )
                 
         elif storage_library == "s3torchconnector":
-            logging.debug("ObjStoreLibStorage: using s3torchconnector — AWS official S3 connector (5-10 GB/s)")
+            logging.debug("ObjStoreLibStorage: using s3torchconnector — AWS official S3 connector (5-10 GiB/s)")
             if S3Client is None:
                 raise ImportError(
                     "s3torchconnector is not installed. "
@@ -267,7 +267,7 @@ class ObjStoreLibStorage(S3Storage):
             )
             
         elif storage_library == "minio":
-            logging.debug("ObjStoreLibStorage: using minio — MinIO native SDK (10-15 GB/s)")
+            logging.debug("ObjStoreLibStorage: using minio — MinIO native SDK (10-15 GiB/s)")
             try:
                 secure = storage_options.get("secure", True)
                 self.s3_client = MinIOAdapter(
@@ -371,9 +371,9 @@ class ObjStoreLibStorage(S3Storage):
         return super().delete_node(self.get_uri(id))
 
     # Threshold above which s3dlio uses MultipartUploadWriter instead of put_bytes.
-    # minio-py uses 5 MB; 16 MB is a good balance for MinIO with large objects.
-    # Override via S3DLIO_MULTIPART_THRESHOLD_MB env var (set before import).
-    _MULTIPART_THRESHOLD = int(os.environ.get("S3DLIO_MULTIPART_THRESHOLD_MB", "16")) * 1024 * 1024
+    # minio-py uses 5 MiB; 16 MiB is a good balance for MinIO with large objects.
+    # Override via S3DLIO_MULTIPART_THRESHOLD_MiB env var (set before import).
+    _MULTIPART_THRESHOLD = int(os.environ.get("S3DLIO_MULTIPART_THRESHOLD_MiB", "16")) * 1024 * 1024
 
     @dlp.log
     def put_data(self, id, data, offset=None, length=None):
@@ -391,8 +391,8 @@ class ObjStoreLibStorage(S3Storage):
             if payload_len >= self._MULTIPART_THRESHOLD:
                 # Use MultipartUploadWriter for large objects — sends multiple
                 # concurrent UploadPart requests instead of one giant single-part PUT.
-                # This is why minio-py is faster for 140 MB NPZ files.
-                logging.debug(f"put_data: s3dlio multipart upload {id} ({payload_len/1024/1024:.1f} MB, threshold={self._MULTIPART_THRESHOLD//1024//1024} MB)")
+                # This is why minio-py is faster for 140 MiB NPZ files.
+                logging.debug(f"put_data: s3dlio multipart upload {id} ({payload_len/1024/1024:.1f} MiB, threshold={self._MULTIPART_THRESHOLD//1024//1024} MiB)")
                 with self._s3dlio.MultipartUploadWriter.from_uri(id) as writer:
                     writer.write(payload)
             else:

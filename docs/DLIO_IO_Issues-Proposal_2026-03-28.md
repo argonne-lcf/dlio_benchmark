@@ -68,7 +68,7 @@ All ranks share the **same flat global file list** built by rank 0 (via `storage
 
 **Who checkpoints:** Controlled by `zero_stage`, `tensor_parallelism`, `pipeline_parallelism`, and `data_parallelism`. With `zero_stage=0`, only ranks `< model_parallelism` actually write (data-parallel copies are deduplicated). This is correct.
 
-**In-rank parallelism (checkpoint read):** `_get_streaming()` creates a `StreamingCheckpointing` instance with `num_parallel_readers=4`, `chunk_size=32MB`. This parallelizes the read within a single rank's file. Writes happen via a single sequential stream.
+**In-rank parallelism (checkpoint read):** `_get_streaming()` creates a `StreamingCheckpointing` instance with `num_parallel_readers=4`, `chunk_size=32MiB`. This parallelizes the read within a single rank's file. Writes happen via a single sequential stream.
 
 **Memory model:** `_SizePlaceholder` (no actual tensor allocation) + `_compute_state_bytes()` → correct byte count passed to the streaming backend. No RAM proportional to model size is used during save/load.
 
@@ -514,7 +514,7 @@ Total per file:         ~21–41 ms  — 98% is the JPEG encoder
 **Reading (every training step, every epoch):**
 ```
 open() syscall:          ~1 ms      (NFS RTT)
-read() syscall:          ~0.01 ms   (115 KB at 10 GB/s)
+read() syscall:          ~0.01 ms   (115 KB at 10 GiB/s)
 PIL.Image.open():        ~5–15 ms   (JPEG entropy decode + YCbCr→RGB)
 np.asarray():            ~0.5 ms    (copy into numpy)
 resized_image returned:  decoded array discarded
@@ -544,7 +544,7 @@ Key properties that matter here:
 - **Speed**: ~155× faster than NumPy random generation. For a 224×224×3 uint8 array (150,528 bytes), dgen-py generates the raw bytes in < 0.01 ms, versus ~1.5 ms for NumPy.
 - **Uniqueness**: every call with a different seed produces a statistically independent, non-repeating byte stream. Since `_generate_files()` uses a flowing RNG that advances per file (`seed = int(rng.integers(0, 2**63))`), every file gets a unique seed → unique bytes.
 - **Zero-copy**: dgen-py returns a `BytesView` implementing the buffer protocol. `np.frombuffer(bytesview, dtype=dtype)` consumes it without an intermediate allocation.
-- **Scalability**: because the bytes are generated in Rust with SIMD, generation throughput exceeds 50 GB/s on modern CPUs — faster than any storage device can accept data.
+- **Scalability**: because the bytes are generated in Rust with SIMD, generation throughput exceeds 50 GiB/s on modern CPUs — faster than any storage device can accept data.
 
 **dgen-py must be used for all new data generation, for all formats, without exception.** It is already wired into `gen_random_tensor()` and therefore already active for every format that calls it. The critical requirement is that no code path reuses byte content across file boundaries.
 
@@ -554,7 +554,7 @@ For the formats where generation work is proportional to storage size (NPY, Inde
 dgen-py (unique bytes, < 0.01 ms per file) →  write() syscall to storage
 ```
 
-dgen-py is the bottleneck only if the benchmark needs to generate faster than ~50 GB/s per core, which exceeds every real storage system's ingestion bandwidth.
+dgen-py is the bottleneck only if the benchmark needs to generate faster than ~50 GiB/s per core, which exceeds every real storage system's ingestion bandwidth.
 
 ### 9g. JPEG/PNG: Do Files Need to Be ACTUALLY Valid Images?
 
@@ -723,11 +723,11 @@ PIL's JPEG and PNG encoders are single-threaded inside each call. JPEG encode at
 | Files per rank (`N / np`) | 160,000 |
 | Encode time (JPEG, 30 ms/file) | 160,000 × 0.030 s ≈ **80 min per rank** |
 | Encode time (PNG, 100 ms/file) | 160,000 × 0.100 s ≈ **4.4 hours per rank** |
-| Storage write time (100 KB, 1 GB/s NFS) | 160,000 × 0.0001 s ≈ **16 s** — negligible |
+| Storage write time (100 KB, 1 GiB/s NFS) | 160,000 × 0.0001 s ≈ **16 s** — negligible |
 
 The bottleneck is not I/O bandwidth — it is pure CPU time for compression. Because each rank is serial, adding more MPI ranks scales generation linearly, but the per-rank CPU time remains unchanged. Doubling NP from 8 to 16 halves the wall-clock time, but only by adding 8 more processes. There is no intra-rank parallelism to exploit the spare CPU cores that sit idle while one thread encodes.
 
-**Contrast with `hdf5_generator.py` and `npy_generator.py`:** NumPy native binary format saves raw memory-mapped arrays at speeds limited only by storage bandwidth (often 1–5 GB/s per rank). JPEG/PNG generation is an order of magnitude slower for the same logical data volume.
+**Contrast with `hdf5_generator.py` and `npy_generator.py`:** NumPy native binary format saves raw memory-mapped arrays at speeds limited only by storage bandwidth (often 1–5 GiB/s per rank). JPEG/PNG generation is an order of magnitude slower for the same logical data volume.
 
 ### 10c. Data Reading Bottleneck
 
@@ -745,19 +745,19 @@ Each call is a separate system-level open → read → JPEG decode → numpy con
 
 **Throughput ceiling for `read_threads=1` (the default):**
 
-On NFS (RTT ~1 ms, bandwidth ~10 GB/s), each file fetch is dominated by per-request latency:
+On NFS (RTT ~1 ms, bandwidth ~10 GiB/s), each file fetch is dominated by per-request latency:
 
-- Per-file time ≈ RTT + file_size/bandwidth = 1 ms + (115 KB / 10 GB/s) ≈ 1.01 ms
+- Per-file time ≈ RTT + file_size/bandwidth = 1 ms + (115 KB / 10 GiB/s) ≈ 1.01 ms
 - Maximum IOPS ≈ 990 files/sec
-- Throughput ≈ 990 × 115 KB ≈ **114 MB/s** — with 10 GB/s of available bandwidth **98.9% idle**
+- Throughput ≈ 990 × 115 KB ≈ **114 MiB/s** — with 10 GiB/s of available bandwidth **98.9% idle**
 
 With `read_threads=8`:
 
-- 8 concurrent opens → 8 simultaneous RTTs → IOPS ≈ 7,920 → **912 MB/s** — still only 9% of NFS bandwidth
+- 8 concurrent opens → 8 simultaneous RTTs → IOPS ≈ 7,920 → **912 MiB/s** — still only 9% of NFS bandwidth
 
 With `read_threads=32`:
 
-- 32 concurrent opens → IOPS ≈ 31,680 → **3.6 GB/s** — 36% of NFS bandwidth
+- 32 concurrent opens → IOPS ≈ 31,680 → **3.6 GiB/s** — 36% of NFS bandwidth
 
 The practical takeaway: **IOPS, not bandwidth, is the binding constraint for small-file JPEG/PNG reading**. The optimal `read_threads` value is `ceil(target_throughput / (file_size / bandwidth) + RTT * target_IOPS)`, which for typical deployments means 16–64 threads per rank, not the default of 1.
 
@@ -905,15 +905,15 @@ IOPS_total = ranks_total × read_threads × (1 / per_open_latency)
 
 where `per_open_latency` includes NFS RTT, kernel VFS overhead, and JPEG decode time. This throughput grows with both axes (ranks and threads), but the per-node NFS mount bandwidth caps growth when all ranks share one mount. The benchmark currently cannot express or control which axis scales which way.
 
-**Concrete scale-up table (JPEG, 115 KB/file, NFS RTT=1ms, BW=10 GB/s/node):**
+**Concrete scale-up table (JPEG, 115 KB/file, NFS RTT=1ms, BW=10 GiB/s/node):**
 
 | NP | HOST | comm_size | read_threads | IOPS_total | Throughput |
 |---|---|---|---|---|---|
-| 1 | 1 | 1 | 1 | 990 | 114 MB/s |
-| 4 | 1 | 4 | 8 | 15,840 | 1.8 GB/s |
-| 8 | 1 | 8 | 8 | 31,680 | 3.6 GB/s → NFS BW cap (10 GB/s single mount) |
-| 4 | 8 | 32 | 8 | 126,720 | 14.6 GB/s → 8 × NFS BW cap |
-| 8 | 32 | 256 | 8 | 1,013,760 | 116 GB/s |
+| 1 | 1 | 1 | 1 | 990 | 114 MiB/s |
+| 4 | 1 | 4 | 8 | 15,840 | 1.8 GiB/s |
+| 8 | 1 | 8 | 8 | 31,680 | 3.6 GiB/s → NFS BW cap (10 GiB/s single mount) |
+| 4 | 8 | 32 | 8 | 126,720 | 14.6 GiB/s → 8 × NFS BW cap |
+| 8 | 32 | 256 | 8 | 1,013,760 | 116 GiB/s |
 
 The key insight: **scale-out across hosts is much more effective than adding ranks per node**, because each new host brings a fresh NFS connection budget and independent bandwidth. DLIO's fixed `read_threads` value in YAML does not guide the user toward this topology insight.
 
@@ -1029,7 +1029,7 @@ The same data-loader-aware branch described in Section 9g applies to generation.
 
 After rationalizing the local-FS readers, a correctly implemented benchmark should satisfy:
 
-1. **A file-backend and object-backend run of the same workload with the same dataset produce statistically equivalent samples/sec and MB/s numbers**, adjusted for storage latency and bandwidth differences between the two systems. CPU overhead should not be a confounding variable.
+1. **A file-backend and object-backend run of the same workload with the same dataset produce statistically equivalent samples/sec and MiB/s numbers**, adjusted for storage latency and bandwidth differences between the two systems. CPU overhead should not be a confounding variable.
 
 2. **The fraction of training-step time attributed to I/O wait (as reported in `dlp` traces) should be the dominant fraction (> 80%)** for both backends, for all formats, on any storage system faster than the benchmark's prefetch queue can drain.
 

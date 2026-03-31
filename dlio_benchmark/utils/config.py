@@ -99,7 +99,7 @@ class ConfigArguments:
     do_eval: bool = False
     batch_size_eval: int = 1
     num_files_eval: int = 0
-    generation_buffer_size: int = 2 * 1073741824  # 2 GB
+    generation_buffer_size: int = 2 * 1073741824  # 2 GiB
     eval_time: ClassVar[Dict[str, Any]] = {}
     eval_after_epoch: int = 1
     epochs_between_evals: int = 1
@@ -517,7 +517,7 @@ class ConfigArguments:
             else:
                 self.logger.output(f"{'='*80}")
                 self.logger.output(f"Data Generation Method: DGEN (default)")
-                self.logger.output(f"  dgen-py zero-copy BytesView — 155x faster than NumPy, 0 MB overhead")
+                self.logger.output(f"  dgen-py zero-copy BytesView — 155x faster than NumPy, 0 MiB overhead")
                 self.logger.output(f"{'='*80}")
         
         if self.checkpoint_mechanism == CheckpointMechanismType.NONE:

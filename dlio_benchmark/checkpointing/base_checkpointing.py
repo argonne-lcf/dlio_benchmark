@@ -131,7 +131,7 @@ class BaseCheckpointing(ABC):
                         self.layer_state[str(layer_index)], size = self.get_layer_state(layer_index)
                         model_checkpoint_size += size
                     if self.args.my_rank == 0:
-                        self.logger.info(f"{utcnow()} Layer states defined! {model_checkpoint_size/1024./1024./1024} GB per rank")
+                        self.logger.info(f"{utcnow()} Layer states defined! {model_checkpoint_size/1024./1024./1024} GiB per rank")
 
             # optimization state
             self.optimization_state = None
@@ -153,7 +153,7 @@ class BaseCheckpointing(ABC):
                             optimizer_checkpoint_size += state * get_datatype_size(self.args.optimizer_datatype)
                             self.optimization_state[str(index)] = self.get_tensor(state, self.args.optimizer_datatype)
             if self.args.my_rank == 0:
-                self.logger.info(f"{utcnow()} Optimizer state defined: {optimizer_checkpoint_size / 1024./1024./1024} GB per rank")
+                self.logger.info(f"{utcnow()} Optimizer state defined: {optimizer_checkpoint_size / 1024./1024./1024} GiB per rank")
             # layer state
             self.model_state = None
             if self.args.model_size > 0 and self.args.model_type != "transformer":
@@ -175,13 +175,13 @@ class BaseCheckpointing(ABC):
         if self.args.my_rank == 0:
             report_total_checkpoint_size = False
             if self.model_state is not None or self.layer_state is not None:
-                self.logger.output(f"{utcnow()} Model size: {model_checkpoint_size:.6f} GB {warning_message}")
+                self.logger.output(f"{utcnow()} Model size: {model_checkpoint_size:.6f} GiB {warning_message}")
                 report_total_checkpoint_size = True
             if self.optimization_state is not None:
-                self.logger.output(f"{utcnow()} Optimizer state size: {optimizer_checkpoint_size:.6f} GB {warning_message}")
+                self.logger.output(f"{utcnow()} Optimizer state size: {optimizer_checkpoint_size:.6f} GiB {warning_message}")
                 report_total_checkpoint_size = True
             if report_total_checkpoint_size:
-                self.logger.output(f"{utcnow()} Total checkpoint size: {self.checkpoint_size:.6f} GB {warning_message}")
+                self.logger.output(f"{utcnow()} Total checkpoint size: {self.checkpoint_size:.6f} GiB {warning_message}")
 
     @abstractmethod
     def set_madvise_mergeable(self, tensor):

@@ -195,7 +195,7 @@ class DLIOPostProcessor:
         # Save the overall stats
         self.overall_stats['samples/s'] = self.get_stats(self.summary['metric']['train_throughput_samples_per_second'])
         io = np.array(self.summary['metric']['train_throughput_samples_per_second'])*self.record_size/1024/1024.
-        self.overall_stats['MB/s'] = self.get_stats(io)
+        self.overall_stats['MiB/s'] = self.get_stats(io)
         # The average process loading time is the sum of all the time spent 
         # loading across different processes divided by the number of processes
         self.overall_stats['avg_process_loading_time'] = '{:.2f}'.format(sum(all_loading_times) / self.comm_size)
@@ -222,7 +222,7 @@ class DLIOPostProcessor:
                 self.per_epoch_stats[epoch][phase]['avg_process_loading_time'] = '{:.2f}'.format(sum(phase_loading_times) / self.comm_size)
                 self.per_epoch_stats[epoch][phase]['avg_process_processing_time'] = '{:.2f}'.format(sum(phase_processing_times) / self.comm_size)
                 self.per_epoch_stats[epoch][phase]['samples/s'] = self.get_stats(phase_sample_latencies, num_procs=self.comm_size)
-                self.per_epoch_stats[epoch][phase]['MB/s'] = self.get_stats(phase_sample_bandwidth, num_procs=self.comm_size)
+                self.per_epoch_stats[epoch][phase]['MiB/s'] = self.get_stats(phase_sample_bandwidth, num_procs=self.comm_size)
 
 
     def get_stats(self, series, num_procs=1):
@@ -272,8 +272,8 @@ class DLIOPostProcessor:
         # Pandas can read the format, then we can convert to numpy datetime64
         cpu_stats = pd.DataFrame(columns=['timestamp', 'user', 'system', 'iowait', 'steal', 'idle'])
         # The following columns are available:
-        # ['timestamp', 'disk', 'r/s', 'w/s', 'rMB/s', 'wMB/s', 'r_await', 'w_await', 'rareq-sz', 'wareq-sz', 'aqu-sz'])
-        disk_stats = pd.DataFrame(columns=['timestamp', 'disk', 'r/s', 'w/s', 'rMB/s', 'wMB/s', 'r_await', 'w_await', 'aqu-sz'])
+        # ['timestamp', 'disk', 'r/s', 'w/s', 'rMiB/s', 'wMiB/s', 'r_await', 'w_await', 'rareq-sz', 'wareq-sz', 'aqu-sz'])
+        disk_stats = pd.DataFrame(columns=['timestamp', 'disk', 'r/s', 'w/s', 'rMiB/s', 'wMiB/s', 'r_await', 'w_await', 'aqu-sz'])
 
         cpu_i = disk_i = 0
         for i, item in enumerate(iotrace):
@@ -289,7 +289,7 @@ class DLIOPostProcessor:
             cpu_i += 1
             # Add one row per disk
             for disk in item['disk']:
-                row = [ts, disk['disk_device'], disk['r/s'], disk['w/s'], disk['rMB/s'], disk['wMB/s'], disk['r_await'], disk['w_await'], disk['aqu-sz']]
+                row = [ts, disk['disk_device'], disk['r/s'], disk['w/s'], disk['rMiB/s'], disk['wMiB/s'], disk['r_await'], disk['w_await'], disk['aqu-sz']]
                 disk_stats.loc[disk_i] = row
                 disk_i += 1
 
@@ -331,7 +331,7 @@ class DLIOPostProcessor:
         cpu_overall_steal = []
         cpu_overall_idle = []
 
-        disk_stats_to_extract = ['rMB/s', 'wMB/s', 'r/s', 'w/s', 'r_await', 'w_await', 'aqu-sz']
+        disk_stats_to_extract = ['rMiB/s', 'wMiB/s', 'r/s', 'w/s', 'r_await', 'w_await', 'aqu-sz']
         disk_accumulators = [r_overall_bandwidth, w_overall_bandwidth, r_overall_iops, w_overall_iops, r_overall_wait, w_overall_wait, overall_aqu_sz]
         cpu_stats_to_extract = ['user', 'system', 'iowait', 'steal', 'idle']
         cpu_accumulators = [cpu_overall_user, cpu_overall_sys, cpu_overall_iowait, cpu_overall_steal, cpu_overall_idle]
@@ -380,8 +380,8 @@ class DLIOPostProcessor:
         self.overall_stats['disk'] = {}
         for disk in self.disks:
             self.overall_stats['disk'][disk] = {}
-            self.overall_stats['disk'][disk]['rMB/s'] = self.get_stats(r_overall_bandwidth[disk])
-            self.overall_stats['disk'][disk]['wMB/s'] = self.get_stats(w_overall_bandwidth[disk])
+            self.overall_stats['disk'][disk]['rMiB/s'] = self.get_stats(r_overall_bandwidth[disk])
+            self.overall_stats['disk'][disk]['wMiB/s'] = self.get_stats(w_overall_bandwidth[disk])
             self.overall_stats['disk'][disk]['r/s'] = self.get_stats(r_overall_iops[disk])
             self.overall_stats['disk'][disk]['w/s'] = self.get_stats(w_overall_iops[disk])
             self.overall_stats['disk'][disk]['r_await'] = self.get_stats(r_overall_wait[disk])
@@ -435,7 +435,7 @@ class DLIOPostProcessor:
             indent = TAB * indent
 
             # This value should be large enough to hold the largest field name + all inner tab-ing + a margin
-            left_align_space = len("W Bandwidth (MB/s):") + len(TAB) + len(HALF_TAB) + 10
+            left_align_space = len("W Bandwidth (MiB/s):") + len(TAB) + len(HALF_TAB) + 10
             fmt = "{:<" + f'{left_align_space}' + "}"
 
             outfile.write(f"{indent}{fmt.format('')}{format_list(TABLE_HEADER)}\n")
@@ -445,19 +445,19 @@ class DLIOPostProcessor:
                 if overall:
                     outfile.write(f"{indent}{fmt.format('Throughput Stats (over all epochs)')}\n")
                     outfile.write(f"{indent}{fmt.format('  Samples/s:')}{format_stats(stats_dict['samples/s'])}\n")
-                    outfile.write(f"{indent}{fmt.format('  MB/s (derived from Samples/s):')}{format_stats(stats_dict['MB/s'])}\n")
+                    outfile.write(f"{indent}{fmt.format('  MiB/s (derived from Samples/s):')}{format_stats(stats_dict['MiB/s'])}\n")
                 else:
                     outfile.write(f"{indent}{fmt.format('Throughput Stats (over all steps)')}\n")
                     outfile.write(f"{indent}{fmt.format('  Samples/s:')}{format_stats(stats_dict['samples/s'])}\n")
-                    outfile.write(f"{indent}{fmt.format('  MB/s (derived from Samples/s):')}{format_stats(stats_dict['MB/s'])}\n")
+                    outfile.write(f"{indent}{fmt.format('  MiB/s (derived from Samples/s):')}{format_stats(stats_dict['MiB/s'])}\n")
 
             outfile.write("\n")
             outfile.write(f"{indent}{fmt.format('I/O Stats (over all time segments)')}\n")
 
             for disk in self.disks:
                 outfile.write(f"{indent}{fmt.format(f'{HALF_TAB}Device: {disk}')}\n")
-                outfile.write(f"{indent}{fmt.format(f'{TAB}R Bandwidth (MB/s):')}{format_stats(stats_dict['disk'][disk]['rMB/s'])}\n")
-                outfile.write(f"{indent}{fmt.format(f'{TAB}W Bandwidth (MB/s):')}{format_stats(stats_dict['disk'][disk]['wMB/s'])}\n")
+                outfile.write(f"{indent}{fmt.format(f'{TAB}R Bandwidth (MiB/s):')}{format_stats(stats_dict['disk'][disk]['rMiB/s'])}\n")
+                outfile.write(f"{indent}{fmt.format(f'{TAB}W Bandwidth (MiB/s):')}{format_stats(stats_dict['disk'][disk]['wMiB/s'])}\n")
                 outfile.write(f"{indent}{fmt.format(f'{TAB}R IOPS:')}{format_stats(stats_dict['disk'][disk]['r/s'])}\n")
                 outfile.write(f"{indent}{fmt.format(f'{TAB}W IOPS:')}{format_stats(stats_dict['disk'][disk]['w/s'])}\n")
                 outfile.write(f"{indent}{fmt.format(f'{TAB}Avg R Time (ms):')}{format_stats(stats_dict['disk'][disk]['r_await'])}\n")

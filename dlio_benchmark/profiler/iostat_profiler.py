@@ -53,7 +53,7 @@ class IostatProfiler(IOProfiler):
             self.logfile = open(self.logfile, 'w')
             
             # The following parameters are needed for the post-processing to parse correctly:
-            #   -m: Display stats in MB
+            #   -m: Display stats in MiB
             #   -d: Display device utilisation report
             #   -x: Display extended statistics
             #   -t: Print the time for each report displayed

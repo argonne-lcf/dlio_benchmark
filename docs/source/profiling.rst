@@ -187,15 +187,15 @@ The output is
     2023-06-27 21:38:00 Extracting stats for epoch 5 start
     2023-06-27 21:38:00 Extracting stats for epoch 5 block1
     2023-06-27 21:38:00 Extracting stats for epoch 5 ckpt1
-    2023-06-27 21:38:00 Less than 2 data points for rMB/s
-    2023-06-27 21:38:00 Less than 2 data points for wMB/s
+    2023-06-27 21:38:00 Less than 2 data points for rMiB/s
+    2023-06-27 21:38:00 Less than 2 data points for wMiB/s
     2023-06-27 21:38:00 Less than 2 data points for r/s
     2023-06-27 21:38:00 Less than 2 data points for w/s
     2023-06-27 21:38:00 Less than 2 data points for r_await
     2023-06-27 21:38:00 Less than 2 data points for w_await
     2023-06-27 21:38:00 Less than 2 data points for aqu-sz
-    2023-06-27 21:38:00 Less than 2 data points for rMB/s
-    2023-06-27 21:38:00 Less than 2 data points for wMB/s
+    2023-06-27 21:38:00 Less than 2 data points for rMiB/s
+    2023-06-27 21:38:00 Less than 2 data points for wMiB/s
     2023-06-27 21:38:00 Less than 2 data points for r/s
     2023-06-27 21:38:00 Less than 2 data points for w/s
     2023-06-27 21:38:00 Less than 2 data points for r_await
@@ -232,12 +232,12 @@ The output is
                                         ------------------------------------------------------------------------------------------
         Throughput Stats (over all epochs) 
         Samples/s:                               5.01         0.37         4.50         5.14         5.34         5.35         5.35 
-        MB/s (derived from Samples/s):         701.09        51.93       628.76       718.08       746.48       747.83       747.98 
+        MiB/s (derived from Samples/s):        701.09        51.93       628.76       718.08       746.48       747.83       747.98 
 
         I/O Stats (over all time segments) 
         Device: loop0                    
-            R Bandwidth (MB/s):                    1.03         4.76         0.00         0.00         1.24        30.77        35.27 
-            W Bandwidth (MB/s):                    0.00         0.00         0.00         0.00         0.00         0.00         0.00 
+            R Bandwidth (MiB/s):                   1.03         4.76         0.00         0.00         1.24        30.77        35.27 
+            W Bandwidth (MiB/s):                   0.00         0.00         0.00         0.00         0.00         0.00         0.00 
             R IOPS:                               29.34       123.80         0.00         0.00        49.00       777.20       941.00 
             W IOPS:                                0.00         0.00         0.00         0.00         0.00         0.00         0.00 
             Avg R Time (ms):                       0.90         5.21         0.00         0.00         1.75         4.24        64.47 
@@ -245,8 +245,8 @@ The output is
             Avg Queue Length:                      0.06         0.28         0.00         0.00         0.06         1.88         2.12 
 
         Device: vda                      
-            R Bandwidth (MB/s):                 1237.58       242.75         5.50      1263.32      1474.27      1634.80      1642.81 
-            W Bandwidth (MB/s):                   20.06        67.84         0.00         0.30        56.33       194.48       765.05 
+            R Bandwidth (MiB/s):                1237.58       242.75         5.50      1263.32      1474.27      1634.80      1642.81 
+            W Bandwidth (MiB/s):                  20.06        67.84         0.00         0.30        56.33       194.48       765.05 
             R IOPS:                            13906.51      3052.21       162.00     14116.50     17285.00     19339.22     22073.00 
             W IOPS:                              240.30       448.71         0.00        27.00       931.00      1811.15      1926.00 
             Avg R Time (ms):                       0.96         1.53         0.45         0.76         1.21         2.50        19.45 

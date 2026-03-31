@@ -586,7 +586,7 @@ checkpoint
 
 **Example KSM System Configuration (Linux)**
 
-The following bash script provides an example of configuring the Linux Kernel Samepage Merging (KSM) feature for potentially faster background merging (e.g., aiming for ~4GB/s). These settings adjust the KSM advisor and scanning parameters. Note that optimal settings can vary significantly depending on the system, workload, and kernel version. Use with caution and test thoroughly. Requires root privileges.
+The following bash script provides an example of configuring the Linux Kernel Samepage Merging (KSM) feature for potentially faster background merging (e.g., aiming for ~4GiB/s). These settings adjust the KSM advisor and scanning parameters. Note that optimal settings can vary significantly depending on the system, workload, and kernel version. Use with caution and test thoroughly. Requires root privileges.
 
 .. code-block:: bash
 

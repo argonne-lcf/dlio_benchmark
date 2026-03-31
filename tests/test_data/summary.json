@@ -18,8 +18,8 @@
         ],
         "train_throughput_mean_samples_per_second": 5.095023867138283,
         "train_throughput_stdev_samples_per_second": 0.05328548421561324,
-        "train_io_mean_MB_per_second": 1139.7296277439752,
-        "train_io_stdev_MB_per_second": 11.919678233681973
+        "train_io_mean_MiB_per_second": 1139.7296277439752,
+        "train_io_stdev_MiB_per_second": 11.919678233681973
     },
     "start": "2023-04-04T16:33:42.959919",
     "end": "2023-04-04T16:35:55.155745",
