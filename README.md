@@ -1,12 +1,11 @@
 # Deep Learning I/O (DLIO) Benchmark
-![test status](https://github.com/russfellows/dlio_benchmark/actions/workflows/fast-ci.yml/badge.svg)
+![test status](https://github.com/mlcommons/DLIO_local_changes/actions/workflows/fast-ci.yml/badge.svg)
 ![version](https://img.shields.io/badge/version-3.0.1-blue)
 ![python](https://img.shields.io/badge/python-3.12-blue)
 ![tests](https://img.shields.io/badge/tests-112%20passed-brightgreen)
 
-> **This is the [russfellows](https://github.com/russfellows/dlio_benchmark) enhanced fork of the
-> [MLCommons DLIO benchmark](https://github.com/mlcommons/DLIO_local_changes), which is itself
-> derived from the original [Argonne DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark).**
+> **This is the [MLCommons DLIO benchmark](https://github.com/mlcommons/DLIO_local_changes),
+> which is a temporary fork of the original [Argonne DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark).**
 >
 > This fork is **substantially ahead** of the original Argonne upstream.  It includes all
 > MLCommons enhancements plus significant additional work described below.  The architecture,
@@ -59,7 +58,7 @@ Object storage backends are configured through the `storage:` block in the workl
 ### Bare metal installation 
 
 ```bash
-git clone https://github.com/russfellows/dlio_benchmark
+git clone https://github.com/mlcommons/DLIO_local_changes
 cd dlio_benchmark/
 pip install .
 dlio_benchmark ++workload.workflow.generate_data=True
@@ -68,7 +67,7 @@ dlio_benchmark ++workload.workflow.generate_data=True
 ### Bare metal installation with AIStore support
 
 ```bash
-git clone https://github.com/russfellows/dlio_benchmark
+git clone https://github.com/mlcommons/DLIO_local_changes
 cd dlio_benchmark/
 pip install .[aistore]
 ```
@@ -78,7 +77,7 @@ pip install .[aistore]
 For S3-compatible object storage (AWS S3, MinIO, Vast Data, etc.) install one or more of the supported storage libraries alongside DLIO:
 
 ```bash
-git clone https://github.com/russfellows/dlio_benchmark
+git clone https://github.com/mlcommons/DLIO_local_changes
 cd dlio_benchmark/
 pip install .
 
@@ -93,14 +92,14 @@ The storage library to use is selected per-workload via `storage.storage_options
 ### Bare metal installation with profiler
 
 ```bash
-git clone https://github.com/russfellows/dlio_benchmark
+git clone https://github.com/mlcommons/DLIO_local_changes
 cd dlio_benchmark/
 pip install .[pydftracer]
 ```
 
 ## Container
 ```bash
-git clone https://github.com/russfellows/dlio_benchmark
+git clone https://github.com/mlcommons/DLIO_local_changes
 cd dlio_benchmark/
 docker build -t dlio .
 docker run -t dlio dlio_benchmark ++workload.workflow.generate_data=True
@@ -385,7 +384,7 @@ The YAML file is loaded through hydra (https://hydra.cc/). The default setting a
 
 ## How to contribute
 
-This repository is the [russfellows](https://github.com/russfellows/dlio_benchmark) enhanced fork.
+This repository is the [MLCommons DLIO_local_changes](https://github.com/mlcommons/DLIO_local_changes) enhanced fork.
 Contributions and issues should be filed against this fork rather than the original Argonne upstream.
 
 We welcome contributions in the following areas:
