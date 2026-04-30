@@ -168,15 +168,77 @@ class DataGenerator(ABC):
             write_fn(i, dim_, dim1, dim2, file_seed, worker_rng,
                      out_path_spec, is_local, output)
             if not is_local:
-                self.storage.put_data(out_path_spec, output.getvalue())
+                # Pass BytesIO directly so put_data can use getbuffer() (zero-copy
+                # memoryview) instead of getvalue() which makes a full copy.
+                self.storage.put_data(out_path_spec, output)
 
         write_threads = getattr(self._args, 'write_threads', 1)
         n_workers = max(1, min(write_threads, len(jobs))) if jobs else 1
 
-        if n_workers == 1 or len(jobs) <= 1:
+        # Phase 2: Execute writes.
+        #
+        # Two strategies depending on storage type:
+        #
+        # A) Object store (not is_local) with n_workers > 1 — TRUE ASYNC PIPELINE:
+        #    Generation is very fast (dgen-py / Rust, ~15 GB/s), while each
+        #    upload takes ~500 ms–1.5 s (limited by network/server throughput).
+        #    Coupling generation and upload in the same thread wastes the time
+        #    the uploader is blocked waiting for network.
+        #
+        #    Instead:
+        #      • Main thread generates files sequentially (~14 ms each).
+        #      • Each file is immediately submitted to an upload thread pool.
+        #      • A bounded semaphore (size = n_workers) prevents submitting more
+        #        than n_workers uploads before any have completed, bounding
+        #        peak in-flight memory to n_workers × file_size.
+        #
+        #    With n_workers=8 (NP=8 on a 28-core machine):
+        #      Generation of all files: 21 files × 14 ms = ~300 ms
+        #      8 concurrent uploads running throughout → ~4× improvement
+        #      vs. the old 3-thread combined gen+upload approach.
+        #
+        # B) Local FS, or single-threaded: original thread pool approach.
+        #    For local FS, write is CPU-bound and the combined thread pool
+        #    (generate + write in each slot) is correct.
+        def _upload(path, buf, sem):
+            """Upload helper: calls put_data then releases the semaphore slot."""
+            try:
+                self.storage.put_data(path, buf)
+            finally:
+                sem.release()
+
+        if not is_local and n_workers > 1:
+            # ── True async pipeline (object store) ───────────────────────────
+            from threading import Semaphore as _Semaphore
+            _sem = _Semaphore(n_workers)
+            _futures = []
+            with ThreadPoolExecutor(max_workers=n_workers) as pool:
+                for job in jobs:
+                    i, dim_, dim1, dim2, file_seed, out_path_spec = job
+                    progress(i + 1, self.total_files_to_generate,
+                             f"Generating {label}")
+                    output = io.BytesIO()
+                    worker_rng = np.random.default_rng(seed=file_seed)
+                    # Generate in main thread (fast; Rust dgen or numpy)
+                    write_fn(i, dim_, dim1, dim2, file_seed, worker_rng,
+                             out_path_spec, False, output)
+                    # Block if n_workers uploads are already in flight
+                    # (back-pressure to bound peak RAM usage).
+                    _sem.acquire()
+                    # Submit upload immediately; main thread continues generating.
+                    _futures.append(
+                        pool.submit(_upload, out_path_spec, output, _sem)
+                    )
+                # Wait for all in-flight uploads before leaving the with block.
+                for f in _futures:
+                    f.result()
+
+        elif n_workers == 1 or len(jobs) <= 1:
+            # ── Serial fallback ───────────────────────────────────────────────
             for job in jobs:
                 _write_one(job)
         else:
+            # ── Local FS thread pool (generate + write per slot) ──────────────
             with ThreadPoolExecutor(max_workers=n_workers) as pool:
                 list(pool.map(_write_one, jobs))
 

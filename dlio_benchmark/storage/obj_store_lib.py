@@ -199,6 +199,37 @@ class ObjStoreLibStorage(S3Storage):
         self.endpoint = storage_options.get("endpoint_url") or os.environ.get("AWS_ENDPOINT_URL")
         self.region = storage_options.get("region") or os.environ.get("AWS_REGION") or getattr(self._args, "s3_region", "us-east-1")
 
+        # Multi-endpoint: if S3_ENDPOINT_URIS is set, select an endpoint based on MPI rank.
+        # Each MPI rank uses a different endpoint (round-robin assignment), distributing
+        # write load across all servers. Works for s3dlio, s3torchconnector, and minio.
+        # Example: S3_ENDPOINT_URIS='http://10.0.0.1:9000,http://10.0.0.2:9000'
+        _ep_uris_str = os.environ.get("S3_ENDPOINT_URIS", "").strip()
+        if _ep_uris_str:
+            _ep_list = [u.strip() for u in _ep_uris_str.split(",") if u.strip()]
+            if len(_ep_list) >= 2:
+                # Detect MPI rank from the launcher environment (OpenMPI, MPICH, Slurm, MV2).
+                _rank_str = (
+                    os.environ.get("OMPI_COMM_WORLD_RANK")
+                    or os.environ.get("PMI_RANK")
+                    or os.environ.get("MV2_COMM_WORLD_RANK")
+                    or os.environ.get("SLURM_PROCID")
+                )
+                if _rank_str is not None:
+                    _rank = int(_rank_str)
+                    _selected = _ep_list[_rank % len(_ep_list)]
+                    logging.info(
+                        f"Multi-endpoint: rank {_rank} → {_selected} "
+                        f"(endpoint {(_rank % len(_ep_list)) + 1} of {len(_ep_list)})"
+                    )
+                    self.endpoint = _selected
+                else:
+                    logging.warning(
+                        "S3_ENDPOINT_URIS is set but no MPI rank env var found "
+                        "(OMPI_COMM_WORLD_RANK / PMI_RANK / MV2_COMM_WORLD_RANK / SLURM_PROCID). "
+                        "Using first endpoint for all ranks."
+                    )
+                    self.endpoint = _ep_list[0]
+
         _log = logging.getLogger(__name__)
         if _log.isEnabledFor(logging.DEBUG):
             src_key = "storage_options" if storage_options.get("access_key_id") else "AWS_ACCESS_KEY_ID env"
@@ -244,6 +275,52 @@ class ObjStoreLibStorage(S3Storage):
                 if self.endpoint:
                     os.environ["AWS_ENDPOINT_URL"] = self.endpoint
                     logging.debug(f"s3dlio: set AWS_ENDPOINT_URL={self.endpoint}")
+
+                # Auto-tune the Tokio async runtime thread count (S3DLIO_RT_THREADS).
+                #
+                # By default s3dlio sets RT threads = max(4, num_cpus), which on a
+                # 128-core machine with NP=8 gives 128 RT threads/rank × 8 = 1,024
+                # total Tokio threads — all competing for 128 physical cores.  The
+                # runtime is saturated but the excess threads add scheduler overhead
+                # without increasing throughput.
+                #
+                # The actual in-flight concurrency is bounded by write_threads (the
+                # number of Python threads issuing concurrent PUT/GET calls).  The
+                # Tokio RT only needs enough threads to service those callers plus a
+                # small multiplier for async task fanout within each operation.
+                #
+                # Formula:  2 × write_threads, capped at 128.
+                #   - "× 2": each write thread may have one in-progress async task
+                #     plus one queued, so 2× prevents starvation.
+                #   - Cap 128: prevents runaway thread counts on very large machines
+                #     when write_threads is set unusually high.
+                #
+                # The sentinel _S3DLIO_RT_AUTO lets us distinguish:
+                #   - "user set this before launching" → respect it (no sentinel)
+                #   - "we auto-set it in an ancestor process (e.g. parent mlpstorage
+                #     before spawning mpirun)" → re-compute with the now-finalized
+                #     write_threads value, which may be higher than what the parent
+                #     computed (parent had write_threads=1 before auto-sizing ran).
+                _user_set = (
+                    "S3DLIO_RT_THREADS" in os.environ
+                    and "_S3DLIO_RT_AUTO" not in os.environ
+                )
+                if _user_set:
+                    logging.debug(
+                        f"s3dlio: S3DLIO_RT_THREADS={os.environ['S3DLIO_RT_THREADS']} "
+                        "(user-provided before launch, not overriding)"
+                    )
+                else:
+                    _write_threads = getattr(self._args, "write_threads", 8)
+                    _rt_threads = min(_write_threads * 3 // 2, 128)
+                    os.environ["S3DLIO_RT_THREADS"] = str(_rt_threads)
+                    os.environ["_S3DLIO_RT_AUTO"] = "1"   # sentinel: auto-set, may be re-computed
+                    logging.info(
+                        f"s3dlio: auto-set S3DLIO_RT_THREADS={_rt_threads} "
+                        f"(1.5 × write_threads={_write_threads}, cap=128). "
+                        "Set S3DLIO_RT_THREADS explicitly to override."
+                    )
+
                 self.s3_client = None  # Not used for s3dlio
                 self._s3dlio = s3dlio
 
@@ -465,9 +542,17 @@ class ObjStoreLibStorage(S3Storage):
                 # Strip the full listing URI so returned paths are RELATIVE to the
                 # listed prefix — callers expect bare filenames like "file.npz",
                 # not bucket-rooted paths like "dlio-train/train/file.npz".
+                # NOTE: s3dlio may normalize the URI scheme (e.g. direct:// → file://).
+                # Detect the actual returned scheme from the first result so the
+                # startswith() prefix strip works regardless of normalization.
+                if full_uris and not full_uris[0].startswith(list_uri):
+                    actual_scheme = full_uris[0].split('://')[0]
+                    strip_prefix = f"{actual_scheme}://{container_name}/{key_prefix}".rstrip('/') + '/'
+                else:
+                    strip_prefix = list_uri
                 for full_uri in full_uris:
-                    if full_uri.startswith(list_uri):
-                        relative = full_uri[len(list_uri):]
+                    if full_uri.startswith(strip_prefix):
+                        relative = full_uri[len(strip_prefix):]
                         if relative:
                             paths.append(relative)
             else:

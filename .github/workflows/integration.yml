@@ -164,6 +164,11 @@ jobs:
           mpirun -np 2 pytest -k test_gen_data[indexed_binary-tensorflow] -v
           mpirun -np 2 pytest -k test_gen_data[mmap_indexed_binary-tensorflow] -v
           rm -rf data
+      - name: test_parquet_generators
+        run: |
+          source ${VENV_PATH}/bin/activate
+          pytest tests/test_fast_ci.py::TestParquetGenerator -v
+          rm -rf data
       - name: test_custom_storage_root_gen_data
         run: |
           source ${VENV_PATH}/bin/activate

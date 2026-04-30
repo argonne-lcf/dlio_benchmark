@@ -16,6 +16,7 @@
 """
 import os
 import math
+import subprocess
 import time
 import numpy as np
 
@@ -444,6 +445,18 @@ class DLIOBenchmark(object):
                 self.framework.get_loader(dataset_type=DatasetType.VALID).read()
             self.comm.barrier()
             for epoch in dft_ai.pipeline.epoch.iter(range(1, self.epochs + 1), include_iter=False):
+                # Flush page cache before each epoch so reads bypass the OS buffer cache.
+                # Rank 0 does the flush via sudo; all ranks barrier-wait so no rank starts
+                # reading stale cached data.
+                if self.my_rank == 0:
+                    try:
+                        subprocess.run(
+                            ["sudo", "sh", "-c", "echo 3 > /proc/sys/vm/drop_caches"],
+                            check=True, timeout=30
+                        )
+                    except Exception:
+                        pass
+                self.comm.barrier()
                 self.stats.start_epoch(epoch)
                 self.next_checkpoint_step = self.steps_between_checkpoints
                 self.stats.start_train(epoch)

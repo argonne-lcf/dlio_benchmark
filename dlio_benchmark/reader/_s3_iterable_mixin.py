@@ -146,11 +146,12 @@ class _S3IterableMixin:
     # ── URI helper ────────────────────────────────────────────────────────────
 
     def _uri_for_obj_key(self, obj_key: str) -> str:
-        """Return a full ``s3://`` URI for a DLIO object key (relative or absolute)."""
+        """Return a full URI for a DLIO object key, using the configured uri_scheme."""
         if "://" in obj_key:
             return obj_key
+        scheme = self._opts.get("uri_scheme", "s3")
         root = self._args.storage_root.rstrip("/")
-        return f"s3://{root}/{obj_key.lstrip('/')}"
+        return f"{scheme}://{root}/{obj_key.lstrip('/')}"
 
     # ── Minio client (cached for TCP keep-alive across epochs) ───────────────
 

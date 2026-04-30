@@ -30,11 +30,18 @@ Supported storage libraries
                      No s3dlio dependency. Requires s3torchconnector >= 1.3.0.
   minio            — uses minio.Minio.get_object(bucket, key, offset=, length=)
 
+Memory design
+  This reader is a STORAGE BENCHMARK, not a training framework. Row groups are
+  fetched to measure I/O throughput, then discarded immediately. Only the
+  compressed byte count (an int) is retained per row group so that DLIO's
+  telemetry can report image_size. No pyarrow Tables are held in memory between
+  calls. Memory per worker process is dominated by framework import overhead
+  (~500 MB), not data buffers.
+
 Configuration (under storage_options in the DLIO YAML):
   storage_library:      s3dlio      # or s3torchconnector / minio
   endpoint_url:         http://...  # S3 endpoint; also settable via AWS_ENDPOINT_URL_S3
   columns:              null        # list of column names to read (null = all)
-  row_group_cache_size: 4           # max row groups to hold in memory per reader
 
 Example YAML snippet:
   dataset:
@@ -46,7 +53,6 @@ Example YAML snippet:
       storage_library: s3dlio
       endpoint_url: http://127.0.0.1:9000
       columns: ["feature1", "label"]
-      row_group_cache_size: 8
 """
 import bisect
 import os
@@ -208,16 +214,20 @@ class ParquetReaderS3Iterable(FormatReader):
 
     Opens parquet objects by reading only the footer (column / row-group metadata)
     via a small range request, then fetches individual row groups on demand as
-    DLIO requests specific sample indices.  Row groups are cached (LRU-bounded)
-    so that consecutive samples from the same row group incur only one network
-    round-trip.
+    DLIO requests specific sample indices.
+
+    Memory policy: this is a STORAGE BENCHMARK. After a row group is fetched
+    the pyarrow Table is discarded immediately (``del table``). Only the
+    compressed byte count (an int) is kept so that ``dlp.update(image_size=N)``
+    can report throughput. No Tables are held between calls; per-worker RAM
+    overhead is dominated by framework imports (~500 MB), not data.
 
     DLIO's FormatReader protocol:
       open(filename)               → returns (ParquetFile, cumulative_offsets)
                                      stored in self.open_file_map[filename]
       get_sample(filename, idx)    → looks up the right row group, fetches if
-                                     not cached, updates dlp metrics
-      close(filename)              → evicts row-group cache entries for that file
+                                     not yet seen, discards Table, updates dlp
+      close(filename)              → removes byte-count cache entries for file
       next() / read_index()        → delegate to FormatReader base class
 
     The cumulative_offsets list has len(num_row_groups + 1) entries; entry i
@@ -246,10 +256,20 @@ class ParquetReaderS3Iterable(FormatReader):
         # Optional column selection (list[str] or None = all columns)
         self._columns = opts.get("columns") or None
 
-        # Row-group cache: (obj_key, rg_idx) → (pyarrow.Table, nbytes)
-        self._rg_cache_size = int(opts.get("row_group_cache_size", 4))
+        # Footer cache: filename → (ParquetFile, cumulative_offsets).
+        # Holds ONLY the Parquet footer metadata (schema + row-group offsets),
+        # a few KB per file. Keyed by filename so open() never re-reads the
+        # footer from S3. Flushed at finalize() (epoch boundary).
+        # In ON_DEMAND mode the base class calls open()/close() around every
+        # single sample — without this cache that means one footer S3 GET per
+        # sample, i.e. 33,000+ wasted GETs per epoch.
+        self._pf_cache: dict = {}
+
+        # Row-group byte-count cache: (filename, rg_idx) → int (compressed bytes).
+        # Tables are read for I/O measurement then discarded; only the byte count
+        # is kept for dlp telemetry. Memory per entry is negligible (~100 bytes).
+        # Flushed at finalize() (epoch boundary).
         self._rg_cache: dict = {}
-        self._rg_lru: list = []  # insertion-order LRU key list
 
         # s3dlio reads AWS_ENDPOINT_URL_S3 at runtime; set it early if needed.
         if self._storage_library == "s3dlio":
@@ -299,17 +319,18 @@ class ParquetReaderS3Iterable(FormatReader):
         self.logger.info(
             f"{utcnow()} ParquetReaderS3Iterable [{self._storage_library}] "
             f"thread={thread_index} epoch={epoch} "
-            f"columns={self._columns} rg_cache_size={self._rg_cache_size}"
+            f"columns={self._columns}"
         )
 
     # ── Helpers ──────────────────────────────────────────────────────────────
 
     def _uri_for_obj_key(self, obj_key: str) -> str:
-        """Return a full s3:// URI for a DLIO object key (relative or absolute)."""
+        """Return a full URI for a DLIO object key, using the configured uri_scheme."""
         if "://" in obj_key:
             return obj_key
+        scheme = self._opts.get("uri_scheme", "s3")
         root = self._args.storage_root.rstrip("/")
-        return f"s3://{root}/{obj_key.lstrip('/')}"
+        return f"{scheme}://{root}/{obj_key.lstrip('/')}"
 
     def _uri_for_filename(self, filename: str) -> str:
         """Alias for _uri_for_obj_key for backward compatibility."""
@@ -366,23 +387,21 @@ class ParquetReaderS3Iterable(FormatReader):
                 "supported: s3dlio, s3torchconnector, minio"
             )
 
-    def _evict_lru(self):
-        """Evict the least-recently-used row group from the cache."""
-        if self._rg_lru:
-            oldest = self._rg_lru.pop(0)
-            self._rg_cache.pop(oldest, None)
-
     # ── FormatReader interface ────────────────────────────────────────────────
 
     @dlp.log
     def open(self, filename):
         """
-        Open a parquet file by reading its footer via a small range request.
+        Return the (ParquetFile, cumulative_offsets) for this object, reading the
+        footer from S3 at most ONCE per epoch.
 
-        Returns a tuple (ParquetFile, cumulative_offsets) stored in
-        open_file_map[filename].  cumulative_offsets[i] is the first row index
-        of row group i; cumulative_offsets[-1] is the total row count.
+        The footer is cached in _pf_cache for the lifetime of the epoch. In
+        ON_DEMAND mode the base class calls open() before every single sample;
+        without this cache that would mean one S3 footer GET per sample.
         """
+        if filename in self._pf_cache:
+            return self._pf_cache[filename]
+
         import pyarrow.parquet as pq
 
         rf = self._make_range_file(filename)
@@ -398,28 +417,30 @@ class ParquetReaderS3Iterable(FormatReader):
             f"{utcnow()} ParquetReaderS3Iterable.open {filename} "
             f"row_groups={meta.num_row_groups} total_rows={offsets[-1]}"
         )
-        return (pf, offsets)
+        self._pf_cache[filename] = (pf, offsets)
+        return self._pf_cache[filename]
 
     @dlp.log
     def close(self, filename):
-        """Evict cached row groups for this object to free memory."""
-        keys_to_remove = [k for k in self._rg_cache if k[0] == filename]
-        for k in keys_to_remove:
-            self._rg_cache.pop(k, None)
-            if k in self._rg_lru:
-                self._rg_lru.remove(k)
+        """No-op: footer and byte-count caches are kept for the full epoch.
+
+        In ON_DEMAND mode the base class calls close() after every single sample.
+        We must NOT evict either _pf_cache (footer) or _rg_cache (byte counts)
+        here — doing so forces a full S3 footer re-read and row-group re-fetch
+        for every subsequent sample on the same file.
+        Both caches are flushed at epoch boundary in finalize().
+        """
         super().close(filename)
 
     @dlp.log
     def get_sample(self, filename, sample_index):
         """
-        Read the row group containing sample_index and update I/O metrics.
+        Fetch the row group containing sample_index, record byte count, discard data.
 
-        Uses bisect to locate the row group in O(log N), then fetches the row
-        group from object storage if not already in the row-group cache.
-        Actual row data is read but the DLIO pipeline uses a pre-allocated
-        random tensor (self._args.resized_image) for the training simulation;
-        we report the compressed row-group bytes to the profiler.
+        This is a STORAGE BENCHMARK. The pyarrow Table returned by read_row_group()
+        is the I/O we are measuring. It is deleted immediately after the byte count
+        is extracted. No row data is held between calls. The DLIO pipeline consumes
+        self._args.resized_image (a pre-allocated random tensor) not actual file data.
         """
         pf, offsets = self.open_file_map[filename]
 
@@ -431,32 +452,17 @@ class ParquetReaderS3Iterable(FormatReader):
 
         cache_key = (filename, rg_idx)
         if cache_key not in self._rg_cache:
-            # Fetch this row group — triggers range GETs for column chunks
+            # Fetch this row group — triggers the range GETs we are benchmarking.
             table = pf.read_row_group(rg_idx, columns=self._columns)
-
-            # Report the uncompressed bytes actually transferred/processed
             rg_meta = pf.metadata.row_group(rg_idx)
             compressed_bytes = sum(
                 rg_meta.column(c).total_compressed_size
                 for c in range(rg_meta.num_columns)
             )
+            del table  # discard immediately — we are NOT a training framework
+            self._rg_cache[cache_key] = compressed_bytes  # int only; negligible RAM
 
-            # LRU eviction when cache is full
-            while len(self._rg_cache) >= self._rg_cache_size:
-                self._evict_lru()
-
-            self._rg_cache[cache_key] = (table, compressed_bytes)
-            self._rg_lru.append(cache_key)
-        else:
-            # Move to end (most recently used)
-            try:
-                self._rg_lru.remove(cache_key)
-            except ValueError:
-                pass
-            self._rg_lru.append(cache_key)
-
-        _, compressed_bytes = self._rg_cache[cache_key]
-        dlp.update(image_size=compressed_bytes)
+        dlp.update(image_size=self._rg_cache[cache_key])
 
     def next(self):
         for batch in super().next():
@@ -469,8 +475,9 @@ class ParquetReaderS3Iterable(FormatReader):
 
     @dlp.log
     def finalize(self):
+        """Flush both caches at epoch boundary."""
+        self._pf_cache.clear()
         self._rg_cache.clear()
-        self._rg_lru.clear()
         return super().finalize()
 
     def is_index_based(self):

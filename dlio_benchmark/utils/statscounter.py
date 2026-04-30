@@ -358,7 +358,12 @@ class StatsCounter(object):
             if self.args.do_train:
                 self.logger.output(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Accelerator Utilization [AU] (%): {self.output[epoch]['au'][f'block{block}']:.4f}")
                 self.logger.output(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Throughput (samples/second): {self.output[epoch]['throughput'][f'block{block}']*self.comm_size:.4f}")
-                self.logger.output(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Computation time per step (second): {np.mean(self.output[epoch]['compute'][f'block{block}'][self.metric_start_step:self.metric_end_step+1]):.4f}+/-{np.std(self.output[epoch]['compute'][f'block{block}'][self.metric_start_step:self.metric_end_step+1]):.4f} (set value: {self.args.computation_time})")
+                cslice = self.output[epoch]['compute'][f'block{block}'][self.metric_start_step:self.metric_end_step+1]
+                if len(cslice) > 0:
+                    ctime_str = f"{np.mean(cslice):.4f}+/-{np.std(cslice):.4f}"
+                else:
+                    ctime_str = "n/a+/-n/a (metric window empty — too few steps)"
+                self.logger.output(f"{utcnow()} Epoch {epoch} - Block {block} [Training] Computation time per step (second): {ctime_str} (set value: {self.args.computation_time})")
 
     def start_save_ckpt(self, epoch, block, steps_taken):
         ts = utcnow()
@@ -409,27 +414,59 @@ class StatsCounter(object):
 
     def batch_processed(self, epoch, step, block):
         current_time = time()
-        duration = current_time - self.start_time_loading 
+        duration = current_time - self.start_time_loading
         key = f'block{block}'
         self.computation_time = current_time - self.start_time_compute
         if key in self.output[epoch]['proc']:
             self.output[epoch]['proc'][key].append(duration)
             self.output[epoch]['compute'][key].append(self.computation_time)
         else:
-            self.output[epoch]['proc'] = [duration]
-            self.output[epoch]['compute']=[self.computation_time]
+            # Bug-fix 3: previously the else-branch wrote
+            #   self.output[epoch]['proc'] = [duration]        (no [key]!)
+            #   self.output[epoch]['compute'] = [self.computation_time]
+            # which silently REPLACED the entire proc/compute dicts with plain
+            # lists, corrupting all previously recorded blocks in the epoch.
+            # The key is always initialised by start_block(), so this branch
+            # should never trigger in normal operation, but if it does we now
+            # create a proper per-key list instead of overwriting the dict.
+            self.output[epoch]['proc'][key] = [duration]
+            self.output[epoch]['compute'][key] = [self.computation_time]
         self.logger.info(f"{utcnow()} Rank {self.my_rank} step {step} processed {self.batch_size} samples in {duration:.4f}s)")
 
     def compute_metrics_train(self, epoch, block):
         key = f"block{block}"
-        total_compute_time = np.sum(self.output[epoch]['compute'][key][self.metric_start_step:self.metric_end_step+1])
-        total_time = self.end_timestamp - self.start_timestamp - np.sum(self.output[epoch]['proc'][key][:self.metric_start_step]) - np.sum(self.output[epoch]['proc'][key][self.metric_end_step+1:])
-        if (total_compute_time==0):
-            au=0.0
+        compute_all = self.output[epoch]['compute'][key]
+        proc_all    = self.output[epoch]['proc'][key]
+
+        # Metric window: exclude the configurable warm-up and cool-down steps.
+        # Both AU and throughput use the SAME window so the two numbers are
+        # computed over an identical set of steps.
+        metric_slice = compute_all[self.metric_start_step:self.metric_end_step + 1]
+        total_compute_time = np.sum(metric_slice)
+
+        # Wall-clock time for the metric window only (subtract excluded steps).
+        total_time = (
+            self.end_timestamp
+            - self.start_timestamp
+            - np.sum(proc_all[:self.metric_start_step])
+            - np.sum(proc_all[self.metric_end_step + 1:])
+        )
+
+        # Bug-fix 1 & 2: guard against an empty metric window or non-positive
+        # total_time (can happen when steps <= metric_exclude_start_steps).
+        # Previously: `(len(compute_all) - 2) / total_time` used a magic -2
+        # constant that gave *negative* throughput whenever N <= 2 steps, and
+        # the total_time path was never guarded so it caused ZeroDivisionError
+        # or nonsense values when the window was empty.
+        if len(metric_slice) == 0 or total_time <= 0:
+            au = 0.0
+            throughput = 0.0
         else:
-            au = total_compute_time / total_time
-        throughput = (len(self.output[epoch]['compute'][key]) - 2)/(total_time)*self.batch_size
-        self.output[epoch]['au'][key] = au*100
+            au = total_compute_time / total_time if total_compute_time > 0 else 0.0
+            # Use the metric-window step count, not the magic (total - 2).
+            throughput = len(metric_slice) / total_time * self.batch_size
+
+        self.output[epoch]['au'][key] = au * 100
         self.output[epoch]['throughput'][key] = throughput
 
     def compute_metrics_eval(self, epoch):

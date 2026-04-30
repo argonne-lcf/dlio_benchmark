@@ -3,18 +3,17 @@ Parquet reader for local and network filesystems (non-object-storage).
 
 Reads parquet files via pyarrow directly. Each file is opened by reading its
 footer (column + row-group metadata), then individual row groups are fetched on
-demand as DLIO requests specific sample indices. Row groups are cached with an
-LRU bound so consecutive samples from the same row group cost only one read.
+demand as DLIO requests specific sample indices.
 
-This reader is the filesystem counterpart to ParquetReaderS3Iterable. Both use
-identical sample-index → row-group mapping (bisect on cumulative offsets), the
-same row_group_cache_size option, and the same column-selection option, so
-benchmarks can switch between local and S3 storage with no config changes beyond
-storage_type.
+Memory policy: this is a STORAGE BENCHMARK. After a row group is read from disk
+the pyarrow Table is discarded immediately. Only the compressed byte count (an
+int) is kept per row group for dlp telemetry. The Parquet footer (metadata) is
+the only structured data held in memory. No sample data is ever retained.
+
+This reader is the filesystem counterpart to ParquetReaderS3Iterable.
 
 Configuration (under storage_options in the DLIO YAML):
-  columns:              null  # list of column names to read (null = all)
-  row_group_cache_size: 4     # max row groups held in memory per reader thread
+  columns:  null  # list of column names to read (null = all)
 
 Example YAML snippet:
   dataset:
@@ -23,7 +22,6 @@ Example YAML snippet:
     num_samples_per_file: 1024  # must equal actual rows-per-parquet-file
     storage_options:
       columns: ["feature1", "label"]
-      row_group_cache_size: 8
 """
 import bisect
 
@@ -39,15 +37,15 @@ class ParquetReader(FormatReader):
     Row-group-granular Parquet reader for local/network filesystems.
 
     Opens parquet files with pyarrow natively (no object-storage adapters needed).
-    Row groups are cached in an LRU-bounded dict; only compressed byte counts are
-    stored for the image_size telemetry metric — the actual row data is discarded
-    since DLIO's FormatReader.next() always yields self._args.resized_image.
+    Row groups are read for I/O measurement, then the pyarrow Table is discarded
+    immediately (del). Only the compressed byte count (int) is retained for
+    dlp telemetry. The Parquet footer is the only thing held in memory.
 
     DLIO's FormatReader protocol:
       open(filename)            → returns (ParquetFile, cumulative_offsets)
-      get_sample(filename, idx) → bisect-locates the row group, fetches if not
-                                  cached, updates dlp metrics with byte count
-      close(filename)           → evicts row-group cache entries for that file
+      get_sample(filename, idx) → bisect-locates the row group, reads+discards,
+                                  records byte count, updates dlp metrics
+      close(filename)           → removes byte-count cache for that file
       next() / read_index()     → delegate to FormatReader base class
     """
 
@@ -60,35 +58,42 @@ class ParquetReader(FormatReader):
         # Optional column selection (list[str] or None = all columns)
         self._columns = opts.get("columns") or None
 
-        # Row-group cache: (filename, rg_idx) → (pyarrow.Table, compressed_bytes)
-        self._rg_cache_size = int(opts.get("row_group_cache_size", 4))
+        # Footer cache: filename → (ParquetFile, cumulative_offsets).
+        # Holds ONLY the Parquet footer metadata (schema + row-group offsets),
+        # a few KB per file. Keyed by filename so open() never re-reads the
+        # footer from disk. Flushed at finalize() (epoch boundary).
+        # In ON_DEMAND mode the base class calls open()/close() around every
+        # single sample — without this cache that means one footer read per sample.
+        self._pf_cache: dict = {}
+
+        # Row-group byte-count cache: (filename, rg_idx) → int (compressed bytes).
+        # Tables are read for I/O measurement then discarded; only the byte count
+        # is kept for dlp telemetry. Memory per entry is negligible (~100 bytes).
+        # Flushed at finalize() (epoch boundary).
         self._rg_cache: dict = {}
-        self._rg_lru: list = []  # insertion-order LRU key list
 
         self.logger.info(
             f"{utcnow()} ParquetReader thread={thread_index} epoch={epoch} "
-            f"columns={self._columns} rg_cache_size={self._rg_cache_size}"
+            f"columns={self._columns}"
         )
 
     # ── Helpers ──────────────────────────────────────────────────────────────
-
-    def _evict_lru(self):
-        """Evict the least-recently-used row group from the cache."""
-        if self._rg_lru:
-            oldest = self._rg_lru.pop(0)
-            self._rg_cache.pop(oldest, None)
 
     # ── FormatReader interface ────────────────────────────────────────────────
 
     @dlp.log
     def open(self, filename):
         """
-        Open a parquet file and read its footer metadata.
+        Return the (ParquetFile, cumulative_offsets) for this file, reading the
+        footer at most ONCE per epoch.
 
-        Returns (ParquetFile, cumulative_offsets) stored in open_file_map[filename].
-        cumulative_offsets[i] is the first row index of row group i;
-        cumulative_offsets[-1] is the total row count.
+        The footer is cached in _pf_cache for the lifetime of the epoch. In
+        ON_DEMAND mode the base class calls open() before every single sample;
+        without this cache that means one footer read per sample.
         """
+        if filename in self._pf_cache:
+            return self._pf_cache[filename]
+
         import pyarrow.parquet as pq
 
         pf = pq.ParquetFile(filename)
@@ -103,16 +108,19 @@ class ParquetReader(FormatReader):
             f"{utcnow()} ParquetReader.open {filename} "
             f"row_groups={meta.num_row_groups} total_rows={offsets[-1]}"
         )
-        return (pf, offsets)
+        self._pf_cache[filename] = (pf, offsets)
+        return self._pf_cache[filename]
 
     @dlp.log
     def close(self, filename):
-        """Evict cached row groups for this file to free memory."""
-        keys_to_remove = [k for k in self._rg_cache if k[0] == filename]
-        for k in keys_to_remove:
-            self._rg_cache.pop(k, None)
-            if k in self._rg_lru:
-                self._rg_lru.remove(k)
+        """No-op: footer and byte-count caches are kept for the full epoch.
+
+        In ON_DEMAND mode the base class calls close() after every single sample.
+        We must NOT evict either _pf_cache (footer) or _rg_cache (byte counts)
+        here — doing so forces a full footer re-read and row-group re-fetch for
+        every subsequent sample on the same file.
+        Both caches are flushed at epoch boundary in finalize().
+        """
         super().close(filename)
 
     @dlp.log
@@ -132,27 +140,15 @@ class ParquetReader(FormatReader):
 
         cache_key = (filename, rg_idx)
         if cache_key not in self._rg_cache:
-            # Read row group from disk — this is the measured I/O
-            pf.read_row_group(rg_idx, columns=self._columns)
-
+            # Read row group from disk — this is the I/O being benchmarked.
+            table = pf.read_row_group(rg_idx, columns=self._columns)
             rg_meta = pf.metadata.row_group(rg_idx)
             compressed_bytes = sum(
                 rg_meta.column(c).total_compressed_size
                 for c in range(rg_meta.num_columns)
             )
-
-            while len(self._rg_cache) >= self._rg_cache_size:
-                self._evict_lru()
-
-            self._rg_cache[cache_key] = compressed_bytes
-            self._rg_lru.append(cache_key)
-        else:
-            # Move to end (most recently used)
-            try:
-                self._rg_lru.remove(cache_key)
-            except ValueError:
-                pass
-            self._rg_lru.append(cache_key)
+            del table  # discard immediately — we are NOT a training framework
+            self._rg_cache[cache_key] = compressed_bytes  # int only; negligible RAM
 
         dlp.update(image_size=self._rg_cache[cache_key])
 
@@ -167,8 +163,9 @@ class ParquetReader(FormatReader):
 
     @dlp.log
     def finalize(self):
+        """Flush both caches at epoch boundary."""
+        self._pf_cache.clear()
         self._rg_cache.clear()
-        self._rg_lru.clear()
         return super().finalize()
 
     def is_index_based(self):

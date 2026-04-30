@@ -36,6 +36,56 @@ except ImportError:
     HAS_DGEN = False
     dgen_py = None
 
+# ── Process-level singleton dgen_py.Generator ─────────────────────────────────
+#
+# Creating a dgen_py.Generator spawns a private Rayon thread pool (N OS threads).
+# Destroying and recreating it for every file costs ~10–50 ms per file and becomes
+# catastrophic for workloads with many small objects (JPEG/PNG < 1 MB: pool creation
+# dominates actual data generation).
+#
+# Design:
+#   ONE Generator per MPI process (each MPI worker IS a separate OS process).
+#   Reused across ALL gen_random_tensor() calls via reset() + set_seed() + get_chunk().
+#
+#   Small objects (< _DGEN_SMALL_THRESHOLD = 1 MiB): skip the Generator entirely
+#   and call dgen_py.generate_buffer() which uses a thread-local RollingPool —
+#   no Rayon thread pool at all, ~1.7 GB/s for 64 KB objects.
+#
+#   Large objects (>= 1 MiB): use the singleton Generator.  Thread pool is created
+#   ONCE and reused; reset()+set_seed() between files is O(µs).
+#
+# Thread safety: generation always happens in the main thread (the async pipeline
+# submits uploads to a pool but generates sequentially in the main thread), so the
+# singleton is only accessed from one thread at a time.
+
+_DGEN_PROC_GEN = None          # type: Optional['dgen_py.Generator']
+_DGEN_PROC_GEN_CAPACITY = 0    # bytes: current singleton's total_size
+_DGEN_PROC_GEN_LOCK = threading.Lock()  # One-time lazy-init guard
+_DGEN_SMALL_THRESHOLD = 1 * 1024 * 1024  # 1 MiB — route smaller objects to rolling pool
+
+
+def _get_dgen_proc_gen(total_bytes: int) -> 'dgen_py.Generator':
+    """Return (or lazily create) the process-level singleton dgen_py.Generator.
+
+    Recreated only when *total_bytes* exceeds the current capacity — this happens
+    at most once per process lifetime (the first large-object request sets the
+    capacity; subsequent requests of any smaller size reuse the same instance).
+    """
+    global _DGEN_PROC_GEN, _DGEN_PROC_GEN_CAPACITY
+    # Fast path — already created and large enough.
+    if _DGEN_PROC_GEN is not None and total_bytes <= _DGEN_PROC_GEN_CAPACITY:
+        return _DGEN_PROC_GEN
+    with _DGEN_PROC_GEN_LOCK:
+        # Re-check under lock (another thread may have initialised between the
+        # fast-path check and acquiring the lock).
+        if _DGEN_PROC_GEN is None or total_bytes > _DGEN_PROC_GEN_CAPACITY:
+            # Minimum 256 MiB so small fluctuations in file size don't trigger
+            # repeated recreation.  Larger files expand the capacity once.
+            new_capacity = max(total_bytes, 256 * 1024 * 1024)
+            _DGEN_PROC_GEN = dgen_py.Generator(size=new_capacity)
+            _DGEN_PROC_GEN_CAPACITY = new_capacity
+    return _DGEN_PROC_GEN
+
 from dlio_benchmark.common.enumerations import MPIState
 
 # Try to load dftracer. If DFTRACER_ENABLE=1 is set and the library is installed,
@@ -478,9 +528,13 @@ def gen_random_tensor(shape, dtype, rng=None, method=None, writeable=True, seed=
                    full array allocation. Safe when the caller only reads the array
                    (e.g. np.savez). npz_generator passes writeable=False.
         seed:      Optional integer seed for reproducible generation. When provided:
-                   - dgen path: passes seed to dgen_py.Generator(seed=seed)
+                   - dgen path: creates a dedicated dgen_py.Generator(seed=seed) so
+                     the seed is passed all the way into the Rust RNG layer.  The
+                     process singleton and generate_buffer() paths are bypassed when
+                     a seed is supplied because they have no per-call seed support.
                    - numpy path: creates a new default_rng(seed=seed), ignoring rng
-                   When None (default): uses entropy (non-reproducible, unique each call).
+                   When None (default): uses the fast singleton/pool paths for maximum
+                   throughput — entropy, not reproducibility, is the goal.
                    For MPI workloads, pass seed = BASE_SEED + file_index so each file
                    gets unique-but-reproducible data across runs.
     """
@@ -514,21 +568,30 @@ def gen_random_tensor(shape, dtype, rng=None, method=None, writeable=True, seed=
         total_size = int(np.prod(shape))
         element_size = np.dtype(dtype).itemsize
         total_bytes = total_size * element_size
-        
-        # When a flowing RNG is provided but no explicit seed, derive a
-        # well-spread seed from the RNG state. This advances the RNG by
-        # one call, giving true flow-through: each successive gen_random_tensor
-        # call gets a unique, reproducible, statistically independent seed
-        # without the adjacent-seed correlations of arithmetic (BASE_SEED + i).
-        if seed is None and rng is not None:
-            seed = int(rng.integers(0, 2**63))
 
-        # Use dgen-py Generator to create zero-copy BytesView
-        # This is 155x faster than NumPy and uses no extra memory
-        # seed=None → entropy (non-reproducible, unique each call)
-        # seed=<int> → reproducible, deterministic stream for given seed
-        gen = dgen_py.Generator(size=total_bytes, seed=seed)
-        bytesview = gen.get_chunk(total_bytes)  # Returns BytesView (zero-copy, immutable)
+        if seed is not None:
+            # ── Seeded path: create a dedicated Generator so the seed takes effect ──
+            # The singleton and generate_buffer() don't support per-call seeds.
+            # Creating a Generator here spawns a Rayon thread pool, so this path
+            # is intentionally only used when the caller explicitly requests a seed.
+            gen = dgen_py.Generator(size=max(total_bytes, 256 * 1024 * 1024), seed=seed)
+            bytesview = gen.get_chunk(total_bytes)
+        elif total_bytes < _DGEN_SMALL_THRESHOLD:
+            # ── Small objects (< 1 MiB): thread-local RollingPool ────────────
+            # generate_buffer() uses a per-OS-thread RollingPool that generates
+            # one BLOCK_SIZE (1 MiB) backing buffer once and hands out zero-copy
+            # Arc-counted slices.  No Rayon thread pool is created — overhead
+            # is O(µs), ideal for JPEG/PNG workloads generating millions of
+            # small objects.
+            bytesview = dgen_py.generate_buffer(total_bytes)
+        else:
+            # ── Large objects (>= 1 MiB): process-level singleton Generator ──
+            # Rayon thread pool is created ONCE at first use and reused for
+            # every subsequent call.  reset() repositions to byte 0 — O(µs),
+            # no allocation, no thread pool teardown.
+            gen = _get_dgen_proc_gen(total_bytes)
+            gen.reset()
+            bytesview = gen.get_chunk(total_bytes)
         
         # Convert to NumPy array with correct dtype and reshape (ZERO-COPY)
         # np.frombuffer on BytesView is zero-copy because BytesView implements buffer protocol

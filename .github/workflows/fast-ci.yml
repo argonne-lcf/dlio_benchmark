@@ -2,8 +2,9 @@ name: Fast CI
 
 # Run on every push / PR — completes in < 10 minutes per matrix leg.
 # Covers: preflight import checks, enumerations, utilities, config logic,
-# factories, data generators, reader compat, MPI smoke, and a small
-# end-to-end generate+train loop.
+# factories, data generators (npy, npz, hdf5, csv, jpeg, png, tfrecord,
+# indexed_binary, parquet legacy + column-schema modes), reader compat,
+# MPI smoke, and a small end-to-end generate+train loop.
 #
 # Runs under THREE install methods:
 #   via-uv    : uv venv + uv pip install .[test]     (preferred going forward)

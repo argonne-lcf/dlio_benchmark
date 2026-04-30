@@ -383,6 +383,36 @@ class ConfigArguments:
                     self.logger.warning(
                         f"Running DLIO with {self.read_threads} threads for I/O but core available {cores_available} "
                         f"are insufficient and can lead to lower performance.")
+        # Memory budget guard: spawned worker processes must not exhaust system RAM.
+        # Each worker loads Python + framework + reader libraries (~512 MB RSS minimum).
+        # The hard cap is 32 GB so these benchmarks run on any compliant system.
+        # This check runs on all ranks so every rank refuses before workers are spawned.
+        if self.read_threads > 0 and self.data_loader in [
+            DataLoaderType.PYTORCH, DataLoaderType.DALI
+        ]:
+            import psutil
+            total_workers = self.read_threads * self.comm_size
+            # 512 MB per spawned worker is the minimum observed RSS (framework imports only).
+            per_worker_mb = 512
+            BUDGET_MB = 32 * 1024  # 32 GB hard cap regardless of machine size
+            estimated_mb = per_worker_mb * total_workers
+            if estimated_mb > BUDGET_MB:
+                max_threads = BUDGET_MB // per_worker_mb // max(1, self.comm_size)
+                raise Exception(
+                    f"Memory budget exceeded: reader.read_threads={self.read_threads} "
+                    f"x comm_size={self.comm_size} = {total_workers} worker processes, "
+                    f"estimated ~{estimated_mb // 1024} GB (hard cap: 32 GB). "
+                    f"Reduce reader.read_threads to at most {max_threads} for this run."
+                )
+            # Also warn if estimated usage exceeds 50% of available RAM on this machine
+            available_mb = psutil.virtual_memory().available // (1024 * 1024)
+            if estimated_mb > available_mb * 0.5:
+                self.logger.warning(
+                    f"reader.read_threads={self.read_threads} x comm_size={self.comm_size} "
+                    f"= {total_workers} workers, estimated ~{estimated_mb // 1024} GB — "
+                    f"exceeds 50% of available RAM ({available_mb // 1024} GB). "
+                    f"Consider reducing read_threads to avoid OOM."
+                )
         if self.num_layers > 0 and self.num_layers < self.pipeline_parallelism:
             raise Exception(
                 f"Expected model.num_layers {self.num_layers} should be larger than "
@@ -537,22 +567,26 @@ class ConfigArguments:
             # as standard AWS environment variables (AWS_ACCESS_KEY_ID, etc.).
             # s3dlio and minio can both read standard AWS_ env vars natively,
             # so we don't require them to be duplicated in storage_options.
+            # Credentials and endpoint are NOT required for local-filesystem
+            # schemes (direct://, file://) — skip validation for those.
             opts = self.storage_options or {}
-            missing = []
-            access_key_id = opts.get("access_key_id") or os.environ.get("AWS_ACCESS_KEY_ID")
-            if not access_key_id:
-                missing.append("storage_options['access_key_id'] or AWS_ACCESS_KEY_ID env var")
-            secret_access_key = opts.get("secret_access_key") or os.environ.get("AWS_SECRET_ACCESS_KEY")
-            if not secret_access_key:
-                missing.append("storage_options['secret_access_key'] or AWS_SECRET_ACCESS_KEY env var")
-            endpoint = opts.get("endpoint_url") or os.environ.get("AWS_ENDPOINT_URL")
-            if not endpoint:
-                missing.append("storage_options['endpoint_url'] or AWS_ENDPOINT_URL env var")
-            if missing:
-                raise Exception(
-                    f"Missing required S3 credentials for storage_library={storage_library}: "
-                    + ", ".join(missing)
-                )
+            uri_scheme = opts.get("uri_scheme") or "s3"
+            if uri_scheme in ("s3", "az", "gs"):
+                missing = []
+                access_key_id = opts.get("access_key_id") or os.environ.get("AWS_ACCESS_KEY_ID")
+                if not access_key_id:
+                    missing.append("storage_options['access_key_id'] or AWS_ACCESS_KEY_ID env var")
+                secret_access_key = opts.get("secret_access_key") or os.environ.get("AWS_SECRET_ACCESS_KEY")
+                if not secret_access_key:
+                    missing.append("storage_options['secret_access_key'] or AWS_SECRET_ACCESS_KEY env var")
+                endpoint = opts.get("endpoint_url") or os.environ.get("AWS_ENDPOINT_URL")
+                if not endpoint:
+                    missing.append("storage_options['endpoint_url'] or AWS_ENDPOINT_URL env var")
+                if missing:
+                    raise Exception(
+                        f"Missing required S3 credentials for storage_library={storage_library}: "
+                        + ", ".join(missing)
+                    )
 
 
     @staticmethod
@@ -747,17 +781,45 @@ class ConfigArguments:
                 self.read_threads = _auto_threads
 
         # PR-14: Auto-size write_threads when the user has not set an explicit
-        # value (the dataclass default is 1).  Same formula as read_threads.
-        _MAX_AUTO_WRITE_THREADS = max(1, _env_cap)
+        # value (the dataclass default is 1).
+        #
+        # Object-store uploads are I/O-bound (s3dlio/minio release the GIL
+        # during network I/O), so we can run more concurrent upload threads
+        # than physical CPUs per rank.
+        #
+        # S3 formula: max(4, min(per_rank_cpu * 2, cap))
+        #   - "× 2" multiplier: standard heuristic for I/O-bound work where half
+        #     of threads are blocked waiting on network at any given moment.
+        #   - Minimum 4: ensure meaningful concurrency even on tiny VMs.
+        #   - Floor 8: small objects (JPEG/PNG ~150 KB) need many concurrent
+        #     requests to saturate S3 throughput; fewer than 8 per rank stalls.
+        #   - Cap (DLIO_MAX_AUTO_THREADS, default 32): allow more parallelism for
+        #     high-IOPS small-object workloads on large machines.
+        #   This scales automatically with system size:
+        #     16-core / NP=4  → max(8, min(8,  32)) = 8 threads/rank
+        #     28-core / NP=8  → max(8, min(6,  32)) = 8 threads/rank
+        #     28-core / NP=1  → max(8, min(56, 32)) = 32 threads/rank
+        #     256-core / NP=8 → max(8, min(64, 32)) = 32 threads/rank
+        #
+        # Local FS formula (CPU-bound): min(per_rank_cpu, cap) — unchanged.
+        _MAX_AUTO_WRITE_THREADS = max(1, int(os.environ.get("DLIO_MAX_AUTO_THREADS", "32")))
         if self.write_threads == 1:
             _cpu_count = os.cpu_count() or 1
             _ranks_per_node = DLIOMPI.get_instance().ranks_per_node()
             _per_rank_cpu = max(1, _cpu_count // max(1, _ranks_per_node))
-            _auto_w_threads = min(_per_rank_cpu, _MAX_AUTO_WRITE_THREADS)
+            if self.storage_type == StorageType.S3:
+                # I/O-bound: 2× per-rank CPUs, floor 8, bounded by cap.
+                # Floor of 8 ensures adequate concurrency for small objects
+                # (JPEG/PNG) where per-request latency dominates throughput.
+                _auto_w_threads = max(8, min(_per_rank_cpu * 2, _MAX_AUTO_WRITE_THREADS))
+            else:
+                # CPU-bound (local FS): scale with available cores per rank.
+                _auto_w_threads = min(_per_rank_cpu, _MAX_AUTO_WRITE_THREADS)
             if _auto_w_threads > 1:
                 self.logger.info(
                     f"Auto-sizing write_threads to {_auto_w_threads} "
-                    f"(cpu_count={_cpu_count}, ranks_per_node={_ranks_per_node}). "
+                    f"(cpu_count={_cpu_count}, ranks_per_node={_ranks_per_node}, "
+                    f"storage_type={self.storage_type}). "
                     "Set write_threads explicitly in your YAML to override."
                 )
                 self.write_threads = _auto_w_threads

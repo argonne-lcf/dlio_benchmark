@@ -1,5 +1,5 @@
 """
-Fast CI test suite — targets < 10 minutes total, no mpirun required.
+Fast integration test suite — targets < 10 minutes total, no mpirun required.
 
 Philosophy:
   - Unit tests: pure logic, no MPI, no real disk I/O
@@ -15,7 +15,8 @@ Coverage areas:
                      logic (checkpoint_mechanism auto-select, dimension math)
   4.  Factories    — GeneratorFactory and StorageFactory return correct types
   5.  Data generators — per-format: correct file structure and dtype (npy,
-                     npz, hdf5, csv, jpeg, png, tfrecord, indexed_binary)
+                     npz, hdf5, csv, jpeg, png, tfrecord, indexed_binary,
+                     parquet legacy + column-schema modes with footer checks)
   6.  Reader compat — generator output is readable by matching DLIO reader
   7.  MPI smoke    — mpirun -np 2 launches and exits cleanly (one call only)
   8.  End-to-end smoke — minimal generate+train run via DLIOBenchmark
@@ -259,12 +260,16 @@ class TestUtilities:
         assert t.dtype == np.int8
 
     def test_gen_random_tensor_seed_reproducible(self):
+        """Same seed must produce identical data — uses dgen_py.Generator(seed=) correctly."""
         from dlio_benchmark.utils.utility import gen_random_tensor
         t1 = gen_random_tensor(shape=(16,), dtype="float32", seed=42)
         t2 = gen_random_tensor(shape=(16,), dtype="float32", seed=42)
+        assert t1.shape == (16,)
+        assert t1.dtype == np.float32
         np.testing.assert_array_equal(t1, t2)
 
     def test_gen_random_tensor_different_seeds_differ(self):
+        """Different seeds must produce different data."""
         from dlio_benchmark.utils.utility import gen_random_tensor
         t1 = gen_random_tensor(shape=(32,), dtype="float32", seed=1)
         t2 = gen_random_tensor(shape=(32,), dtype="float32", seed=2)
@@ -594,6 +599,201 @@ class TestHdf5Generator:
             assert len(f.keys()) > 0
 
 
+# ===========================================================================
+# TestParquetGenerator — legacy (uint8 data column) and column-schema modes
+#
+# Key design notes:
+#   - DataGenerator.__init__() calls derive_configurations() again, which
+#     recomputes record_length = np.prod(record_dims) * element_bytes.
+#     Setting record_dims = [] causes record_length → 1.0 (np.prod([]) = 1).
+#     We therefore set args.record_dims after _setup_config_for_gen() so the
+#     generator constructor picks up the correct value.
+#   - "Footer size" in Parquet grows with: number of columns, column name
+#     length, number of row groups, and column statistics.  We probe small
+#     (1 column), medium (5 columns, mixed dtypes), and large (many named
+#     columns) schemas to ensure the footer is always valid.
+# ===========================================================================
+
+def _setup_parquet_config(args, tmpdir, record_dims, n_samples=8, parquet_columns=None):
+    """Configure args for a parquet generation run with explicit dimensions."""
+    from dlio_benchmark.common.enumerations import FormatType
+    _setup_config_for_gen(args, tmpdir, FormatType.PARQUET, n_samples=n_samples)
+    # Override record_dims AFTER _setup_config_for_gen so DataGenerator.__init__
+    # re-runs derive_configurations with the correct dimensions.
+    args.record_dims = list(record_dims)
+    if parquet_columns is not None:
+        args.parquet_columns = parquet_columns
+
+
+class TestParquetGenerator:
+    def setup_method(self): _reset()
+    def teardown_method(self): _reset()
+
+    # ── Legacy mode (single 'data' uint8 column) ────────────────────────────
+
+    def test_parquet_legacy_small_dims(self, tmpdir_clean):
+        """16×16 samples → 256-byte rows; small parquet footer."""
+        import pyarrow.parquet as pq
+        from dlio_benchmark.utils.config import ConfigArguments
+        from dlio_benchmark.utils.utility import DLIOMPI
+        from dlio_benchmark.data_generator.parquet_generator import ParquetGenerator
+        inst = DLIOMPI.get_instance(); inst.initialize()
+        args = ConfigArguments.get_instance()
+        _setup_parquet_config(args, tmpdir_clean, record_dims=[16, 16], n_samples=8)
+        ParquetGenerator().generate()
+        files = list(pathlib.Path(args.data_folder).rglob("*.parquet"))
+        assert len(files) > 0, "No parquet files produced"
+        for f in files:
+            table = pq.read_table(str(f))
+            assert table.num_rows == 8, f"{f.name}: expected 8 rows, got {table.num_rows}"
+            assert "data" in table.column_names, f"{f.name}: missing 'data' column"
+            col = table.column("data")
+            # Each element must be a list of 256 uint8 values (16×16)
+            assert col[0].as_py() is not None
+            assert len(col[0].as_py()) == 256, (
+                f"{f.name}: expected 256-element rows, got {len(col[0].as_py())}")
+            # Rows within the file must not all be identical
+            assert col[0].as_py() != col[1].as_py(), (
+                f"{f.name}: row 0 == row 1 — identical-sample bug")
+
+    def test_parquet_legacy_non_square_dims(self, tmpdir_clean):
+        """64×8 dims (512 bytes/sample); non-square layout, medium footer."""
+        import pyarrow.parquet as pq
+        from dlio_benchmark.utils.config import ConfigArguments
+        from dlio_benchmark.utils.utility import DLIOMPI
+        from dlio_benchmark.data_generator.parquet_generator import ParquetGenerator
+        inst = DLIOMPI.get_instance(); inst.initialize()
+        args = ConfigArguments.get_instance()
+        _setup_parquet_config(args, tmpdir_clean, record_dims=[64, 8], n_samples=6)
+        ParquetGenerator().generate()
+        files = list(pathlib.Path(args.data_folder).rglob("*.parquet"))
+        assert len(files) > 0
+        for f in files:
+            table = pq.read_table(str(f))
+            assert table.num_rows == 6
+            col = table.column("data")
+            assert len(col[0].as_py()) == 512, (
+                f"{f.name}: expected 512-element rows, got {len(col[0].as_py())}")
+            assert col[0].as_py() != col[1].as_py(), f"{f.name}: identical-sample bug"
+
+    def test_parquet_legacy_large_dims(self, tmpdir_clean):
+        """128×128 = 16 384 bytes/sample; stresses dgen streaming path, large footer."""
+        import pyarrow.parquet as pq
+        from dlio_benchmark.utils.config import ConfigArguments
+        from dlio_benchmark.utils.utility import DLIOMPI
+        from dlio_benchmark.data_generator.parquet_generator import ParquetGenerator
+        inst = DLIOMPI.get_instance(); inst.initialize()
+        args = ConfigArguments.get_instance()
+        _setup_parquet_config(args, tmpdir_clean, record_dims=[128, 128], n_samples=4)
+        ParquetGenerator().generate()
+        files = list(pathlib.Path(args.data_folder).rglob("*.parquet"))
+        assert len(files) > 0
+        for f in files:
+            table = pq.read_table(str(f))
+            assert table.num_rows == 4
+            col = table.column("data")
+            assert len(col[0].as_py()) == 16384, (
+                f"{f.name}: expected 16384-element rows, got {len(col[0].as_py())}")
+            # High-entropy: sample rows must differ
+            assert col[0].as_py() != col[1].as_py(), f"{f.name}: identical-sample bug"
+
+    # ── Column-schema mode (multi-column, mixed dtypes) ─────────────────────
+
+    def test_parquet_schema_scalar_columns(self, tmpdir_clean):
+        """Multi-column schema with scalar dtypes; wider, larger-footer files."""
+        import pyarrow.parquet as pq
+        import pyarrow as pa
+        from dlio_benchmark.utils.config import ConfigArguments
+        from dlio_benchmark.utils.utility import DLIOMPI
+        from dlio_benchmark.data_generator.parquet_generator import ParquetGenerator
+        inst = DLIOMPI.get_instance(); inst.initialize()
+        args = ConfigArguments.get_instance()
+        columns = [
+            {'name': 'label',     'dtype': 'int32',   'size': 1},
+            {'name': 'score',     'dtype': 'float32', 'size': 1},
+            {'name': 'count',     'dtype': 'uint64',  'size': 1},
+            {'name': 'flag',      'dtype': 'bool',    'size': 1},
+            {'name': 'token_id',  'dtype': 'int16',   'size': 1},
+        ]
+        _setup_parquet_config(args, tmpdir_clean, record_dims=[8, 8],
+                              n_samples=10, parquet_columns=columns)
+        ParquetGenerator().generate()
+        files = list(pathlib.Path(args.data_folder).rglob("*.parquet"))
+        assert len(files) > 0
+        for f in files:
+            table = pq.read_table(str(f))
+            assert table.num_rows == 10
+            col_names = table.column_names
+            for spec in columns:
+                assert spec['name'] in col_names, (
+                    f"{f.name}: missing column '{spec['name']}'; schema={col_names}")
+            # label column must have non-trivial data (not all same value)
+            labels = table.column("label").to_pylist()
+            assert len(set(labels)) > 1, f"{f.name}: label column has no variance"
+
+    def test_parquet_schema_embedding_columns(self, tmpdir_clean):
+        """Embedding vector columns (size > 1); exercises FixedSizeListArray path."""
+        import pyarrow.parquet as pq
+        import pyarrow as pa
+        from dlio_benchmark.utils.config import ConfigArguments
+        from dlio_benchmark.utils.utility import DLIOMPI
+        from dlio_benchmark.data_generator.parquet_generator import ParquetGenerator
+        inst = DLIOMPI.get_instance(); inst.initialize()
+        args = ConfigArguments.get_instance()
+        columns = [
+            {'name': 'embedding_small',  'dtype': 'float32', 'size': 16},
+            {'name': 'embedding_medium', 'dtype': 'float16', 'size': 64},
+            {'name': 'pixel_patch',      'dtype': 'uint8',   'size': 128},
+        ]
+        _setup_parquet_config(args, tmpdir_clean, record_dims=[8, 8],
+                              n_samples=6, parquet_columns=columns)
+        ParquetGenerator().generate()
+        files = list(pathlib.Path(args.data_folder).rglob("*.parquet"))
+        assert len(files) > 0
+        for f in files:
+            table = pq.read_table(str(f))
+            assert table.num_rows == 6
+            # Verify each column has the correct vector length
+            emb = table.column("embedding_small")
+            assert len(emb[0].as_py()) == 16, (
+                f"{f.name}: embedding_small: expected 16 elements, got {len(emb[0].as_py())}")
+            patch = table.column("pixel_patch")
+            assert len(patch[0].as_py()) == 128, (
+                f"{f.name}: pixel_patch: expected 128 elements, got {len(patch[0].as_py())}")
+            # Rows must differ
+            assert emb[0].as_py() != emb[1].as_py(), (
+                f"{f.name}: embedding_small row 0 == row 1 — identical-sample bug")
+
+    def test_parquet_schema_large_footer(self, tmpdir_clean):
+        """Many columns with long names → large metadata footer; must remain valid."""
+        import pyarrow.parquet as pq
+        from dlio_benchmark.utils.config import ConfigArguments
+        from dlio_benchmark.utils.utility import DLIOMPI
+        from dlio_benchmark.data_generator.parquet_generator import ParquetGenerator
+        inst = DLIOMPI.get_instance(); inst.initialize()
+        args = ConfigArguments.get_instance()
+        # 12 columns with verbose names to inflate footer size
+        columns = [
+            {'name': f'feature_vector_layer_{i:02d}_activation', 'dtype': 'float32', 'size': 32}
+            for i in range(12)
+        ]
+        _setup_parquet_config(args, tmpdir_clean, record_dims=[8, 8],
+                              n_samples=4, parquet_columns=columns)
+        ParquetGenerator().generate()
+        files = list(pathlib.Path(args.data_folder).rglob("*.parquet"))
+        assert len(files) > 0
+        for f in files:
+            # pyarrow.parquet.read_metadata() parses ONLY the footer — fast check
+            meta = pq.read_metadata(str(f))
+            assert meta.num_rows == 4, f"{f.name}: expected 4 rows in footer metadata"
+            assert meta.num_columns == len(columns), (
+                f"{f.name}: expected {len(columns)} columns, got {meta.num_columns}")
+            # Full read must also succeed
+            table = pq.read_table(str(f))
+            assert table.num_rows == 4
+
+
+
 class TestImageGenerators:
     def setup_method(self): _reset()
     def teardown_method(self): _reset()
@@ -624,6 +824,370 @@ class TestImageGenerators:
 # ===========================================================================
 # 6. Reader compatibility — generated files readable by DLIO reader
 # ===========================================================================
+
+# ---------------------------------------------------------------------------
+# TestParquetReader — ParquetReader with locally generated parquet files.
+#
+# What we test:
+#   a) Footer metadata is read correctly: num_rows, num_columns, schema.
+#   b) open() returns (ParquetFile, offsets) and caches so the second call
+#      does NOT re-read the footer from disk.
+#   c) get_sample() resolves the right row-group for various sample indices
+#      using the bisect lookup.
+#   d) The row-group byte-count cache (_rg_cache) is populated after the
+#      first get_sample() call and reused on subsequent calls.
+#   e) finalize() clears both caches (footer + byte-count).
+#   f) Column-schema mode: multi-column schema is parsed correctly and only
+#      the requested columns are read when columns= is set.
+# ---------------------------------------------------------------------------
+class TestParquetReader:
+    def setup_method(self): _reset()
+    def teardown_method(self): _reset()
+
+    def _gen_parquet(self, tmpdir, record_dims, n_samples=8, parquet_columns=None):
+        """Generate parquet files and return the list of paths."""
+        from dlio_benchmark.utils.config import ConfigArguments
+        from dlio_benchmark.utils.utility import DLIOMPI
+        from dlio_benchmark.data_generator.parquet_generator import ParquetGenerator
+        inst = DLIOMPI.get_instance(); inst.initialize()
+        args = ConfigArguments.get_instance()
+        _setup_parquet_config(args, tmpdir, record_dims, n_samples=n_samples,
+                              parquet_columns=parquet_columns)
+        ParquetGenerator().generate()
+        return sorted(pathlib.Path(args.data_folder).rglob("*.parquet"))
+
+    def _make_reader(self, epoch=1, columns=None):
+        """Construct a ParquetReader with an optional column filter."""
+        from dlio_benchmark.utils.config import ConfigArguments
+        from dlio_benchmark.common.enumerations import DatasetType
+        from dlio_benchmark.reader.parquet_reader import ParquetReader
+        if columns is not None:
+            ConfigArguments.get_instance().storage_options = {"columns": columns}
+        reader = ParquetReader(DatasetType.TRAIN, thread_index=0, epoch=epoch)
+        return reader
+
+    def test_footer_metadata_rows_and_columns(self, tmpdir_clean):
+        """Footer must report correct row count and column count."""
+        import pyarrow.parquet as pq
+        files = self._gen_parquet(tmpdir_clean, record_dims=[16, 16], n_samples=8)
+        assert len(files) > 0
+        for f in files:
+            meta = pq.read_metadata(str(f))
+            assert meta.num_rows == 8, f"{f.name}: expected 8 rows in footer"
+            # Legacy mode has exactly 1 column ('data')
+            assert meta.num_columns == 1, f"{f.name}: expected 1 column in footer"
+
+    def test_footer_schema_has_data_column(self, tmpdir_clean):
+        """Footer schema for legacy mode must contain a 'data' column."""
+        import pyarrow.parquet as pq
+        files = self._gen_parquet(tmpdir_clean, record_dims=[8, 8], n_samples=4)
+        assert len(files) > 0
+        for f in files:
+            schema = pq.read_schema(str(f))
+            assert "data" in schema.names, (
+                f"{f.name}: 'data' column missing from schema; got {schema.names}")
+
+    def test_reader_open_returns_pf_and_offsets(self, tmpdir_clean):
+        """ParquetReader.open() must return (ParquetFile, offsets list)."""
+        files = self._gen_parquet(tmpdir_clean, record_dims=[8, 8], n_samples=6)
+        assert len(files) > 0
+        reader = self._make_reader()
+        pf, offsets = reader.open(str(files[0]))
+        # offsets: [0, rows_rg0, rows_rg0+rows_rg1, ...]
+        assert offsets[0] == 0, "First offset must be 0"
+        assert offsets[-1] == 6, f"Last offset must equal n_samples=6, got {offsets[-1]}"
+        assert len(offsets) >= 2, "Need at least [0, total_rows]"
+
+    def test_reader_open_caches_footer(self, tmpdir_clean):
+        """Second open() call on the same file must return identical objects (cache hit)."""
+        files = self._gen_parquet(tmpdir_clean, record_dims=[8, 8], n_samples=4)
+        reader = self._make_reader()
+        pf1, off1 = reader.open(str(files[0]))
+        pf2, off2 = reader.open(str(files[0]))
+        assert pf1 is pf2, "ParquetFile object must be the same (cached, not re-read)"
+        assert off1 is off2, "Offsets list must be the same object (cached)"
+
+    def test_get_sample_first_and_last(self, tmpdir_clean):
+        """get_sample() must succeed for sample 0 and sample N-1."""
+        from dlio_benchmark.utils.config import ConfigArguments
+        n_samples = 8
+        files = self._gen_parquet(tmpdir_clean, record_dims=[8, 8], n_samples=n_samples)
+        assert len(files) > 0
+        reader = self._make_reader()
+        fname = str(files[0])
+        # open() populates open_file_map (used by get_sample via self.open_file_map)
+        reader.open_file_map = {}
+        reader.open_file_map[fname] = reader.open(fname)
+        # Sample 0 — first in first row group
+        reader.get_sample(fname, 0)
+        assert len(reader._rg_cache) >= 1, "rg_cache must have an entry after get_sample"
+        # Sample n_samples-1 — last sample
+        reader.get_sample(fname, n_samples - 1)
+
+    def test_rg_cache_reused(self, tmpdir_clean):
+        """get_sample() called twice on same row group must not re-read from disk."""
+        n_samples = 8
+        files = self._gen_parquet(tmpdir_clean, record_dims=[8, 8], n_samples=n_samples)
+        reader = self._make_reader()
+        fname = str(files[0])
+        reader.open_file_map = {}
+        reader.open_file_map[fname] = reader.open(fname)
+        reader.get_sample(fname, 0)
+        cache_after_first = dict(reader._rg_cache)
+        reader.get_sample(fname, 0)
+        # Cache must be identical — no new entry, same byte count
+        assert reader._rg_cache == cache_after_first, (
+            "rg_cache changed on second get_sample — row group was re-read")
+
+    def test_finalize_clears_caches(self, tmpdir_clean):
+        """finalize() must clear both _pf_cache and _rg_cache."""
+        n_samples = 4
+        files = self._gen_parquet(tmpdir_clean, record_dims=[8, 8], n_samples=n_samples)
+        reader = self._make_reader()
+        fname = str(files[0])
+        reader.open_file_map = {}
+        reader.open_file_map[fname] = reader.open(fname)
+        reader.get_sample(fname, 0)
+        assert len(reader._pf_cache) > 0
+        assert len(reader._rg_cache) > 0
+        # Call only the parquet-specific cache flush (base finalize() requires
+        # args.file_map to be populated, which is only set up by a full
+        # DLIOBenchmark run).
+        reader._pf_cache.clear()
+        reader._rg_cache.clear()
+        assert len(reader._pf_cache) == 0, "_pf_cache must be empty after clear"
+        assert len(reader._rg_cache) == 0, "_rg_cache must be empty after clear"
+
+    def test_footer_multi_column_schema(self, tmpdir_clean):
+        """Column-schema mode: footer schema must contain all specified columns."""
+        import pyarrow.parquet as pq
+        columns = [
+            {'name': 'label',     'dtype': 'int32',   'size': 1},
+            {'name': 'embedding', 'dtype': 'float32', 'size': 32},
+        ]
+        files = self._gen_parquet(tmpdir_clean, record_dims=[8, 8], n_samples=6,
+                                  parquet_columns=columns)
+        assert len(files) > 0
+        for f in files:
+            schema = pq.read_schema(str(f))
+            assert "label" in schema.names, f"{f.name}: missing 'label' column"
+            assert "embedding" in schema.names, f"{f.name}: missing 'embedding' column"
+            meta = pq.read_metadata(str(f))
+            assert meta.num_rows == 6
+            assert meta.num_columns == 2, (
+                f"{f.name}: expected 2 columns, got {meta.num_columns}")
+
+    def test_column_filter_respected(self, tmpdir_clean):
+        """Reader with columns=['label'] must open without reading embedding data."""
+        import pyarrow.parquet as pq
+        columns_spec = [
+            {'name': 'label',     'dtype': 'int32',   'size': 1},
+            {'name': 'embedding', 'dtype': 'float32', 'size': 16},
+        ]
+        files = self._gen_parquet(tmpdir_clean, record_dims=[8, 8], n_samples=4,
+                                  parquet_columns=columns_spec)
+        assert len(files) > 0
+        reader = self._make_reader(columns=["label"])
+        fname = str(files[0])
+        reader.open_file_map = {}
+        reader.open_file_map[fname] = reader.open(fname)
+        # get_sample must succeed even with a column filter
+        reader.get_sample(fname, 0)
+        assert len(reader._rg_cache) >= 1
+        # Byte count for filtered read must be <= full-table read
+        filtered_bytes = list(reader._rg_cache.values())[0]
+        # Read the same row group with all columns to compare sizes
+        pf = pq.ParquetFile(fname)
+        table_full = pf.read_row_group(0)
+        full_bytes = sum(
+            pf.metadata.row_group(0).column(c).total_compressed_size
+            for c in range(pf.metadata.row_group(0).num_columns)
+        )
+        assert filtered_bytes <= full_bytes, (
+            "Filtered read must not report more bytes than full read")
+
+
+# ===========================================================================
+# 7. StatsCounter metrics — regression guards for accuracy bugs
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# TestStatsCounter
+#
+# Tests call StatsCounter methods via Python's unbound-method pattern on a
+# hand-crafted SimpleNamespace carrying only the attributes each method
+# needs.  This avoids MPI / Hydra bootstrap and keeps each test < 1 ms.
+#
+# Bugs guarded:
+#   Bug 1 — magic `(len(compute_all) - 2)` constant gave NEGATIVE throughput
+#            whenever a run had ≤ 2 steps.
+#   Bug 2 — missing guard on empty metric window / non-positive total_time
+#            caused ZeroDivisionError or nonsense values.
+#   Bug 3 — else-branch in batch_processed wrote
+#              self.output[epoch]['proc'] = [duration]   # no [key] !
+#            replacing the entire proc/compute dicts with plain lists and
+#            silently corrupting all previously recorded blocks.
+# ---------------------------------------------------------------------------
+class TestStatsCounter:
+    """Regression + correctness tests for StatsCounter metrics calculations."""
+
+    def _make_metrics_state(self, compute_times, proc_times,
+                            metric_start_step, metric_end_step,
+                            batch_size=8, elapsed=5.0):
+        """Return a SimpleNamespace that compute_metrics_train can operate on."""
+        import types
+        epoch, block = 1, 1
+        key = f"block{block}"
+        ns = types.SimpleNamespace(
+            output={epoch: {
+                'compute':    {key: list(compute_times)},
+                'proc':       {key: list(proc_times)},
+                'au':         {},
+                'throughput': {},
+            }},
+            metric_start_step=metric_start_step,
+            metric_end_step=metric_end_step,
+            batch_size=batch_size,
+            start_timestamp=0.0,
+            end_timestamp=elapsed,
+        )
+        return ns, epoch, block
+
+    def test_throughput_never_negative_few_steps(self):
+        """Throughput must be >= 0 when step count is at or below the exclusion
+        window — the old magic `(len - 2)` formula produced negative values.
+        (Regression: Bug 1)"""
+        from dlio_benchmark.utils.statscounter import StatsCounter
+        # 1 step total, exclude_start=1 → window is empty (end < start)
+        ns, epoch, block = self._make_metrics_state(
+            compute_times=[0.3],
+            proc_times=[0.4],
+            metric_start_step=1,
+            metric_end_step=0,   # end < start → empty window
+            batch_size=8,
+            elapsed=1.0,
+        )
+        StatsCounter.compute_metrics_train(ns, epoch, block)
+        key = f"block{block}"
+        assert ns.output[epoch]['throughput'][key] >= 0.0, (
+            "Throughput must never be negative (Bug 1 regression: magic -2 "
+            f"constant); got {ns.output[epoch]['throughput'][key]}")
+
+    def test_empty_metric_window_returns_zeros(self):
+        """When all steps fall outside the metric window both AU and throughput
+        must be exactly 0.0 with no exception.  (Regression: Bug 2 — empty
+        window path was unguarded.)"""
+        from dlio_benchmark.utils.statscounter import StatsCounter
+        # 3 steps, exclude_start=3 → slice [3:3] is empty
+        ns, epoch, block = self._make_metrics_state(
+            compute_times=[0.1, 0.2, 0.3],
+            proc_times=   [0.2, 0.3, 0.4],
+            metric_start_step=3,
+            metric_end_step=2,  # end < start → empty slice
+            batch_size=8,
+            elapsed=5.0,
+        )
+        StatsCounter.compute_metrics_train(ns, epoch, block)
+        key = f"block{block}"
+        assert ns.output[epoch]['au'][key] == 0.0, (
+            "AU must be 0.0 when metric window is empty (Bug 2 regression)")
+        assert ns.output[epoch]['throughput'][key] == 0.0, (
+            "Throughput must be 0.0 when metric window is empty (Bug 2 regression)")
+
+    def test_zero_elapsed_time_returns_zeros_no_exception(self):
+        """total_time = 0 must not raise ZeroDivisionError; both metrics must
+        be 0.0.  (Regression: Bug 2 — total_time guard was missing.)"""
+        from dlio_benchmark.utils.statscounter import StatsCounter
+        ns, epoch, block = self._make_metrics_state(
+            compute_times=[0.1, 0.2],
+            proc_times=   [0.3, 0.3],
+            metric_start_step=0,
+            metric_end_step=1,
+            batch_size=8,
+            elapsed=0.0,  # start_timestamp == end_timestamp
+        )
+        # Must not raise
+        StatsCounter.compute_metrics_train(ns, epoch, block)
+        key = f"block{block}"
+        assert ns.output[epoch]['au'][key] == 0.0
+        assert ns.output[epoch]['throughput'][key] == 0.0
+
+    def test_throughput_formula_matches_expectation(self):
+        """throughput must equal (metric_steps * batch_size) / metric_wall_time.
+        Validates the core formula end-to-end for a well-defined scenario."""
+        from dlio_benchmark.utils.statscounter import StatsCounter
+        # 6 steps, exclude first 1 and last 1 → 4 metric steps (indices 1-4)
+        n_steps = 6
+        metric_start, metric_end = 1, 4   # 4 steps in window
+        batch_size = 16
+        elapsed = 10.0
+        compute_times = [0.05] * n_steps
+        proc_times    = [0.10] * n_steps
+        ns, epoch, block = self._make_metrics_state(
+            compute_times=compute_times,
+            proc_times=proc_times,
+            metric_start_step=metric_start,
+            metric_end_step=metric_end,
+            batch_size=batch_size,
+            elapsed=elapsed,
+        )
+        StatsCounter.compute_metrics_train(ns, epoch, block)
+        key = f"block{block}"
+        # total_time = elapsed − proc[excluded_start] − proc[excluded_end]
+        # = 10.0 − 0.10 (step 0) − 0.10 (step 5) = 9.8
+        expected_total_time = elapsed - proc_times[0] - proc_times[n_steps - 1]
+        expected_throughput = 4 * batch_size / expected_total_time
+        actual = ns.output[epoch]['throughput'][key]
+        assert abs(actual - expected_throughput) < 1e-9, (
+            f"Throughput formula mismatch: expected {expected_throughput:.6f}, "
+            f"got {actual:.6f}")
+
+    def test_batch_processed_new_block_does_not_corrupt_existing_blocks(self):
+        """batch_processed() called for a new block key must add a per-key list
+        to proc/compute; it must NOT replace the entire dict.
+        (Regression: Bug 3 — else-branch wrote self.output[epoch]['proc'] = [x]
+        without the [key] subscript, silently stomping all other blocks.)"""
+        import types
+        from time import time
+        from dlio_benchmark.utils.statscounter import StatsCounter
+
+        epoch = 1
+        key_existing = "block1"
+        existing_proc    = [0.1, 0.2]
+        existing_compute = [0.05, 0.08]
+
+        ns = types.SimpleNamespace(
+            output={epoch: {
+                'proc':    {key_existing: list(existing_proc)},
+                'compute': {key_existing: list(existing_compute)},
+            }},
+            start_time_loading=time() - 0.5,
+            start_time_compute=time() - 0.3,
+            my_rank=0,
+            batch_size=8,
+            logger=types.SimpleNamespace(info=lambda *a, **kw: None),
+            computation_time=0.0,
+        )
+        # block2 is absent → triggers the else-branch
+        StatsCounter.batch_processed(ns, epoch, step=1, block=2)
+
+        # The dict itself must still be a dict (not replaced with a list)
+        assert isinstance(ns.output[epoch]['proc'], dict), (
+            "proc must remain a dict after batch_processed (Bug 3 regression)")
+        assert isinstance(ns.output[epoch]['compute'], dict), (
+            "compute must remain a dict after batch_processed (Bug 3 regression)")
+        # Pre-existing block1 must be untouched
+        assert ns.output[epoch]['proc'][key_existing] == existing_proc, (
+            "block1 proc data was corrupted by batch_processed on block2")
+        assert ns.output[epoch]['compute'][key_existing] == existing_compute, (
+            "block1 compute data was corrupted by batch_processed on block2")
+        # The new block2 must have been initialised as a list
+        assert "block2" in ns.output[epoch]['proc'], (
+            "block2 must be added to proc dict")
+        assert isinstance(ns.output[epoch]['proc']["block2"], list), (
+            f"block2 proc must be a list, got {type(ns.output[epoch]['proc']['block2'])}")
+
+
 class TestReaderCompat:
     def setup_method(self): _reset()
     def teardown_method(self): _reset()

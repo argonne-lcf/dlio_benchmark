@@ -4,12 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dlio_benchmark"
-version = "3.0.0"
+version = "3.0.1"
 description = "An I/O benchmark for deep learning applications"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "dgen-py>=0.2.2",
+    "dgen-py>=0.2.3",
+    "s3dlio>=0.9.95",
     "h5py>=3.11.0",
     "mpi4py>=3.1.4",
     "numpy>=1.23.5",

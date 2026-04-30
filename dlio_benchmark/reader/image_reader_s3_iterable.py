@@ -84,6 +84,16 @@ class ImageReaderS3Iterable(ImageReader, _S3IterableMixin):
         for batch in super().next():
             yield batch
 
+    # Override the local-FS hooks inherited (via ImageReader) from
+    # _LocalFsIterableMixin so they are no-ops for the S3 reader.
+    # Without these, ImageReader.read_index() and ImageReader.next() try to
+    # open() the object URI as a local path (e.g. "direct:///...") and crash.
+    def _localfs_ensure_cached(self, filename):
+        pass  # S3 reader uses _object_cache, not local FS cache
+
+    def _localfs_prefetch_all(self):
+        pass  # S3 reader uses _s3_prefetch_all, not local FS prefetch
+
     @dlp.log
     def read_index(self, image_idx, step):
         filename, _ = self.global_index_map[image_idx]

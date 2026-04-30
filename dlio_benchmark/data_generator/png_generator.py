@@ -24,6 +24,13 @@ from dlio_benchmark.utils.utility import progress, utcnow, gen_random_tensor
 from dlio_benchmark.utils.utility import Profile
 from dlio_benchmark.common.constants import MODULE_DATA_GENERATOR
 
+try:
+    import dgen_py as _dgen_py
+    _HAS_DGEN = True
+except ImportError:
+    _dgen_py = None
+    _HAS_DGEN = False
+
 dlp = Profile(MODULE_DATA_GENERATOR)
 
 class PNGGenerator(DataGenerator):
@@ -33,10 +40,12 @@ class PNGGenerator(DataGenerator):
         Generator for creating data in PNG format of 3d dataset.
         Uses the base-class template for seeding, BytesIO, and put_data.
 
-        Fast path (non-DALI): writes raw random bytes — no PIL encode.
-        PIL encode costs ~100-200 ms/file for PNG and the bytes are never
-        decoded by any benchmark reader path. Skipping it gives a large
-        speedup for synthetic dataset generation.
+        Fast path (non-DALI): streams raw random bytes via a single dgen_py
+        Generator created once before the file loop — same producer pattern
+        as StreamingCheckpointing.  The generator advances continuously from
+        one image to the next; no reset, no re-seed, always fresh data.
+        A single bytearray is pre-allocated and reused for every image;
+        only one copy occurs (bytearray → BytesIO / file).
 
         DALI path: keeps the full PIL encode because fn.decoders.image()
         requires a valid PNG bitstream.
@@ -47,26 +56,54 @@ class PNGGenerator(DataGenerator):
         logger = self.logger
         use_fast_path = (self._args.data_loader != DataLoaderType.NATIVE_DALI)
 
+        # --- One streaming generator per process, created ONCE before the loop ---
+        # Sized at 256 GiB — far larger than any realistic dataset so it never
+        # exhausts during a single datagen run.  fill_chunk() keeps streaming
+        # continuously; we never call reset() or set_seed().
+        _stream = _dgen_py.Generator(size=256 * 1024 ** 3) if _HAS_DGEN else None
+        _buf = None      # bytearray reused each image (lazy-allocated / grown)
+        _buf_size = 0    # current capacity of _buf
+
         def _write(i, dim_, dim1, dim2, file_seed, rng,
                    out_path_spec, is_local, output):
-            records = gen_random_tensor(shape=(dim1, dim2), dtype=np.uint8,
-                                        rng=rng)
-            records = np.clip(records, 0, 255).astype(np.uint8)
+            nonlocal _buf, _buf_size
+            nbytes = dim1 * dim2
             if my_rank == 0:
                 logger.debug(f"{utcnow()} Dimension of images: {dim1} x {dim2}")
             if my_rank == 0 and i % 100 == 0:
                 logger.info(f"Generated file {i}/{total}")
             if use_fast_path:
-                # Write raw bytes — no PIL encode. Benchmark readers only
-                # measure byte count, never decode the content.
-                if is_local:
-                    with open(out_path_spec, 'wb') as f:
-                        f.write(records.tobytes())
+                if _stream is not None and not is_local:
+                    # Object-store async pipeline: _write is called from the
+                    # main thread only — generator access is single-threaded.
+                    # Grow the reuse buffer only when a larger image appears.
+                    if nbytes > _buf_size:
+                        _buf = bytearray(nbytes)
+                        _buf_size = nbytes
+                    mv = memoryview(_buf)[:nbytes]
+                    _stream.fill_chunk(mv)
+                    output.write(mv)
                 else:
-                    output.write(records.tobytes())
+                    # Local-FS thread-pool path: multiple threads call _write
+                    # concurrently — use the thread-safe gen_random_tensor.
+                    data = gen_random_tensor(shape=(dim1, dim2), dtype=np.uint8,
+                                            rng=rng, writeable=False)
+                    if is_local:
+                        with open(out_path_spec, 'wb') as f:
+                            f.write(data)
+                    else:
+                        output.write(data)
             else:
-                # Full PIL encode for native_dali: fn.decoders.image() needs
-                # a valid PNG bitstream.
+                # DALI path: PIL encode required for fn.decoders.image().
+                if _stream is not None:
+                    if nbytes > _buf_size:
+                        _buf = bytearray(nbytes)
+                        _buf_size = nbytes
+                    mv = memoryview(_buf)[:nbytes]
+                    _stream.fill_chunk(mv)
+                    records = np.frombuffer(mv, dtype=np.uint8).reshape(dim1, dim2)
+                else:
+                    records = gen_random_tensor(shape=(dim1, dim2), dtype=np.uint8, rng=rng)
                 img = im.fromarray(records)
                 img.save(output, format='PNG')
 

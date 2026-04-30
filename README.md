@@ -1,7 +1,48 @@
 # Deep Learning I/O (DLIO) Benchmark
-![test status](https://github.com/argonne-lcf/dlio_benchmark/actions/workflows/ci.yml/badge.svg)
+![test status](https://github.com/russfellows/dlio_benchmark/actions/workflows/fast-ci.yml/badge.svg)
+![version](https://img.shields.io/badge/version-3.0.1-blue)
+![python](https://img.shields.io/badge/python-3.12-blue)
+![tests](https://img.shields.io/badge/tests-112%20passed-brightgreen)
 
-This README provides an abbreviated documentation of the DLIO code. Please refer to https://dlio-benchmark.readthedocs.io for full user documentation. 
+> **This is the [russfellows](https://github.com/russfellows/dlio_benchmark) enhanced fork of the
+> [MLCommons DLIO benchmark](https://github.com/mlcommons/DLIO_local_changes), which is itself
+> derived from the original [Argonne DLIO benchmark](https://github.com/argonne-lcf/dlio_benchmark).**
+>
+> This fork is **substantially ahead** of the original Argonne upstream.  It includes all
+> MLCommons enhancements plus significant additional work described below.  The architecture,
+> performance, and feature set have diverged enough that this should be considered a major new
+> release rather than a minor patch on top of the 2021 code base.
+
+## What's New vs Upstream
+
+### Data Generation
+- **dgen-py zero-copy backend** — Rust-backed data generator is the new default. Generates random tensor data at >15 GB/s with zero heap allocation overhead, replacing the NumPy-based generator that was ~155× slower per sample. Controlled through `dgen-py` Python bindings.
+- **Parallel data generation** (`write_threads`) — files are generated concurrently via `ThreadPoolExecutor`, cutting multi-file datagen wall-clock time proportionally to thread count.
+- **Reproducible seeding** — `gen_random_tensor(seed=N)` now correctly seeds the dgen fast path; upstream silently ignored the seed.
+
+### Data Formats
+- **Parquet format** (new) — full schema-driven generation and reading. Supports mixed-dtype column schemas (`int32`, `float32`, `float16`, `uint8`, `bool`, etc.) with configurable embedding sizes, LZ4/ZSTD compression, and per-column filtering on reads. Legacy single-column mode is preserved for backward compatibility.
+
+### Storage Backends
+- **S3 / S3-compatible object storage** (new) — three client libraries supported: [s3dlio](https://github.com/russfellows/s3dlio) (recommended, Rust-backed, multi-endpoint), [s3torchconnector](https://github.com/awslabs/s3-connector-for-pytorch) (PyTorch only), and the [MinIO Python SDK](https://min.io/docs/minio/linux/developers/python/API.html).
+- **Multi-endpoint load balancing** — `S3_ENDPOINT_URIS` distributes datagen write load across multiple S3 servers, one endpoint per MPI rank (round-robin). Eliminates single-node bottlenecks for large-scale data generation.
+- **Storage env-var overrides** — `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ENDPOINT_URL`, `AWS_REGION`, `DLIO_BUCKET`, `DLIO_STORAGE_TYPE`, and `DLIO_STORAGE_LIBRARY` are all read automatically; no YAML changes needed for credential injection.
+- **Post-generation settle guard** — configurable `post_generation_settle_seconds` for eventual-consistency object stores that need time to propagate written objects before training reads begin.
+
+### Correctness Fixes
+- **DLRM OOM fix** — replaced the materialized 168 M-entry index dict with a constant-memory `VirtualIndexMap`, eliminating the SIGKILL that occurred on configurations with large datasets.
+- **MPI topology auto-sizing** — `read_threads` now divides by `ranks_per_node()` instead of total `comm_size`, giving correct per-node thread counts on multi-node runs.
+- **StatsCounter metrics** — fixed three bugs: negative throughput from a magic `(len - 2)` constant, unguarded division when the metric window is empty, and a dict-stomping bug in `batch_processed` that silently corrupted per-block data.
+
+### Testing
+- **112-test suite** — comprehensive `pytest`-based CI covering enumerations, config, all generator formats, parquet reader metadata and caching, StatsCounter metrics accuracy, issue regression guards, MPI smoke tests, and end-to-end smoke tests. The original upstream had no automated test suite.
+- **Fast CI script** (`tests/run_fast_ci.sh`) — runs the full suite locally in ~15 seconds; mirrors `.github/workflows/fast-ci.yml` exactly.
+
+### Modernization
+- **Python 3.12** only — drops support for EOL Python versions; fully typed and lint-clean.
+- **uv** package management — `pyproject.toml`-first with `uv.lock` for reproducible installs.
+
+---
 
 ## Overview
 
@@ -18,7 +59,7 @@ Object storage backends are configured through the `storage:` block in the workl
 ### Bare metal installation 
 
 ```bash
-git clone https://github.com/argonne-lcf/dlio_benchmark
+git clone https://github.com/russfellows/dlio_benchmark
 cd dlio_benchmark/
 pip install .
 dlio_benchmark ++workload.workflow.generate_data=True
@@ -27,7 +68,7 @@ dlio_benchmark ++workload.workflow.generate_data=True
 ### Bare metal installation with AIStore support
 
 ```bash
-git clone https://github.com/argonne-lcf/dlio_benchmark
+git clone https://github.com/russfellows/dlio_benchmark
 cd dlio_benchmark/
 pip install .[aistore]
 ```
@@ -37,7 +78,7 @@ pip install .[aistore]
 For S3-compatible object storage (AWS S3, MinIO, Vast Data, etc.) install one or more of the supported storage libraries alongside DLIO:
 
 ```bash
-git clone https://github.com/argonne-lcf/dlio_benchmark
+git clone https://github.com/russfellows/dlio_benchmark
 cd dlio_benchmark/
 pip install .
 
@@ -52,14 +93,14 @@ The storage library to use is selected per-workload via `storage.storage_options
 ### Bare metal installation with profiler
 
 ```bash
-git clone https://github.com/argonne-lcf/dlio_benchmark
+git clone https://github.com/russfellows/dlio_benchmark
 cd dlio_benchmark/
 pip install .[pydftracer]
 ```
 
 ## Container
 ```bash
-git clone https://github.com/argonne-lcf/dlio_benchmark
+git clone https://github.com/russfellows/dlio_benchmark
 cd dlio_benchmark/
 docker build -t dlio .
 docker run -t dlio dlio_benchmark ++workload.workflow.generate_data=True
@@ -253,6 +294,71 @@ mpirun -np 8 dlio_benchmark workload=unet3d_s3 ++workload.workflow.generate_data
 mpirun -np 8 dlio_benchmark workload=unet3d_s3
 ```
 
+### Multi-Endpoint Distribution (datagen)
+
+All three storage libraries support distributing datagen write load across
+multiple S3-compatible servers.  Set `S3_ENDPOINT_URIS` to a comma-separated
+list of endpoints; each MPI rank is automatically assigned one endpoint using
+round-robin (`endpoint[rank % num_endpoints]`).
+
+```bash
+export AWS_ACCESS_KEY_ID=your-access-key
+export AWS_SECRET_ACCESS_KEY=your-secret-key
+export S3_ENDPOINT_URIS='http://storage1:9000,http://storage2:9000,http://storage3:9000,http://storage4:9000'
+
+# Generate data — rank 0 → storage1, rank 1 → storage2, rank 2 → storage3, rank 3 → storage4
+mpirun -np 16 dlio_benchmark workload=retinanet_datagen \
+  ++workload.storage.storage_options.storage_library=s3dlio
+```
+
+**How it works** (`dlio_benchmark/storage/obj_store_lib.py`):
+
+1. At init, the storage backend reads `S3_ENDPOINT_URIS` (comma-separated list).
+2. If running under MPI it reads the process rank from `OMPI_COMM_WORLD_RANK`
+   (Open MPI), `PMI_RANK` (MPICH / Intel MPI), `MV2_COMM_WORLD_RANK` (MVAPICH2),
+   or `SLURM_PROCID` (Slurm `srun`).
+3. The selected endpoint is `endpoints[rank % len(endpoints)]`, so any number of
+   ranks distributes evenly regardless of whether ranks divide cleanly into
+   endpoint count.
+4. If no rank variable is found (single-process run), the first endpoint is used
+   with a warning.
+
+**Measured distribution** (April 2026, 2 × s3-ultra local servers, NP=2, 2000 files):
+
+| Library | EP1 objects | EP2 objects | Balance |
+|---|---|---|---|
+| s3dlio | 1000 | 1000 | 100% |
+| minio | 1000 | 1000 | 100% |
+| s3torchconnector | 1000 | 1000 | 100% |
+
+**s3dlio additionally** supports a native `MultiEndpointStore` (per-request
+round-robin within a single process), usable directly via the Python API:
+
+```python
+import s3dlio, os
+
+os.environ["AWS_ACCESS_KEY_ID"] = "key"
+os.environ["AWS_SECRET_ACCESS_KEY"] = "secret"
+
+store = s3dlio.create_multi_endpoint_store(
+    uris=["s3://storage1:9000/bucket/", "s3://storage2:9000/bucket/"],
+    strategy="round_robin",   # or "least_connections"
+)
+
+# PUT distributes across endpoints per-request — no MPI needed
+import asyncio
+asyncio.run(store.put("data/file.bin", data_bytes))
+
+# Per-endpoint stats
+for ep in store.get_endpoint_stats():
+    print(ep["uri"], ep["total_requests"], ep["bytes_written"])
+```
+
+**Important limitation**: Objects written to one server are not replicated to
+other servers (no shared backend). A dataset split across endpoints must be
+read back with the same endpoint-per-rank assignment used during datagen.
+`S3_ENDPOINT_URIS` must be set identically for both datagen and training runs.
+
 Pre-built S3 workload configs matching MLPerf Storage GPU profiles are available in [dlio_benchmark/configs/workload/](./dlio_benchmark/configs/workload/) (e.g. `unet3d_h100_s3.yaml`, `unet3d_a100_s3.yaml`, `unet3d_v100_s3.yaml`).
 
 ### Timing correctness with object storage
@@ -277,17 +383,26 @@ The YAML file is loaded through hydra (https://hydra.cc/). The default setting a
   - We have complete support for tfrecord format in TensorFlow data loader. 
   - For npz, jpg, jpeg, hdf5, we currently only support one sample per file case. In other words, each sample is stored in an independent file. Multiple samples per file case will be supported in future. 
 
-## How to contribute 
-We welcome contributions from the community to the benchmark code. Specifically, we welcome contribution in the following aspects:
-General new features needed including: 
+## How to contribute
 
-* support for new workloads: if you think that your workload(s) would be interested to the public, and would like to provide the yaml file to be included in the repo, please submit an issue.  
-* support for new data loaders, such as DALI loader, MxNet loader, etc
-* support for new frameworks, such as MxNet
-* support for novel file systems or storage, such as AWS S3, AIStore, etc.
-* support for loading new data formats. 
+This repository is the [russfellows](https://github.com/russfellows/dlio_benchmark) enhanced fork.
+Contributions and issues should be filed against this fork rather than the original Argonne upstream.
 
-If you would like to contribute, please submit an issue to https://github.com/argonne-lcf/dlio_benchmark/issues, and contact ALCF DLIO team, Huihuo Zheng at huihuo.zheng@anl.gov
+We welcome contributions in the following areas:
+
+* Support for new workloads — submit a YAML config and open a PR.
+* New data loaders (DALI, MxNet, etc.)
+* New frameworks (MxNet, JAX, etc.)
+* Additional storage backends (GCS, Azure Blob, etc.)
+* New data formats
+* Bug reports and correctness fixes
+
+For issues related to the MLCommons Storage benchmark specification, also see the
+[MLCommons DLIO fork](https://github.com/mlcommons/DLIO_local_changes).
+
+For the original Argonne LCF benchmark, see
+[argonne-lcf/dlio_benchmark](https://github.com/argonne-lcf/dlio_benchmark)
+or contact the ALCF DLIO team (Huihuo Zheng, huihuo.zheng@anl.gov).
 
 ## Citation and Reference
 The original CCGrid'21 paper describes the design and implementation of DLIO code. Please cite this paper if you use DLIO for your research. 
