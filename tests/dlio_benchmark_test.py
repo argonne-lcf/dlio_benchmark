@@ -574,6 +574,44 @@ def test_train(fmt, framework, dataloader, is_even) -> None:
 
 
 @pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
+@pytest.mark.parametrize("fmt, framework, dataloader, num_files, batch_size", [
+    ("npz", "pytorch", "pytorch", 13, 4),
+    ("npz", "pytorch", "pytorch", 24, 4),
+    ("npz", "pytorch", "pytorch", 25, 4),
+    ("npz", "pytorch", "pytorch", 145, 16),
+    ("npz", "tensorflow", "tensorflow", 13, 4),
+    ("npz", "tensorflow", "tensorflow", 24, 4),
+    ("npz", "tensorflow", "tensorflow", 25, 4),
+    ("npz", "tensorflow", "tensorflow", 145, 16),
+])
+def test_uneven_samples_deadlock(fmt, framework, dataloader, num_files, batch_size) -> None:
+    init()
+    clean()
+    if comm.rank == 0:
+        logging.info("")
+        logging.info("=" * 80)
+        logging.info(f" DLIO test: uneven sample deadlock prevention ({fmt}, {num_files} files, bs={batch_size})")
+        logging.info("=" * 80)
+    with initialize_config_dir(version_base=None, config_dir=config_dir):
+        cfg = compose(config_name='config', overrides=[
+            '++workload.workflow.train=True',
+            '++workload.workflow.generate_data=True',
+            f'++workload.framework={framework}',
+            f'++workload.reader.data_loader={dataloader}',
+            f'++workload.dataset.format={fmt}',
+            f'++workload.reader.batch_size={batch_size}',
+            '++workload.train.computation_time=0.01',
+            '++workload.evaluation.eval_time=0.005',
+            '++workload.train.epochs=3',
+            f'++workload.dataset.num_files_train={num_files}',
+            '++workload.reader.read_threads=1',
+        ])
+        benchmark = run_benchmark(cfg)
+    clean()
+    finalize()
+
+
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
                                             ("jpeg", "tensorflow"), ("tfrecord", "tensorflow"),
                                             ("hdf5", "tensorflow"), ("csv", "tensorflow"),
