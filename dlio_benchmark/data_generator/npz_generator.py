@@ -44,8 +44,16 @@ class NPZGenerator(DataGenerator):
     def generate(self):
         """
         Generator for creating data in NPZ format of 3d dataset.
-        Uses the base-class template for seeding, BytesIO, and put_data.
-        Bug fix: pass output.getvalue() (bytes) to put_data, not the BytesIO object.
+
+        Fast path (s3dlio available, no ZIP compression, object storage):
+            generate_npz_bytes() produces a BytesView in Rust (hardware CRC32,
+            Rayon fill, no GIL). _write() returns it directly; _generate_files()
+            passes it straight to put_data() → MultipartUploadWriter — zero copies
+            of the payload at any point in the Python layer.
+
+        Slow path (numpy fallback or local FS):
+            np.savez() writes into BytesIO; put_data() reads via getbuffer()
+            (zero-copy memoryview).
         """
         super().generate()
         dtype = self._args.record_element_dtype
@@ -69,9 +77,13 @@ class NPZGenerator(DataGenerator):
                 if is_local:
                     with open(output, "wb") as f:
                         f.write(npz_view)
+                    return None
                 else:
-                    output.write(npz_view)
-                return
+                    # Return the BytesView directly — zero-copy.
+                    # _generate_files() uses the return value as the upload
+                    # payload, bypassing the BytesIO write entirely.
+                    # No Python-side copy of the 140 MiB buffer occurs.
+                    return npz_view
             # ── Slow path: numpy fallback ─────────────────────────────────
             if isinstance(dim_, list):
                 records = gen_random_tensor(

@@ -23,7 +23,7 @@
 - **Parquet format** (new) — full schema-driven generation and reading. Supports mixed-dtype column schemas (`int32`, `float32`, `float16`, `uint8`, `bool`, etc.) with configurable embedding sizes, LZ4/ZSTD compression, and per-column filtering on reads. Legacy single-column mode is preserved for backward compatibility.
 
 ### Storage Backends
-- **S3 / S3-compatible object storage** (new) — three client libraries supported: [s3dlio](https://github.com/russfellows/s3dlio) (recommended, Rust-backed, multi-endpoint), [s3torchconnector](https://github.com/awslabs/s3-connector-for-pytorch) (PyTorch only), and the [MinIO Python SDK](https://min.io/docs/minio/linux/developers/python/API.html).
+- **S3 / S3-compatible object storage** (new) — three client libraries supported: [s3dlio](https://pypi.org/project/s3dlio/) (recommended, Rust-backed, multi-endpoint), [s3torchconnector](https://github.com/awslabs/s3-connector-for-pytorch) (PyTorch only), and the [MinIO Python SDK](https://min.io/docs/minio/linux/developers/python/API.html).
 - **Multi-endpoint load balancing** — `S3_ENDPOINT_URIS` distributes datagen write load across multiple S3 servers, one endpoint per MPI rank (round-robin). Eliminates single-node bottlenecks for large-scale data generation.
 - **Storage env-var overrides** — `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ENDPOINT_URL`, `AWS_REGION`, `DLIO_BUCKET`, `DLIO_STORAGE_TYPE`, and `DLIO_STORAGE_LIBRARY` are all read automatically; no YAML changes needed for credential injection.
 - **Post-generation settle guard** — configurable `post_generation_settle_seconds` for eventual-consistency object stores that need time to propagate written objects before training reads begin.
@@ -49,7 +49,7 @@ DLIO is an I/O benchmark for Deep Learning. DLIO is aimed at emulating the I/O b
 
 DLIO supports multiple storage backends out of the box:
 - **Local filesystem** — the default, for NFS, Lustre, GPFS, and local NVMe
-- **AWS S3 / S3-compatible object storage** — via [s3dlio](https://github.com/russfellows/s3dlio), [s3torchconnector](https://github.com/awslabs/s3-connector-for-pytorch), or the [MinIO Python SDK](https://min.io/docs/minio/linux/developers/python/API.html)
+- **AWS S3 / S3-compatible object storage** — via [s3dlio](https://pypi.org/project/s3dlio/), [s3torchconnector](https://github.com/awslabs/s3-connector-for-pytorch), or the [MinIO Python SDK](https://min.io/docs/minio/linux/developers/python/API.html)
 - **AIStore** — via the native AIStore Python SDK
 
 Object storage backends are configured through the `storage:` block in the workload YAML file (see [Object Storage Configuration](#object-storage-configuration) below).
@@ -224,7 +224,7 @@ Object storage is enabled by adding a `storage:` block to the workload YAML.  Th
 
 | `storage_library` | Description | Framework support |
 |---|---|---|
-| `s3dlio` | High-performance Rust-backed client via [s3dlio](https://github.com/russfellows/s3dlio). Parallel GET, range optimization, multi-endpoint load balancing. | PyTorch + TensorFlow |
+| `s3dlio` | High-performance Rust-backed client via [s3dlio](https://pypi.org/project/s3dlio/). Parallel GET, range optimization, multi-endpoint load balancing. | PyTorch + TensorFlow |
 | `s3torchconnector` | AWS S3 Connector for PyTorch — streaming single-file GET. | PyTorch only |
 | `minio` | MinIO Python SDK via `ThreadPoolExecutor`. | PyTorch + TensorFlow |
 
@@ -376,7 +376,7 @@ The YAML file is loaded through hydra (https://hydra.cc/). The default setting a
 
 * File format support: we only support tfrecord, hdf5, npz, csv, jpg, jpeg formats. Other data formats can be extended.
 
-* Storage backend support: we support local filesystem (`local_fs`), AWS S3 and S3-compatible object stores (`s3`), and AIStore (`aistore`). For S3 storage, three client libraries are available: [s3dlio](https://github.com/russfellows/s3dlio) (recommended), [s3torchconnector](https://github.com/awslabs/s3-connector-for-pytorch) (PyTorch only), and the [MinIO SDK](https://min.io/docs/minio/linux/developers/python/API.html). Other storage backends can be extended.
+* Storage backend support: we support local filesystem (`local_fs`), AWS S3 and S3-compatible object stores (`s3`), and AIStore (`aistore`). For S3 storage, three client libraries are available: [s3dlio](https://pypi.org/project/s3dlio/) (recommended), [s3torchconnector](https://github.com/awslabs/s3-connector-for-pytorch) (PyTorch only), and the [MinIO SDK](https://min.io/docs/minio/linux/developers/python/API.html). Other storage backends can be extended.
 
 * Data Loader support: we support reading datasets using TensorFlow tf.data data loader, PyTorch DataLoader, and a set of custom data readers implemented in ./reader. For TensorFlow tf.data data loader, PyTorch DataLoader  
   - We have complete support for tfrecord format in TensorFlow data loader. 

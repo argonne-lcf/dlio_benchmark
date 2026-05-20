@@ -131,6 +131,13 @@ class DataGenerator(ABC):
 
             storage.put_data(out_path_spec, output.getvalue())
 
+        **Zero-copy fast path**: if ``write_fn`` returns a non-None value it is
+        treated as the ready-to-upload payload and is passed directly to
+        ``put_data``, bypassing the ``BytesIO`` step entirely.  This is used by
+        ``NPZGenerator`` when s3dlio's ``generate_npz_bytes()`` is available:
+        the returned ``BytesView`` supports the buffer protocol so s3dlio can
+        upload it with a single zero-copy pass.
+
         **Parallel semantics** (Issue 10):
 
         Seeds are pre-derived sequentially in the main thread so that
@@ -165,12 +172,14 @@ class DataGenerator(ABC):
             progress(i + 1, self.total_files_to_generate, f"Generating {label}")
             output = out_path_spec if is_local else io.BytesIO()
             worker_rng = np.random.default_rng(seed=file_seed)
-            write_fn(i, dim_, dim1, dim2, file_seed, worker_rng,
-                     out_path_spec, is_local, output)
+            payload = write_fn(i, dim_, dim1, dim2, file_seed, worker_rng,
+                               out_path_spec, is_local, output)
             if not is_local:
-                # Pass BytesIO directly so put_data can use getbuffer() (zero-copy
-                # memoryview) instead of getvalue() which makes a full copy.
-                self.storage.put_data(out_path_spec, output)
+                # If write_fn returned a payload (e.g. s3dlio BytesView from
+                # generate_npz_bytes), use it directly — zero-copy, no BytesIO
+                # intermediary.  Otherwise fall back to the BytesIO content.
+                self.storage.put_data(out_path_spec,
+                                      payload if payload is not None else output)
 
         write_threads = getattr(self._args, 'write_threads', 1)
         n_workers = max(1, min(write_threads, len(jobs))) if jobs else 1
@@ -219,15 +228,19 @@ class DataGenerator(ABC):
                              f"Generating {label}")
                     output = io.BytesIO()
                     worker_rng = np.random.default_rng(seed=file_seed)
-                    # Generate in main thread (fast; Rust dgen or numpy)
-                    write_fn(i, dim_, dim1, dim2, file_seed, worker_rng,
-                             out_path_spec, False, output)
+                    # Generate in main thread (fast; Rust dgen or numpy).
+                    # A non-None return value is the ready-to-upload payload
+                    # (e.g. s3dlio BytesView from generate_npz_bytes) — use it
+                    # directly to skip the BytesIO intermediary copy.
+                    payload = write_fn(i, dim_, dim1, dim2, file_seed, worker_rng,
+                                       out_path_spec, False, output)
+                    upload_data = payload if payload is not None else output
                     # Block if n_workers uploads are already in flight
                     # (back-pressure to bound peak RAM usage).
                     _sem.acquire()
                     # Submit upload immediately; main thread continues generating.
                     _futures.append(
-                        pool.submit(_upload, out_path_spec, output, _sem)
+                        pool.submit(_upload, out_path_spec, upload_data, _sem)
                     )
                 # Wait for all in-flight uploads before leaving the with block.
                 for f in _futures:

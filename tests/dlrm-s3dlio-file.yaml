@@ -1,0 +1,62 @@
+# dlrm-s3dlio-file.yaml
+#
+# DLIO benchmark config for DLRM parquet dataset from a local file path.
+# Uses s3dlio's ParquetRowGroupDataset for row-group-granular I/O.
+# s3dlio handles file:// URIs with the same code path as s3://.
+#
+# Usage (single-process):
+#   python -m dlio_benchmark.main \
+#     --config-dir=. --config-name=dlrm-s3dlio-file
+
+model: dlrm_parquet_s3dlio_file
+
+framework: pytorch
+
+dataset:
+  format: parquet
+  storage_type: local
+  data_folder: /mnt/nvme/dlrm/train/train  # absolute path to parquet directory
+  num_files_train: 64
+  num_samples_per_file: 1000000        # 1M rows, 123 row groups @ 8192 rows/RG
+  record_length: 1024
+  record_length_stdev: 0
+  file_list_train: ""
+  storage_options:
+    storage_library: s3dlio           # selects ParquetReaderS3dlio for local paths too
+    prefetch: 8                       # smaller prefetch for NVMe (less latency)
+    footer_cap: 4194304
+
+data_loader:
+  read_threads: 1
+  prefetch_size: 0
+  read_type: on_demand
+
+train:
+  # DLRMv2 / B200 parameters from trace logs:
+  #   batch_size:        2048 real samples per GPU compute step
+  #   computation_time:  0.000770031 s per batch (B200 measured)
+  #
+  # I/O vs compute granularity:
+  #   1 Row Group  = ~256 real samples  = ~8.3 MiB byte-range GET
+  #   1 DLIO batch = 2048 real samples  = 8 Row Groups fetched
+  #
+  # With batch_size=2048 and num_samples_per_file=262144 the training
+  # loop runs ~8,192 steps/epoch and compute() is called 8,192 times
+  # (vs 16.7M times with batch_size=1).  The read_index fast-path
+  # (~50 ns/call) handles the 16.7M sample→RG bisect lookups.
+  computation_time: 0.000770031
+  epochs: 1
+  total_training_steps: -1
+  batch_size: 2048
+  seed_change_epoch: false
+
+evaluation:
+  eval_time: 0.0
+  epochs_between_evals: 0
+
+profiling:
+  profiler: none
+
+logging:
+  verbosity: INFO
+  log_file: dlio-s3dlio-file.log

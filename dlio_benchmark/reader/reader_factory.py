@@ -70,55 +70,28 @@ class ReaderFactory(object):
             elif _args.data_loader == DataLoaderType.NATIVE_DALI:
                 from dlio_benchmark.reader.dali_image_reader import DaliImageReader
                 return DaliImageReader(dataset_type, thread_index, epoch_number)
-            # Use S3 readers for both S3 and AIStore
-            elif _args.storage_type in (StorageType.S3, StorageType.AISTORE):
-                storage_library = (getattr(_args, "storage_options", {}) or {}).get("storage_library")
-                if storage_library in ("s3dlio", "s3torchconnector", "minio"):
-                    from dlio_benchmark.reader.image_reader_s3_iterable import ImageReaderS3Iterable
-                    return ImageReaderS3Iterable(dataset_type, thread_index, epoch_number)
-                # Fallthrough: unrecognized library — let ImageReader try (will fail with a clear PIL error)
-                from dlio_benchmark.reader.image_reader import ImageReader
-                return ImageReader(dataset_type, thread_index, epoch_number)
             else:
-                from dlio_benchmark.reader.image_reader import ImageReader
-                return ImageReader(dataset_type, thread_index, epoch_number)   
+                from dlio_benchmark.reader import create_image_reader
+                return create_image_reader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.NPY:
             if _args.data_loader == DataLoaderType.NATIVE_DALI:
                 from dlio_benchmark.reader.dali_npy_reader import DaliNPYReader
                 return DaliNPYReader(dataset_type, thread_index, epoch_number)
+            elif _args.odirect == True:
+                from dlio_benchmark.reader.npy_reader_odirect import NPYReaderODirect
+                return NPYReaderODirect(dataset_type, thread_index, epoch_number)
             else:
-                if _args.odirect == True:
-                    from dlio_benchmark.reader.npy_reader_odirect import NPYReaderODirect
-                    return NPYReaderODirect(dataset_type, thread_index, epoch_number)
-                # Use S3 readers for both S3 and AIStore
-                elif _args.storage_type in (StorageType.S3, StorageType.AISTORE):
-                    storage_library = (getattr(_args, "storage_options", {}) or {}).get("storage_library")
-                    if storage_library in ("s3dlio", "s3torchconnector", "minio"):
-                        from dlio_benchmark.reader.npy_reader_s3_iterable import NPYReaderS3Iterable
-                        return NPYReaderS3Iterable(dataset_type, thread_index, epoch_number)
-                    from dlio_benchmark.reader.npy_reader_s3 import NPYReaderS3
-                    return NPYReaderS3(dataset_type, thread_index, epoch_number)
-                else:
-                    from dlio_benchmark.reader.npy_reader import NPYReader
-                    return NPYReader(dataset_type, thread_index, epoch_number)                           
+                from dlio_benchmark.reader import create_npy_reader
+                return create_npy_reader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.NPZ:
             if _args.data_loader == DataLoaderType.NATIVE_DALI:
                 raise Exception("Loading data of %s format is not supported without framework data loader; please use npy format instead." %type)
+            elif _args.odirect == True:
+                from dlio_benchmark.reader.npz_reader_odirect import NPZReaderODIRECT
+                return NPZReaderODIRECT(dataset_type, thread_index, epoch_number)
             else:
-                if _args.odirect == True:
-                    from dlio_benchmark.reader.npz_reader_odirect import NPZReaderODIRECT
-                    return NPZReaderODIRECT(dataset_type, thread_index, epoch_number)         
-                # Use S3 readers for both S3 and AIStore
-                elif _args.storage_type in (StorageType.S3, StorageType.AISTORE):
-                    storage_library = (getattr(_args, "storage_options", {}) or {}).get("storage_library")
-                    if storage_library in ("s3dlio", "s3torchconnector", "minio"):
-                        from dlio_benchmark.reader.npz_reader_s3_iterable import NPZReaderS3Iterable
-                        return NPZReaderS3Iterable(dataset_type, thread_index, epoch_number)
-                    from dlio_benchmark.reader.npz_reader_s3 import NPZReaderS3
-                    return NPZReaderS3(dataset_type, thread_index, epoch_number)
-                else:
-                    from dlio_benchmark.reader.npz_reader import NPZReader
-                    return NPZReader(dataset_type, thread_index, epoch_number)
+                from dlio_benchmark.reader import create_npz_reader
+                return create_npz_reader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.TFRECORD:
             if _args.odirect == True:
                 raise Exception("O_DIRECT for %s format is not yet supported." %type)
@@ -154,12 +127,38 @@ class ReaderFactory(object):
         elif type == FormatType.PARQUET:
             if _args.odirect == True:
                 raise Exception("O_DIRECT for %s format is not yet supported." %type)
+            # s3dlio streaming loader: unified path for all URI schemes
+            # (s3://, file://, direct://, az://, gs://).
+            # Opt-in via storage_options.storage_library: s3dlio.
+            # Two decode modes (set storage_options.decode):
+            #   raw   (default) — no decode; pure I/O measurement
+            #   arrow           — Rust Arrow IPC decode via create_async_loader
+            storage_lib = (getattr(_args, "storage_options", {}) or {}).get("storage_library")
+            decode = (getattr(_args, "storage_options", {}) or {}).get("decode", "raw")
+            if storage_lib == "s3dlio":
+                if decode == "arrow":
+                    from dlio_benchmark.reader.parquet_reader_s3dlio_arrow import ParquetReaderS3dlioArrow
+                    return ParquetReaderS3dlioArrow(dataset_type, thread_index, epoch_number)
+                else:
+                    from dlio_benchmark.reader.parquet_reader_s3dlio import ParquetReaderS3dlio
+                    return ParquetReaderS3dlio(dataset_type, thread_index, epoch_number)
             elif _args.storage_type in (StorageType.S3, StorageType.AISTORE):
                 from dlio_benchmark.reader.parquet_reader_s3_iterable import ParquetReaderS3Iterable
                 return ParquetReaderS3Iterable(dataset_type, thread_index, epoch_number)
+            elif _args.storage_type in (StorageType.LOCAL_FS,):
+                # If storage_library=direct, reuse ParquetReaderS3Iterable with direct:// URIs
+                # (s3dlio O_DIRECT reads — bypasses page cache, true parity with S3 path).
+                # Fall back to ParquetReaderFileIterable for storage_library=posix (or unset).
+                if storage_lib == "direct":
+                    from dlio_benchmark.reader.parquet_reader_s3_iterable import ParquetReaderS3Iterable
+                    return ParquetReaderS3Iterable(dataset_type, thread_index, epoch_number)
+                else:
+                    from dlio_benchmark.reader.parquet_reader_file_iterable import ParquetReaderFileIterable
+                    return ParquetReaderFileIterable(dataset_type, thread_index, epoch_number)
             else:
                 from dlio_benchmark.reader.parquet_reader import ParquetReader
                 return ParquetReader(dataset_type, thread_index, epoch_number)
+
 
         else:
             raise Exception("Loading data of %s format is not supported without framework data loader" %type)

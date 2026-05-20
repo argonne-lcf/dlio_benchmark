@@ -104,6 +104,7 @@ class ParquetGenerator(DataGenerator):
         self.partition_by = getattr(self._args, 'parquet_partition_by', None)
         batch = getattr(self._args, 'parquet_generation_batch_size', 0)
         self.generation_batch_size = batch if batch > 0 else self.row_group_size
+        self.use_s3dlio_gen = getattr(self._args, 'parquet_use_s3dlio_gen', False)
 
     # ── Schema ───────────────────────────────────────────────────────────────
 
@@ -308,6 +309,20 @@ class ParquetGenerator(DataGenerator):
             progress(i + 1, self.total_files_to_generate, "Generating Parquet Data")
 
             out_path_spec = self.storage.get_uri(self._file_list[i])
+
+            # ── s3dlio pure-Rust generation path (streaming) ────────────────
+            # When enabled, hand off entirely to s3dlio.generate_and_write_parquet_schema_streaming().
+            # Row groups are pipelined: generation and multipart upload run
+            # concurrently — no full-file buffer, peak RAM ~2× one row group.
+            if self.use_s3dlio_gen and self.parquet_columns:
+                import s3dlio as _s3dlio
+                _cols = [(str(c.get('name', 'data')), int(c.get('size', 1)))
+                         for c in self.parquet_columns]
+                _num_rg = max(1, self.num_samples // self.row_group_size)
+                _s3dlio.generate_and_write_parquet_schema_streaming(
+                    out_path_spec, _cols, self.row_group_size, _num_rg)
+                continue
+            # ─────────────────────────────────────────────────────────────────
 
             dim_raw = dim[2 * i]
             if isinstance(dim_raw, list):

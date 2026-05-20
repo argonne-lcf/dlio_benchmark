@@ -164,3 +164,6 @@ dmypy.json
 .DS_Store
 /.idea/
 *venv*
+# Benchmark simulation output files
+sim_*.tsv
+sim_*.tsv.zst
