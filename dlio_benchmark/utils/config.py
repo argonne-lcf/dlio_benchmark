@@ -591,7 +591,7 @@ class ConfigArguments:
                     abs_path = os.path.abspath(file_list[file_index])
                     process_thread_file_map[thread_index].append((sample,
                                                 abs_path,
-                                                sample_list[sample_index] % self.num_samples_per_file))
+                                                sample_index % self.num_samples_per_file))
                     sample_index += 1
                     file_index = (sample_index // self.num_samples_per_file) % num_files
         return process_thread_file_map, samples_sum
