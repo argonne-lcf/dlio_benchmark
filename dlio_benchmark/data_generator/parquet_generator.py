@@ -20,7 +20,7 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from dlio_benchmark.common.enumerations import Compression
+from dlio_benchmark.common.enumerations import Compression, StorageType
 from dlio_benchmark.data_generator.data_generator import DataGenerator
 from dlio_benchmark.utils.utility import progress, gen_random_tensor, DLIOMPI
 import dgen_py as _dgen_py
@@ -314,7 +314,10 @@ class ParquetGenerator(DataGenerator):
             # When enabled, hand off entirely to s3dlio.generate_and_write_parquet_schema_streaming().
             # Row groups are pipelined: generation and multipart upload run
             # concurrently — no full-file buffer, peak RAM ~2× one row group.
-            if self.use_s3dlio_gen and self.parquet_columns:
+            # Restricted to object storage (S3/AISTORE): s3dlio requires an
+            # s3:// URI and raises RuntimeError for local paths (issue #385).
+            _s3_storage = (StorageType.S3, StorageType.AISTORE)
+            if self.use_s3dlio_gen and self.parquet_columns and self._args.storage_type in _s3_storage:
                 import s3dlio as _s3dlio
                 _cols = [(str(c.get('name', 'data')), int(c.get('size', 1)))
                          for c in self.parquet_columns]
