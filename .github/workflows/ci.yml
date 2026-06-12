@@ -201,6 +201,18 @@ jobs:
           mpirun -np 2 pytest -k test_train[mmap_indexed_binary-tensorflow-dali-False] -v
           mpirun -np 2 pytest -k test_train[mmap_indexed_binary-pytorch-dali-False] -v
           rm -rf data
+      - name: test_uneven_samples_deadlock
+        run: |
+          source ${VENV_PATH}/bin/activate
+          mpirun -np 3 --oversubscribe pytest -k "test_uneven_samples_deadlock[npz-pytorch-pytorch-13-4]" -v
+          mpirun -np 3 --oversubscribe pytest -k "test_uneven_samples_deadlock[npz-pytorch-pytorch-24-4]" -v
+          mpirun -np 3 --oversubscribe pytest -k "test_uneven_samples_deadlock[npz-pytorch-pytorch-25-4]" -v
+          mpirun -np 3 --oversubscribe pytest -k "test_uneven_samples_deadlock[npz-pytorch-pytorch-145-16]" -v
+          mpirun -np 3 --oversubscribe pytest -k "test_uneven_samples_deadlock[npz-tensorflow-tensorflow-13-4]" -v
+          mpirun -np 3 --oversubscribe pytest -k "test_uneven_samples_deadlock[npz-tensorflow-tensorflow-24-4]" -v
+          mpirun -np 3 --oversubscribe pytest -k "test_uneven_samples_deadlock[npz-tensorflow-tensorflow-25-4]" -v
+          mpirun -np 3 --oversubscribe pytest -k "test_uneven_samples_deadlock[npz-tensorflow-tensorflow-145-16]" -v
+          rm -rf data
       - name: test_custom_storage_root_train
         run: |
           source ${VENV_PATH}/bin/activate
