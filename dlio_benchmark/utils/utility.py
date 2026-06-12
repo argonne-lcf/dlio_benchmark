@@ -176,6 +176,8 @@ class DLIOLogger:
 # MPI cannot be initialized automatically, or read_thread spawn/forkserver
 # child processes will abort trying to open a non-existant PMI_fd file.
 import mpi4py
+mpi4py.rc.initialize = False
+mpi4py.rc.finalize = False
 p = psutil.Process()
 
 
