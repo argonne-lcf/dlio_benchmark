@@ -39,8 +39,9 @@ _EXT_MAP = {
     ".bin": "indexed_binary",
 }
 
-# Minimum read size to be considered a sample read (filters out metadata reads)
-_MIN_SAMPLE_READ = 512  # bytes
+# Minimum read size to be considered a sample read (filters out metadata reads).
+# Small image formats (PNG/JPEG) can be <512 bytes; use 32 bytes as the floor.
+_MIN_SAMPLE_READ = 32  # bytes
 
 
 @dataclass
@@ -97,6 +98,9 @@ class SchemaExtractor:
     def _in_data_roots(self, filename: str | None) -> bool:
         if not filename or not self.data_roots:
             return True  # no filter → accept everything
+        # Synthetic fhash filenames (from preload traces) always pass through
+        if filename.startswith("__fhash__"):
+            return True
         # Preload traces may record different path aliases for the same filesystem
         fn_real = os.path.realpath(filename) if filename else filename
         return any(

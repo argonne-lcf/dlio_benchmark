@@ -75,6 +75,20 @@ def _parse_line(line: str) -> TraceEvent | None:
         return None
 
     args = obj.get("args", {})
+
+    # dftracer v0.0.dev1 preload traces store hashed identifiers instead of
+    # plaintext paths. Use fhash as a synthetic filename so fd-to-file
+    # grouping still works (open64 and read events share the same fhash).
+    filename = (
+        args.get("filename")
+        or args.get("path")
+        or args.get("pathname")
+        or (f"__fhash__{args['fhash']}" if "fhash" in args else None)
+    )
+    # Actual bytes read is in 'ret'; 'size' is the legacy field name.
+    # 'count' is the requested buffer size (often much larger than ret).
+    size = args.get("size") or args.get("ret")
+
     return TraceEvent(
         name=obj.get("name", ""),
         cat=obj.get("cat", ""),
@@ -82,9 +96,9 @@ def _parse_line(line: str) -> TraceEvent | None:
         dur=float(obj.get("dur", 0)),
         pid=int(obj.get("pid", 0)),
         tid=int(obj.get("tid", 0)),
-        filename=args.get("filename") or args.get("path"),
-        size=args.get("size"),
-        extra={k: v for k, v in args.items() if k not in ("filename", "path", "size")},
+        filename=filename,
+        size=size,
+        extra={k: v for k, v in args.items() if k not in ("filename", "path", "pathname", "fhash", "size", "ret")},
     )
 
 
