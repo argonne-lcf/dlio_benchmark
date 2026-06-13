@@ -88,10 +88,11 @@ def generate_yaml(schema: DLIOSchema, output_path: str, workload_name: str = "au
 
     # --- workflow ---
     lines.append("workflow:")
-    emit("generate_data", "False", indent=1)
-    emit("train", "True", indent=1)
+    # Use Python booleans directly — YAML True/False are unambiguous
+    lines.append("  generate_data: False")
+    lines.append("  train: True")
     if _val(schema.do_checkpoint):
-        emit("checkpoint", "True", schema.do_checkpoint, indent=1)
+        lines.append("  checkpoint: True")
     lines.append("")
 
     # --- dataset ---

@@ -16,6 +16,7 @@
 """
 import logging
 import math
+import os
 import statistics
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
@@ -87,21 +88,33 @@ def _mode(values: list) -> tuple:
 
 class SchemaExtractor:
     def __init__(self, data_roots: list[str] | None = None):
-        self.data_roots = [str(Path(r).resolve()) for r in (data_roots or [])]
+        # Store both the raw roots and their realpath equivalents so we match
+        # Lustre paths (/lus/eagle/...) and NFS aliases (/eagle/...) equally.
+        raw = [str(Path(r).resolve()) for r in (data_roots or [])]
+        real = [os.path.realpath(r) for r in raw]
+        self.data_roots = list(dict.fromkeys(raw + real))  # dedup, order-preserving
 
     def _in_data_roots(self, filename: str | None) -> bool:
         if not filename or not self.data_roots:
-            return True  # no filter applied
-        return any(filename.startswith(root) for root in self.data_roots)
+            return True  # no filter → accept everything
+        # Preload traces may record different path aliases for the same filesystem
+        fn_real = os.path.realpath(filename) if filename else filename
+        return any(
+            filename.startswith(root) or fn_real.startswith(root)
+            for root in self.data_roots
+        )
 
     def extract(self, events: list[TraceEvent]) -> DLIOSchema:
         schema = DLIOSchema()
 
+        # POSIX preload traces: read() uses file descriptors, not paths, so
+        # filename is often None. Accept all read events with a size — they are
+        # all data reads during training.
         read_events = [
             e for e in events
             if e.name in ("read", "pread64", "pread") and e.is_io()
             and e.size and e.size >= _MIN_SAMPLE_READ
-            and self._in_data_roots(e.filename)
+            and (e.filename is None or self._in_data_roots(e.filename))
         ]
         open_events = [
             e for e in events
@@ -118,7 +131,7 @@ class SchemaExtractor:
         self._extract_format(schema, open_events)
         self._extract_file_inventory(schema, open_events)
         self._extract_record_length(schema, read_events)
-        self._extract_samples_per_file(schema, read_events)
+        self._extract_samples_per_file(schema, read_events, open_events)
         self._extract_batch_and_threads(schema, read_events)
         self._extract_computation_time(schema, read_events)
         self._extract_shuffle(schema, open_events, read_events)
@@ -186,27 +199,38 @@ class SchemaExtractor:
             source=f"stdev of read sizes (cv={cv:.2f})"
         )
 
-    def _extract_samples_per_file(self, schema: DLIOSchema, reads: list[TraceEvent]) -> None:
-        if not schema.record_length:
-            return
-        record_len = schema.record_length.value
-        if record_len == 0:
-            return
-        # Count reads per file and use median
+    def _extract_samples_per_file(self, schema: DLIOSchema,
+                                   reads: list[TraceEvent],
+                                   opens: list[TraceEvent] | None = None) -> None:
+        # Primary path: count reads per file when filenames are available
         reads_per_file: dict[str, int] = defaultdict(int)
         for ev in reads:
             if ev.filename:
                 reads_per_file[ev.filename] += 1
-        if not reads_per_file:
+
+        if reads_per_file:
+            counts = list(reads_per_file.values())
+            median_count = int(statistics.median(counts))
+            n = len(counts)
+            schema.num_samples_per_file = ParameterEstimate(
+                value=median_count, confidence=_confidence_from_count(n),
+                source=f"median reads per file across {n} files"
+            )
             return
-        counts = list(reads_per_file.values())
-        median_count = int(statistics.median(counts))
-        n = len(counts)
-        conf = _confidence_from_count(n)
-        schema.num_samples_per_file = ParameterEstimate(
-            value=median_count, confidence=conf,
-            source=f"median reads per file across {n} files"
-        )
+
+        # Fallback for preload traces (read() has no filename): estimate from
+        # total reads ÷ unique files opened in data_roots.
+        if opens and schema.num_files_train and len(reads) > 0:
+            n_files = schema.num_files_train.value
+            if n_files > 0:
+                # total reads / files_seen gives reads-per-file per epoch
+                n_epochs = schema.epochs.value if schema.epochs else 1
+                per_file = max(1, round(len(reads) / max(n_files, 1) / n_epochs))
+                schema.num_samples_per_file = ParameterEstimate(
+                    value=per_file,
+                    confidence=Confidence.LOW,
+                    source=f"estimated: {len(reads)} reads / {n_files} files / {n_epochs} epochs"
+                )
 
     def _extract_batch_and_threads(self, schema: DLIOSchema, reads: list[TraceEvent]) -> None:
         if len(reads) < 2:
