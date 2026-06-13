@@ -14,6 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+import gzip
 import json
 import logging
 from dataclasses import dataclass, field
@@ -99,8 +100,12 @@ def parse_traces(pfw_paths: list[Path], data_roots: list[str] | None = None) -> 
         if not path.exists():
             logger.warning(f"Trace file not found: {path}")
             continue
-        logger.info(f"Parsing {path} ({path.stat().st_size // 1024} KB)")
-        with open(path, "r", errors="replace") as fh:
+        size_kb = path.stat().st_size // 1024
+        logger.info(f"Parsing {path} ({size_kb} KB)")
+        # Support both plain .pfw and gzip-compressed .pfw.gz
+        opener = gzip.open if path.suffix == ".gz" else open
+        mode = "rt" if path.suffix == ".gz" else "r"
+        with opener(path, mode, errors="replace") as fh:
             for line in fh:
                 ev = _parse_line(line)
                 if ev is None:
@@ -118,10 +123,14 @@ def parse_traces(pfw_paths: list[Path], data_roots: list[str] | None = None) -> 
     return events
 
 
-def find_trace_files(trace_dir: str, pattern: str = "*.pfw") -> list[Path]:
-    """Return all .pfw files under trace_dir, sorted by rank number."""
-    paths = sorted(Path(trace_dir).glob(pattern))
+def find_trace_files(trace_dir: str, pattern: str = "*.pfw*") -> list[Path]:
+    """Return all .pfw and .pfw.gz files under trace_dir, sorted by rank number.
+
+    dftracer >= 0.0.dev1 writes gzip-compressed .pfw.gz files; older versions
+    write plain .pfw. Both are supported by parse_traces().
+    """
+    d = Path(trace_dir)
+    paths = sorted(d.glob("*.pfw")) + sorted(d.glob("*.pfw.gz"))
     if not paths:
-        # Also try .json (some dftracer versions)
-        paths = sorted(Path(trace_dir).glob("*.json"))
-    return paths
+        paths = sorted(d.glob("*.json"))
+    return sorted(set(paths))

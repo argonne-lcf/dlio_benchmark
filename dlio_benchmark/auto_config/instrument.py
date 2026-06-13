@@ -261,7 +261,12 @@ class DLTrainingTracer:
     def _native_available(self) -> bool:
         try:
             from dftracer.python.common import profiler, NoOpProfiler
-            return not isinstance(profiler, NoOpProfiler)
+            # dftracer >= 0.0.dev1: native backend type is 'module' (C extension);
+            # older pydftracer-based builds: not isinstance(profiler, NoOpProfiler)
+            if isinstance(profiler, NoOpProfiler):
+                return False
+            # module type = native C++ backend loaded successfully
+            return type(profiler).__name__ != "NoOpProfiler"
         except Exception:
             return False
 
