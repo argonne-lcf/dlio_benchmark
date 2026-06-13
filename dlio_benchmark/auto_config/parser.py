@@ -67,6 +67,9 @@ def _parse_line(line: str) -> TraceEvent | None:
     except json.JSONDecodeError:
         return None
 
+    # Preload traces can emit bare integers (timestamps/sizes) as top-level values
+    if not isinstance(obj, dict):
+        return None
     # Skip metadata events (ph != "X")
     if obj.get("ph") != "X":
         return None
@@ -130,7 +133,12 @@ def find_trace_files(trace_dir: str, pattern: str = "*.pfw*") -> list[Path]:
     write plain .pfw. Both are supported by parse_traces().
     """
     d = Path(trace_dir)
-    paths = sorted(d.glob("*.pfw")) + sorted(d.glob("*.pfw.gz"))
+    seen = set()
+    paths = []
+    for p in sorted(d.glob("*.pfw")) + sorted(d.glob("*.pfw.gz")):
+        if p not in seen:
+            seen.add(p)
+            paths.append(p)
     if not paths:
         paths = sorted(d.glob("*.json"))
-    return sorted(set(paths))
+    return paths
