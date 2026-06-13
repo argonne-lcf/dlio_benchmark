@@ -289,7 +289,10 @@ class SchemaExtractor:
         if config_events:
             ev = config_events[0]
             # PythonIOTracer stores in extra dict; native dftracer uses image_size
-            bs = ev.extra.get("batch_size") or ev.size  # size = image_size field
+            # PythonIOTracer stores in extra; native dftracer stores as image_size
+            bs = (ev.extra.get("batch_size")
+                  or ev.extra.get("image_size")  # native dftracer Profile field
+                  or ev.size)
             if bs and int(bs) > 0:
                 schema.batch_size = ParameterEstimate(
                     value=int(bs), confidence=Confidence.HIGH,
