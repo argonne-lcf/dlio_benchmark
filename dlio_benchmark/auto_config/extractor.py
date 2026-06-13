@@ -98,8 +98,9 @@ class SchemaExtractor:
     def _in_data_roots(self, filename: str | None) -> bool:
         if not filename or not self.data_roots:
             return True  # no filter → accept everything
-        # Synthetic fhash filenames (from preload traces) always pass through
-        if filename.startswith("__fhash__"):
+        # Synthetic fhash filenames (from preload traces) always pass through.
+        # Check with 'in' in case resolve() prepended a CWD.
+        if "__fhash__" in filename:
             return True
         # Preload traces may record different path aliases for the same filesystem
         fn_real = os.path.realpath(filename) if filename else filename
@@ -133,8 +134,8 @@ class SchemaExtractor:
         app_events = [e for e in events if e.is_app()]
 
         self._extract_format(schema, open_events)
-        self._extract_file_inventory(schema, open_events)
-        self._extract_record_length(schema, read_events)
+        self._extract_record_length(schema, read_events)  # must run before file_inventory
+        self._extract_file_inventory(schema, open_events, read_events)
         self._extract_samples_per_file(schema, read_events, open_events)
         self._extract_batch_and_threads(schema, read_events)
         self._extract_computation_time(schema, read_events)
@@ -149,11 +150,22 @@ class SchemaExtractor:
     def _extract_format(self, schema: DLIOSchema, opens: list[TraceEvent]) -> None:
         exts = []
         for ev in opens:
-            if ev.filename:
+            if ev.filename and "__fhash__" not in ev.filename:
                 ext = Path(ev.filename).suffix.lower()
                 if ext in _EXT_MAP:
                     exts.append(ext)
         if not exts:
+            # fhash traces: can't determine format from hashes alone;
+            # infer from data_roots path if possible
+            if self.data_roots:
+                root = self.data_roots[0]
+                for ext, fmt in _EXT_MAP.items():
+                    if ext.lstrip(".") in root.lower():
+                        schema.format = ParameterEstimate(
+                            value=fmt, confidence=Confidence.LOW,
+                            source=f"format inferred from data_roots path ({root})"
+                        )
+                        break
             return
         mode_ext, frac = _mode(exts)
         fmt = _EXT_MAP[mode_ext]
@@ -163,27 +175,43 @@ class SchemaExtractor:
             source=f"file extension '{mode_ext}' in {frac*100:.0f}% of {len(exts)} opens"
         )
         # Set data_folder as common prefix of opened data files
-        data_files = [ev.filename for ev in opens if ev.filename and Path(ev.filename).suffix.lower() in _EXT_MAP]
+        data_files = [ev.filename for ev in opens
+                      if ev.filename and Path(ev.filename).suffix.lower() in _EXT_MAP]
         if data_files:
-            common = str(Path(data_files[0]).parent)
             schema.data_folder = ParameterEstimate(
-                value=common, confidence=Confidence.MEDIUM,
+                value=str(Path(data_files[0]).parent), confidence=Confidence.MEDIUM,
                 source="common parent of opened data files"
             )
 
-    def _extract_file_inventory(self, schema: DLIOSchema, opens: list[TraceEvent]) -> None:
-        data_files = set()
-        for ev in opens:
-            if ev.filename and Path(ev.filename).suffix.lower() in _EXT_MAP:
-                data_files.add(ev.filename)
-        n = len(data_files)
-        if n == 0:
+    def _extract_file_inventory(self, schema: DLIOSchema, opens: list[TraceEvent],
+                                 reads: list[TraceEvent] | None = None) -> None:
+        # Primary: files with real extensions
+        data_files = {
+            ev.filename for ev in opens
+            if ev.filename and Path(ev.filename).suffix.lower() in _EXT_MAP
+        }
+        if data_files:
+            n = len(data_files)
+            schema.num_files_train = ParameterEstimate(
+                value=n, confidence=_confidence_from_count(n),
+                source=f"{n} unique data files opened"
+            )
             return
-        conf = _confidence_from_count(n)
-        schema.num_files_train = ParameterEstimate(
-            value=n, confidence=conf,
-            source=f"{n} unique data files opened"
-        )
+
+        # Fallback for fhash traces: use unique fhashes from reads whose size
+        # matches the modal read size (data reads, not metadata/venv reads).
+        if reads and schema.record_length:
+            modal_size = schema.record_length.value
+            # Accept reads within ±50% of modal size
+            lo, hi = modal_size * 0.5, modal_size * 2.0
+            data_reads = [e for e in reads if e.filename and e.size and lo <= e.size <= hi]
+            data_fhashes = {e.filename for e in data_reads}
+            n = len(data_fhashes)
+            if n > 0:
+                schema.num_files_train = ParameterEstimate(
+                    value=n, confidence=Confidence.LOW,
+                    source=f"{n} unique fhashes with data-range read sizes (~{modal_size}B)"
+                )
 
     def _extract_record_length(self, schema: DLIOSchema, reads: list[TraceEvent]) -> None:
         sizes = [e.size for e in reads if e.size]

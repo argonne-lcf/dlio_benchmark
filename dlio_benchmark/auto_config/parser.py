@@ -127,8 +127,8 @@ def parse_traces(pfw_paths: list[Path], data_roots: list[str] | None = None) -> 
                 ev = _parse_line(line)
                 if ev is None:
                     continue
-                # Resolve filename relative to data roots
-                if ev.filename:
+                # Resolve real paths; leave synthetic __fhash__ filenames as-is
+                if ev.filename and not ev.filename.startswith("__fhash__"):
                     try:
                         ev.filename = str(Path(ev.filename).resolve())
                     except Exception:
