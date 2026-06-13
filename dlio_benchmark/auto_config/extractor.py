@@ -282,20 +282,32 @@ class SchemaExtractor:
             source=f"{len(tids)} distinct TIDs issued read calls"
         )
 
-        # ── Batch size: prefer APP batch markers over burst detection ──────────
-        # With multi-worker DataLoaders, reads from different workers interleave,
-        # making burst detection see per-worker micro-reads (batch_size/num_workers)
-        # instead of the full batch. APP 'batch' markers are ground truth.
+        # ── Batch size: read directly from dlio_config APP event ──────────────
+        # DLTrainingTracer.emit_config() emits a 'dlio_config' event with the
+        # exact batch_size from the DataLoader — no inference needed.
+        config_events = [e for e in (app_events or []) if e.name == "dlio_config"]
+        if config_events:
+            ev = config_events[0]
+            # PythonIOTracer stores in extra dict; native dftracer uses image_size
+            bs = ev.extra.get("batch_size") or ev.size  # size = image_size field
+            if bs and int(bs) > 0:
+                schema.batch_size = ParameterEstimate(
+                    value=int(bs), confidence=Confidence.HIGH,
+                    source="dlio_config APP event (direct from DataLoader)"
+                )
+                return
+
+        # ── Fallback: estimate from APP batch markers ─────────────────────────
+        # Approximate — inflated by DataLoader prefetch (~1-2 extra reads/batch)
         batch_markers = [e for e in (app_events or []) if e.name == "batch"]
         n_epochs = schema.epochs.value if schema.epochs else 1
 
         if batch_markers and len(reads) >= len(batch_markers):
-            # batch_size = total_data_reads / total_batch_count
             batch_size = round(len(reads) / len(batch_markers))
-            conf = Confidence.HIGH if len(batch_markers) >= 10 else Confidence.MEDIUM
+            conf = Confidence.MEDIUM if len(batch_markers) >= 10 else Confidence.LOW
             schema.batch_size = ParameterEstimate(
                 value=int(batch_size), confidence=conf,
-                source=f"{len(reads)} reads / {len(batch_markers)} APP batch markers"
+                source=f"approx: {len(reads)} reads / {len(batch_markers)} batch markers (prefetch may inflate)"
             )
         else:
             # Fallback: burst detection on the merged read timeline

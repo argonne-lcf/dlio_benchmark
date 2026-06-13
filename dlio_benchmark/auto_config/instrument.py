@@ -270,6 +270,38 @@ class DLTrainingTracer:
         except Exception:
             return False
 
+    def emit_config(self, batch_size: int, num_workers: int = 0,
+                    num_samples: int = 0, **kwargs) -> None:
+        """Emit training configuration as a zero-duration APP event.
+
+        Call this after initialize() and before the first epoch so that the
+        extractor can read batch_size directly from the trace rather than
+        approximating it from POSIX read counts.
+
+        Args:
+            batch_size:   DataLoader batch size.
+            num_workers:  DataLoader num_workers.
+            num_samples:  Total dataset samples (optional).
+        """
+        if self._Profile is not None:
+            # dftracer Profile only accepts epoch/step/image_idx/image_size;
+            # emit a zero-duration APP event with metadata encoded in image_size.
+            # We use a dedicated 'dlio_config' name so the extractor can find it.
+            try:
+                from dftracer.python import dft_fn as Profile
+                with Profile(cat="APP", name="dlio_config",
+                             image_size=batch_size, step=num_workers):
+                    pass
+            except Exception:
+                pass
+        elif self._py_tracer is not None:
+            ts = self._py_tracer._ts_us()
+            self._py_tracer.emit_app("dlio_config", ts, 0.001,
+                                     batch_size=batch_size,
+                                     num_workers=num_workers,
+                                     num_samples=num_samples,
+                                     **kwargs)
+
     def initialize(self) -> None:
         """Initialize tracing. Call once before the training loop starts."""
         if self._native_available():
