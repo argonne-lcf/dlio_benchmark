@@ -137,7 +137,7 @@ class SchemaExtractor:
         self._extract_record_length(schema, read_events)  # must run before file_inventory
         self._extract_file_inventory(schema, open_events, read_events)
         self._extract_samples_per_file(schema, read_events, open_events)
-        self._extract_batch_and_threads(schema, read_events)
+        self._extract_batch_and_threads(schema, read_events, app_events)
         self._extract_computation_time(schema, read_events)
         self._extract_shuffle(schema, open_events, read_events)
         self._extract_framework(schema, open_events, app_events)
@@ -164,6 +164,11 @@ class SchemaExtractor:
                         schema.format = ParameterEstimate(
                             value=fmt, confidence=Confidence.LOW,
                             source=f"format inferred from data_roots path ({root})"
+                        )
+                        # Also set data_folder from the data_root
+                        schema.data_folder = ParameterEstimate(
+                            value=root, confidence=Confidence.LOW,
+                            source="data_roots path (fhash trace — verify)"
                         )
                         break
             return
@@ -264,11 +269,12 @@ class SchemaExtractor:
                     source=f"estimated: {len(reads)} reads / {n_files} files / {n_epochs} epochs"
                 )
 
-    def _extract_batch_and_threads(self, schema: DLIOSchema, reads: list[TraceEvent]) -> None:
+    def _extract_batch_and_threads(self, schema: DLIOSchema, reads: list[TraceEvent],
+                                    app_events: list[TraceEvent] | None = None) -> None:
         if len(reads) < 2:
             return
 
-        # Group reads by TID to count threads
+        # Thread count: distinct TIDs among data reads
         tids = {e.tid for e in reads}
         schema.read_threads = ParameterEstimate(
             value=len(tids),
@@ -276,41 +282,49 @@ class SchemaExtractor:
             source=f"{len(tids)} distinct TIDs issued read calls"
         )
 
-        # Batch inference: find gaps between read bursts
-        timestamps = sorted(e.ts for e in reads)
-        gaps = [timestamps[i+1] - timestamps[i] for i in range(len(timestamps)-1)]
-        if not gaps:
-            return
-        median_gap = statistics.median(gaps)
+        # ── Batch size: prefer APP batch markers over burst detection ──────────
+        # With multi-worker DataLoaders, reads from different workers interleave,
+        # making burst detection see per-worker micro-reads (batch_size/num_workers)
+        # instead of the full batch. APP 'batch' markers are ground truth.
+        batch_markers = [e for e in (app_events or []) if e.name == "batch"]
+        n_epochs = schema.epochs.value if schema.epochs else 1
 
-        # A "burst boundary" is a gap > 10x the median inter-read gap
-        burst_threshold = median_gap * 10
-        burst_sizes = []
-        current = 1
-        for g in gaps:
-            if g > burst_threshold:
-                burst_sizes.append(current)
-                current = 1
-            else:
-                current += 1
-        burst_sizes.append(current)
+        if batch_markers and len(reads) >= len(batch_markers):
+            # batch_size = total_data_reads / total_batch_count
+            batch_size = round(len(reads) / len(batch_markers))
+            conf = Confidence.HIGH if len(batch_markers) >= 10 else Confidence.MEDIUM
+            schema.batch_size = ParameterEstimate(
+                value=int(batch_size), confidence=conf,
+                source=f"{len(reads)} reads / {len(batch_markers)} APP batch markers"
+            )
+        else:
+            # Fallback: burst detection on the merged read timeline
+            timestamps = sorted(e.ts for e in reads)
+            gaps = [timestamps[i+1] - timestamps[i] for i in range(len(timestamps)-1)]
+            if not gaps:
+                return
+            median_gap = statistics.median(gaps)
+            burst_threshold = median_gap * 10
+            burst_sizes, current = [], 1
+            for g in gaps:
+                if g > burst_threshold:
+                    burst_sizes.append(current)
+                    current = 1
+                else:
+                    current += 1
+            burst_sizes.append(current)
 
-        if not burst_sizes:
-            return
-        batch_mode, frac = _mode(burst_sizes)
-        n = len(burst_sizes)
-        conf = _confidence_from_count(n, 0.0 if frac > 0.8 else 0.5)
-        schema.batch_size = ParameterEstimate(
-            value=int(batch_mode), confidence=conf,
-            source=f"modal burst size={batch_mode} ({frac*100:.0f}% of {n} bursts)"
-        )
+            batch_mode, frac = _mode(burst_sizes)
+            n = len(burst_sizes)
+            conf = _confidence_from_count(n, 0.0 if frac > 0.8 else 0.5)
+            schema.batch_size = ParameterEstimate(
+                value=int(batch_mode), confidence=conf,
+                source=f"modal burst size={batch_mode} ({frac*100:.0f}% of {n} bursts)"
+            )
 
-        # Prefetch: detect overlap between I/O bursts and compute gaps
-        # If reads start before the previous burst's compute gap ends, prefetch is active
-        if n >= 3:
+        if schema.batch_size and (app_events or len(reads) > 20):
             schema.prefetch_size = ParameterEstimate(
-                value=2,  # default conservative estimate
-                confidence=Confidence.LOW,
+                value=2, confidence=Confidence.LOW,
                 source="default estimate; overlap analysis requires epoch markers"
             )
 
