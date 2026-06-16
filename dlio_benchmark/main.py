@@ -444,18 +444,35 @@ class DLIOBenchmark(object):
             if self.do_eval:
                 self.framework.get_loader(dataset_type=DatasetType.VALID).read()
             self.comm.barrier()
+            # Skip the per-epoch page-cache flush after the first failure so a host
+            # without NOPASSWD sudo doesn't pay the failure cost on every epoch and
+            # the warning fires exactly once.  See mlcommons/storage issue #391.
+            drop_caches_disabled = False
             for epoch in dft_ai.pipeline.epoch.iter(range(1, self.epochs + 1), include_iter=False):
                 # Flush page cache before each epoch so reads bypass the OS buffer cache.
-                # Rank 0 does the flush via sudo; all ranks barrier-wait so no rank starts
-                # reading stale cached data.
-                if self.my_rank == 0:
+                # Rank 0 does the flush via sudo -n (non-interactive); all ranks barrier-
+                # wait so no rank starts reading stale cached data.  If sudo requires a
+                # password (or isn't installed) -n exits immediately with non-zero — we
+                # log a single warning and stop trying.  This avoids the interactive
+                # password prompt that hung issue #391 for ~16 hours.
+                if self.my_rank == 0 and not drop_caches_disabled:
                     try:
                         subprocess.run(
-                            ["sudo", "sh", "-c", "echo 3 > /proc/sys/vm/drop_caches"],
-                            check=True, timeout=30
+                            ["sudo", "-n", "sh", "-c", "echo 3 > /proc/sys/vm/drop_caches"],
+                            check=True, timeout=30,
+                            stdin=subprocess.DEVNULL,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.PIPE,
                         )
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        drop_caches_disabled = True
+                        self.logger.warning(
+                            f"Could not flush page cache between epochs: {exc}. "
+                            "Per-epoch reads may be served from the OS buffer cache, "
+                            "inflating throughput numbers. To enable, configure "
+                            "passwordless sudo for `sh -c 'echo 3 > /proc/sys/vm/"
+                            "drop_caches'`."
+                        )
                 self.comm.barrier()
                 self.stats.start_epoch(epoch)
                 self.next_checkpoint_step = self.steps_between_checkpoints
