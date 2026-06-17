@@ -27,11 +27,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Pages
-        uses: actions/configure-pages@v2
+        uses: actions/configure-pages@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Install Dependencies
         run: |
-          sudo apt-get install python3-sphinx
-          pip install sphinx_rtd_theme
+          python -m pip install --upgrade pip
+          pip install sphinx sphinx_rtd_theme
       - name: Build with Sphinx
         run: |
           cd ./docs
