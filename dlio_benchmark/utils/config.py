@@ -437,6 +437,15 @@ class ConfigArguments:
                     "Missing required S3 credentials for s3torchconnector: " + ", ".join(missing)
                 )
 
+        # MSC specific checks
+        if self.storage_type == StorageType.MSC:
+            try:
+                import multistorageclient
+            except ImportError:
+                raise Exception(
+                    "The multi-storage-client package is required for MSC storage but is not installed. "
+                    "Install it with: pip install multi-storage-client"
+                )
 
     @staticmethod
     def reset():
@@ -450,6 +459,8 @@ class ConfigArguments:
             elif self.framework == FrameworkType.PYTORCH:
                 if self.storage_type == StorageType.S3:
                     self.checkpoint_mechanism = CheckpointMechanismType.PT_S3_SAVE
+                elif self.storage_type == StorageType.MSC:
+                    self.checkpoint_mechanism = CheckpointMechanismType.PT_MSC_SAVE
                 else:
                     self.checkpoint_mechanism = CheckpointMechanismType.PT_SAVE
 

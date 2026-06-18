@@ -100,12 +100,18 @@ class ReaderFactory(object):
         elif type == FormatType.INDEXED_BINARY:
             if _args.odirect == True:
                 raise Exception("O_DIRECT for %s format is not yet supported." %type)
+            elif _args.storage_type == StorageType.MSC:
+                from dlio_benchmark.reader.indexed_binary_msc_reader import IndexedBinaryMscReader
+                return IndexedBinaryMscReader(dataset_type, thread_index, epoch_number)
             else:
                 from dlio_benchmark.reader.indexed_binary_reader import IndexedBinaryReader
                 return IndexedBinaryReader(dataset_type, thread_index, epoch_number)
         elif type == FormatType.MMAP_INDEXED_BINARY:
             if _args.odirect == True:
                 raise Exception("O_DIRECT for %s format is not yet supported." %type)
+            elif _args.storage_type == StorageType.MSC:
+                from dlio_benchmark.reader.indexed_binary_msc_reader import IndexedBinaryMscReader
+                return IndexedBinaryMscReader(dataset_type, thread_index, epoch_number)
             else:
                 from dlio_benchmark.reader.indexed_binary_mmap_reader import IndexedBinaryMMapReader
                 return IndexedBinaryMMapReader(dataset_type, thread_index, epoch_number)
