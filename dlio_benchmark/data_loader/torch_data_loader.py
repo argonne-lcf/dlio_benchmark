@@ -25,7 +25,7 @@ from dlio_benchmark.common.constants import MODULE_DATA_LOADER
 from dlio_benchmark.common.enumerations import DatasetType, DataLoaderType
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
-from dlio_benchmark.utils.utility import utcnow, DLIOMPI, Profile, dft_ai
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI, DLIOLogger, Profile, dft_ai
 from dlio_benchmark.utils.config import ConfigArguments
 
 dlp = Profile(MODULE_DATA_LOADER)
@@ -415,16 +415,35 @@ class dlio_sampler(Sampler):
         self.rank = rank
         self.num_samples = num_samples
         self.epochs = epochs
-        samples_per_proc = int(math.ceil(num_samples/size)) 
+        # Use floor division so every rank gets the same sample count. With
+        # math.ceil() the last rank was clamped to fewer samples than its
+        # peers when num_samples % size != 0; mismatched per-rank batch
+        # counts caused the per-step and end-of-epoch barriers in main._train()
+        # to match across iterations and deadlock at the next epoch boundary.
+        # The trailing (num_samples % size) samples are dropped on purpose;
+        # pick num_samples as a multiple of comm_size to use every sample.
+        samples_per_proc = num_samples // size
         start_sample = self.rank * samples_per_proc
         end_sample = (self.rank + 1) * samples_per_proc - 1
-        if end_sample > num_samples - 1:
-            end_sample = num_samples - 1
         self.indices = list(range(start_sample, end_sample + 1))
+        dropped = num_samples - samples_per_proc * size
+        if dropped > 0 and self.rank == 0:
+            DLIOLogger.get_instance().warning(
+                f"{utcnow()} dlio_sampler: dropping {dropped} sample(s) — "
+                f"num_samples ({num_samples}) is not a multiple of comm_size "
+                f"({size}). Each rank will process {samples_per_proc} samples. "
+                f"Choose num_samples as a multiple of {size} to use every sample."
+            )
 
 
     def __len__(self):
-        return self.num_samples
+        # Per-rank shard length — must match what __iter__ yields. Returning
+        # self.num_samples (the global count) here is a pre-existing bug that
+        # the floor-division change above makes provable: len(self.indices) is
+        # now num_samples // size while self.num_samples is still num_samples,
+        # so any caller that builds len(DataLoader) from len(sampler) would
+        # over-report by a factor of comm_size.
+        return len(self.indices)
 
     def __iter__(self):
         for sample in self.indices:

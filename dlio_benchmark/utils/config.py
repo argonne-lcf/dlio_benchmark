@@ -697,8 +697,24 @@ class ConfigArguments:
             self.num_files_train = len(file_list_train)
             self.total_samples_train = self.num_samples_per_file * len(self.file_list_train)
             self.total_samples_eval = self.num_samples_per_file * len(self.file_list_eval)
-            self.train_sample_index_sum = self.total_samples_train * (self.total_samples_train - 1) // 2
-            self.eval_sample_index_sum = self.total_samples_eval * (self.total_samples_eval - 1) // 2
+
+            # The sampler intentionally drops the trailing remainder when the
+            # total sample count is not divisible by comm_size. Compute the
+            # validation sums from the effective sample counts so reconfigure()
+            # validates exactly the indices that are assigned to ranks.
+            effective_train_samples = (
+                self.total_samples_train // self.comm_size
+            ) * self.comm_size
+            effective_eval_samples = (
+                self.total_samples_eval // self.comm_size
+            ) * self.comm_size
+
+            self.train_sample_index_sum = (
+                effective_train_samples * (effective_train_samples - 1) // 2
+            )
+            self.eval_sample_index_sum = (
+                effective_eval_samples * (effective_eval_samples - 1) // 2
+            )
             self.required_samples = self.comm_size * self.batch_size
             if self.read_threads > 0:
                 self.required_samples *= self.read_threads
@@ -872,12 +888,24 @@ class ConfigArguments:
             num_threads = 1
             if self.read_threads > 0 and self.data_loader is not DataLoaderType.DALI:
                 num_threads = self.read_threads
-            samples_per_proc = int(math.ceil(total_samples/self.comm_size)) 
+            # Floor division so every rank gets the same sample count.
+            # See dlio_sampler in torch_data_loader.py for the rationale —
+            # mismatched per-rank counts deadlock the per-step / end-of-epoch
+            # barriers in main._train(). Drops up to (comm_size - 1) samples
+            # per epoch; warn once from rank 0 when that happens.
+            samples_per_proc = total_samples // self.comm_size
             self.samples_per_thread = samples_per_proc // num_threads
             start_sample_index = samples_per_proc * self.my_rank
             end_sample_index = samples_per_proc * (self.my_rank + 1) - 1
-            if end_sample_index > total_samples - 1:
-                end_sample_index = total_samples - 1
+            dropped = total_samples - samples_per_proc * self.comm_size
+            if dropped > 0 and self.my_rank == 0:
+                self.logger.warning(
+                    f"build_sample_map_iter: dropping {dropped} sample(s) — "
+                    f"total_samples ({total_samples}) is not a multiple of "
+                    f"comm_size ({self.comm_size}). Each rank will process "
+                    f"{samples_per_proc} samples. Choose total_samples as a "
+                    f"multiple of {self.comm_size} to use every sample."
+                )
             sample_list = np.arange(start_sample_index, end_sample_index + 1)
             self.logger.debug(f"{self.my_rank} {start_sample_index} {end_sample_index}")
             if self.sample_shuffle is not Shuffle.OFF:
@@ -915,9 +943,20 @@ class ConfigArguments:
         if num_files == 0:
             return {}, 0
 
-        samples_per_proc = int(math.ceil(total_samples / self.comm_size))
+        # Floor division so every rank gets the same sample count. See
+        # dlio_sampler in torch_data_loader.py for the deadlock rationale.
+        samples_per_proc = total_samples // self.comm_size
         start_sample = self.my_rank * samples_per_proc
-        end_sample = min((self.my_rank + 1) * samples_per_proc - 1, total_samples - 1)
+        end_sample = (self.my_rank + 1) * samples_per_proc - 1
+        dropped = total_samples - samples_per_proc * self.comm_size
+        if dropped > 0 and self.my_rank == 0:
+            self.logger.warning(
+                f"get_global_map_index: dropping {dropped} sample(s) — "
+                f"total_samples ({total_samples}) is not a multiple of "
+                f"comm_size ({self.comm_size}). Each rank will process "
+                f"{samples_per_proc} samples. Choose total_samples as a "
+                f"multiple of {self.comm_size} to use every sample."
+            )
         self.logger.debug(f"my_rank: {self.my_rank}, start_sample: {start_sample}, end_sample: {end_sample}")
 
         # Determine shuffle seed (None = no shuffle)
