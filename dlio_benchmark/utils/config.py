@@ -52,8 +52,7 @@ class ConfigArguments:
     sample_shuffle: Shuffle = Shuffle.OFF
     read_type: ReadType = ReadType.ON_DEMAND
     file_access: FileAccess = FileAccess.MULTI
-    # Set root as the current directory by default
-    storage_root: str = "./"
+    storage_root: str = None
     storage_type: StorageType = StorageType.LOCAL_FS
     storage_options: Optional[Dict[str, str]] = None
     record_length: int = 64 * 1024
@@ -67,11 +66,11 @@ class ConfigArguments:
     generate_data: bool = False
     generate_only: bool = False
     log_level: int = OUTPUT_LEVEL
-    data_folder: str = "./data/"
+    data_folder: str = "data/"
     output_folder: str = None
     metric_exclude_start_steps: int = 1
     metric_exclude_end_steps: int = 0
-    checkpoint_folder: str = "./checkpoints/"
+    checkpoint_folder: str = "checkpoints/"
     log_file: str = "dlio.log"
     file_prefix: str = "img"
     keep_files: bool = True
