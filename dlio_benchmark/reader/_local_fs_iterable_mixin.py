@@ -326,12 +326,19 @@ class _LocalFSIterableMixin:
         self._local_cache = cache
 
     def _localfs_ensure_cached(self, filename: str) -> None:
-        """Fetch a single file on demand if not already in the cache."""
-        if filename not in self._local_cache:
-            if self._use_direct:
-                self._local_cache.update(self._prefetch_direct([filename]))
-            else:
-                self._local_cache[filename] = self._read_local_bytes(filename)
+        """Read a single file on demand, always re-reading from storage.
+
+        The cache is intentionally NOT used for map-style access so that every
+        epoch measures real I/O.  With persistent_workers=True, reusing cached
+        byte counts would skip all reads in epochs 2+, producing invalid AU.
+        """
+        if self._use_direct:
+            result = self._prefetch_direct([filename])
+            self._local_cache.update(result)
+        else:
+            self._local_cache[filename] = self._read_local_bytes(filename)
+        self._total_bytes_read += self._local_cache[filename]
+        self._total_objects_read += 1
 
     def finalize_local_bytes(self) -> None:
         """

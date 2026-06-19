@@ -218,6 +218,12 @@ class ConfigArguments:
     pin_memory: bool = True
     odirect: bool = False
 
+    # When True, file_list_train/eval already contain only this rank's shard.
+    # Sample-level sharding is skipped to avoid double-partitioning.
+    files_pre_sharded: bool = False
+    # Number of threads rank 0 uses to list subfolders in parallel.
+    listing_threads: int = 4
+
     # derived fields
     required_samples: int = 1
     total_samples_eval: int = 1
@@ -691,35 +697,47 @@ class ConfigArguments:
                 self.resized_image = gen_random_tensor(shape=self.transformed_record_dims, dtype=self.transformed_record_element_dtype, rng=rng)
             else:
                 self.resized_image = np.random.randint(255, size=(self.max_dimension, self.max_dimension), dtype=np.uint8)
-            self.file_list_train = file_list_train
-            self.file_list_eval = file_list_eval
+            self.file_list_train = list(file_list_train)
+            self.file_list_eval = list(file_list_eval)
             self.num_files_eval = len(file_list_eval)
             self.num_files_train = len(file_list_train)
             self.total_samples_train = self.num_samples_per_file * len(self.file_list_train)
             self.total_samples_eval = self.num_samples_per_file * len(self.file_list_eval)
+            if self.files_pre_sharded:
+                # Files are already distributed across ranks — sample space is local.
+                # Round-robin gives even file counts, allreduce_min as safety net.
+                self.train_sample_index_sum = self.total_samples_train * (self.total_samples_train - 1) // 2
+                self.eval_sample_index_sum = self.total_samples_eval * (self.total_samples_eval - 1) // 2
+                self.required_samples = self.batch_size
+                if self.read_threads > 0:
+                    self.required_samples *= self.read_threads
+                local_train_steps = int(math.ceil(self.total_samples_train / self.batch_size))
+                local_eval_steps = int(math.ceil(self.total_samples_eval / self.batch_size_eval)) if self.total_samples_eval > 0 else 0
+                self.training_steps = DLIOMPI.get_instance().allreduce_min(local_train_steps)
+                self.eval_steps = DLIOMPI.get_instance().allreduce_min(local_eval_steps)
+            else:
+                # The sampler intentionally drops the trailing remainder when the
+                # total sample count is not divisible by comm_size. Compute the
+                # validation sums from the effective sample counts so reconfigure()
+                # validates exactly the indices that are assigned to ranks.
+                effective_train_samples = (
+                    self.total_samples_train // self.comm_size
+                ) * self.comm_size
+                effective_eval_samples = (
+                    self.total_samples_eval // self.comm_size
+                ) * self.comm_size
 
-            # The sampler intentionally drops the trailing remainder when the
-            # total sample count is not divisible by comm_size. Compute the
-            # validation sums from the effective sample counts so reconfigure()
-            # validates exactly the indices that are assigned to ranks.
-            effective_train_samples = (
-                self.total_samples_train // self.comm_size
-            ) * self.comm_size
-            effective_eval_samples = (
-                self.total_samples_eval // self.comm_size
-            ) * self.comm_size
-
-            self.train_sample_index_sum = (
-                effective_train_samples * (effective_train_samples - 1) // 2
-            )
-            self.eval_sample_index_sum = (
-                effective_eval_samples * (effective_eval_samples - 1) // 2
-            )
-            self.required_samples = self.comm_size * self.batch_size
-            if self.read_threads > 0:
-                self.required_samples *= self.read_threads
-            self.training_steps = int(math.ceil(self.total_samples_train / self.batch_size / self.comm_size))
-            self.eval_steps = int(math.ceil(self.total_samples_eval / self.batch_size_eval / self.comm_size))
+                self.train_sample_index_sum = (
+                    effective_train_samples * (effective_train_samples - 1) // 2
+                )
+                self.eval_sample_index_sum = (
+                    effective_eval_samples * (effective_eval_samples - 1) // 2
+                )
+                self.required_samples = self.comm_size * self.batch_size
+                if self.read_threads > 0:
+                    self.required_samples *= self.read_threads
+                self.training_steps = int(math.ceil(self.total_samples_train / self.batch_size / self.comm_size))
+                self.eval_steps = int(math.ceil(self.total_samples_eval / self.batch_size_eval / self.comm_size))
         if self.data_loader_sampler is None and self.data_loader_classname is None:
             if self.data_loader == DataLoaderType.TENSORFLOW:
                 self.data_loader_sampler = DataLoaderSampler.ITERATIVE
@@ -888,24 +906,32 @@ class ConfigArguments:
             num_threads = 1
             if self.read_threads > 0 and self.data_loader is not DataLoaderType.DALI:
                 num_threads = self.read_threads
-            # Floor division so every rank gets the same sample count.
-            # See dlio_sampler in torch_data_loader.py for the rationale —
-            # mismatched per-rank counts deadlock the per-step / end-of-epoch
-            # barriers in main._train(). Drops up to (comm_size - 1) samples
-            # per epoch; warn once from rank 0 when that happens.
-            samples_per_proc = total_samples // self.comm_size
+            if self.files_pre_sharded:
+                # Files already sharded — all local samples belong to this rank.
+                # Align to minimum across ranks for consistent batch counts.
+                aligned = DLIOMPI.get_instance().allreduce_min(total_samples)
+                samples_per_proc = aligned
+                start_sample_index = 0
+                end_sample_index = aligned - 1
+            else:
+                # Floor division so every rank gets the same sample count.
+                # See dlio_sampler in torch_data_loader.py for the rationale —
+                # mismatched per-rank counts deadlock the per-step / end-of-epoch
+                # barriers in main._train(). Drops up to (comm_size - 1) samples
+                # per epoch; warn once from rank 0 when that happens.
+                samples_per_proc = total_samples // self.comm_size
+                start_sample_index = samples_per_proc * self.my_rank
+                end_sample_index = samples_per_proc * (self.my_rank + 1) - 1
+                dropped = total_samples - samples_per_proc * self.comm_size
+                if dropped > 0 and self.my_rank == 0:
+                    self.logger.warning(
+                        f"build_sample_map_iter: dropping {dropped} sample(s) — "
+                        f"total_samples ({total_samples}) is not a multiple of "
+                        f"comm_size ({self.comm_size}). Each rank will process "
+                        f"{samples_per_proc} samples. Choose total_samples as a "
+                        f"multiple of {self.comm_size} to use every sample."
+                    )
             self.samples_per_thread = samples_per_proc // num_threads
-            start_sample_index = samples_per_proc * self.my_rank
-            end_sample_index = samples_per_proc * (self.my_rank + 1) - 1
-            dropped = total_samples - samples_per_proc * self.comm_size
-            if dropped > 0 and self.my_rank == 0:
-                self.logger.warning(
-                    f"build_sample_map_iter: dropping {dropped} sample(s) — "
-                    f"total_samples ({total_samples}) is not a multiple of "
-                    f"comm_size ({self.comm_size}). Each rank will process "
-                    f"{samples_per_proc} samples. Choose total_samples as a "
-                    f"multiple of {self.comm_size} to use every sample."
-                )
             sample_list = np.arange(start_sample_index, end_sample_index + 1)
             self.logger.debug(f"{self.my_rank} {start_sample_index} {end_sample_index}")
             if self.sample_shuffle is not Shuffle.OFF:
@@ -916,8 +942,12 @@ class ConfigArguments:
                 np.random.shuffle(sample_list)
             sample_index = 0
             if num_files > 0:
-                files_per_rank = (num_files // self.comm_size) % num_files
-                file_index = self.my_rank * files_per_rank
+                if self.files_pre_sharded:
+                    files_per_rank = num_files
+                    file_index = 0
+                else:
+                    files_per_rank = (num_files // self.comm_size) % num_files
+                    file_index = self.my_rank * files_per_rank
                 for thread_index in range(num_threads):
                     process_thread_file_map[thread_index] = []
                 for sample in sample_list:
@@ -931,10 +961,10 @@ class ConfigArguments:
                                                 abs_path,
                                                 sample_list[sample_index] % self.num_samples_per_file))
                     sample_index += 1
-                    # Carry the rank offset forward so each rank stays in its own
-                    # file partition. Without the offset, non-zero ranks fall back
-                    # to rank-0's file range on the second and subsequent samples.
-                    file_index = (self.my_rank * files_per_rank + sample_index // self.num_samples_per_file) % num_files
+                    if self.files_pre_sharded:
+                        file_index = (sample_index // self.num_samples_per_file) % num_files
+                    else:
+                        file_index = (self.my_rank * files_per_rank + sample_index // self.num_samples_per_file) % num_files
         return process_thread_file_map, samples_sum
 
     @dlp.log
@@ -943,20 +973,27 @@ class ConfigArguments:
         if num_files == 0:
             return {}, 0
 
-        # Floor division so every rank gets the same sample count. See
-        # dlio_sampler in torch_data_loader.py for the deadlock rationale.
-        samples_per_proc = total_samples // self.comm_size
-        start_sample = self.my_rank * samples_per_proc
-        end_sample = (self.my_rank + 1) * samples_per_proc - 1
-        dropped = total_samples - samples_per_proc * self.comm_size
-        if dropped > 0 and self.my_rank == 0:
-            self.logger.warning(
-                f"get_global_map_index: dropping {dropped} sample(s) — "
-                f"total_samples ({total_samples}) is not a multiple of "
-                f"comm_size ({self.comm_size}). Each rank will process "
-                f"{samples_per_proc} samples. Choose total_samples as a "
-                f"multiple of {self.comm_size} to use every sample."
-            )
+        if self.files_pre_sharded:
+            # Files already distributed — each rank owns all its local samples.
+            # Align to minimum across ranks to match dlio_sampler alignment.
+            aligned = DLIOMPI.get_instance().allreduce_min(total_samples)
+            start_sample = 0
+            end_sample = aligned - 1
+        else:
+            # Floor division so every rank gets the same sample count. See
+            # dlio_sampler in torch_data_loader.py for the deadlock rationale.
+            samples_per_proc = total_samples // self.comm_size
+            start_sample = self.my_rank * samples_per_proc
+            end_sample = (self.my_rank + 1) * samples_per_proc - 1
+            dropped = total_samples - samples_per_proc * self.comm_size
+            if dropped > 0 and self.my_rank == 0:
+                self.logger.warning(
+                    f"get_global_map_index: dropping {dropped} sample(s) — "
+                    f"total_samples ({total_samples}) is not a multiple of "
+                    f"comm_size ({self.comm_size}). Each rank will process "
+                    f"{samples_per_proc} samples. Choose total_samples as a "
+                    f"multiple of {self.comm_size} to use every sample."
+                )
         self.logger.debug(f"my_rank: {self.my_rank}, start_sample: {start_sample}, end_sample: {end_sample}")
 
         # Determine shuffle seed (None = no shuffle)
@@ -981,16 +1018,91 @@ class ConfigArguments:
         )
         return vmap, samples_sum
 
+    def _reshard_files(self, epoch_number):
+        """Re-distribute files across ranks using an epoch-dependent hash.
+
+        Each rank shuffles its local shard with an epoch-dependent seed,
+        then distributes files round-robin to destination ranks via alltoall.
+        Since all ranks have the same file count (from initial round-robin),
+        the result is perfectly balanced — no file loss.
+        """
+        import time as _time
+        mpi = DLIOMPI.get_instance()
+
+        t_reshard_start = _time.time()
+
+        for attr in ('file_list_train', 'file_list_eval'):
+            file_list = getattr(self, attr)
+            paths = list(file_list)
+
+            # Shuffle with epoch-dependent seed so files go to different ranks each epoch
+            if self.seed_change_epoch:
+                np.random.seed(self.seed + epoch_number)
+            else:
+                np.random.seed(self.seed)
+            np.random.shuffle(paths)
+
+            # Round-robin assignment to destination ranks, rotated by
+            # sender rank so remainder files spread evenly across all
+            # destinations — every rank receives the same total.
+            buckets = [[] for _ in range(self.comm_size)]
+            for i, fpath in enumerate(paths):
+                buckets[(i + self.my_rank) % self.comm_size].append(fpath)
+
+            # alltoall: send buckets[i] to rank i, receive from all ranks
+            recv_buckets = mpi.alltoall(buckets)
+            del buckets
+
+            # Flatten received files into new local shard
+            new_shard = []
+            for bucket in recv_buckets:
+                new_shard.extend(bucket)
+            del recv_buckets
+
+            # Local shuffle with rank-specific seed for I/O decorrelation
+            np.random.seed(self.seed + epoch_number + self.my_rank * 31)
+            np.random.shuffle(new_shard)
+
+            setattr(self, attr, new_shard)
+
+        # Update counts
+        self.num_files_train = len(self.file_list_train)
+        self.num_files_eval = len(self.file_list_eval)
+        self.total_samples_train = self.num_samples_per_file * self.num_files_train
+        self.total_samples_eval = self.num_samples_per_file * self.num_files_eval
+
+        # Re-align step counts (should be identical across ranks now)
+        local_train_steps = self.total_samples_train // self.batch_size
+        self.training_steps = mpi.allreduce_min(local_train_steps)
+        if self.num_files_eval > 0:
+            local_eval_steps = self.total_samples_eval // self.batch_size_eval
+            self.eval_steps = mpi.allreduce_min(local_eval_steps)
+
+        t_reshard_end = _time.time()
+        if self.my_rank == 0:
+            self.logger.output(
+                f"{utcnow()} Reshard for epoch {epoch_number}: "
+                f"{self.num_files_train} train files, {self.num_files_eval} eval files "
+                f"redistributed via alltoall in {t_reshard_end - t_reshard_start:.2f}s")
+
     @dlp.log
     def reconfigure(self, epoch_number):
-        if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
-            if self.file_shuffle is not Shuffle.OFF:
+        # Reshard files across ranks (when shuffle enabled and pre-sharded)
+        if self.file_shuffle is not Shuffle.OFF and self.files_pre_sharded:
+            self._reshard_files(epoch_number)
+        elif self.file_shuffle is not Shuffle.OFF:
+            if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
                 if self.seed_change_epoch:
                     np.random.seed(self.seed + epoch_number)
                 else:
                     np.random.seed(self.seed)
-                np.random.shuffle(self.file_list_train) 
-                np.random.shuffle(self.file_list_eval)
+                # Materialize and shuffle
+                train_list = list(self.file_list_train)
+                eval_list = list(self.file_list_eval)
+                np.random.shuffle(train_list)
+                np.random.shuffle(eval_list)
+                self.file_list_train = train_list
+                self.file_list_eval = eval_list
         local_train_sample_sum = 0
         local_eval_sample_sum = 0
         if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
@@ -1006,11 +1118,12 @@ class ConfigArguments:
         global_eval_sample_sum = DLIOMPI.get_instance().reduce(local_eval_sample_sum)        
         if self.my_rank == 0:
             self.logger.info(f"{utcnow()} Total number of samples: train {global_train_sample_sum}, eval {global_eval_sample_sum}")
-            if self.train_sample_index_sum != global_train_sample_sum:
-                raise Exception(f"Sharding of train samples are missing samples got {global_train_sample_sum} but expected {self.train_sample_index_sum}")
-            
-            if self.eval_sample_index_sum != global_eval_sample_sum:
-                raise Exception(f"Sharding of eval samples are missing samples got {global_eval_sample_sum} but expected {self.eval_sample_index_sum}")
+            if not self.files_pre_sharded:
+                if self.train_sample_index_sum != global_train_sample_sum:
+                    raise Exception(f"Sharding of train samples are missing samples got {global_train_sample_sum} but expected {self.train_sample_index_sum}")
+                
+                if self.eval_sample_index_sum != global_eval_sample_sum:
+                    raise Exception(f"Sharding of eval samples are missing samples got {global_eval_sample_sum} but expected {self.eval_sample_index_sum}")
 
 def GetConfig(args, key):
     keys = key.split(".")

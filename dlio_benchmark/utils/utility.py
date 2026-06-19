@@ -344,6 +344,17 @@ class DLIOMPI:
             raise Exception(f"method {self.classname()}.reduce() called before initializing MPI")
         else:
             return MPI.COMM_WORLD.allreduce(num, op=MPI.SUM)
+
+    def allreduce_min(self, value):
+        from mpi4py import MPI
+        if self.mpi_state == MPIState.UNINITIALIZED:
+            raise Exception(f"method {self.classname()}.allreduce_min() called before initializing MPI")
+        return self.comm().allreduce(value, op=MPI.MIN)
+
+    def alltoall(self, data):
+        if self.mpi_state == MPIState.UNINITIALIZED:
+            raise Exception(f"method {self.classname()}.alltoall() called before initializing MPI")
+        return self.comm().alltoall(data)
     
     def finalize(self):
         from mpi4py import MPI

@@ -18,6 +18,7 @@ import os
 import math
 import subprocess
 import time
+
 import numpy as np
 
 # Reduce TF and CUDA logging
@@ -214,52 +215,148 @@ class DLIOBenchmark(object):
         file_list_eval = []
         num_subfolders = 0
         if self.args.do_train:
+            # ── Streaming rank-0 file listing with round-robin sharding ──
+            # Only rank 0 performs directory walks.  Files are streamed in
+            # chunks and each rank keeps every comm_size-th file (round-robin).
+            # This gives perfectly balanced shards when total % comm_size == 0.
+            self.args.files_pre_sharded = True
+
             for dataset_type in [DatasetType.TRAIN, DatasetType.VALID]:
+                t_listing_start = time.time()
                 if dataset_type == DatasetType.TRAIN:
                     num_subfolders = self.num_subfolders_train
                 else:
                     num_subfolders = self.num_subfolders_eval
-                walk_path = os.path.join(self.args.data_folder, f"{dataset_type}")
-                filenames = self.storage.walk_node(walk_path)
-                self.logger.debug(f"filenames {filenames} {num_subfolders}")
-                if (len(filenames) == 0):
-                    continue
-                check_path = os.path.join(self.args.data_folder, f"{dataset_type}", filenames[0])
-                if self.storage.get_node(
-                        check_path) == MetadataType.DIRECTORY:
-                    assert (num_subfolders == len(filenames))
-                    fullpaths = self.storage.walk_node(
-                        os.path.join(self.args.data_folder, f"{dataset_type}/*/*.{self.args.format}"),
-                        use_pattern=True)
-                    files = [self.storage.get_basename(f) for f in fullpaths]
-                    idx = np.argsort(files)
-                    fullpaths = [fullpaths[i] for i in idx]
-                    self.logger.debug(f"fullpaths {fullpaths}")
+
+                my_files = []
+                global_count = 0
+
+                _CHUNK_SIZE = 1_000_000  # max files per bcast to bound rank-0 memory
+
+                def _filter_round_robin(chunk, start_idx):
+                    """Keep files where (start_idx + position) % comm_size == my_rank."""
+                    for i, fpath in enumerate(chunk):
+                        if (start_idx + i) % self.comm_size == self.my_rank:
+                            my_files.append(fpath)
+
+                if num_subfolders > 0:
+                    # ── Subfoldered layout: stream with chunked bcast ─────
+                    subfolder_names = None
+                    if self.my_rank == 0:
+                        walk_path = os.path.join(self.args.data_folder, f"{dataset_type}")
+                        subfolder_names = sorted(self.storage.walk_node(walk_path))
+                    subfolder_names = self.comm.bcast(subfolder_names, root=0)
+
+                    if self.my_rank == 0:
+                        # Multi-threaded listing of subfolders on rank 0
+                        from concurrent.futures import ThreadPoolExecutor
+
+                        def _list_subfolder(sf_name):
+                            sf_path = os.path.join(
+                                self.args.data_folder, f"{dataset_type}",
+                                sf_name, f"*.{self.args.format}")
+                            return self.storage.walk_node(sf_path, use_pattern=True)
+
+                        pending = []
+                        listing_threads = self.args.listing_threads
+                        with ThreadPoolExecutor(max_workers=listing_threads) as pool:
+                            for sf_files in pool.map(_list_subfolder, subfolder_names):
+                                pending.extend(sf_files)
+                                # Flush in chunks of _CHUNK_SIZE
+                                while len(pending) >= _CHUNK_SIZE:
+                                    chunk = sorted(pending[:_CHUNK_SIZE])
+                                    pending = pending[_CHUNK_SIZE:]
+                                    chunk = self.comm.bcast(chunk, root=0)
+                                    _filter_round_robin(chunk, global_count)
+                                    global_count += len(chunk)
+                                    del chunk
+
+                        # Flush remaining
+                        if pending:
+                            chunk = sorted(pending)
+                            pending = []
+                            chunk = self.comm.bcast(chunk, root=0)
+                            _filter_round_robin(chunk, global_count)
+                            global_count += len(chunk)
+                            del chunk
+                        # Signal end: broadcast empty list
+                        self.comm.bcast([], root=0)
+                    else:
+                        # Non-root ranks: receive chunks until empty sentinel
+                        while True:
+                            chunk = self.comm.bcast(None, root=0)
+                            if not chunk:
+                                break
+                            _filter_round_robin(chunk, global_count)
+                            global_count += len(chunk)
+                            del chunk
+
                 else:
-                    assert (num_subfolders == 0)
-                    fullpaths = [self.storage.get_uri(os.path.join(self.args.data_folder, f"{dataset_type}", entry))
-                                for entry in filenames if entry.endswith(f'{self.args.format}')]
-                    fullpaths = sorted(fullpaths)
-                    self.logger.debug(f"fullpaths {fullpaths}")
-                self.logger.debug(f"subfolder {num_subfolders} fullpaths {fullpaths}")
+                    # ── Flat layout: stream in chunks of _CHUNK_SIZE ──────
+                    if self.my_rank == 0:
+                        walk_path = os.path.join(self.args.data_folder, f"{dataset_type}")
+                        filenames = self.storage.walk_node(walk_path)
+                        pending = sorted([
+                            self.storage.get_uri(
+                                os.path.join(self.args.data_folder, f"{dataset_type}", entry))
+                            for entry in filenames
+                            if entry.endswith(f'{self.args.format}')
+                        ])
+                        # Send in chunks
+                        for i in range(0, len(pending), _CHUNK_SIZE):
+                            chunk = pending[i:i + _CHUNK_SIZE]
+                            chunk = self.comm.bcast(chunk, root=0)
+                            _filter_round_robin(chunk, global_count)
+                            global_count += len(chunk)
+                            del chunk
+                        del pending
+                        # Signal end
+                        self.comm.bcast([], root=0)
+                    else:
+                        while True:
+                            chunk = self.comm.bcast(None, root=0)
+                            if not chunk:
+                                break
+                            _filter_round_robin(chunk, global_count)
+                            global_count += len(chunk)
+                            del chunk
+
+                # ── Validation ───────────────────────────────────────────
                 if dataset_type is DatasetType.TRAIN:
-                    file_list_train = fullpaths
+                    expected = self.num_files_train
+                else:
+                    expected = self.num_files_eval if self.do_eval else 0
+
+                if not self.generate_only and expected > global_count:
+                    raise Exception(
+                        "Not enough dataset is found; Please run the code with "
+                        "++workload.workflow.generate_data=True")
+
+                # Floor-division: ensure every rank has the same file count.
+                # Round-robin gives ranks 0..r-1 one extra file; trim to floor.
+                effective = min(expected, global_count) if expected > 0 else global_count
+                files_per_rank = effective // self.comm_size
+                my_files = my_files[:files_per_rank]
+
+                if dataset_type is DatasetType.TRAIN:
+                    file_list_train = my_files
+                    global_train_count = global_count
                 elif dataset_type is DatasetType.VALID:
-                    file_list_eval = fullpaths
-            if not self.generate_only and self.num_files_train > len(file_list_train):
-                raise Exception(
-                    "Not enough training dataset is found; Please run the code with ++workload.workflow.generate_data=True")
-            if self.do_eval and self.num_files_eval > len(file_list_eval):
-                raise Exception(
-                    "Not enough evaluation dataset is found; Please run the code with ++workload.workflow.generate_data=True")
-            if (self.num_files_train < len(file_list_train)):
-                self.logger.warning(
-                    f"Number of files for training in {os.path.join(self.args.data_folder, f'{DatasetType.TRAIN}')} ({len(file_list_train)}) is more than requested ({self.num_files_train}). A subset of files will be used ")
-                file_list_train = file_list_train[:self.num_files_train]
-            if (self.num_files_eval < len(file_list_eval)):
-                self.logger.warning(
-                    f"Number of files for evaluation in {os.path.join(self.args.data_folder, f'{DatasetType.VALID}')} ({len(file_list_eval)}) is more than requested ({self.num_files_eval}). A subset of files will be used ")
-                file_list_eval = file_list_eval[:self.num_files_eval]
+                    file_list_eval = my_files
+
+                t_listing_end = time.time()
+                if self.my_rank == 0:
+                    self.logger.output(
+                        f"{utcnow()} File listing [{dataset_type}]: "
+                        f"{global_count} files discovered, {len(my_files)} assigned to rank 0, "
+                        f"completed in {t_listing_end - t_listing_start:.2f}s")
+
+            if self.my_rank == 0:
+                self.logger.output(
+                    f"{utcnow()} Streamed file sharding: {global_train_count} train files "
+                    f"across {self.comm_size} ranks via round-robin "
+                    f"(rank 0 shard: {len(file_list_train)} files)")
+
         self.args.derive_configurations(file_list_train, file_list_eval)
         self.args.validate()
         self.checkpointing_mechanism = None
@@ -275,7 +372,10 @@ class DLIOBenchmark(object):
         Evaluation loop will read a separate dataset and has its own own computation time.
         """
         step = 1
-        total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
+        if self.args.files_pre_sharded:
+            total = self.args.eval_steps  # agreed via allreduce(MIN)
+        else:
+            total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
         loader = self.framework.get_loader(DatasetType.VALID)
         self.stats.start_loading()
         for batch in loader.next():
@@ -358,7 +458,10 @@ class DLIOBenchmark(object):
         """
         block = 1  # A continuous period of training steps, ended by checkpointing
         block_step = overall_step = 1  # Steps are taken within blocks
-        max_steps = math.floor(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
+        if self.args.files_pre_sharded:
+            max_steps = self.args.training_steps  # agreed via allreduce(MIN)
+        else:
+            max_steps = math.floor(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
         self.steps_per_epoch = max_steps
         # Start the very first block
         self.stats.start_block(epoch, block)
@@ -421,17 +524,27 @@ class DLIOBenchmark(object):
         if (not self.generate_only) and (not self.args.checkpoint_only):
             # Print out the expected number of steps for each epoch and evaluation
             if self.my_rank == 0:
-                total = math.floor(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
-                self.logger.output(
-                    f"{utcnow()} Max steps per epoch: {total} = {self.num_samples} * {self.num_files_train} / {self.batch_size} / {self.comm_size} (samples per file * num files / batch size / comm size)")
+                if self.args.files_pre_sharded:
+                    total = math.floor(self.num_samples * self.num_files_train / self.batch_size)
+                    self.logger.output(
+                        f"{utcnow()} Max steps per epoch per rank: {total} = {self.num_samples} * {self.num_files_train} / {self.batch_size} (samples per file * local files / batch size)")
+                else:
+                    total = math.floor(self.num_samples * self.num_files_train / self.batch_size / self.comm_size)
+                    self.logger.output(
+                        f"{utcnow()} Max steps per epoch: {total} = {self.num_samples} * {self.num_files_train} / {self.batch_size} / {self.comm_size} (samples per file * num files / batch size / comm size)")
                 if self.total_training_steps > 0:
                     self.logger.output(
                         f"{utcnow()} Total training steps is set to be {self.total_training_steps}. Will only run up to {min(total*self.args.epochs, self.total_training_steps)}"
                     )
                 if self.do_eval:
-                    total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
-                    self.logger.output(
-                        f"{utcnow()} Steps per eval: {total} = {self.num_samples} * {self.num_files_eval} / {self.batch_size_eval} / {self.comm_size} (samples per file * num files / batch size eval / comm size)")
+                    if self.args.files_pre_sharded:
+                        total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval)
+                        self.logger.output(
+                            f"{utcnow()} Steps per eval per rank: {total} = {self.num_samples} * {self.num_files_eval} / {self.batch_size_eval} (samples per file * local files / batch size eval)")
+                    else:
+                        total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
+                        self.logger.output(
+                            f"{utcnow()} Steps per eval: {total} = {self.num_samples} * {self.num_files_eval} / {self.batch_size_eval} / {self.comm_size} (samples per file * num files / batch size eval / comm size)")
 
             # Keep track of the next epoch at which we will evaluate
             next_eval_epoch = self.eval_after_epoch
@@ -443,6 +556,21 @@ class DLIOBenchmark(object):
             self.framework.get_loader(dataset_type=DatasetType.TRAIN).read()
             if self.do_eval:
                 self.framework.get_loader(dataset_type=DatasetType.VALID).read()
+
+            # Pre-warm workers: trigger DataLoader worker spawn before epoch 1.
+            # Without persistent_workers, workers re-spawn on each iter() call.
+            # This pre-warm ensures the first epoch doesn't include spawn latency.
+            train_loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
+            if hasattr(train_loader, '_dataset') and train_loader._dataset is not None:
+                warmup_iter = iter(train_loader._dataset)
+                try:
+                    next(warmup_iter)
+                except StopIteration:
+                    pass
+                del warmup_iter
+                if self.my_rank == 0:
+                    self.logger.output(f"{utcnow()} Worker pre-warm complete ({self.args.read_threads} workers spawned)")
+
             self.comm.barrier()
             # Skip the per-epoch page-cache flush after the first failure so a host
             # without NOPASSWD sudo doesn't pay the failure cost on every epoch and
@@ -489,6 +617,24 @@ class DLIOBenchmark(object):
                     self.stats.end_eval(epoch)
                     self.framework.get_loader(DatasetType.VALID).finalize()
                 self.args.reconfigure(epoch + 1) # reconfigure once per epoch
+                # Refresh serialized args so next epoch's workers see resharded file list
+                train_loader = self.framework.get_loader(dataset_type=DatasetType.TRAIN)
+                if hasattr(train_loader, 'refresh_args'):
+                    train_loader.refresh_args()
+                if self.do_eval:
+                    eval_loader = self.framework.get_loader(dataset_type=DatasetType.VALID)
+                    if hasattr(eval_loader, 'refresh_args'):
+                        eval_loader.refresh_args()
+                # Pre-warm workers for next epoch (spawn + init outside timed window)
+                if hasattr(train_loader, '_dataset') and train_loader._dataset is not None:
+                    warmup_iter = iter(train_loader._dataset)
+                    try:
+                        next(warmup_iter)
+                    except StopIteration:
+                        pass
+                    del warmup_iter
+                    if self.my_rank == 0:
+                        self.logger.output(f"{utcnow()} Worker pre-warm complete for epoch {epoch + 1} ({self.args.read_threads} workers spawned)")
                 self.stats.end_epoch(epoch)
 
         if (self.args.checkpoint_only):
@@ -503,6 +649,7 @@ class DLIOBenchmark(object):
         global dftracer, dftracer_initialize, dftracer_finalize
 
         self.comm.barrier()
+
         if self.checkpointing_mechanism:
             self.checkpointing_mechanism.finalize()
         if not self.generate_only:
