@@ -185,7 +185,7 @@ This is the only path to full 10 GiB/s with the existing per-file/per-row-group 
 
 **Pros:**
 - Clean separation: s3dlio stays format-agnostic
-- Can be used without s3dlio (e.g. with boto3 backend)
+- Can be used without s3dlio (e.g. with a different S3 backend)
 - Easier to publish independently
 
 **Cons:**

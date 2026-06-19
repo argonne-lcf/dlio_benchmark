@@ -95,11 +95,10 @@ class ReaderFactory(object):
         elif type == FormatType.TFRECORD:
             if _args.odirect == True:
                 raise Exception("O_DIRECT for %s format is not yet supported." %type)
-            elif _args.storage_type in (StorageType.S3, StorageType.AISTORE):
-                storage_library = (getattr(_args, "storage_options", {}) or {}).get("storage_library")
-                if storage_library in ("s3dlio", "s3torchconnector", "minio"):
-                    from dlio_benchmark.reader.tfrecord_reader_s3_iterable import TFRecordReaderS3Iterable
-                    return TFRecordReaderS3Iterable(dataset_type, thread_index, epoch_number)
+            elif (getattr(_args, "storage_options", {}) or {}).get("storage_library") == "s3dlio":
+                # s3dlio handles both s3:// and file:// URIs.
+                from dlio_benchmark.reader.tfrecord_reader_s3_iterable import TFRecordReaderS3Iterable
+                return TFRecordReaderS3Iterable(dataset_type, thread_index, epoch_number)
             if _args.data_loader == DataLoaderType.NATIVE_DALI:
                 from dlio_benchmark.reader.dali_tfrecord_reader import DaliTFRecordReader
                 return DaliTFRecordReader(dataset_type, thread_index, epoch_number)

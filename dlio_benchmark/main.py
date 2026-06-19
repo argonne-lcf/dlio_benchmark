@@ -239,7 +239,106 @@ class DLIOBenchmark(object):
                         if (start_idx + i) % self.comm_size == self.my_rank:
                             my_files.append(fpath)
 
-                if num_subfolders > 0:
+                if self.args.skip_listing:
+                    # ── Deterministic file list (skip S3 listing entirely) ─
+                    # Generate file URIs from DLIO's naming convention without
+                    # any storage API calls or MPI communication.  Each rank
+                    # independently computes its own round-robin shard.
+                    # Convention: {file_prefix}_{index:0N}_of_{total}.{format}
+                    # For subfoldered layouts: {subfolder}/{file_prefix}_{index:0N}_of_{total}.{format}
+                    # where subfolder = str(index % num_subfolders).zfill(nd_sf)
+                    num_files_expected = (
+                        self.num_files_train if dataset_type is DatasetType.TRAIN
+                        else (self.num_files_eval if self.do_eval else 0)
+                    )
+                    if num_files_expected > 0:
+                        nd_f = len(str(num_files_expected))
+                        nd_sf = len(str(max(num_subfolders - 1, 0))) if num_subfolders > 0 else 0
+                        for idx in range(self.my_rank, num_files_expected, self.comm_size):
+                            fname = f"{self.args.file_prefix}_{str(idx).zfill(nd_f)}_of_{num_files_expected}.{self.args.format}"
+                            if num_subfolders > 0:
+                                sf = str(idx % num_subfolders).zfill(nd_sf)
+                                rel = os.path.join(sf, fname)
+                            else:
+                                rel = fname
+                            uri = self.storage.get_uri(
+                                os.path.join(self.args.data_folder, f"{dataset_type}", rel))
+                            my_files.append(uri)
+                        global_count = num_files_expected
+                    # ── Sampling validation (rank 0 only) ─────────────
+                    # Confirm the naming convention is correct by checking
+                    # that a sample of files actually exists in storage.
+                    # Always checks the first and last file, plus every
+                    # listing_validation_interval-th file in between.
+                    # If any check fails, raises an informative error.
+                    if self.my_rank == 0 and num_files_expected > 0 and \
+                            self.args.listing_validation_interval > 0:
+                        interval = self.args.listing_validation_interval
+                        val_indices = sorted(
+                            {0, num_files_expected - 1} |
+                            set(range(0, num_files_expected, interval))
+                        )
+                        n_checks = len(val_indices)
+                        # ── Header: tell the user what is about to happen ──
+                        self.logger.output(
+                            f"{utcnow()} skip_listing [{dataset_type}]: validating "
+                            f"{n_checks:,} of {num_files_expected:,} files "
+                            f"(first, last, every {interval:,}) via HEAD requests ...")
+                        failed_uris = []
+                        t_val_start = time.time()
+                        # Report progress every ~10 % of checks, but at least
+                        # every 500 checks and no more often than every 100.
+                        progress_stride = max(100, min(500, n_checks // 10))
+                        for check_num, vidx in enumerate(val_indices):
+                            vfname = f"{self.args.file_prefix}_{str(vidx).zfill(nd_f)}_of_{num_files_expected}.{self.args.format}"
+                            if num_subfolders > 0:
+                                vsf = str(vidx % num_subfolders).zfill(nd_sf)
+                                vrel = os.path.join(vsf, vfname)
+                            else:
+                                vrel = vfname
+                            vuri = self.storage.get_uri(
+                                os.path.join(self.args.data_folder, f"{dataset_type}", vrel))
+                            if not self.storage.file_exists(vuri):
+                                failed_uris.append(vuri)
+                            # Periodic progress line (but not on the very first check)
+                            if check_num > 0 and check_num % progress_stride == 0:
+                                elapsed = time.time() - t_val_start
+                                rate = check_num / elapsed if elapsed > 0 else 0
+                                pct = 100.0 * check_num / n_checks
+                                eta = (n_checks - check_num) / rate if rate > 0 else 0
+                                self.logger.output(
+                                    f"{utcnow()} skip_listing [{dataset_type}]:   "
+                                    f"{check_num:,}/{n_checks:,} checked "
+                                    f"({pct:.0f}%)  —  "
+                                    f"{rate:.0f} checks/s  —  "
+                                    f"ETA {eta:.0f}s  —  "
+                                    f"{len(failed_uris)} failed so far")
+                        t_val_end = time.time()
+                        elapsed_total = t_val_end - t_val_start
+                        rate_total = n_checks / elapsed_total if elapsed_total > 0 else 0
+                        if failed_uris:
+                            sample_shown = failed_uris[:3]
+                            raise Exception(
+                                f"skip_listing validation failed: {len(failed_uris)} of "
+                                f"{n_checks:,} sampled files missing in [{dataset_type}] "
+                                f"after {elapsed_total:.1f}s. "
+                                f"First failures: {sample_shown}. "
+                                f"Ensure data was generated with DLIO's standard naming "
+                                f"convention or set skip_listing=False to use directory "
+                                f"listing instead.")
+                        self.logger.output(
+                            f"{utcnow()} skip_listing [{dataset_type}]: validation complete — "
+                            f"all {n_checks:,} samples exist "
+                            f"({elapsed_total:.1f}s, {rate_total:.0f} checks/s); "
+                            f"{len(my_files):,} URIs ready for rank 0 "
+                            f"({global_count:,} total across all ranks)")
+                    elif self.my_rank == 0:
+                        self.logger.output(
+                            f"{utcnow()} skip_listing [{dataset_type}]: generated "
+                            f"{len(my_files):,} file URIs deterministically "
+                            f"({global_count:,} total — validation disabled)")
+
+                elif num_subfolders > 0:
                     # ── Subfoldered layout: stream with chunked bcast ─────
                     subfolder_names = None
                     if self.my_rank == 0:

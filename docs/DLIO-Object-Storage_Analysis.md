@@ -83,10 +83,11 @@ However, this code path is **only triggered by the TFDataLoader**, which calls `
 
 ## 6. One Actual Issue Found (Not Timing-Related)
 
-The `configs/dlio/workload/unet3d_h100_s3dlio.yaml` file still contains the hardcoded endpoint and personal paths that were cleaned from `tests/object-store/`. Specifically:
+The `configs/dlio/workload/unet3d_h100_s3dlio.yaml` file still contains a hardcoded
+endpoint and personal paths that were cleaned from `tests/object-store/`. Specifically:
 
-- `endpoint_url: http://172.16.1.40:9000`
-- `source /home/eval/Documents/Code/mlp-storage/.env` in the comments
+- `endpoint_url: <hardcoded-internal-ip>:9000`
+- A local filesystem path in the comments
 
 This was outside the scope of the previous cleanup pass and is a separate issue from timing correctness.
 

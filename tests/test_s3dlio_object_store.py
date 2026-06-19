@@ -30,10 +30,8 @@ Loaded from ``<repo>/.env``, with real environment variables taking priority
 
 Formats tested
 --------------
-npy, npz, hdf5, csv, parquet, jpeg, png
-TFRecord: generate-only (put) test included; read phase excluded because
-reading TFRecords requires framework=tensorflow which routes through
-S3Storage (bare AWS SDK), not ObjStoreLibStorage (s3dlio).
+npy, npz, hdf5, csv, parquet, jpeg, png, tfrecord (full generate + read cycle).
+All formats use s3dlio for both write and read.
 """
 
 import os
@@ -84,7 +82,7 @@ logging.basicConfig(
     force=True,   # override any earlier basicConfig from conftest or dlio imports
 )
 # Keep noisy third-party loggers at INFO level.
-for _noisy in ("urllib3", "botocore", "s3transfer", "filelock", "hydra"):
+for _noisy in ("urllib3", "s3transfer", "filelock", "hydra"):
     logging.getLogger(_noisy).setLevel(logging.WARNING)
 
 # ─── Object-storage opt-in gate ──────────────────────────────────────────────
@@ -116,6 +114,9 @@ from dlio_benchmark.main import DLIOBenchmark
 # Using a value much shorter than TEST_TIMEOUT_SECONDS (600 s) so a hang is
 # caught quickly rather than after 10 minutes.
 _S3_TEST_TIMEOUT = int(os.environ.get("DLIO_S3_TEST_TIMEOUT", "120"))  # seconds
+# When DLIO_S3_EXTENDED=1, run all supported formats.  Default: npy only
+# (fastest smoke test — verifies the put+get cycle without exhausting time).
+_S3_EXTENDED = os.environ.get("DLIO_S3_EXTENDED", "0") == "1"
 
 comm = MPI.COMM_WORLD
 _config_dir = os.path.dirname(dlio_benchmark.__file__) + "/configs/"
@@ -126,7 +127,10 @@ log = logging.getLogger(__name__)
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def _endpoint():
-    return os.environ.get("AWS_ENDPOINT_URL", "https://172.16.1.40:9000")
+    ep = os.environ.get("AWS_ENDPOINT_URL")
+    if not ep:
+        pytest.skip("AWS_ENDPOINT_URL not set — cannot run live S3 tests")
+    return ep
 
 
 def _region():
@@ -248,7 +252,8 @@ def _base_overrides(bucket: str, prefix: str, fmt: str,
 
 _FORMATS = ["npy"] if not _S3_EXTENDED else ["npy", "npz", "hdf5", "csv", "parquet", "jpeg", "png"]
 # TFRecord excluded: reading requires framework=tensorflow which routes through
-# S3Storage (bare boto3), not ObjStoreLibStorage (s3dlio).  Generate-only test
+# S3Storage (tf.io.gfile), not ObjStoreLibStorage (s3dlio).  Generate-only test
+# (TFRecord full datagen+read tested separately in test_s3dlio_tfrecord_datagen_and_read).
 # for TFRecord is covered by test_s3dlio_tfrecord_datagen below.
 
 
@@ -344,17 +349,17 @@ def test_s3dlio_datagen_and_read(fmt):
         shutil.rmtree(_DLIO_TEST_OUTPUT_DIR, ignore_errors=True)
 
 
-# ─── TFRecord: generate-only (put) test ───────────────────────────────────────
+# ─── TFRecord: full generate + read test ─────────────────────────────────────
 
 @pytest.mark.timeout(_S3_TEST_TIMEOUT, method="thread")
-def test_s3dlio_tfrecord_datagen():
+def test_s3dlio_tfrecord_datagen_and_read():
     """
-    Put-only test for TFRecord format.
+    Full generate + read test for TFRecord format using s3dlio.
 
-    TFRecord generation works with framework=pytorch (uses TFRecordGenerator to
-    write objects via s3dlio).  Reading TFRecords requires tf.data and
-    framework=tensorflow, which routes through S3Storage (boto3), not
-    ObjStoreLibStorage (s3dlio) — so no read phase is included here.
+    TFRecord generation writes objects via s3dlio (TFRecordGenerator + put_data).
+    Reading uses TFRecordReaderS3Iterable which fetches raw bytes via s3dlio
+    get_many() — no tensorflow/protobuf decoding required.  Both phases use
+    framework=pytorch so no tensorflow installation is needed.
     """
     DLIOMPI.get_instance().initialize()
 
@@ -376,6 +381,7 @@ def test_s3dlio_tfrecord_datagen():
             cfg = compose(config_name="config", overrides=base + [
                 "++workload.workflow.generate_data=True",
                 "++workload.workflow.train=False",
+                "++workload.workflow.evaluation=False",
                 "++workload.workflow.checkpoint=False",
             ])
             _run_benchmark(OmegaConf.to_container(cfg["workload"], resolve=True),
@@ -399,7 +405,23 @@ def test_s3dlio_tfrecord_datagen():
             f"found {len(found_valid)}: {found_valid}"
         )
 
-        log.info("test_s3dlio_tfrecord_datagen PASSED — put confirmed")
+        log.info("tfrecord datagen PASSED — now running read phase ...")
+
+        # Read phase: TFRecordReaderS3Iterable fetches objects via s3dlio.
+        # Uses files_pre_sharded=True so DLIO does not attempt to re-list S3.
+        with initialize_config_dir(version_base=None, config_dir=_config_dir):
+            cfg = compose(config_name="config", overrides=base + [
+                "++workload.workflow.generate_data=False",
+                "++workload.workflow.train=True",
+                "++workload.workflow.evaluation=False",
+                "++workload.workflow.checkpoint=False",
+                "++workload.dataset.files_pre_sharded=True",
+                "++workload.train.epochs=1",
+            ])
+            _run_benchmark(OmegaConf.to_container(cfg["workload"], resolve=True),
+                           phase="train", verify=True)
+
+        log.info("test_s3dlio_tfrecord_datagen_and_read PASSED — put + get confirmed")
 
     finally:
         if comm.rank == 0:

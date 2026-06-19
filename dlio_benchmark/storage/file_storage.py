@@ -107,6 +107,10 @@ class FileStorage(DataStorage):
     def isfile(self, id):
         return os.path.isfile(id)
 
+    def file_exists(self, id):
+        """Return True if the local file exists."""
+        return os.path.isfile(id)
+
     def get_basename(self, id):
         return os.path.basename(id)
 

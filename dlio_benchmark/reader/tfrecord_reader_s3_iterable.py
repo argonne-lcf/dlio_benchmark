@@ -28,6 +28,7 @@ tensorflow required for the I/O measurement.
 """
 # Copyright (c) 2025, UChicago Argonne, LLC. Apache 2.0 License.
 from dlio_benchmark.common.constants import MODULE_DATA_READER
+from dlio_benchmark.reader.reader_handler import FormatReader
 from dlio_benchmark.reader.npy_reader import NPYReader
 from dlio_benchmark.reader._s3_iterable_mixin import _S3IterableMixin
 from dlio_benchmark.utils.utility import Profile, utcnow
@@ -52,6 +53,10 @@ class TFRecordReaderS3Iterable(NPYReader, _S3IterableMixin):
 
     _object_cache[filename] holds an int (byte count), same pattern as all
     other S3 iterable readers.
+
+    Note: read_index() calls FormatReader.read_index() directly to bypass
+    NPYReader._localfs_ensure_cached() which would attempt a local filesystem
+    read on an S3 URI.
     """
 
     @dlp.log_init
@@ -119,7 +124,9 @@ class TFRecordReaderS3Iterable(NPYReader, _S3IterableMixin):
         filename, _ = self.global_index_map[image_idx]
         self._s3_ensure_cached(filename)
         dlp.update(step=step)
-        return super().read_index(image_idx, step)
+        # Call FormatReader.read_index() directly — skips NPYReader.read_index()
+        # which would invoke _localfs_ensure_cached() on an S3 URI and fail.
+        return FormatReader.read_index(self, image_idx, step)
 
     @dlp.log
     def finalize(self):

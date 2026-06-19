@@ -105,10 +105,15 @@ class MinIOAdapter:
                 self.buffer = BytesIO()
                 
             def write(self, data):
-                if isinstance(data, bytes):
+                if isinstance(data, (bytes, bytearray, memoryview)):
                     self.buffer.write(data)
                 else:
-                    self.buffer.write(data.encode())
+                    # Handle buffer-protocol objects (e.g. s3dlio BytesView) that
+                    # are not bytes but support the buffer protocol.  bytes() works
+                    # for BytesView, memoryview, bytearray, and any C-extension type
+                    # that implements __buffer__.  Calling .encode() on these fails
+                    # with AttributeError — .encode() is a str-only method.
+                    self.buffer.write(bytes(data))
                     
             def close(self):
                 self.buffer.seek(0)
@@ -590,6 +595,23 @@ class ObjStoreLibStorage(S3Storage):
     @dlp.log
     def isfile(self, id):
         return super().isfile(self.get_uri(id))
+
+    def file_exists(self, id):
+        """Return True if the object exists in the store, False otherwise.
+
+        Uses s3dlio.exists() for s3dlio backend (HEAD request), or
+        s3_client.stat_object() for s3torchconnector/minio backends.
+        """
+        uri = self.get_uri(id)
+        if self.storage_library == "s3dlio":
+            return self._s3dlio.exists(uri)
+        else:
+            bucket_name, object_key = self._normalize_object_key(uri)
+            try:
+                self.s3_client.stat_object(bucket_name, object_key)
+                return True
+            except Exception:
+                return False
 
     def get_basename(self, id):
         return os.path.basename(id)

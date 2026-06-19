@@ -223,6 +223,19 @@ class ConfigArguments:
     files_pre_sharded: bool = False
     # Number of threads rank 0 uses to list subfolders in parallel.
     listing_threads: int = 4
+    # When True, skip S3/filesystem listing entirely and generate file URIs
+    # deterministically from DLIO's known naming convention:
+    #   {file_prefix}_{index:0N}_of_{num_files}.{format}
+    # Each rank independently computes its own round-robin shard with zero
+    # network calls and zero MPI communication.  Use this for DLIO-generated
+    # datasets where filenames are guaranteed to follow this pattern.
+    # Eliminates multi-hour S3 listing for large datasets (issue #472).
+    skip_listing: bool = False
+    # When skip_listing=True, rank 0 verifies that a sample of the generated
+    # file URIs actually exist in storage before training begins.
+    # The first file, last file, and every N-th file are checked via HEAD
+    # (s3dlio.exists() / os.path.isfile()).  Set to 0 to disable validation.
+    listing_validation_interval: int = 1000
 
     # derived fields
     required_samples: int = 1
@@ -366,8 +379,10 @@ class ConfigArguments:
         if (self.do_profiling == True) and (self.profiler == Profiler('darshan')):
             if ('LD_PRELOAD' not in os.environ or os.environ["LD_PRELOAD"].find("libdarshan") == -1):
                 raise Exception("Please set darshan runtime library in LD_PRELOAD")
-        if self.format is FormatType.TFRECORD and (self.data_loader is DataLoaderType.PYTORCH):
-            raise Exception(f"{self.framework} support for tfrecord is not implemented for {self.data_loader}.")
+        if self.format is FormatType.TFRECORD and (self.data_loader is DataLoaderType.PYTORCH) and (self.do_train or self.do_eval):
+            # TFRecordReaderS3Iterable handles pytorch+tfrecord via s3dlio (s3:// and file://).
+            if (self.storage_options or {}).get("storage_library") != "s3dlio":
+                raise Exception(f"{self.framework} support for tfrecord is not implemented for {self.data_loader}.")
         if (self.framework == FrameworkType.TENSORFLOW and self.data_loader == DataLoaderType.PYTORCH) or (
                 self.framework == FrameworkType.PYTORCH and self.data_loader == DataLoaderType.TENSORFLOW):
             raise Exception("Imcompatible between framework and data_loader setup.")

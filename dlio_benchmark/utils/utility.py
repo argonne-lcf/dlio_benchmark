@@ -222,6 +222,20 @@ class DLIOMPI:
 
     def initialize(self):
         from mpi4py import MPI
+        if self.mpi_state == MPIState.CHILD_INITIALIZED:
+            # The main process can end up in CHILD_INITIALIZED when
+            # TorchIterableDatasetSimple.__iter__ calls worker_init(0) directly
+            # in the main thread (num_workers=0 path).  That deserializes
+            # ConfigArguments via pickle.loads → __setstate__ → DLIOMPI.reset()
+            # + set_parent_values(), leaving the singleton in CHILD_INITIALIZED.
+            # If MPI is actually running (MPI.Is_initialized()), we are the
+            # real MPI process — reset to UNINITIALIZED so initialization
+            # proceeds normally below.  If MPI is not running, we truly are
+            # in a child process and must refuse.
+            if MPI.Is_initialized():
+                self.mpi_state = MPIState.UNINITIALIZED
+            else:
+                raise Exception(f"method {self.classname()}.initialize() called in a child process")
         if self.mpi_state == MPIState.UNINITIALIZED:
             # MPI may have already been initialized by dlio_benchmark_test.py
             if not MPI.Is_initialized():
@@ -346,14 +360,22 @@ class DLIOMPI:
             return MPI.COMM_WORLD.allreduce(num, op=MPI.SUM)
 
     def allreduce_min(self, value):
-        from mpi4py import MPI
         if self.mpi_state == MPIState.UNINITIALIZED:
             raise Exception(f"method {self.classname()}.allreduce_min() called before initializing MPI")
+        # Single-rank or child-process (DataLoader worker): no collective needed.
+        # Child processes can never issue MPI collectives; returning the local
+        # value is correct for single-rank runs and safe for workers.
+        if self.mpi_state == MPIState.CHILD_INITIALIZED or self.mpi_size <= 1:
+            return value
+        from mpi4py import MPI
         return self.comm().allreduce(value, op=MPI.MIN)
 
     def alltoall(self, data):
         if self.mpi_state == MPIState.UNINITIALIZED:
             raise Exception(f"method {self.classname()}.alltoall() called before initializing MPI")
+        # Single-rank or child-process: identity operation.
+        if self.mpi_state == MPIState.CHILD_INITIALIZED or self.mpi_size <= 1:
+            return data
         return self.comm().alltoall(data)
     
     def finalize(self):
