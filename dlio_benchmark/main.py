@@ -28,6 +28,44 @@ from omegaconf import DictConfig
 from dlio_benchmark.common.enumerations import StorageType as _StorageType
 
 
+# ---------------------------------------------------------------------------
+# Page-cache flush configuration helpers (mlcommons/storage #487).
+# ---------------------------------------------------------------------------
+
+#: Default per-call timeout for `sudo -n sh -c 'echo 3 > /proc/sys/vm/drop_caches'`
+#: when DLIO_DROP_CACHES_TIMEOUT is unset, empty, or unparseable. Picked to
+#: bound the original mlcommons/storage #391 hang case at a few seconds of
+#: cumulative wait across epochs while still completing on most hardware.
+_DROP_CACHES_TIMEOUT_DEFAULT_SECONDS = 30
+
+
+def _resolve_drop_caches_timeout(env=None) -> int:
+    """Read the page-cache flush timeout, in seconds, from the environment.
+
+    Behavior is deliberately forgiving: any unset / empty / unparseable /
+    sub-1 value collapses to the default. The lower bound matters because
+    `subprocess.run(timeout=...)` rejects 0 and negative values at call
+    time, and we don't want a typo in an operator's env to crash DLIO.
+
+    Args:
+        env: Mapping to read from. Defaults to ``os.environ``. Exposed for
+             tests so they don't have to monkey-patch the global env.
+
+    Returns:
+        Integer >= 1 representing seconds.
+    """
+    if env is None:
+        env = os.environ
+    raw = (env.get("DLIO_DROP_CACHES_TIMEOUT") or "").strip()
+    if not raw:
+        return _DROP_CACHES_TIMEOUT_DEFAULT_SECONDS
+    try:
+        value = int(raw)
+    except ValueError:
+        return _DROP_CACHES_TIMEOUT_DEFAULT_SECONDS
+    return max(value, 1)
+
+
 def _apply_settle_guard(args, comm) -> None:
     """Sleep after data generation for eventual-consistency object stores.
 
@@ -671,26 +709,48 @@ class DLIOBenchmark(object):
                     self.logger.output(f"{utcnow()} Worker pre-warm complete ({self.args.read_threads} workers spawned)")
 
             self.comm.barrier()
-            # Skip the per-epoch page-cache flush after the first failure so a host
-            # without NOPASSWD sudo doesn't pay the failure cost on every epoch and
-            # the warning fires exactly once.  See mlcommons/storage issue #391.
+            # The flush has two distinct failure modes (mlcommons/storage #391, #487):
+            #
+            #   * sudo -n refuses (no NOPASSWD configured, or sudo missing)
+            #       -> non-zero exit code, fast.  Warn once and disable for the
+            #          run so we don't pay the failure cost every epoch.  This
+            #          is what #391 originally fixed (the interactive sudo
+            #          prompt that hung for ~16 hours).
+            #
+            #   * sudo -n authenticated, but the kernel itself is slow
+            #       -> subprocess.TimeoutExpired.  Don't disable; the kernel is
+            #          working, just slowly.  The next epoch retries.
+            #
+            # The per-call timeout is overridable via DLIO_DROP_CACHES_TIMEOUT
+            # so large-RAM hosts can raise the ceiling without an upstream change.
+            drop_caches_timeout = _resolve_drop_caches_timeout()
             drop_caches_disabled = False
+            drop_caches_slow_warned = False
             for epoch in dft_ai.pipeline.epoch.iter(range(1, self.epochs + 1), include_iter=False):
                 # Flush page cache before each epoch so reads bypass the OS buffer cache.
                 # Rank 0 does the flush via sudo -n (non-interactive); all ranks barrier-
-                # wait so no rank starts reading stale cached data.  If sudo requires a
-                # password (or isn't installed) -n exits immediately with non-zero — we
-                # log a single warning and stop trying.  This avoids the interactive
-                # password prompt that hung issue #391 for ~16 hours.
+                # wait so no rank starts reading stale cached data.
                 if self.my_rank == 0 and not drop_caches_disabled:
                     try:
                         subprocess.run(
                             ["sudo", "-n", "sh", "-c", "echo 3 > /proc/sys/vm/drop_caches"],
-                            check=True, timeout=30,
+                            check=True, timeout=drop_caches_timeout,
                             stdin=subprocess.DEVNULL,
                             stdout=subprocess.DEVNULL,
                             stderr=subprocess.PIPE,
                         )
+                    except subprocess.TimeoutExpired:
+                        # sudo -n already authenticated (otherwise we'd see a
+                        # quick non-zero exit, not a timeout). The kernel is
+                        # the slow path. Don't disable — the next epoch retries.
+                        if not drop_caches_slow_warned:
+                            self.logger.warning(
+                                f"Page cache flush did not finish within "
+                                f"{drop_caches_timeout}s. The next epoch will "
+                                f"retry. If this recurs, raise the ceiling with "
+                                f"DLIO_DROP_CACHES_TIMEOUT=<seconds> (e.g. 300)."
+                            )
+                            drop_caches_slow_warned = True
                     except Exception as exc:
                         drop_caches_disabled = True
                         self.logger.warning(
