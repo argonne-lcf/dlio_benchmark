@@ -390,6 +390,121 @@ class ObjStoreLibStorage(S3Storage):
                 f"Supported: s3dlio, s3torchconnector, minio"
             )
 
+        # ── Preflight: fail fast and loud on misconfiguration ───────────────
+        # Without this, three documented failure modes silently waste time:
+        #   * Missing AWS_ACCESS_KEY_ID/SECRET surfaces only at the first
+        #     put_data() inside an upload worker.  The data_generator
+        #     submission loop keeps queueing more uploads (each retaining
+        #     its BytesIO payload) until OOM — see #472 / #392 / #393 / #504.
+        #     FileSystemGuy's "fix(data_generator): fast-fail async upload
+        #     pipeline" breaks the queueing loop on first failure, but a
+        #     preflight here also prevents the first submission entirely
+        #     when the cause is a config error visible from the parent rank.
+        #   * s3torchconnector's S3Client is lazy.  When endpoint is None
+        #     and AWS_ENDPOINT_URL is also unset, it silently routes to
+        #     real AWS S3 — wrong bucket, real transfer cost — instead of
+        #     erroring (#472, FileSystemGuy diagnosis).
+        #   * A typo in storage_root (the bucket name) only surfaces as the
+        #     first NoSuchBucket on PUT, after MPI + worker pool spin-up.
+        # The preflight is unconditional by design: making it opt-out via
+        # env would defeat the purpose (operators most likely to hit these
+        # failure modes are exactly the ones who would not know to opt in).
+        self._preflight()
+
+    def _preflight(self):
+        """Validate endpoint, credentials, and bucket reachability at
+        construction time so misconfigurations fail loudly here instead of
+        silently inside worker threads.
+
+        Raises:
+            ValueError: credentials missing, or s3torchconnector configured
+                with no endpoint (would silently route to real AWS S3).
+            ConnectionError: the bucket cannot be reached (wrong endpoint,
+                wrong bucket name, network unreachable, auth rejected).
+        """
+        bucket = self.namespace.name
+
+        # 1. Credentials.  Both DLIO and the underlying SDKs treat these as
+        # required for any S3-compatible endpoint, so an early ValueError
+        # here is strictly more informative than a SignatureDoesNotMatch
+        # from the first GET/PUT.
+        if not self.access_key_id or not self.secret_access_key:
+            raise ValueError(
+                "ObjStoreLibStorage preflight failed: "
+                "AWS_ACCESS_KEY_ID and/or AWS_SECRET_ACCESS_KEY are not set. "
+                "Set them via the env or storage_options before running.  "
+                "Without credentials, every put/get fails inside a worker "
+                "thread, the data_generator upload pool keeps queueing new "
+                "uploads (each retaining its BytesIO payload) until OOM — "
+                "see mlcommons/storage#472, #392, #393, #504."
+            )
+
+        # 2. s3torchconnector silent-route-to-AWS guard.  The S3Client
+        # constructor accepts endpoint=None; if both endpoint and
+        # AWS_ENDPOINT_URL are unset it silently uses real AWS S3.
+        # Refuse to construct in that shape.
+        if self.storage_library == "s3torchconnector":
+            if not self.endpoint and not os.environ.get("AWS_ENDPOINT_URL"):
+                raise ValueError(
+                    "s3torchconnector preflight failed: no endpoint configured. "
+                    "Both storage_options.endpoint_url and the AWS_ENDPOINT_URL "
+                    "environment variable are unset.  s3torchconnector's "
+                    "S3Client is lazy and would silently route to real AWS S3 "
+                    "(real transfer cost, wrong target bucket).  Set "
+                    "AWS_ENDPOINT_URL to your S3-compatible endpoint, or set "
+                    "storage_options.endpoint_url in your workload YAML."
+                )
+
+        # 3. Bucket reachability.  Each library exposes a different "ping"
+        # surface; pick the lightest per-library call that touches the
+        # bucket exactly once.  Any failure here (auth, endpoint, no such
+        # bucket, network) becomes a single explicit error at __init__
+        # time — long before MPI ranks spin up workers.
+        try:
+            if self.storage_library == "s3dlio":
+                # s3dlio.list() on the bucket root raises on connection /
+                # auth / no-such-bucket.  An empty bucket returns []; that
+                # is the expected happy-path result here.
+                self._s3dlio.list(f"{self.uri_scheme}://{bucket}/")
+            elif self.storage_library == "s3torchconnector":
+                # S3Client.list_objects returns an iterator over ListObjectsResult
+                # pages.  Touching the first page forces the request and
+                # raises on auth / endpoint / no-such-bucket.  StopIteration
+                # on an empty bucket is the happy path.
+                pages = self.s3_client.list_objects(bucket)
+                try:
+                    next(iter(pages))
+                except StopIteration:
+                    pass
+            elif self.storage_library == "minio":
+                # MinIOAdapter wraps minio.Minio.bucket_exists() which
+                # raises minio.S3Error on auth / endpoint / DNS / TLS
+                # problems and returns False for "no such bucket".  The
+                # latter case is re-raised inside the try so the caller
+                # gets a single ConnectionError type for every preflight
+                # failure rather than a mix of FileNotFoundError /
+                # ConnectionError they would have to catch separately.
+                if not self.s3_client.bucket_exists(bucket):
+                    raise RuntimeError(
+                        f"bucket '{bucket}' does not exist at endpoint "
+                        f"{self.endpoint!r}"
+                    )
+        except ValueError:
+            # Re-raise our own precise errors unchanged (credentials /
+            # silent-route guard above).
+            raise
+        except Exception as e:
+            raise ConnectionError(
+                f"ObjStoreLibStorage preflight failed: cannot reach bucket "
+                f"'{bucket}' via {self.storage_library} at endpoint "
+                f"{self.endpoint!r}.  "
+                f"Underlying error: {type(e).__name__}: {e}\n"
+                f"  - Check AWS_ENDPOINT_URL (current: "
+                f"{os.environ.get('AWS_ENDPOINT_URL', '<not set>')!r}).\n"
+                f"  - Check credentials are valid for that endpoint.\n"
+                f"  - Check that bucket '{bucket}' exists at the endpoint."
+            ) from e
+
     @dlp.log
     def get_uri(self, id):
         """
