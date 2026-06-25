@@ -25,7 +25,7 @@ dependencies = [
     "pyarrow>=21.0.0",
     "pydftracer>=2.0.2",
     "s3torchconnector>=1.5.0",
-    "s3dlio>=0.9.100",
+    "s3dlio>=0.9.102",
 ]
 
 [project.optional-dependencies]
@@ -59,7 +59,7 @@ log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 
 # To use a local s3dlio wheel during development, uncomment [tool.uv.sources]:
 # [tool.uv.sources]
-# s3dlio = { path = "../s3dlio/target/wheels/s3dlio-0.9.100-cp312-cp312-manylinux_2_39_x86_64.whl" }
+# s3dlio = { path = "../s3dlio/target/wheels/s3dlio-0.9.102-cp312-cp312-manylinux_2_39_x86_64.whl" }
 
 # s3dlio only ships Linux wheels — restrict resolution to Linux to avoid
 # uv failing on the Windows split when no win32 wheel is available.

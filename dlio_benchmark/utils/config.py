@@ -1566,6 +1566,22 @@ def LoadConfig(args, config):
         if 'record_dims' in config['dataset']:
             args.record_dims = list(config['dataset']['record_dims'])
 
+        # Skip-listing controls (issue #504).
+        # Both fields existed on ConfigArguments since PR #27 but LoadConfig
+        # never copied them out of the YAML / Hydra config tree — so any
+        # `++workload.dataset.skip_listing=true` override was silently dropped
+        # and `args.skip_listing` stayed at its default `False`.  bool() is
+        # idempotent on a real bool and handles the rare case where Hydra
+        # leaves it as a string (e.g. when set via ConfigStore at runtime).
+        if 'skip_listing' in config['dataset']:
+            raw = config['dataset']['skip_listing']
+            if isinstance(raw, str):
+                args.skip_listing = raw.strip().lower() in ('true', '1', 'yes', 'on')
+            else:
+                args.skip_listing = bool(raw)
+        if 'listing_validation_interval' in config['dataset']:
+            args.listing_validation_interval = int(config['dataset']['listing_validation_interval'])
+
         # parquet only config
         if 'parquet' in config['dataset']:
             pq_cfg = config['dataset']['parquet']
