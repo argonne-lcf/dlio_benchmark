@@ -725,12 +725,14 @@ class DLIOBenchmark(object):
             # so large-RAM hosts can raise the ceiling without an upstream change.
             drop_caches_timeout = _resolve_drop_caches_timeout()
             drop_caches_disabled = False
-            drop_caches_slow_warned = False
+            drop_caches_timeout_count = 0
+            drop_caches_attempt_count = 0
             for epoch in dft_ai.pipeline.epoch.iter(range(1, self.epochs + 1), include_iter=False):
                 # Flush page cache before each epoch so reads bypass the OS buffer cache.
                 # Rank 0 does the flush via sudo -n (non-interactive); all ranks barrier-
                 # wait so no rank starts reading stale cached data.
                 if self.my_rank == 0 and not drop_caches_disabled:
+                    drop_caches_attempt_count += 1
                     try:
                         subprocess.run(
                             ["sudo", "-n", "sh", "-c", "echo 3 > /proc/sys/vm/drop_caches"],
@@ -743,14 +745,28 @@ class DLIOBenchmark(object):
                         # sudo -n already authenticated (otherwise we'd see a
                         # quick non-zero exit, not a timeout). The kernel is
                         # the slow path. Don't disable — the next epoch retries.
-                        if not drop_caches_slow_warned:
+                        #
+                        # Warn on every timeout (mlcommons/storage #487 reopen):
+                        # the original warn-once-then-silent behavior left
+                        # operators unable to tell whether subsequent retries
+                        # succeeded or kept timing out at exactly the ceiling.
+                        # First occurrence is verbose with the remediation hint;
+                        # later occurrences are a one-liner so the log stays
+                        # scannable while every retry is still surfaced.
+                        drop_caches_timeout_count += 1
+                        if drop_caches_timeout_count == 1:
                             self.logger.warning(
                                 f"Page cache flush did not finish within "
-                                f"{drop_caches_timeout}s. The next epoch will "
-                                f"retry. If this recurs, raise the ceiling with "
-                                f"DLIO_DROP_CACHES_TIMEOUT=<seconds> (e.g. 300)."
+                                f"{drop_caches_timeout}s (epoch {epoch}). The next "
+                                f"epoch will retry. If this recurs, raise the ceiling "
+                                f"with DLIO_DROP_CACHES_TIMEOUT=<seconds> (e.g. 300)."
                             )
-                            drop_caches_slow_warned = True
+                        else:
+                            self.logger.warning(
+                                f"Page cache flush timed out again at "
+                                f"{drop_caches_timeout}s (epoch {epoch}); "
+                                f"see earlier warning for remediation."
+                            )
                     except Exception as exc:
                         drop_caches_disabled = True
                         self.logger.warning(
@@ -795,6 +811,18 @@ class DLIOBenchmark(object):
                     if self.my_rank == 0:
                         self.logger.output(f"{utcnow()} Worker pre-warm complete for epoch {epoch + 1} ({self.args.read_threads} workers spawned)")
                 self.stats.end_epoch(epoch)
+
+            # End-of-run page-cache-flush summary (mlcommons/storage #487 reopen).
+            # Emit only when at least one timeout occurred so quiet runs stay
+            # quiet. Lets the operator confirm at a glance how many epochs were
+            # affected without grepping for per-epoch warnings.
+            if self.my_rank == 0 and drop_caches_timeout_count > 0:
+                self.logger.warning(
+                    f"Page cache flush timed out in {drop_caches_timeout_count} of "
+                    f"{drop_caches_attempt_count} epochs. Reads in those epochs may "
+                    f"have been served from the OS buffer cache; consider raising "
+                    f"DLIO_DROP_CACHES_TIMEOUT for future runs."
+                )
 
         if (self.args.checkpoint_only):
             self._checkpoint()            
