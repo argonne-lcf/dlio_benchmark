@@ -15,6 +15,7 @@
    limitations under the License.
 """
 import math
+import os
 import pickle
 import time
 import torch
@@ -29,6 +30,127 @@ from dlio_benchmark.utils.utility import utcnow, DLIOMPI, DLIOLogger, Profile, d
 from dlio_benchmark.utils.config import ConfigArguments
 
 dlp = Profile(MODULE_DATA_LOADER)
+
+
+# ── mlcommons/storage#528: PyTorch tensor-storage shm reaped by systemd-logind ──
+#
+# The DataLoader's worker processes use PyTorch's THManagedMapAllocator, which
+# creates files under /dev/shm/torch_<pid>_<id>_<n>, maps them into the parent
+# rank, and then calls shm_unlink() on the worker side once the parent has the
+# mapping. If systemd-logind (RemoveIPC=yes, the Ubuntu 22.04/24.04 default)
+# reaps the file between create and unlink, the worker's shm_unlink() returns
+# ENOENT and PyTorch raises:
+#
+#   RuntimeError: could not unlink the shared memory file /torch_... :
+#                 No such file or directory (2)
+#
+# This is the SECOND of two shm-reap vectors triggered by the same root cause
+# as #447 (PRRTE ssh bootstrap → session count → 0 → IPC sweep). The first
+# vector (multiprocessing.SemLock) was mitigated by mlcommons/storage PR #460
+# via multiprocessing_context=fork. This second vector is INDEPENDENT of fork
+# vs spawn and requires a different mitigation.
+#
+# Two ways to make the second vector go away:
+#
+#   1. (Preferred, persistent) Enable systemd user-linger at the OS level:
+#          sudo loginctl enable-linger $USER
+#      The user's systemd manager stays alive across the session-count = 0
+#      transition, so the IPC sweep never fires.
+#
+#   2. (Fallback, code-only — for users without root / linger privilege)
+#      Switch PyTorch's tensor-storage IPC from named-shm to Unix-socket
+#      FD-passing. No files under /dev/shm/torch_* are created, so there's
+#      nothing for logind to reap. Set the env var before launching:
+#          DLIO_TORCH_SHARING_STRATEGY=file_descriptor
+#      and bump FD limits (file_descriptor opens one FD per shared tensor;
+#      typical ulimit -n=1024 is too low for heavy DataLoader fan-out):
+#          ulimit -n 65536
+#
+# This module honours DLIO_TORCH_SHARING_STRATEGY at import time so the call
+# to torch.multiprocessing.set_sharing_strategy() happens BEFORE any tensor
+# moves to shared memory (the PyTorch contract for that API).
+_DLIO_TORCH_SHARING_STRATEGY_ENVVAR = "DLIO_TORCH_SHARING_STRATEGY"
+_requested_strategy = os.environ.get(_DLIO_TORCH_SHARING_STRATEGY_ENVVAR, "").strip()
+if _requested_strategy:
+    import logging as _logging
+    import torch.multiprocessing as _torch_mp
+    _valid_strategies = set(_torch_mp.get_all_sharing_strategies())
+    if _requested_strategy in _valid_strategies:
+        _torch_mp.set_sharing_strategy(_requested_strategy)
+        _logging.info(
+            "DLIO_TORCH_SHARING_STRATEGY=%s applied via "
+            "torch.multiprocessing.set_sharing_strategy() (mlcommons/storage#528 fallback)",
+            _requested_strategy,
+        )
+    else:
+        _logging.warning(
+            "DLIO_TORCH_SHARING_STRATEGY=%r is not in PyTorch's valid set %s; "
+            "leaving sharing strategy at default",
+            _requested_strategy,
+            sorted(_valid_strategies),
+        )
+
+
+# Pattern emitted by PyTorch's THManagedMapAllocator when shm_unlink fails on
+# a /torch_* file. Used to recognize the storage#528 failure mode at the
+# DataLoader iteration boundary so we can re-raise with an actionable banner.
+_TORCH_SHM_UNLINK_ENOENT_PATTERNS = (
+    "could not unlink the shared memory file",
+    "/torch_",
+)
+
+
+def _format_torch_shm_reaped_banner(original_msg: str) -> str:
+    """Build the operator-facing banner for mlcommons/storage#528.
+
+    First-occurrence-level visibility: this lands in the exception traceback
+    the operator sees at the moment of failure. The banner is wider than a
+    normal log line on purpose so it's impossible to skim past, and it lists
+    both the preferred fix (loginctl enable-linger) AND the code-only
+    fallback (DLIO_TORCH_SHARING_STRATEGY=file_descriptor + ulimit -n)
+    because a significant fraction of users hit this without privilege to
+    run enable-linger (HPC / Slurm clusters, containers, hosted envs).
+    """
+    bar = "=" * 80
+    lines = [
+        "",
+        bar,
+        "PyTorch shared-memory file was reaped by systemd-logind during the run.",
+        "",
+        "This is mlcommons/storage#528 — same root cause as #447 (RemoveIPC=yes),",
+        "DIFFERENT shm vector. The PyTorch tensor-storage path (/dev/shm/torch_*)",
+        "is NOT covered by storage PR #460's multiprocessing_context=fork fix.",
+        "",
+        "PRIMARY FIX (preferred — one-time, persistent):",
+        "",
+        "    sudo loginctl enable-linger $USER",
+        "    loginctl show-user $USER --property=Linger   # should report Linger=yes",
+        "",
+        "FALLBACK if you cannot enable linger (HPC cluster, container, hosted env):",
+        "",
+        "    1. Set DLIO_TORCH_SHARING_STRATEGY=file_descriptor BEFORE launching",
+        "       (switches PyTorch IPC to Unix-socket FD-passing; no /dev/shm/torch_*",
+        "       files are created so logind has nothing to reap):",
+        "           export DLIO_TORCH_SHARING_STRATEGY=file_descriptor",
+        "    2. Raise FD limits BEFORE launching mpirun (file_descriptor opens one",
+        "       FD per shared tensor; default ulimit -n=1024 is too low for typical",
+        "       DataLoader fan-out):",
+        "           ulimit -n 65536",
+        "",
+        "DIAGNOSIS:",
+        f"    Original PyTorch error: {original_msg.strip()}",
+        "    Affected: multi-node runs on Ubuntu 22.04 / 24.04 with default",
+        "    /etc/systemd/logind.conf (RemoveIPC=yes) and no per-user linger.",
+        "    See: https://github.com/mlcommons/storage/issues/528",
+        bar,
+    ]
+    return "\n".join(lines)
+
+
+def _is_torch_shm_reaped_error(exc: BaseException) -> bool:
+    """Return True if exc matches the PyTorch shm_unlink-ENOENT pattern."""
+    msg = str(exc)
+    return all(token in msg for token in _TORCH_SHM_UNLINK_ENOENT_PATTERNS)
 
 
 class TorchDataset(Dataset):
@@ -668,11 +790,27 @@ class TorchDataLoader(BaseDataLoader):
         total = self._args.training_steps if self.dataset_type is DatasetType.TRAIN else self._args.eval_steps
         self.logger.debug(f"{utcnow()} Rank {self._args.my_rank} should read {total} batches")
         step = 1
-        for batch in dft_ai.dataloader.fetch.iter(self._dataset):
-            dlp.update(step=step)
-            dft_ai.update(step=step)
-            step += 1
-            yield batch
+        try:
+            for batch in dft_ai.dataloader.fetch.iter(self._dataset):
+                dlp.update(step=step)
+                dft_ai.update(step=step)
+                step += 1
+                yield batch
+        except RuntimeError as _exc:
+            # mlcommons/storage#528: if a DataLoader worker died because
+            # systemd-logind reaped /dev/shm/torch_*, re-raise with a loud
+            # banner so the operator sees the fix path. Other RuntimeErrors
+            # pass through unchanged.
+            if _is_torch_shm_reaped_error(_exc):
+                import sys as _sys
+                _banner = _format_torch_shm_reaped_banner(str(_exc))
+                # logger.error sends it through the configured log handlers,
+                # and an unbuffered stderr write guarantees it lands even if
+                # log capture redirects the logger.
+                self.logger.error(_banner)
+                print(_banner, file=_sys.stderr, flush=True)
+                raise RuntimeError(_banner) from _exc
+            raise
         self.epoch_number += 1
         dlp.update(epoch=self.epoch_number)
         dft_ai.update(epoch=self.epoch_number)
