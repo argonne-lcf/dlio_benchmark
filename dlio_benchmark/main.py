@@ -429,30 +429,38 @@ class DLIOBenchmark(object):
                             del chunk
 
                 else:
-                    # ── Flat layout: stream in chunks of _CHUNK_SIZE ──────
+                    # ── Flat layout: chunked bcast, avoids second full URI list ──
                     if self.my_rank == 0:
                         walk_path = os.path.join(self.args.data_folder, f"{dataset_type}")
                         filenames = self.storage.walk_node(walk_path)
-                        pending = sorted([
-                            self.storage.get_uri(
-                                os.path.join(self.args.data_folder, f"{dataset_type}", entry))
-                            for entry in filenames
-                            if entry.endswith(f'{self.args.format}')
-                        ])
-                        # Send in chunks
-                        for i in range(0, len(pending), _CHUNK_SIZE):
-                            chunk = pending[i:i + _CHUNK_SIZE]
+                        # Build and broadcast URIs in _CHUNK_SIZE batches so we
+                        # never hold a second full sorted-URI list alongside the
+                        # names list.  Previously `pending = sorted([...all URIs...])`
+                        # doubled peak rank-0 RAM for flat-directory datasets
+                        # (e.g. ~5.8 GB extra for 50 M files).
+                        for batch_start in range(0, len(filenames), _CHUNK_SIZE):
+                            batch = filenames[batch_start:batch_start + _CHUNK_SIZE]
+                            chunk = sorted([
+                                self.storage.get_uri(
+                                    os.path.join(self.args.data_folder, f"{dataset_type}", entry))
+                                for entry in batch
+                                if entry.endswith(f'{self.args.format}')
+                            ])
+                            del batch
+                            # Always broadcast (even empty batches) to keep all
+                            # MPI ranks stepping through bcast calls in lockstep.
                             chunk = self.comm.bcast(chunk, root=0)
                             _filter_round_robin(chunk, global_count)
                             global_count += len(chunk)
                             del chunk
-                        del pending
-                        # Signal end
-                        self.comm.bcast([], root=0)
+                        del filenames
+                        # Signal end with None sentinel — distinct from an empty
+                        # batch chunk so non-root ranks don't exit early.
+                        self.comm.bcast(None, root=0)
                     else:
                         while True:
                             chunk = self.comm.bcast(None, root=0)
-                            if not chunk:
+                            if chunk is None:
                                 break
                             _filter_round_robin(chunk, global_count)
                             global_count += len(chunk)
