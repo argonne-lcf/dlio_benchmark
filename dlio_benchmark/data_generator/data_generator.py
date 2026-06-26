@@ -209,20 +209,47 @@ class DataGenerator(ABC):
         # B) Local FS, or single-threaded: original thread pool approach.
         #    For local FS, write is CPU-bound and the combined thread pool
         #    (generate + write in each slot) is correct.
-        def _upload(path, buf, sem):
-            """Upload helper: calls put_data then releases the semaphore slot."""
-            try:
-                self.storage.put_data(path, buf)
-            finally:
-                sem.release()
-
         if not is_local and n_workers > 1:
             # ── True async pipeline (object store) ───────────────────────────
+            import threading
             from threading import Semaphore as _Semaphore
             _sem = _Semaphore(n_workers)
             _futures = []
+
+            # Fast-fail sentinel (mlcommons/storage #504). Without this, every
+            # failed upload landed in a Future and was held in _futures until
+            # the f.result() drain loop below; meanwhile the main thread kept
+            # generating and submitting, growing _futures (and the BytesIO
+            # payloads each Future retains) without bound — OOM. We now stop
+            # queueing new uploads at the first observed put_data() exception
+            # and re-raise it after the in-flight uploads drain.
+            _first_error: list = [None]   # list-of-one for shared-mutable closure
+            _first_error_lock = threading.Lock()
+
+            def _upload(path, buf, sem):
+                """Upload helper: put_data → release semaphore.
+
+                Captures the first exception into _first_error so the
+                submission loop can fast-fail; re-raises so the Future
+                records the failure for the drain loop / debugger.
+                """
+                try:
+                    self.storage.put_data(path, buf)
+                except BaseException as exc:
+                    with _first_error_lock:
+                        if _first_error[0] is None:
+                            _first_error[0] = exc
+                    raise
+                finally:
+                    sem.release()
+
             with ThreadPoolExecutor(max_workers=n_workers) as pool:
                 for job in jobs:
+                    # If an earlier upload already failed, stop queueing so
+                    # _futures (which retains the BytesIO payloads) cannot
+                    # keep growing past the bounded in-flight set.
+                    if _first_error[0] is not None:
+                        break
                     i, dim_, dim1, dim2, file_seed, out_path_spec = job
                     progress(i + 1, self.total_files_to_generate,
                              f"Generating {label}")
@@ -242,9 +269,22 @@ class DataGenerator(ABC):
                     _futures.append(
                         pool.submit(_upload, out_path_spec, upload_data, _sem)
                     )
-                # Wait for all in-flight uploads before leaving the with block.
-                for f in _futures:
-                    f.result()
+                # If we broke early on a captured failure, best-effort cancel
+                # any pending (not-yet-started) futures so workers stop picking
+                # up new work. Already-running uploads will drain on with-exit.
+                if _first_error[0] is not None:
+                    for f in _futures:
+                        f.cancel()
+            # ThreadPoolExecutor.__exit__ has drained in-flight uploads.
+            if _first_error[0] is not None:
+                # Re-raise the original exception (preserves its type for
+                # callers that catch specific subclasses, e.g. botocore errors).
+                raise _first_error[0]
+            # Surface any exception held in a Future that completed AFTER our
+            # last sentinel check (rare but possible: failure between the
+            # submission-loop check and the with-block exit).
+            for f in _futures:
+                f.result()
 
         elif n_workers == 1 or len(jobs) <= 1:
             # ── Serial fallback ───────────────────────────────────────────────
