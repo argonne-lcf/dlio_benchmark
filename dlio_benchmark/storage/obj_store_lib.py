@@ -417,12 +417,30 @@ class ObjStoreLibStorage(S3Storage):
         silently inside worker threads.
 
         Raises:
-            ValueError: credentials missing, or s3torchconnector configured
-                with no endpoint (would silently route to real AWS S3).
+            ValueError: credentials missing, s3torchconnector configured
+                with no endpoint, or local filesystem path missing/not writable.
             ConnectionError: the bucket cannot be reached (wrong endpoint,
                 wrong bucket name, network unreachable, auth rejected).
         """
         bucket = self.namespace.name
+
+        # Local-filesystem URI schemes use the bucket as a filesystem path.
+        # Skip S3 credential / endpoint checks and instead verify that the
+        # directory exists and is readable+writable by the current process.
+        if self.uri_scheme in ('direct', 'file'):
+            if not os.path.isdir(bucket):
+                raise ValueError(
+                    f"ObjStoreLibStorage preflight failed: "
+                    f"storage root {bucket!r} does not exist or is not a directory.  "
+                    f"Create the directory before running with --o-direct."
+                )
+            if not os.access(bucket, os.R_OK | os.W_OK):
+                raise ValueError(
+                    f"ObjStoreLibStorage preflight failed: "
+                    f"storage root {bucket!r} is not readable/writable by the current user.  "
+                    f"Check directory permissions (current uid={os.getuid()})."
+                )
+            return
 
         # 1. Credentials.  Both DLIO and the underlying SDKs treat these as
         # required for any S3-compatible endpoint, so an early ValueError
