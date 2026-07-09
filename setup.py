@@ -8,7 +8,7 @@ HYDRA_VERSION = "1.3.2"
 test_deps = [
     "pytest",
     "pytest-xdist",
-    "dftracer>=2.0.1",
+    "dftracer>=2.0.1,<2.0.3",
 ]
 core_deps = [
     "Pillow>=9.3.0",
@@ -19,7 +19,7 @@ core_deps = [
     "omegaconf>=2.2.0",
     "pandas>=1.5.1",
     "psutil>=5.9.8",
-    "pydftracer>=2.0.2"
+    "pydftracer>=2.0.2,<2.0.3"
 ]
 x86_deps = [
     f"hydra-core>={HYDRA_VERSION}",
@@ -43,7 +43,7 @@ else:
 extras = {
     "test": test_deps,
     "dftracer": [
-        "dftracer>=2.0.1",
+        "dftracer>=2.0.1,<2.0.3",
     ],
     "s3": [
         "s3torchconnector",
