@@ -392,12 +392,7 @@ def test_ai_logging_with_reader(setup_test_env, framework, fmt):
         assert count["train"]      == num_epochs
         assert count["eval"]       == num_epochs
         expected_iters = 2 * num_epochs * (num_data_pp // batch_size)
-        if fmt == "tfrecord":
-            # DFTracer records the end-of-sequence fetch for each train/eval
-            # iterator in every epoch.
-            assert count["fetch_iter"] == expected_iters + 2 * num_epochs
-        else:
-            assert count["fetch_iter"] == expected_iters
+        assert count["fetch_iter"] == expected_iters
         assert count["compute"] == expected_iters
 
         assert count["ckpt_capture"] == 0
