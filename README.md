@@ -30,7 +30,7 @@ pip install .[aistore]
 ```bash
 git clone https://github.com/argonne-lcf/dlio_benchmark
 cd dlio_benchmark/
-pip install .[pydftracer]
+pip install .[dftracer]
 ```
 
 ## Container
