@@ -50,6 +50,7 @@ import uuid
 import pytest
 import os
 import glob
+import re
 from datetime import datetime
 from collections import Counter
 
@@ -108,13 +109,12 @@ def get_rank_trace_files(all_paths, num_procs):
     Returns:
         Dictionary mapping rank number to trace file path
     """
-    # Filter to main trace files only (exclude worker traces like trace-{hash}-app.pfw)
-    main_traces = [p for p in all_paths if "-of-" in p and "-app.pfw" not in p]
-
+    # Main traces are trace-{rank}-of-{num_procs}[-{hash}][-app].pfw (dftracer >= 2.2 adds
+    # the hash and -app suffix). Worker traces have no "-of-" part.
     rank_traces = {}
     for rank in range(num_procs):
-        # Match pattern: trace-{rank}-of-{num_procs}.pfw
-        matching = [p for p in main_traces if f"trace-{rank}-of-{num_procs}.pfw" in p]
+        pattern = re.compile(rf"^trace-{rank}-of-{num_procs}(-[0-9a-f]+)?(-app)?\.pfw$")
+        matching = [p for p in all_paths if pattern.match(os.path.basename(p))]
         if matching:
             rank_traces[rank] = matching[0]
         else:
