@@ -14,9 +14,8 @@ from dlio_benchmark.data_loader.load_mem_data_loader import LoadMemDataLoader
 def loader(monkeypatch):
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
     loader = LoadMemDataLoader.__new__(LoadMemDataLoader)
-    loader._args = SimpleNamespace(my_rank=0)
+    loader._args = SimpleNamespace(my_rank=0, iter_time=0)
     loader.logger = logging.getLogger("DLIO")
-    loader.iter_time = 0
     loader._preloaded_batches = []
     loader._torch_loader = Mock()
     return loader
