@@ -106,7 +106,7 @@ class FormatReader(ABC):
     def read_index(self, global_sample_idx, step):
         self.step = step
         self.image_idx = global_sample_idx
-        self.logger.debug(f"{self.global_index_map}")
+        self.logger.debug("%s", self.global_index_map)
         filename, sample_index = self.global_index_map[global_sample_idx]
         self.logger.debug(f"{utcnow()} read_index {filename}, {sample_index}")
         FormatReader.read_images += 1
