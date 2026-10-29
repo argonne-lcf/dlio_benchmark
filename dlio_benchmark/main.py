@@ -286,9 +286,21 @@ class DLIOBenchmark(object):
         self.stats.start_epoch()
         if self.args.num_checkpoints_write > 0:
             self._checkpoint_write()
-        num_checkpoints_exists = len(self.storage.walk_node(self.args.checkpoint_folder))
+        # Discover existing checkpoints on rank 0 only, then broadcast the count.
+        # Running walk_node() on every rank issues one (recursive) listing per
+        # rank; at scale (e.g. 512 ranks) the concurrent LISTs can overwhelm an
+        # object-store endpoint, which responds with SlowDown/503. If the backend
+        # swallows that error into an empty list, the count is misread as
+        # "0 checkpoints available" and an otherwise-valid read is aborted. The
+        # read loop reconstructs checkpoint names deterministically, so the
+        # listing is only needed for the count.
+        if self.comm.rank == 0:
+            num_checkpoints_exists = len(self.storage.walk_node(self.args.checkpoint_folder))
+        else:
+            num_checkpoints_exists = None
+        num_checkpoints_exists = self.comm.bcast(num_checkpoints_exists, root=0)
         if num_checkpoints_exists < self.args.num_checkpoints_read:
-            raise Exception("Number of checkpoints to be read: {self.args.num_checkpoints_read} is more than the number of checkpoints available: {num_checkpoints_exists}")
+            raise Exception(f"Number of checkpoints to be read: {self.args.num_checkpoints_read} is more than the number of checkpoints available: {num_checkpoints_exists}")
         if self.args.num_checkpoints_read > 0:
             self._checkpoint_read()
         self.stats.end_epoch()
