@@ -23,7 +23,7 @@ import logging
 from typing import Any, Dict, List, ClassVar, Union
 
 from dlio_benchmark.common.constants import MODULE_CONFIG
-from dlio_benchmark.common.enumerations import StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
+from dlio_benchmark.common.enumerations import Model, StorageType, FormatType, Shuffle, ReadType, FileAccess, Compression, \
     FrameworkType, \
     DataLoaderType, Profiler, DataLoaderSampler, CheckpointLocationType, CheckpointMechanismType, CheckpointModeType
 from dlio_benchmark.utils.utility import DLIOMPI, get_trace_name, utcnow
@@ -42,7 +42,7 @@ class ConfigArguments:
 
     # command line argument
     # Framework to use
-    model: str = "default"
+    model: Model = Model.DEFAULT
     framework: FrameworkType = FrameworkType.TENSORFLOW
     # Dataset format, such as PNG, JPEG
     format: FormatType = FormatType.TFRECORD
@@ -87,6 +87,8 @@ class ConfigArguments:
     read_threads: int = 1
     dont_use_mmap: bool = False
     computation_threads: int = 1
+    iter_time: float = 1.0
+    compute: bool = False
     computation_time: ClassVar[Dict[str, Any]] = {}
     preprocess_time: ClassVar[Dict[str, Any]] = {}
     prefetch_size: int = 2
@@ -321,6 +323,16 @@ class ConfigArguments:
                 raise Exception("To perform subset Checkpointing, please set a target data parallelism: workload.parallelism.data.")
             elif self.data_parallelism * self.tensor_parallelism * self.pipeline_parallelism < self.comm_size:
                 raise Exception(f"Comm size: {self.comm_size} is larger than 3D parallelism size: {self.data_parallelism * self.tensor_parallelism * self.pipeline_parallelism}")
+
+        if self.do_train and self.model in (Model.DEFAULT, Model.SLEEP) and not self.computation_time:
+            raise Exception(f"workload.model.name is not set and workload.train.computation_time is not set. Please set one of them.")
+
+        if self.do_checkpoint and self.compute and self.model not in (Model.DEFAULT, Model.SLEEP):
+            raise ValueError(
+                "Checkpointing native model instances is not supported. "
+                "Use the default or sleep model for synthetic checkpointing."
+            )
+
         if self.checkpoint_mode == CheckpointModeType.DEFAULT:
             if self.comm_size % (self.pipeline_parallelism * self.tensor_parallelism) != 0:
                 raise Exception(f"Number of processes {self.comm_size} is not a multiple of model parallelism size: {self.pipeline_parallelism * self.tensor_parallelism}")
@@ -489,8 +501,11 @@ class ConfigArguments:
         if self.data_loader_sampler is None and self.data_loader_classname is None:
             if self.data_loader == DataLoaderType.TENSORFLOW:
                 self.data_loader_sampler = DataLoaderSampler.ITERATIVE
-            elif self.data_loader in [DataLoaderType.PYTORCH, DataLoaderType.DALI]:
+            elif self.data_loader in [DataLoaderType.PYTORCH, DataLoaderType.DALI, DataLoaderType.LOAD_MEM]:
                 self.data_loader_sampler = DataLoaderSampler.INDEX
+            else:
+                # TODOMEET: Check with Hari on this
+                self.data_loader_sampler = DataLoaderSampler.ITERATIVE
         if self.data_loader_classname is not None:
             from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
             classname = self.data_loader_classname.split(".")[-1]
@@ -723,6 +738,8 @@ def GetConfig(args, key):
             value = args.multiprocessing_context
         elif keys[1] == "data_loader":
             value = args.data_loader
+        elif keys[1] == "iter_time":
+            value = args.iter_time
         elif keys[1] == "data_loader_classname":
             value = args.data_loader_classname
         elif keys[1] == "data_loader_sampler":
@@ -770,6 +787,8 @@ def GetConfig(args, key):
             value = args.computation_time.get("stdev", None)
         elif keys[1] == "seed":
             value = args.seed
+        elif keys[1] == "compute":
+            value = args.compute
 
     if len(keys) > 1 and keys[0] == "evaluation":
         if keys[1] == "eval_time":
@@ -966,6 +985,11 @@ def LoadConfig(args, config):
             args.multiprocessing_context = reader['multiprocessing_context']
         if 'data_loader' in reader:
             args.data_loader = DataLoaderType(reader['data_loader'])
+        if 'iter_time' in reader:
+            iter_time = float(reader['iter_time'])
+            if not math.isfinite(iter_time) or iter_time < 0:
+                raise ValueError('reader.iter_time must be a finite non-negative number of seconds')
+            args.iter_time = iter_time
         if 'data_loader_classname' in reader:
             args.data_loader_classname = reader['data_loader_classname']
         if 'data_loader_sampler' in reader:
@@ -1040,6 +1064,8 @@ def LoadConfig(args, config):
             args.computation_time["stdev"] = config['train']['computation_time_stdev']
         if 'seed' in config['train']:
             args.seed = config['train']['seed']
+        if 'compute' in config['train']:
+            args.compute = config['train']['compute']
 
     if 'evaluation' in config:
         args.eval_time = {}
@@ -1105,7 +1131,15 @@ def LoadConfig(args, config):
 
     if 'model' in config:
         if 'name' in config['model']:
-            args.model = config['model']['name']
+            try:
+                args.model = Model(config['model']['name'])
+            except ValueError as error:
+                if args.compute:
+                    raise ValueError(
+                        f"Unsupported workload.model.name: {config['model']['name']}"
+                    ) from error
+                # Legacy model names still select simulated compute.
+                args.model = Model.SLEEP
         if 'type' in config['model']:
             args.model_type = config['model']['type']
         if 'model_size_bytes' in config['model']:

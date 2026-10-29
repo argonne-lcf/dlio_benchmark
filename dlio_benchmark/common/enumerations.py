@@ -111,6 +111,27 @@ class FrameworkType(Enum):
     def __str__(self):
         return self.value
 
+class Model(Enum):
+    """
+    Different Model Architectures
+    """
+    RESNET = 'resnet50'
+    UNET= 'unet3d'
+    BERT = 'bert'
+    SLEEP = 'sleep'
+    DEFAULT = 'default'
+
+    def __str__(self):
+        return self.value
+
+class Loss(Enum):
+    """
+    Loss functions for models
+    """
+    MSE = 'mse'
+    CE = 'cross_entropy'
+    NONE = 'none'
+
 class ComputationType(Enum):
     """
     Different Computation Type for training loop.
@@ -174,6 +195,7 @@ class DataLoaderType(Enum):
     CUSTOM='custom'
     NONE='none'
     SYNTHETIC='synthetic'
+    LOAD_MEM='load_mem'
     
     def __str__(self):
         return self.value

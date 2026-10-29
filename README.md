@@ -33,6 +33,28 @@ cd dlio_benchmark/
 pip install .[dftracer]
 ```
 
+### PyTorch CPU, CUDA, or ROCm installation
+
+Install DLIO with the extra for your hardware:
+
+```bash
+python -m pip install '.[cpu]'   # CPU-only PyTorch
+python -m pip install '.[cuda]'  # NVIDIA: CUDA 12.4, includes DALI
+python -m pip install '.[rocm]'  # AMD: ROCm 6.2
+```
+
+These extras install PyTorch 2.5.1, torchvision 0.20.1, and torchaudio 2.5.1
+from the official PyTorch wheel URLs, without a separate PyTorch installation
+or index option. They support Linux x86_64 with CPython 3.9–3.12. Use one
+hardware extra per environment; unsupported targets fail resolution rather
+than selecting another build. Your GPU and driver must support the selected
+CUDA or ROCm version.
+
+The base install retains the original unpinned PyTorch dependencies. DALI is
+selected by the CUDA extra only. `requirements.txt` retains the original
+dependency list and indexes from `main`; use the extras above to select CPU,
+CUDA, or ROCm. For a CPU test environment, install with `'.[cpu,test]'`.
+
 ## Container
 ```bash
 git clone https://github.com/argonne-lcf/dlio_benchmark
@@ -162,7 +184,17 @@ The YAML file is loaded through hydra (https://hydra.cc/). The default setting a
 
 * Storage backend support: we support local filesystem, AWS S3, and AIStore as storage backends. Other storage backends can be extended.
 
-* Data Loader support: we support reading datasets using TensorFlow tf.data data loader, PyTorch DataLoader, and a set of custom data readers implemented in ./reader. For TensorFlow tf.data data loader, PyTorch DataLoader  
+* Native compute: Set `++workload.train.compute=true` with a supported `workload.model.name` to train a native framework model on each loaded batch. The default `compute=false` keeps the existing simulated `train.computation_time` behavior. Architecture registrations arrive in the later model PRs; this first PR establishes the framework training path and its tests with tiny native models.
+
+* Data Loader support: we support reading datasets using TensorFlow tf.data data loader, PyTorch DataLoader, Load Memory DataLoader, and a set of custom data readers implemented in ./reader.
+  - **PyTorch DataLoader**: Standard PyTorch data loading with multi-threaded workers and prefetching
+  - **TensorFlow DataLoader**: TensorFlow tf.data pipeline for efficient data loading
+  - **Load Memory DataLoader** (`load_mem`): Preloads entire dataset into memory using PyTorch DataLoader, then serves batches from RAM. Useful for:
+    - Benchmarking pure compute performance by eliminating I/O overhead
+    - Small datasets that fit in memory
+    - Repeated epoch training where data can be cached
+    - Usage: Set `++workload.reader.data_loader=load_mem` in your configuration. Use `++workload.reader.iter_time=0` to remove the default one-second delay before each `load_mem` or `synthetic` batch.
+  - **Synthetic DataLoader** (`synthetic`): Generates zero-filled synthetic data without any I/O. Useful for testing framework overhead. Each batch waits for `reader.iter_time` seconds before being returned.
   - We have complete support for tfrecord format in TensorFlow data loader. 
   - For npz, jpg, jpeg, hdf5, we currently only support one sample per file case. In other words, each sample is stored in an independent file. Multiple samples per file case will be supported in future. 
 

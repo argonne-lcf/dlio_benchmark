@@ -52,6 +52,9 @@ class DataLoaderFactory(object):
         elif type == DataLoaderType.SYNTHETIC:
             from dlio_benchmark.data_loader.synthetic_data_loader import SyntheticDataLoader
             return SyntheticDataLoader(format_type, dataset_type, epoch)
+        elif type == DataLoaderType.LOAD_MEM:
+            from dlio_benchmark.data_loader.load_mem_data_loader import LoadMemDataLoader
+            return LoadMemDataLoader(format_type, dataset_type, epoch)
         else:
             if DLIOMPI.get_instance().rank() == 0:
                 print("Data Loader %s not supported or plugins not found" % type)
