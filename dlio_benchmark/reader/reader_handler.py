@@ -87,7 +87,7 @@ class FormatReader(ABC):
             image_processed += 1
             is_last = 0 if image_processed < total_images else 1
             if is_last:
-                while len(batch) is not self.batch_size:
+                while len(batch) != self.batch_size:
                     batch.append(self._args.resized_image)
             dft_ai.data.item.stop()
             if len(batch) == self.batch_size:
