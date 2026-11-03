@@ -23,7 +23,6 @@ core_deps = [
 ]
 x86_deps = [
     f"hydra-core>={HYDRA_VERSION}",
-    "nvidia-dali-cuda120>=1.34.0",
     "tensorflow>=2.13.1",
     "torch>=2.2.0",
     "torchaudio",
@@ -40,8 +39,38 @@ if "ppc" in sysconfig.get_platform():
 else:
     deps.extend(x86_deps)
 
+# Extras cannot configure pip indexes. Direct wheel references select the
+# requested build even when another PyTorch build is already installed.
+def pytorch_deps(backend):
+    packages = {"torch": "2.5.1", "torchaudio": "2.5.1", "torchvision": "0.20.1"}
+    supported = (
+        'implementation_name == "cpython" and sys_platform == "linux" '
+        'and platform_machine == "x86_64" '
+        'and python_version >= "3.9" and python_version < "3.13"'
+    )
+    requirements = []
+    for package, version in packages.items():
+        for minor in range(9, 13):
+            tag = f"cp3{minor}"
+            requirements.append(
+                f"{package} @ https://download.pytorch.org/whl/{backend}/"
+                f"{package}-{version}%2B{backend}-{tag}-{tag}-linux_x86_64.whl"
+                f' ; {supported} and python_version == "3.{minor}"'
+            )
+    # Fail resolution on unsupported targets instead of selecting another build.
+    requirements.append(
+        f'torch==2.5.1+{backend}; implementation_name != "cpython" '
+        'or sys_platform != "linux" or platform_machine != "x86_64" '
+        'or python_version < "3.9" or python_version >= "3.13"'
+    )
+    return requirements
+
+
 extras = {
     "test": test_deps,
+    "cpu": pytorch_deps("cpu"),
+    "cuda": pytorch_deps("cu124") + ["nvidia-dali-cuda120>=1.34.0"],
+    "rocm": pytorch_deps("rocm6.2"),
     "dftracer": [
         "dftracer>=2.2.0",
     ],

@@ -33,7 +33,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 from dlio_benchmark.checkpointing.checkpointing_factory import CheckpointingFactory
 from dlio_benchmark.common.constants import MODULE_DLIO_BENCHMARK
-from dlio_benchmark.common.enumerations import DatasetType, MetadataType
+from dlio_benchmark.common.enumerations import DatasetType, MetadataType, Model, DataLoaderType
 from dlio_benchmark.utils.utility import utcnow, DLIOMPI, Profile, dft_ai, DLIOLogger
 from dlio_benchmark.utils.statscounter import StatsCounter
 from dlio_benchmark.utils.config import LoadConfig, ConfigArguments, GetConfig
@@ -69,8 +69,6 @@ class DLIOBenchmark(object):
         t0 = time()
         self.args = ConfigArguments.get_instance()
         LoadConfig(self.args, cfg)
-        self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root,
-                                                    self.args.framework)
 
         self.output_folder = self.args.output_folder
         os.makedirs(self.args.output_folder, mode=0o755, exist_ok=True)
@@ -79,10 +77,13 @@ class DLIOBenchmark(object):
         self.comm_size = self.args.comm_size = DLIOMPI.get_instance().size()
         self.data_folder = self.args.data_folder
         self.storage_root = self.args.storage_root
+        model_enum = self.args.model if self.args.compute else Model.DEFAULT
+        self.framework = FrameworkFactory().get_framework(self.args.framework,
+                                                          self.args.do_profiling, model_enum)
+        self.storage = StorageFactory().get_storage(self.args.storage_type, self.args.storage_root,
+                                                    self.args.framework)
         if self.args.storage_root:
             self.storage.create_namespace(exist_ok=True)
-        self.framework = FrameworkFactory().get_framework(self.args.framework,
-                                                          self.args.do_profiling)
 
         # Delete previous logfile
         if self.my_rank == 0:
@@ -206,7 +207,8 @@ class DLIOBenchmark(object):
                     file_list_train = fullpaths
                 elif dataset_type is DatasetType.VALID:
                     file_list_eval = fullpaths
-            if not self.generate_only and self.num_files_train > len(file_list_train):
+            if (not self.generate_only and self.num_files_train > len(file_list_train)
+                    and self.args.data_loader != DataLoaderType.SYNTHETIC):
                 raise Exception(
                     "Not enough training dataset is found; Please run the code with ++workload.workflow.generate_data=True")
             if self.do_eval and self.num_files_eval > len(file_list_eval):
@@ -459,6 +461,7 @@ class DLIOBenchmark(object):
 
         global dftracer, dftracer_initialize, dftracer_finalize
 
+        self.framework.finalize()
         self.comm.barrier()
         if self.checkpointing_mechanism:
             self.checkpointing_mechanism.finalize()

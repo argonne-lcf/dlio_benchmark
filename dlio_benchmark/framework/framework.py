@@ -16,19 +16,16 @@
 """
 
 from abc import ABC, abstractmethod
+from typing import Any, Optional, Tuple
 
+from dlio_benchmark.common.constants import MODULE_AI_FRAMEWORK
 from dlio_benchmark.common.enumerations import DatasetType
 from dlio_benchmark.data_loader.data_loader_factory import DataLoaderFactory
 from dlio_benchmark.storage.storage_factory import StorageFactory
-from dlio_benchmark.utils.utility import utcnow, DLIOMPI
-comm = DLIOMPI.get_instance().comm()
-
-import os
-import logging
-from multiprocessing import Process
-
 from dlio_benchmark.utils.config import ConfigArguments
-from dlio_benchmark.utils.utility import sleep
+from dlio_benchmark.utils.utility import Profile, sleep
+
+dlp = Profile(MODULE_AI_FRAMEWORK)
 
 class DummyTraceObject(object):
     def __init__(self, string, step, r):
@@ -71,15 +68,92 @@ class Framework(ABC):
     def trace_object(self, string, step, r):
         pass
 
-    def model(epoch, batch, computation_time):
-        sleep(computation_time)
+    def model(self, epoch, batch, computation_time):
+        if self._model is None or batch is None:
+            sleep(computation_time)
+            return None
+        return self._train_batch(batch)
+
+    @staticmethod
+    def _split_batch(batch) -> Tuple[Any, Optional[Any]]:
+        """Extract inputs and an optional target from supported batch layouts."""
+        while isinstance(batch, (tuple, list)) and len(batch) == 1:
+            batch = batch[0]
+        if isinstance(batch, dict):
+            inputs = None
+            target = None
+            for key in ("data", "image", "input", "inputs"):
+                if key in batch:
+                    inputs = batch[key]
+                    break
+            for key in ("label", "labels", "target", "targets"):
+                if key in batch:
+                    target = batch[key]
+                    break
+            if inputs is None and len(batch) == 1:
+                inputs = next(iter(batch.values()))
+            if inputs is None:
+                raise ValueError(
+                    f"Could not find model input in batch keys {tuple(batch)}"
+                )
+            return inputs, target
+        if isinstance(batch, (tuple, list)) and len(batch) == 2:
+            return batch[0], batch[1]
+        return batch, None
+
+    @staticmethod
+    def _unwrap_tensor_value(value):
+        """Unwrap array and tensor-list containers before backend conversion."""
+        if hasattr(value, "as_array"):
+            value = value.as_array()
+        elif hasattr(value, "as_tensor"):
+            value = value.as_tensor()
+            if hasattr(value, "as_array"):
+                value = value.as_array()
+        return value
+
+    @classmethod
+    @abstractmethod
+    def _as_tensor(cls, value):
+        """Convert a value into a native backend tensor."""
+        raise NotImplementedError
+
+    def _prepare_batch(self, batch):
+        """Validate a labeled batch and apply backend dtype and device rules."""
+        inputs, target = self._split_batch(batch)
+        if target is None:
+            raise ValueError("Native model training requires a target")
+        return self._prepare_inputs(inputs), self._prepare_target(target)
+
+    @abstractmethod
+    def _prepare_inputs(self, inputs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def _prepare_target(self, target):
+        raise NotImplementedError
+
+    def _train_batch(self, batch):
+        inputs, target = self._prepare_batch(batch)
+        return self._train_step(inputs, target)
+
+    @abstractmethod
+    def _train_step(self, inputs, target):
+        """Run the backend's forward pass, loss, and optimizer update."""
+        raise NotImplementedError
 
     @abstractmethod
     def compute(self, batch, epoch_number, step, computation_time):
         pass
 
+    @dlp.log
+    def get_loader(self, dataset_type=DatasetType.TRAIN):
+        if dataset_type == DatasetType.TRAIN:
+            return self.reader_train
+        return self.reader_valid
+
     @abstractmethod
-    def get_loader(self, dataset_type):
+    def finalize(self):
         pass
 
     @abstractmethod

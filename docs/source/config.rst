@@ -364,13 +364,16 @@ reader
      - Description
    * - data_loader
      - tensorflow
-     - select the data loader to use [tensorflow|pytorch|synthetic]. 
+     - select the data loader to use [tensorflow|pytorch|synthetic|load_mem]. The load_mem loader caches batches from the PyTorch loader in RAM.
+   * - iter_time
+     - 1.0
+     - Seconds of delay before each batch from the ``load_mem`` or ``synthetic`` loader; set to ``0`` to disable the delay. For example, ``++workload.reader.iter_time=0.1``.
    * - batch_size
      - 1 
-     - batch size for training
+     - batch size for training I/O and native model computation
    * - batch_size_eval
      - 1 
-     - batch size for evaluation
+     - batch size for evaluation I/O and native model computation
    * - read_threads* 
      - 1
      - number of threads to load the data (for tensorflow and pytorch data loader)
@@ -441,6 +444,9 @@ train
    * - epochs
      - 1
      - number of epochs to simulate
+   * - compute
+     - False
+     - enable native model training when a supported ``model.name`` is configured; otherwise retain simulated computation time
    * - computation_time
      - 0.0
      - | emulated computation time per step in second

@@ -8,6 +8,22 @@ The installation of DLIO follows the standard python package installation as fol
     cd dlio_benchmark/
     pip install .
 
+The base install includes ``pydftracer[dynamo]``, which depends on PyTorch. To use a CPU-only PyTorch wheel, install it first:
+
+.. code-block:: bash
+
+    python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+    python -m pip install .
+
+For CUDA support, choose the wheel index compatible with your Python version and driver from the `PyTorch installer <https://pytorch.org/get-started/locally/>`_. For example, with a supported CUDA 12.4 environment:
+
+.. code-block:: bash
+
+    python -m pip install torch --index-url https://download.pytorch.org/whl/cu124
+    python -m pip install '.[cuda]'
+
+The ``cuda`` extra installs NVIDIA DALI as well. The extra cannot choose a PyTorch wheel index, so install the CUDA PyTorch wheel first. Plain ``pip install .`` and ``pip install -r requirements.txt`` do not explicitly request DALI or select a CUDA wheel index. Because ``pydftracer[dynamo]`` depends on PyTorch, preinstall the CPU wheel as shown above when transitive CUDA packages must be excluded.
+
 To install with AIStore support:
 
 .. code-block:: bash

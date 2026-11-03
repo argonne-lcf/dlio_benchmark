@@ -546,6 +546,11 @@ def test_pytorch_multiprocessing_context(nt, context) -> None:
                                             ("mmap_indexed_binary", "pytorch", "dali", False),
                                             ])
 def test_train(fmt, framework, dataloader, is_even) -> None:
+    if dataloader == "dali":
+        import torch
+        if not torch.cuda.is_available():
+            pytest.skip("DALI requires CUDA")
+        pytest.importorskip("nvidia.dali")
     init()
     clean()
     if is_even:
