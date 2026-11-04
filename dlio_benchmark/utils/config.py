@@ -17,6 +17,7 @@
 import importlib
 import inspect
 import hydra
+from datetime import timedelta
 
 import logging
 
@@ -196,6 +197,9 @@ class ConfigArguments:
     s3_region: str = "us-east-1"
     s3_force_path_style = False
     s3_max_attempts: int = 5
+    # adls gen2 defaults
+    adls_container_sas_ttl = timedelta(hours=1)
+    adls_sas_refresh_margin = timedelta(minutes=5)
 
     def __init__(self):
         """ Virtually private constructor. """
@@ -376,6 +380,25 @@ class ConfigArguments:
                     raise Exception(
                         "AIStore with NPZ requires dlio_benchmark.reader.npz_reader_s3.NPZReaderS3"
                     )
+
+        # ADLS Gen2 specific checks (uses S3 generators/readers)
+        if self.storage_type == StorageType.ADLS_GEN2 and self.framework == FrameworkType.PYTORCH:
+            if self.format not in (FormatType.NPZ, FormatType.NPY):
+                raise Exception(f"For ADLS Gen2 using PyTorch framework, only NPZ or NPY formats are supported. Got format {self.format}")
+            storage_options = self.storage_options or {}
+            if not any([
+                storage_options.get("connection_string"),
+                storage_options.get("account_url"),
+                storage_options.get("account_name"),
+            ]):
+                raise Exception(
+                    "ADLS Gen2 requires authentication configuration. "
+                    "Provide 'connection_string', 'account_url', or 'account_name' in storage_options."
+                )
+            if self.do_checkpoint == True and self.checkpoint_mechanism != CheckpointMechanismType.PT_ADLS_SAVE:
+                raise Exception(
+                    f"For ADLS Gen2 checkpointing using PyTorch framework, invalid mechanism type supported. Got mechanism type as {self.checkpoint_mechanism}"
+                )
 
         # S3 specific checks
         if self.storage_type == StorageType.S3 and self.framework == FrameworkType.PYTORCH:
@@ -671,10 +694,17 @@ def GetConfig(args, key):
         elif keys[1] == "storage_root":
             value = args.storage_root
         elif keys[1] == "storage_options" and len(keys) > 2:
-            if args.storage_type == "s3":
-                option_key = keys[2]
+            option_key = keys[2]
+            if args.storage_type == StorageType.S3:
                 if option_key in ["access_key_id", "secret_access_key", "endpoint_url", "region", "s3_force_path_style", "s3_max_attempts"]:
-                    value = config["storage"].get("storage_options", {}).get(option_key)
+                    value = (args.storage_options or {}).get(option_key)
+            elif args.storage_type == StorageType.ADLS_GEN2:
+                if option_key in ["connection_string", "account_url", "account_name", "container_sas_ttl", "sas_refresh_margin"]:
+                    value = (args.storage_options or {}).get(option_key)
+                    if value is None and option_key == "container_sas_ttl":
+                        value = args.adls_container_sas_ttl
+                    elif value is None and option_key == "sas_refresh_margin":
+                        value = args.adls_sas_refresh_margin
     
     if len(keys) > 1 and keys[0] == "dataset":
         if keys[1] == "record_length_bytes":
@@ -792,6 +822,8 @@ def GetConfig(args, key):
             value = args.steps_between_checkpoints
         elif keys[1] == "type":
             value = args.checkpoint_type
+        elif keys[1] == "checkpoint_mechanism":
+            value = args.checkpoint_mechanism
         elif keys[1] == 'mode':
             value = args.checkpoint_mode
         elif keys[1] == "checkpoint_mechanism_classname":
@@ -1074,6 +1106,8 @@ def LoadConfig(args, config):
             args.steps_between_checkpoints = config['checkpoint']['steps_between_checkpoints']
         if 'type' in config['checkpoint']:
             args.checkpoint_type = CheckpointLocationType(config['checkpoint']['type'])
+        if 'checkpoint_mechanism' in config['checkpoint']:
+            args.checkpoint_mechanism = CheckpointMechanismType(config['checkpoint']['checkpoint_mechanism'])
         if 'checkpoint_mechanism_classname' in config['checkpoint']:
             args.checkpoint_mechanism_classname = config['checkpoint']['checkpoint_mechanism_classname']
         if 'fsync' in config['checkpoint']:
