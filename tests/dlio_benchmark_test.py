@@ -612,6 +612,47 @@ def test_uneven_samples_deadlock(fmt, framework, dataloader, num_files, batch_si
 
 
 @pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
+@pytest.mark.parametrize("num_files, num_samples_per_file, batch_size", [
+    (6, 64, 8),
+    (25, 6, 4),
+    (13, 50, 8),
+])
+def test_uneven_samples_multi_sample_files(num_files, num_samples_per_file, batch_size) -> None:
+    """Files holding several samples must not be trimmed down to zero files (issue #359)."""
+    init()
+    clean()
+    if comm.rank == 0:
+        logging.info("")
+        logging.info("=" * 80)
+        logging.info(f" DLIO test: file trimming with {num_samples_per_file} samples per file ({num_files} files, bs={batch_size})")
+        logging.info("=" * 80)
+    with initialize_config_dir(version_base=None, config_dir=config_dir):
+        cfg = compose(config_name='config', overrides=[
+            '++workload.workflow.train=True',
+            '++workload.workflow.generate_data=True',
+            '++workload.framework=pytorch',
+            '++workload.reader.data_loader=pytorch',
+            '++workload.dataset.format=indexed_binary',
+            f'++workload.dataset.num_samples_per_file={num_samples_per_file}',
+            f'++workload.reader.batch_size={batch_size}',
+            '++workload.train.computation_time=0.01',
+            '++workload.evaluation.eval_time=0.005',
+            '++workload.train.epochs=2',
+            f'++workload.dataset.num_files_train={num_files}',
+            '++workload.reader.read_threads=1',
+        ])
+        benchmark = run_benchmark(cfg)
+    samples_per_step = batch_size * benchmark.comm_size
+    # some files are kept, and their samples fill whole steps on every rank
+    assert benchmark.num_files_train > 0
+    assert (benchmark.num_files_train * num_samples_per_file) % samples_per_step == 0
+    # never trims more than one step's worth of files
+    assert num_files - benchmark.num_files_train < samples_per_step
+    clean()
+    finalize()
+
+
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
 @pytest.mark.parametrize("fmt, framework", [("png", "tensorflow"), ("npz", "tensorflow"),
                                             ("jpeg", "tensorflow"), ("tfrecord", "tensorflow"),
                                             ("hdf5", "tensorflow"), ("csv", "tensorflow"),
