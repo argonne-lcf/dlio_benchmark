@@ -213,6 +213,13 @@ jobs:
           mpirun -np 3 --oversubscribe pytest -k "test_uneven_samples_deadlock[npz-tensorflow-tensorflow-25-4]" -v
           mpirun -np 3 --oversubscribe pytest -k "test_uneven_samples_deadlock[npz-tensorflow-tensorflow-145-16]" -v
           rm -rf data
+      - name: test_uneven_samples_multi_sample_files
+        run: |
+          source ${VENV_PATH}/bin/activate
+          mpirun -np 3 --oversubscribe pytest -k "test_uneven_samples_multi_sample_files[6-64-8]" -v
+          mpirun -np 3 --oversubscribe pytest -k "test_uneven_samples_multi_sample_files[25-6-4]" -v
+          mpirun -np 3 --oversubscribe pytest -k "test_uneven_samples_multi_sample_files[13-50-8]" -v
+          rm -rf data
       - name: test_custom_storage_root_train
         run: |
           source ${VENV_PATH}/bin/activate

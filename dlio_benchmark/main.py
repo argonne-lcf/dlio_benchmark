@@ -226,23 +226,29 @@ class DLIOBenchmark(object):
             Providing number of train or eval that is not evenly divisible between ranks will lead to a deadlock as one of the ranks would do one less iteration.
             This is especially noticeable in case of PyTorch Dataloader that drops last item in batch if it's less that batch size.
             Adjusting number of sample files for even distribution across ranks here, at the source remove dependency on the individual data loader implementations.
+            The unit that has to be aligned is samples, not files: every rank runs
+            num_files * num_samples_per_file / batch_size / comm_size steps. So the number of files is rounded down to a
+            multiple of the smallest file count whose samples fill whole steps on every rank. With one sample per file that
+            count is batch_size * comm_size; with several samples per file it is smaller.
             """
-            samples_per_step_train = self.num_samples * self.batch_size * self.comm_size
-            aligned_samples_train = (self.num_files_train // samples_per_step_train) * samples_per_step_train
-            if self.num_files_train != aligned_samples_train:
+            samples_per_step_train = self.batch_size * self.comm_size
+            files_per_block_train = samples_per_step_train // math.gcd(samples_per_step_train, self.num_samples)
+            aligned_files_train = (self.num_files_train // files_per_block_train) * files_per_block_train
+            if self.num_files_train != aligned_files_train:
                 if self.args.my_rank == 0:
-                    self.logger.warning(f"Trimming number of training files ({self.num_files_train} -> {aligned_samples_train}) to have equal number of train steps for all ranks")
+                    self.logger.warning(f"Trimming number of training files ({self.num_files_train} -> {aligned_files_train}) to have equal number of train steps for all ranks")
 
-                self.num_files_train = aligned_samples_train
+                self.num_files_train = aligned_files_train
                 file_list_train = file_list_train[:self.num_files_train]
 
-            samples_per_step_eval = self.num_samples * self.batch_size_eval * self.comm_size
-            aligned_samples_eval = (self.num_files_eval // samples_per_step_eval) * samples_per_step_eval
-            if self.num_files_eval != aligned_samples_eval:
+            samples_per_step_eval = self.batch_size_eval * self.comm_size
+            files_per_block_eval = samples_per_step_eval // math.gcd(samples_per_step_eval, self.num_samples)
+            aligned_files_eval = (self.num_files_eval // files_per_block_eval) * files_per_block_eval
+            if self.num_files_eval != aligned_files_eval:
                 if self.args.my_rank == 0:
-                    self.logger.warning(f"Trimming number of evaluation files ({self.num_files_eval} -> {aligned_samples_eval}) to have equal number of eval steps for all ranks")
+                    self.logger.warning(f"Trimming number of evaluation files ({self.num_files_eval} -> {aligned_files_eval}) to have equal number of eval steps for all ranks")
 
-                self.num_files_eval = aligned_samples_eval
+                self.num_files_eval = aligned_files_eval
                 file_list_eval = file_list_eval[:self.num_files_eval]
 
         self.args.derive_configurations(file_list_train, file_list_eval)
