@@ -691,5 +691,73 @@ def test_computation_time_distribution(request, dist) -> None:
         clean()
     finalize()
 
+@pytest.mark.parametrize("size", [1, 2, 3])
+def test_torch_sampler_sample_shuffle(size) -> None:
+    """sample_shuffle must change the order the PyTorch index sampler asks for samples (issue #360)."""
+    from dlio_benchmark.common.enumerations import Shuffle
+    from dlio_benchmark.data_loader.torch_data_loader import dlio_sampler
+    num_samples = 96
+
+    def order(rank, shuffle, seed=123, seed_change_epoch=True, epochs=2):
+        sampler = dlio_sampler(rank, size, num_samples, epochs, shuffle, seed, seed_change_epoch)
+        return [list(sampler) for _ in range(epochs)], sampler.indices
+
+    seen = []
+    for rank in range(size):
+        (off_1, off_2), own = order(rank, Shuffle.OFF)
+        assert off_1 == own and off_2 == own
+
+        (seed_1, seed_2), _ = order(rank, Shuffle.SEED)
+        # every epoch reads each of this rank's own samples exactly once, in a shuffled order
+        assert sorted(seed_1) == own and sorted(seed_2) == own
+        assert seed_1 != own and seed_2 != own
+        # the order changes between epochs and is reproducible for the same seed
+        assert seed_1 != seed_2
+        assert order(rank, Shuffle.SEED)[0] == [seed_1, seed_2]
+        assert order(rank, Shuffle.SEED, seed=7)[0][0] != seed_1
+
+        (fixed_1, fixed_2), _ = order(rank, Shuffle.SEED, seed_change_epoch=False)
+        assert fixed_1 == fixed_2 and fixed_1 != own
+
+        (random_1, _), _ = order(rank, Shuffle.RANDOM)
+        assert sorted(random_1) == own and random_1 != own
+        seen.extend(seed_1)
+    # ranks stay disjoint and together cover the whole dataset
+    assert sorted(seen) == list(range(num_samples))
+
+
+@pytest.mark.timeout(TEST_TIMEOUT_SECONDS, method="thread")
+@pytest.mark.parametrize("shuffle", ["seed", "random"])
+def test_torch_sample_shuffle_run(shuffle) -> None:
+    """A PyTorch run with sample_shuffle on completes on every rank."""
+    init()
+    clean()
+    if comm.rank == 0:
+        logging.info("")
+        logging.info("=" * 80)
+        logging.info(f" DLIO test: PyTorch loader with sample_shuffle={shuffle}")
+        logging.info("=" * 80)
+    with initialize_config_dir(version_base=None, config_dir=config_dir):
+        cfg = compose(config_name='config', overrides=[
+            '++workload.workflow.train=True',
+            '++workload.workflow.generate_data=True',
+            '++workload.framework=pytorch',
+            '++workload.reader.data_loader=pytorch',
+            '++workload.dataset.format=npz',
+            '++workload.dataset.num_files_train=24',
+            '++workload.dataset.num_samples_per_file=1',
+            '++workload.reader.batch_size=2',
+            f'++workload.reader.sample_shuffle={shuffle}',
+            '++workload.train.computation_time=0.01',
+            '++workload.evaluation.eval_time=0.005',
+            '++workload.train.epochs=2',
+            '++workload.reader.read_threads=1',
+        ])
+        benchmark = run_benchmark(cfg)
+    assert benchmark.num_files_train == 24
+    clean()
+    finalize()
+
+
 if __name__ == '__main__':
     unittest.main()

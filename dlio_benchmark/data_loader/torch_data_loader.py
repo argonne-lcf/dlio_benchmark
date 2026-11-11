@@ -16,12 +16,13 @@
 """
 import math
 import pickle
+import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import Sampler
 
 from dlio_benchmark.common.constants import MODULE_DATA_LOADER
-from dlio_benchmark.common.enumerations import DatasetType, DataLoaderType
+from dlio_benchmark.common.enumerations import DatasetType, DataLoaderType, Shuffle
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.utils.utility import utcnow, DLIOMPI, Profile, dft_ai
@@ -82,11 +83,15 @@ class TorchDataset(Dataset):
 
 
 class dlio_sampler(Sampler):
-    def __init__(self, rank, size, num_samples, epochs):
+    def __init__(self, rank, size, num_samples, epochs, shuffle=Shuffle.OFF, seed=0, seed_change_epoch=True):
         self.size = size
         self.rank = rank
         self.num_samples = num_samples
         self.epochs = epochs
+        self.shuffle = shuffle
+        self.seed = seed
+        self.seed_change_epoch = seed_change_epoch
+        self.epoch = 0
         samples_per_proc = int(math.ceil(num_samples/size)) 
         start_sample = self.rank * samples_per_proc
         end_sample = (self.rank + 1) * samples_per_proc - 1
@@ -99,8 +104,21 @@ class dlio_sampler(Sampler):
         return self.num_samples
 
     def __iter__(self):
-        for sample in self.indices:
-            yield sample
+        # Called once per epoch: the DataLoader (and this sampler) is kept across epochs.
+        self.epoch += 1
+        if self.shuffle is Shuffle.OFF:
+            yield from self.indices
+            return
+        # Shuffle this rank's own share of the samples. The index map built in
+        # ConfigArguments.reconfigure() only holds this rank's samples, so the order has to be
+        # permuted within the rank. It is done here rather than in that map because the map is
+        # keyed by the sample index itself and the readers keep the map of the first epoch.
+        if self.shuffle is Shuffle.SEED:
+            epoch = self.epoch if self.seed_change_epoch else 0
+            rng = np.random.default_rng([self.seed, epoch, self.rank])
+        else:
+            rng = np.random.default_rng()
+        yield from rng.permutation(self.indices).tolist()
 
 
 class TorchDataLoader(BaseDataLoader):
@@ -112,7 +130,8 @@ class TorchDataLoader(BaseDataLoader):
     def read(self):
         dataset = TorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples,
                                self._args.read_threads, self.batch_size)
-        sampler = dlio_sampler(self._args.my_rank, self._args.comm_size, self.num_samples, self._args.epochs)
+        sampler = dlio_sampler(self._args.my_rank, self._args.comm_size, self.num_samples, self._args.epochs,
+                               self._args.sample_shuffle, self._args.seed, self._args.seed_change_epoch)
         if self._args.read_threads >= 1:
             prefetch_factor = math.ceil(self._args.prefetch_size / self._args.read_threads)
         else:
