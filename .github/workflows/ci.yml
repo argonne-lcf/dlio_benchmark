@@ -201,6 +201,13 @@ jobs:
           mpirun -np 2 pytest -k test_train[mmap_indexed_binary-tensorflow-dali-False] -v
           mpirun -np 2 pytest -k test_train[mmap_indexed_binary-pytorch-dali-False] -v
           rm -rf data
+      - name: test_torch_sample_shuffle
+        run: |
+          source ${VENV_PATH}/bin/activate
+          pytest -k test_torch_sampler_sample_shuffle -v
+          mpirun -np 3 --oversubscribe pytest -k "test_torch_sample_shuffle_run[seed]" -v
+          mpirun -np 3 --oversubscribe pytest -k "test_torch_sample_shuffle_run[random]" -v
+          rm -rf data
       - name: test_uneven_samples_deadlock
         run: |
           source ${VENV_PATH}/bin/activate
