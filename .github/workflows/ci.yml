@@ -254,6 +254,13 @@ jobs:
           mpirun -np 2 pytest -k test_pytorch_multiprocessing_context[2-forkserver] -v
           mpirun -np 2 pytest -k test_pytorch_multiprocessing_context[2-spawn] -v
           rm -rf data
+      - name: test_file_shuffle
+        run: |
+          source ${VENV_PATH}/bin/activate
+          rm -rf output data checkpoints
+          mpirun -np 2 pytest tests/dlio_file_shuffle_test.py -v
+          mpirun -np 3 --oversubscribe pytest tests/dlio_file_shuffle_test.py -v
+          rm -rf data
       - name: test_subset
         run: |
           source ${VENV_PATH}/bin/activate
