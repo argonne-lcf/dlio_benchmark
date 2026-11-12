@@ -632,7 +632,10 @@ class ConfigArguments:
 
     @dlp.log
     def reconfigure(self, epoch_number):
-        if self.data_loader_sampler == DataLoaderSampler.ITERATIVE:
+        # Both samplers map samples to files through these lists. Every rank seeds the same way, so the
+        # ranks permute the lists alike and their shares stay disjoint. The PyTorch loader builds its
+        # readers once, before the first epoch, so it keeps the file order of the first epoch.
+        if self.data_loader_sampler in (DataLoaderSampler.ITERATIVE, DataLoaderSampler.INDEX):
             if self.file_shuffle is not Shuffle.OFF:
                 if self.seed_change_epoch:
                     np.random.seed(self.seed + epoch_number)
@@ -981,7 +984,9 @@ def LoadConfig(args, config):
         if 'prefetch_size' in reader:
             args.prefetch_size = reader['prefetch_size']
         if 'file_shuffle' in reader:
-            args.file_shuffle = reader['file_shuffle']
+            # a bare `off` in YAML is read as False
+            file_shuffle = reader['file_shuffle']
+            args.file_shuffle = Shuffle.OFF if file_shuffle is False else Shuffle(file_shuffle)
         if 'file_access' in reader:
             args.file_access = FileAccess(reader['file_access'])
         if 'shuffle_size' in reader:
